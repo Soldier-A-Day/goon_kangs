@@ -1,6 +1,6 @@
 "use client";
 
-import type { Snapshot } from "@sad/protocol";
+import type { Intent, Snapshot } from "@sad/protocol";
 import { KIND_LABELS, ZONE_LABELS } from "@/lib/labels";
 
 type Quest = Snapshot["quests"][number];
@@ -13,10 +13,12 @@ export function Notebook({
   snapshot,
   memberId,
   onFocus,
+  onSend,
 }: {
   snapshot: Snapshot;
   memberId: string;
   onFocus: (quest: Quest) => void;
+  onSend: (intent: Intent) => void;
 }) {
   const mine = snapshot.quests.filter((quest) => quest.ownerId === memberId);
   const required = mine.filter((q) => q.required && q.delegatedFrom === null);
@@ -24,6 +26,7 @@ export function Notebook({
   const delegated = mine.filter((q) => q.delegatedFrom !== null);
   const joint = snapshot.quests.filter((q) => q.kind === "joint" || q.kind === "surprise");
 
+  const me = snapshot.members.find((m) => m.id === memberId);
   const remaining = required.filter((q) => q.status !== "done").length;
   const nameOf = (id: string | null) =>
     snapshot.members.find((m) => m.id === id)?.name ?? "?";
@@ -51,6 +54,23 @@ export function Notebook({
           quests={delegated}
           onFocus={onFocus}
           note={(quest) => `← ${nameOf(quest.delegatedFrom)}`}
+          action={
+            // QST-05 거부권 — 하루 한 번뿐이라 언제 쓸지가 판단이 된다.
+            // 거부하면 일과는 하달자에게 돌아가고 그의 복무 점수가 깎이지만,
+            // 거부한 쪽도 간부 신뢰도를 잃는다. 공짜 카드가 아니다.
+            me?.vetoUsedToday
+              ? undefined
+              : (quest: Quest) => (
+                  <button
+                    type="button"
+                    onClick={() => onSend({ type: "vetoChore", questId: quest.id })}
+                    className="shrink-0 border border-alert px-2 py-[2px] text-[0.6875rem] font-bold"
+                    style={{ color: "var(--alert)" }}
+                  >
+                    거부
+                  </button>
+                )
+          }
         />
         <QuestGroup title="분대 합동 · 돌발" quests={joint} onFocus={onFocus} />
       </div>
@@ -63,11 +83,13 @@ function QuestGroup({
   quests,
   onFocus,
   note,
+  action,
 }: {
   title: string;
   quests: Quest[];
   onFocus: (quest: Quest) => void;
   note?: (quest: Quest) => string;
+  action?: (quest: Quest) => React.ReactNode;
 }) {
   return (
     <div className="flex flex-col gap-1">
@@ -79,11 +101,11 @@ function QuestGroup({
       ) : (
         <ul className="flex flex-col">
           {quests.map((quest) => (
-            <li key={quest.id}>
+            <li key={quest.id} className="flex items-center gap-2">
               <button
                 type="button"
                 onClick={() => onFocus(quest)}
-                className="flex w-full items-center justify-between gap-2 py-1 text-left text-sm hover:bg-paper-2"
+                className="flex min-w-0 flex-1 items-center justify-between gap-2 py-1 text-left text-sm hover:bg-paper-2"
               >
                 <span
                   className="flex min-w-0 items-baseline gap-2"
@@ -109,14 +131,7 @@ function QuestGroup({
                       : ZONE_LABELS[quest.zone]}
                 </span>
               </button>
-              {quest.progress > 0 && quest.status !== "done" && (
-                <div className="h-[2px] w-full bg-rule-2">
-                  <div
-                    className="h-full bg-accent"
-                    style={{ width: `${quest.progress * 100}%` }}
-                  />
-                </div>
-              )}
+              {action && quest.status !== "done" && action(quest)}
             </li>
           ))}
         </ul>

@@ -38,9 +38,16 @@ export function DelegationWindow({
   const me = snapshot.members.find((m) => m.id === memberId);
   if (!me) return null;
 
+  const isLeader = snapshot.leaderId === memberId;
+
   const chores = snapshot.quests.filter(
     (quest) =>
       quest.kind === "chore" && quest.ownerId === memberId && quest.delegatedFrom === null,
+  );
+
+  // 분대장이 되돌릴 수 있는 것 — 이미 누군가에게 넘어간 공통 일과
+  const reassignable = snapshot.quests.filter(
+    (quest) => quest.kind === "chore" && quest.delegatedFrom !== null,
   );
 
   // 계급이 1단계 이상 높은 사람만 하달할 수 있다. 이병은 최하위라 대상이 없다.
@@ -149,6 +156,50 @@ export function DelegationWindow({
           )}
         </div>
       </div>
+
+      {isLeader && reassignable.length > 0 && (
+        <div className="flex flex-col gap-2 border-t border-rule px-4 py-3">
+          {/*
+            RANK-02 — 분대장 개입은 계급과 무관하다. 이병 분대장이 병장의 하달을 되돌리는
+            장면이 여기서 성립한다. 시간대당 1회뿐이라 언제 쓸지가 판단이 된다.
+          */}
+          <span className="label">분대장 개입 — 시간대당 1회</span>
+          {reassignable.map((quest) => (
+            <div key={quest.id} className="flex flex-wrap items-center gap-2 text-sm">
+              <span className="flex-1">
+                <b className="font-bold">{quest.label}</b>
+                <span className="label ml-2">
+                  {snapshot.members.find((m) => m.id === quest.delegatedFrom)?.name} →{" "}
+                  {snapshot.members.find((m) => m.id === quest.ownerId)?.name}
+                </span>
+              </span>
+              {snapshot.members
+                .filter(
+                  (target) =>
+                    target.presence === "player" &&
+                    target.id !== quest.ownerId &&
+                    target.choresReceived < RECEIVE_LIMIT,
+                )
+                .map((target) => (
+                  <button
+                    key={target.id}
+                    type="button"
+                    onClick={() =>
+                      onSend({
+                        type: "leaderReassign",
+                        questId: quest.id,
+                        toId: target.id,
+                      })
+                    }
+                    className="border border-rule px-2 py-1 text-xs hover:bg-paper-2"
+                  >
+                    {target.name}에게
+                  </button>
+                ))}
+            </div>
+          ))}
+        </div>
+      )}
 
       <div className="flex flex-wrap items-center justify-between gap-3 border-t border-rule px-4 py-2">
         <span className="label">남은 하달 {left}건</span>

@@ -3,12 +3,13 @@
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import type { Session } from "@sad/protocol";
+import type { Intent, Session } from "@sad/protocol";
 import { ConditionRings } from "@/components/hud/ConditionRings";
 import { DelegationWindow } from "@/components/hud/DelegationWindow";
 import { EventLog } from "@/components/hud/EventLog";
 import { Notebook } from "@/components/hud/Notebook";
 import { PhaseBar } from "@/components/hud/PhaseBar";
+import { ChatBar } from "@/components/hud/ChatBar";
 import { QuickBar } from "@/components/hud/QuickBar";
 import { SupplyPanel } from "@/components/hud/SupplyPanel";
 import { ZoneMap } from "@/components/hud/ZoneMap";
@@ -110,9 +111,11 @@ export default function PlayPage() {
             }}
           />
 
+          <ChatBar snapshot={snapshot} memberId={myId} onSend={send} />
+
           <SupplyPanel snapshot={snapshot} memberId={myId} onSend={send} />
 
-          <Squad snapshot={snapshot} myId={myId} />
+          <Squad snapshot={snapshot} myId={myId} onSend={send} />
         </div>
 
         <aside className="flex min-h-0 flex-col gap-4">
@@ -120,6 +123,7 @@ export default function PlayPage() {
           <Notebook
             snapshot={snapshot}
             memberId={myId}
+            onSend={send}
             onFocus={(quest) => {
               if (quest.zone !== me.zone) send({ type: "move", to: quest.zone });
             }}
@@ -131,16 +135,32 @@ export default function PlayPage() {
   );
 }
 
+/**
+ * 3.0 ROLE-02 분대장.
+ *
+ * 계급과 별개다 — 계급은 성과로, 분대장은 투표로 정해진다. 이병 분대장도 가능하며
+ * 그때 "계급이 높은 사람과 지휘권을 가진 사람이 다를 때 오히려 대화가 필요해지는 구조"가 생긴다.
+ * 4인이라 2:2 동수가 나올 수 있고, 그때는 현직이 유지된다.
+ */
 function Squad({
   snapshot,
   myId,
+  onSend,
 }: {
   snapshot: ReturnType<typeof useGameSocket>["snapshot"] & object;
   myId: string;
+  onSend: (intent: Intent) => void;
 }) {
   return (
     <section className="flex flex-col gap-2 border border-rule bg-paper-3 p-3">
-      <span className="label">분대</span>
+      <div className="flex items-baseline justify-between">
+        <span className="label">분대</span>
+        <span className="label">
+          {snapshot.leaderId
+            ? `분대장 ${snapshot.members.find((m) => m.id === snapshot.leaderId)?.name ?? "?"}`
+            : "분대장 미선출 — 과반이 모여야 정해진다"}
+        </span>
+      </div>
       <ul className="grid gap-px bg-rule sm:grid-cols-2">
         {snapshot.members.map((member) => {
           const proxy = member.presence !== "player";
@@ -164,11 +184,29 @@ function Squad({
                   {member.onGuardTonight && " · 오늘 경계"}
                 </span>
               </span>
-              <span
-                className="font-mono text-sm font-bold tabular-nums"
-                style={{ color: remaining === 0 ? "var(--accent)" : "var(--alert)" }}
-              >
-                {remaining}
+              <span className="flex shrink-0 items-center gap-2">
+                {!proxy && member.id !== snapshot.leaderId && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      onSend({ type: "voteLeader", candidateId: member.id })
+                    }
+                    className="border border-rule px-2 py-[2px] text-[0.6875rem] text-ink-2 hover:bg-paper-2"
+                  >
+                    분대장 추천
+                  </button>
+                )}
+                {member.id === snapshot.leaderId && (
+                  <span className="label" style={{ color: "var(--accent)" }}>
+                    분대장
+                  </span>
+                )}
+                <span
+                  className="font-mono text-sm font-bold tabular-nums"
+                  style={{ color: remaining === 0 ? "var(--accent)" : "var(--alert)" }}
+                >
+                  {remaining}
+                </span>
               </span>
             </li>
           );
