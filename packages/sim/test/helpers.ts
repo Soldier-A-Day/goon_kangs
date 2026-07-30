@@ -51,10 +51,20 @@ export function withQuests(state: RunState, quests: readonly Quest[]): RunState 
  */
 export function playDays(state: RunState, days: number): RunState {
   let current = beginDay(state);
+
   for (let i = 0; i < days; i += 1) {
+    const day = current.day;
     current = completeRequired(current);
-    current = step(current, { type: "tick", elapsedMs: FULL_DAY }).state;
+
+    // 하루 길이는 고정이 아니다 — 우수분대(80+)는 개인정비를 20초 더 받고,
+    // 스킵 이월도 칸을 늘린다. 그래서 일차가 바뀔 때까지 흘려보낸다.
+    let guard = 0;
+    while (current.status === "running" && current.day === day) {
+      current = step(current, { type: "tick", elapsedMs: 30 * SECOND }).state;
+      if (guard++ > 100) throw new Error(`하루가 끝나지 않는다: D-${day}`);
+    }
     if (current.status !== "running") break;
   }
+
   return current;
 }

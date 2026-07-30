@@ -96,6 +96,7 @@ export function createRun(options: CreateRunOptions): RunState {
     warnings: 0,
     nextDayExtraRequired: 0,
     personalTimeRevoked: false,
+    nextDayExtraOptional: 0,
     startedHumans: options.members.length,
 
     nightGuardIds: [],

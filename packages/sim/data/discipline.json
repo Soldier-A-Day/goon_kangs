@@ -1,0 +1,45 @@
+{
+  "_source": "SAD-GDD-001 12.0 군기 · 신뢰도 시스템 (DISC-01 · DISC-02)",
+  "_note": "증감값은 기획서 그대로다. 다만 적용 단위(분대 1회 / 건당)는 기획서에 없어 여기서 정한다 — 선택 미완을 건당으로 매기면 하루 −32가 나와 게이지가 즉사하므로 분대 1회로 둔다.",
+  "start": 60,
+  "gains": {
+    "onTimeCompletion": { "value": 5, "unit": "squadPerDay", "_desc": "그날 필수를 전부 제시간에 완수" },
+    "jointFlawless": { "value": 12, "unit": "perQuest", "_desc": "합동 퀘스트 무결 완수 — 부분 성공은 제외" },
+    "surpriseSuccess": { "value": 10, "unit": "perQuest", "_desc": "돌발 성공" },
+    "noInjuryDay": { "value": 6, "unit": "squadPerDay", "_desc": "전원 무부상 마감" }
+  },
+  "losses": {
+    "optionalMissed": { "value": -8, "unit": "squadPerDay", "_desc": "선택 퀘스트 미완" },
+    "late": { "value": -4, "unit": "perEvent", "_desc": "지각 — 시간대 종료 후 완료 시도" },
+    "equipmentLost": { "value": -10, "unit": "perEvent" },
+    "memberIncident": { "value": -15, "unit": "perEvent", "_desc": "인원 사고 — 후송 발생 시 일회성" },
+    "npcProxy": { "value": -3, "unit": "perProxyPerDay", "_desc": "대리 NPC 유지. 처음부터 빈 자리는 면제(ROLE-03)" }
+  },
+  "bands": [
+    {
+      "id": "excellent",
+      "min": 80,
+      "label": "우수분대",
+      "surpriseChance": 0.08,
+      "supplyBonus": 0.2,
+      "personalTimeBonusSeconds": 20
+    },
+    { "id": "normal", "min": 40, "label": "보통", "surpriseChance": 0.18 },
+    {
+      "id": "loose",
+      "min": 20,
+      "label": "이완",
+      "surpriseChance": 0.33,
+      "nextDayExtraOptional": 2
+    },
+    { "id": "warning", "min": 0, "label": "경고", "surpriseChance": 0.4 }
+  ],
+  "officers": {
+    "_note": "DISC-02 — 세 간부가 각각 다른 항목을 본다. 구제권은 런당 1회, 신뢰도가 가장 높은 1명만 발동한다(10.0 구제 총량 3회에 포함).",
+    "platoonLeader": { "label": "소대장", "watches": "training" },
+    "assistant": { "label": "부소대장", "watches": "disciplineAndAppearance" },
+    "sergeantMajor": { "label": "행보관", "watches": "supplyAndMaintenance" },
+    "dailyDelta": 3,
+    "max": 100
+  }
+}

@@ -1,4 +1,5 @@
 import { applyPhaseCondition, applySleep } from "./condition.js";
+import { applyDailyDiscipline } from "./discipline.js";
 import { applyJudgement, checkDisband } from "./judge.js";
 import { PHASE_COUNT, phaseAt, phaseDurationMsFor } from "./phases.js";
 import { generateDayQuests, rollSurprise } from "./quests.js";
@@ -155,6 +156,8 @@ function skipPhase(state: RunState, effects: Effect[]): void {
  * 세이브·리트라이의 단위는 하루다(1.0).
  */
 function endDay(state: RunState, effects: Effect[]): void {
+  // 그날의 성과를 군기에 먼저 반영한 뒤 판정한다 (DISC-01)
+  applyDailyDiscipline(state, effects);
   applyJudgement(state, effects);
   if (state.status !== "running") return;
 

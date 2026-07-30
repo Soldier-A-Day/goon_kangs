@@ -1,5 +1,6 @@
 import questTable from "../data/quests.json";
 import { planFor, type DayPlan } from "./curriculum.js";
+import { disciplineBand } from "./discipline.js";
 import { nextInt, sample, type RngState } from "./rng.js";
 import type { Member, PhaseId, Quest, RunState, TempBand, Zone } from "./types.js";
 
@@ -99,7 +100,8 @@ export function generateDayQuests(state: RunState): readonly [Quest[], RngState]
       COUNTS.roleQuestsPerDay.max,
     );
     rng = afterRoleTotal;
-    const roleTotal = Math.max(roleRequired, roleTotalRoll);
+    // 이완 구간(20~39)에 빠지면 다음 날 선택 퀘스트가 늘어난다 (12.0)
+    const roleTotal = Math.max(roleRequired, roleTotalRoll) + state.nextDayExtraOptional;
 
     const templates = ROLE_POOL[member.role] ?? [];
     const [picked, afterPick] = sample(rng, templates, roleTotal);
@@ -186,12 +188,12 @@ export function rollSurprise(
   ];
 }
 
+/**
+ * 돌발 발생률은 군기 구간이 결정한다 (12.0 DISC-01).
+ * 우수분대는 −10%p, 이완 구간은 +15%p — 6.0의 "기본 18% · 최대 40%"와 같은 말이다.
+ */
 export function surpriseChance(discipline: number): number {
-  const { surpriseBaseChance: base, surpriseMaxChance: max, surpriseDisciplinePivot: pivot } =
-    COUNTS;
-  if (discipline >= pivot) return base;
-  const ratio = (pivot - discipline) / pivot;
-  return Math.min(max, base + ratio * (max - base));
+  return disciplineBand(discipline).surpriseChance;
 }
 
 /* ---------------------------------------------------------------- 내부 */

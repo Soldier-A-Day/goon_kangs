@@ -213,6 +213,8 @@ export interface RunState {
   nextDayExtraRequired: number;
   /** 완화 난이도 2차 근신 — 다음 날 개인정비 시간대 박탈 */
   personalTimeRevoked: boolean;
+  /** 12.0 이완 구간(20~39)의 대가 — 다음 날 선택 퀘스트가 늘어난다 */
+  nextDayExtraOptional: number;
   /** 런 시작 시점의 실제 플레이어 수. 분대 해체 판정의 기준이 된다 */
   readonly startedHumans: number;
   /** 오늘 밤 경계 근무자 — 회복량 50%를 감수한 사람들 (COND-02) */
@@ -247,6 +249,12 @@ export type Effect =
   | { readonly type: "phaseEnded"; readonly phase: PhaseId; readonly lockedQuestIds: string[] }
   | { readonly type: "dayJudged"; readonly judgement: Judgement }
   | { readonly type: "sleepSettled"; readonly guardIds: readonly string[] }
+  | {
+      readonly type: "disciplineChanged";
+      readonly from: number;
+      readonly to: number;
+      readonly band: string;
+    }
   | {
       readonly type: "conditionCritical";
       readonly memberId: string;

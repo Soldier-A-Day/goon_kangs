@@ -8,7 +8,7 @@ import {
   type RunStatus,
 } from "@sad/sim";
 
-const FULL_DAY_MS = 6 * 60 * 1000;
+const TICK_MS = 30 * 1000;
 
 /**
  * 봇 정책.
@@ -54,8 +54,10 @@ export function simulateRun(
   let rng = createRngState(seed ^ 0x9e3779b9);
 
   while (state.status === "running") {
-    // sim이 배정한 그날의 일과를 봇이 정확도만큼 처리한다.
-    // 실패한 필수는 그대로 남아 점호에서 조건 A를 깎는다.
+    const day = state.day;
+
+    // sim이 배정한 그날의 일과를 봇이 정확도만큼 처리한다. 퀘스트당 시도는 하루 한 번뿐이다 —
+    // 하루 길이가 고정이 아니므로(우수분대 +20초) 고정 시간으로 끊으면 재시도가 생긴다.
     for (const quest of state.quests) {
       if (quest.status === "done") continue;
 
@@ -76,7 +78,12 @@ export function simulateRun(
       }
     }
 
-    state = step(state, { type: "tick", elapsedMs: FULL_DAY_MS }).state;
+    // 일차가 바뀔 때까지 흘려보낸다
+    let guard = 0;
+    while (state.status === "running" && state.day === day) {
+      state = step(state, { type: "tick", elapsedMs: TICK_MS }).state;
+      if (guard++ > 200) throw new Error(`하루가 끝나지 않는다: D-${day}`);
+    }
   }
 
   const last = state.judgements[state.judgements.length - 1];

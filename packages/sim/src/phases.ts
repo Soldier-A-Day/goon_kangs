@@ -1,4 +1,5 @@
 import phaseTable from "../data/phases.json";
+import { disciplineBand } from "./discipline.js";
 import type { PhaseId, RunState } from "./types.js";
 
 export interface PhaseDef {
@@ -33,5 +34,13 @@ export function currentPhase(state: RunState): PhaseDef {
  * 빨리 끝내는 것이 손해가 되면 아무도 서두르지 않는다.
  */
 export function phaseDurationMsFor(state: RunState, index: number): number {
-  return phaseAt(index).baseSeconds * 1000 + state.carryoverMs;
+  const phase = phaseAt(index);
+  let seconds = phase.baseSeconds;
+
+  // 12.0 우수분대(80+)는 개인정비 시간을 20초 더 받는다
+  if (phase.id === "personal") {
+    seconds += disciplineBand(state.discipline).personalTimeBonusSeconds ?? 0;
+  }
+
+  return seconds * 1000 + state.carryoverMs;
 }

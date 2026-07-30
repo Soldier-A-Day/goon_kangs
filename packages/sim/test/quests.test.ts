@@ -205,12 +205,11 @@ describe("훈련 체크포인트와 합동", () => {
 });
 
 describe("QST-02 돌발", () => {
-  it("군기가 낮을수록 자주 터진다 (18% → 최대 40%)", () => {
+  it("군기 구간이 발생률을 정한다 — 우수분대 −10%p, 이완 +15%p (12.0)", () => {
     expect(surpriseChance(60)).toBeCloseTo(0.18, 5);
-    expect(surpriseChance(100)).toBeCloseTo(0.18, 5);
+    expect(surpriseChance(100)).toBeCloseTo(0.08, 5);
+    expect(surpriseChance(30)).toBeCloseTo(0.33, 5);
     expect(surpriseChance(0)).toBeCloseTo(0.4, 5);
-    expect(surpriseChance(30)).toBeGreaterThan(0.18);
-    expect(surpriseChance(30)).toBeLessThan(0.4);
   });
 
   it("돌발은 필수가 아니다 — 시간을 잡아먹는 것이 페널티다", () => {
