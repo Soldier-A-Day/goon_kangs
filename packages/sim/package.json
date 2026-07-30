@@ -1,0 +1,21 @@
+{
+  "name": "@sad/sim",
+  "version": "0.1.0",
+  "private": true,
+  "description": "SOLDIER : A DAY 규칙 엔진 — 결정론적 순수 함수. 런타임 의존성 0 (ARCH-02)",
+  "type": "module",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./data/*": "./data/*"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "^5",
+    "vitest": "^3"
+  }
+}

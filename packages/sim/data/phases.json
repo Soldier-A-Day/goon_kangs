@@ -1,0 +1,44 @@
+{
+  "_source": "SAD-GDD-001 4.0 시간대 · 일과 시스템",
+  "_note": "1일 = 6칸. 기본 60초이며 훈련 칸은 curriculum 쪽에서 배수를 덮어쓴다. 이 값을 바꾸면 1일 실시간 길이(20.0 결정 항목 5)가 바뀐다.",
+  "phases": [
+    {
+      "id": "reveille",
+      "clock": "06:00",
+      "label": "기상 · 점검",
+      "baseSeconds": 60
+    },
+    {
+      "id": "morning",
+      "clock": "08:00",
+      "label": "오전 일과",
+      "baseSeconds": 60,
+      "delegationWindowSeconds": 20
+    },
+    {
+      "id": "lunch",
+      "clock": "12:00",
+      "label": "중식 · 휴식",
+      "baseSeconds": 60
+    },
+    {
+      "id": "afternoon",
+      "clock": "14:00",
+      "label": "오후 일과",
+      "baseSeconds": 60,
+      "delegationWindowSeconds": 20
+    },
+    {
+      "id": "personal",
+      "clock": "18:00",
+      "label": "석식 · 개인정비",
+      "baseSeconds": 60
+    },
+    {
+      "id": "rollcall",
+      "clock": "22:00",
+      "label": "점호 · 판정",
+      "baseSeconds": 60
+    }
+  ]
+}
