@@ -1,26 +1,65 @@
 @import "tailwindcss";
 
+/* 기획서(SAD-GDD-001)의 종이·잉크 팔레트를 그대로 쓴다 —
+   문서와 게임 화면이 같은 세계로 읽히게 하려는 의도다. */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --paper: #e3e4dd;
+  --paper-2: #d8dad0;
+  --paper-3: #eeefe9;
+  --ink: #191c16;
+  --ink-2: #5a6053;
+  --rule: #b7baad;
+  --rule-2: #cbcdc2;
+  --accent: #5e6e42;
+  --cold: #3f6e90;
+  --heat: #b25e2c;
+  --alert: #9e3226;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --paper: #12150f;
+    --paper-2: #1b1f17;
+    --paper-3: #191d14;
+    --ink: #dfe2d6;
+    --ink-2: #99a18d;
+    --rule: #333a2b;
+    --rule-2: #262c1f;
+    --accent: #9ab06f;
+    --cold: #7faecf;
+    --heat: #db8b55;
+    --alert: #d2594b;
   }
 }
 
+@theme inline {
+  --color-paper: var(--paper);
+  --color-paper-2: var(--paper-2);
+  --color-paper-3: var(--paper-3);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-rule: var(--rule);
+  --color-rule-2: var(--rule-2);
+  --color-accent: var(--accent);
+  --color-cold: var(--cold);
+  --color-heat: var(--heat);
+  --color-alert: var(--alert);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--paper);
+  color: var(--ink);
+  font-family:
+    "Apple SD Gothic Neo", Pretendard, "Malgun Gothic", "Noto Sans KR", system-ui,
+    sans-serif;
+}
+
+.label {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 0.6875rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-2);
 }
