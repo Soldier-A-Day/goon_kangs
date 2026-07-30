@@ -126,6 +126,9 @@ function makeMember(
     choresReceived: 0,
     vetoUsedToday: false,
     delegatedThisWindow: 0,
+    collapseTimerMs: 0,
+    evacuations: 0,
+    rehabDaysLeft: 0,
   };
 }
 

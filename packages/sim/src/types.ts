@@ -114,6 +114,12 @@ export interface Member {
   vetoUsedToday: boolean;
   /** 이번 하달 창에서 넘긴 건수 — 계급차 상한과 비교한다 */
   delegatedThisWindow: number;
+  /** 열사병 2단계 진입 후 경과 — 60초를 버티면 쓰러진다 (5.0) */
+  collapseTimerMs: number;
+  /** 후송 횟수. 1회라도 있으면 모범 전역이 불가능해진다 (JDG-03) */
+  evacuations: number;
+  /** 복귀 후 재활 일수 — 이 동안 본인 필수가 +1 된다 */
+  rehabDaysLeft: number;
 }
 
 /* ----------------------------------------------------------------- 퀘스트 */
@@ -265,7 +271,11 @@ export type SimEvent =
       readonly leaderId: string;
       readonly questId: string;
       readonly toId: string;
-    };
+    }
+  /** 중도 이탈 — 장기 대리로 전환된다 */
+  | { readonly type: "leaveRun"; readonly memberId: string }
+  /** 재접속 */
+  | { readonly type: "rejoinRun"; readonly memberId: string };
 
 export type Effect =
   | { readonly type: "weatherRolled"; readonly day: number; readonly weather: WeatherState }
@@ -303,6 +313,20 @@ export type Effect =
       readonly toId: string;
       readonly questId: string;
     }
+  | {
+      readonly type: "memberEvacuated";
+      readonly memberId: string;
+      /** 대리가 잔여 필수를 인수했는가 — 못 하면 조건 A가 깨진다 */
+      readonly absorbed: boolean;
+    }
+  | { readonly type: "memberLeft"; readonly memberId: string }
+  | {
+      readonly type: "memberReturned";
+      readonly memberId: string;
+      /** 후송 복귀는 축적을 전부 잃은 "복귀 신병"이다 */
+      readonly asRecruit: boolean;
+    }
+  | { readonly type: "forcedSleep"; readonly memberId: string }
   | { readonly type: "runEnded"; readonly status: RunStatus }
   | { readonly type: "log"; readonly message: string };
 

@@ -11,3 +11,4 @@ export * from "./quests.js";
 export * from "./condition.js";
 export * from "./discipline.js";
 export * from "./delegation.js";
+export * from "./evacuation.js";

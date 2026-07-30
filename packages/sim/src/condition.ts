@@ -95,6 +95,7 @@ export function applySleep(state: RunState, effects: Effect[]): void {
     stats.fatigue += SLEEP.fatigue * ratio;
     stats.mental += SLEEP.mental * ratio * mentalRecoveryMultiplier(state, member);
     stats.hygiene += SLEEP.hygiene * ratio;
+    stats.hydration += SLEEP.hydration * ratio;
 
     clampStats(stats);
   }

@@ -7,6 +7,14 @@ import {
   vetoChore,
 } from "./delegation.js";
 import { applyDailyDiscipline } from "./discipline.js";
+import {
+  applyForcedSleep,
+  checkCollapses,
+  leaveRun,
+  rejoinRun,
+  returnEvacuees,
+  tickRehab,
+} from "./evacuation.js";
 import { applyJudgement, checkDisband } from "./judge.js";
 import { PHASE_COUNT, phaseAt, phaseDurationMsFor } from "./phases.js";
 import { generateDayQuests, rollSurprise } from "./quests.js";
@@ -61,6 +69,13 @@ export function step(state: RunState, event: SimEvent): StepResult {
       break;
     case "leaderReassign":
       leaderReassign(next, event.leaderId, event.questId, event.toId, effects);
+      break;
+    case "leaveRun":
+      leaveRun(next, event.memberId, effects);
+      checkDisband(next, effects);
+      break;
+    case "rejoinRun":
+      rejoinRun(next, event.memberId, effects);
       break;
   }
 
@@ -156,6 +171,9 @@ function endPhase(state: RunState, effects: Effect[]): void {
 
   // 컨디션은 시간대 단위로 정산된다 — 밴드 드레인이 몸으로 체감되는 지점이다 (7.0)
   applyPhaseCondition(state, phase.id, effects);
+  applyForcedSleep(state, phase.id, effects);
+  // 쓰러짐은 점호를 기다리지 않는다 (JDG-03)
+  checkCollapses(state, state.phaseDurationMs, effects);
 
   effects.push({ type: "phaseEnded", phase: phase.id, lockedQuestIds: locked });
 
@@ -200,6 +218,9 @@ function endDay(state: RunState, effects: Effect[]): void {
     member.vetoUsedToday = false;
     member.choresReceived = 0;
   }
+  // 후송자는 다음 날 아침 "복귀 신병"으로 돌아온다 — 몸은 돌려주고 기록은 지운다
+  returnEvacuees(state, effects);
+  tickRehab(state);
   state.quests = [];
   beginDay(state, effects);
 }

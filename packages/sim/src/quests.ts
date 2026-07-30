@@ -90,9 +90,12 @@ export function generateDayQuests(state: RunState): readonly [Quest[], RngState]
       });
     }
 
+    // 복귀 후 2일간은 본인 필수가 +1 된다 (JDG-03 재활) —
+    // 계급이 낮아 잃을 축적이 없는 플레이어에게도 실질 비용을 부과하는 장치다
+    const memberTarget = requiredTarget + (member.rehabDaysLeft > 0 ? 1 : 0);
     const roleRequired = Math.max(
       0,
-      requiredTarget - plan.required.trainingCheckpoints - requiredChores,
+      memberTarget - plan.required.trainingCheckpoints - requiredChores,
     );
     const [roleTotalRoll, afterRoleTotal] = nextInt(
       rng,

@@ -1,5 +1,5 @@
 import disciplineTable from "../data/discipline.json";
-import type { Effect, Member, RunState } from "./types.js";
+import type { Effect, RunState } from "./types.js";
 
 const GAINS = disciplineTable.gains;
 const LOSSES = disciplineTable.losses;
@@ -34,10 +34,17 @@ export function adjustDiscipline(state: RunState, delta: number): void {
  * 4인 중 절반이 NPC라는 뜻이므로 우수분대(80+)는 불가능해진다.
  */
 export function disciplineCap(state: RunState): number {
-  const proxies = state.members.filter(
-    (m) => m.presence === "npcEvac" || m.presence === "npcLeave",
+  return countProxies(state) >= 2 ? 60 : 100;
+}
+
+/** 대리 수. 처음부터 빈 자리(npcVacant)는 사고가 아니므로 세지 않는다 (ROLE-03) */
+function countProxies(state: RunState): number {
+  return state.members.filter(
+    (m) =>
+      m.presence === "npcEvac" ||
+      m.presence === "npcLeave" ||
+      m.presence === "evacuated",
   ).length;
-  return proxies >= 2 ? 60 : 100;
 }
 
 /**
@@ -78,9 +85,7 @@ export function applyDailyDiscipline(state: RunState, effects: Effect[]): void {
   }
 
   // 대리 유지 비용. 처음부터 비어 있던 자리(npcVacant)는 면제된다 — 사고와 선택은 다른 사건이다
-  const proxies = state.members.filter(
-    (m) => m.presence === "npcEvac" || m.presence === "npcLeave",
-  ).length;
+  const proxies = countProxies(state);
   if (proxies > 0) {
     adjustDiscipline(state, LOSSES.npcProxy.value * proxies);
   }
@@ -163,8 +168,4 @@ export function penalizeLate(state: RunState): void {
 
 export function penalizeEquipmentLoss(state: RunState): void {
   adjustDiscipline(state, LOSSES.equipmentLost.value);
-}
-
-export function isProxy(member: Member): boolean {
-  return member.presence === "npcEvac" || member.presence === "npcLeave";
 }
