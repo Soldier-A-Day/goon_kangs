@@ -1,3 +1,4 @@
+import { applyPhaseCondition, applySleep } from "./condition.js";
 import { applyJudgement, checkDisband } from "./judge.js";
 import { PHASE_COUNT, phaseAt, phaseDurationMsFor } from "./phases.js";
 import { generateDayQuests, rollSurprise } from "./quests.js";
@@ -124,6 +125,9 @@ function endPhase(state: RunState, effects: Effect[]): void {
     locked.push(quest.id);
   }
 
+  // 컨디션은 시간대 단위로 정산된다 — 밴드 드레인이 몸으로 체감되는 지점이다 (7.0)
+  applyPhaseCondition(state, phase.id, effects);
+
   effects.push({ type: "phaseEnded", phase: phase.id, lockedQuestIds: locked });
 
   if (state.phaseIndex >= PHASE_COUNT - 1) {
@@ -156,6 +160,9 @@ function endDay(state: RunState, effects: Effect[]): void {
 
   checkDisband(state, effects);
   if (state.status !== "running") return;
+
+  // 점호 통과 → 야간 경계 배정 → 취침 정산 (COND-02)
+  applySleep(state, effects);
 
   state.day += 1;
   for (const member of state.members) {

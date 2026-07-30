@@ -1,0 +1,37 @@
+{
+  "_source": "SAD-GDD-001 7.0 컨디션 스탯 시스템 · 표 7-1 · COND-02",
+  "_note": "체력·수분·피로의 시간대당 변화는 온도 밴드가 결정한다(표 5-1). 여기 있는 값은 밴드와 무관한 기본 소모(청결·포만감)와 회복량이다. 표 7-1은 회복 '수단'만 정하고 수치는 주지 않으므로 아래 값은 여기서 정의했으며 밸런싱 대상이다.",
+  "_recoveryNote": "phaseRecovery는 지금 자동으로 들어간다. 세면·샤워·배식이 개인정비 시간대의 퀘스트로 들어오면 이 자동 회복을 줄이고 행동으로 옮겨야 한다 — 그때가 청결이 진짜 선택이 되는 시점이다.",
+  "perPhaseDecay": {
+    "hygiene": -6,
+    "satiety": -8,
+    "mental": -2
+  },
+  "phaseRecovery": {
+    "lunch": { "satiety": 45, "hydration": 25, "mental": 6 },
+    "personal": { "satiety": 45, "hygiene": 45, "mental": 6, "hydration": 15 }
+  },
+  "sleep": {
+    "stamina": 35,
+    "fatigue": -60,
+    "mental": 20,
+    "hygiene": 10,
+    "_note": "야간 경계 근무자는 회복량의 50%만 받는다 — 경계 순번은 다음 날의 빚이다",
+    "guardRecoveryRatio": 0.5,
+    "guardsPerNight": 2
+  },
+  "modifiers": {
+    "_note": "보직 실패의 파급(3.0). 의무병이 없으면 전원 포만감·수분 소모가 2배가 된다.",
+    "noMedicMultiplier": 2,
+    "starvingStaminaDrain": -5,
+    "bivouacHygienePenalty": -8
+  },
+  "thresholds": {
+    "dehydrationStage1": 30,
+    "dehydrationStage2": 10,
+    "collapseAfterSeconds": 60,
+    "forcedSleepFatigue": 100,
+    "panicMental": 0,
+    "inputDelaySecondsOnPanic": 0.3
+  }
+}

@@ -98,6 +98,7 @@ export function createRun(options: CreateRunOptions): RunState {
     personalTimeRevoked: false,
     startedHumans: options.members.length,
 
+    nightGuardIds: [],
     judgements: [],
   };
 }
