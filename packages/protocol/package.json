@@ -1,0 +1,22 @@
+{
+  "name": "@sad/protocol",
+  "version": "0.1.0",
+  "private": true,
+  "description": "스냅샷·입력 스키마 단일 정의. 여기서 TS 타입이 나오고, Unity 트랙이 붙으면 같은 정의에서 C# 클래스를 생성한다 (ARCH-02)",
+  "type": "module",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "zod": "^4"
+  },
+  "devDependencies": {
+    "typescript": "^5",
+    "vitest": "^3"
+  }
+}
