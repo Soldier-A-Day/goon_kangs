@@ -1,12 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { PHASES, phaseAt, step, type Quest, type RunState } from "../src/index.js";
-import { fullSquad } from "./helpers.js";
-
-const SECOND = 1000;
-
-function begin(state: RunState): RunState {
-  return step(state, { type: "beginDay" }).state;
-}
+import { SECOND, beginDay as begin, fullSquad, playDays } from "./helpers.js";
 
 function tick(state: RunState, ms: number): RunState {
   return step(state, { type: "tick", elapsedMs: ms }).state;
@@ -17,6 +11,7 @@ function makeQuest(overrides: Partial<Quest> = {}): Quest {
     id: "q1",
     kind: "role",
     label: "총기 수입",
+    training: null,
     ownerId: "p1",
     required: true,
     phase: "reveille",
@@ -52,8 +47,7 @@ describe("TIME-01 시간대 엔진", () => {
   });
 
   it("6칸이 모두 끝나면 다음 날이 온다", () => {
-    let state = begin(fullSquad());
-    state = tick(state, 6 * 60 * SECOND);
+    const state = playDays(fullSquad(), 1);
     expect(state.day).toBe(2);
     expect(state.phaseIndex).toBe(0);
   });
@@ -107,10 +101,7 @@ describe("TIME-01 시간대 엔진", () => {
   });
 
   it("18일차가 끝나면 런이 종료된다", () => {
-    let state = begin(fullSquad());
-    for (let day = 0; day < 18; day += 1) {
-      state = tick(state, 6 * 60 * SECOND);
-    }
+    const state = playDays(fullSquad(), 18);
     expect(state.status).toBe("cleared");
     expect(state.day).toBe(18);
   });

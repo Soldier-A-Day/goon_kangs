@@ -1,5 +1,6 @@
 import { applyJudgement, checkDisband } from "./judge.js";
 import { PHASE_COUNT, phaseAt, phaseDurationMsFor } from "./phases.js";
+import { generateDayQuests, rollSurprise } from "./quests.js";
 import { rollWeather } from "./weather.js";
 import { travelMs } from "./zones.js";
 import type {
@@ -61,6 +62,12 @@ function beginDay(state: RunState, effects: Effect[]): void {
   state.rngState = rng;
   effects.push({ type: "weatherRolled", day: state.day, weather });
 
+  const [quests, afterQuests] = generateDayQuests(state);
+  state.quests = quests;
+  state.rngState = afterQuests;
+  // 경고로 얹힌 필수는 하루만 유효하다
+  state.nextDayExtraRequired = 0;
+
   startPhase(state, effects);
 }
 
@@ -68,11 +75,16 @@ function startPhase(state: RunState, effects: Effect[]): void {
   state.phaseElapsedMs = 0;
   state.phaseDurationMs = phaseDurationMsFor(state, state.phaseIndex);
   state.carryoverMs = 0;
-  effects.push({
-    type: "phaseStarted",
-    phase: phaseAt(state.phaseIndex).id,
-    day: state.day,
-  });
+
+  const phase = phaseAt(state.phaseIndex);
+  const [surprise, rng] = rollSurprise(state, phase.id);
+  state.rngState = rng;
+  if (surprise) {
+    state.quests.push(surprise);
+    effects.push({ type: "surpriseRaised", quest: surprise });
+  }
+
+  effects.push({ type: "phaseStarted", phase: phase.id, day: state.day });
 }
 
 function applyTick(state: RunState, elapsedMs: number, effects: Effect[]): void {

@@ -68,6 +68,7 @@ export function simulateRun(
           id: `d${state.day}-${member.id}-${i}`,
           kind: "role",
           label: "필수",
+          training: null,
           ownerId: member.id,
           required: true,
           phase: "morning",

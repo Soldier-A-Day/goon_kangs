@@ -1,0 +1,95 @@
+{
+  "_source": "SAD-GDD-001 6.0 퀘스트 시스템 · 표 3-1 · 표 6-1 · 표 6-2 · QST-02",
+  "_note": "workSeconds는 상호작용 소요이며 이동 시간은 포함하지 않는다. 공통 일과가 짧은데도 비싼 이유는 동선이 멀기 때문이다(6.1) — 그 비용은 구역 그래프가 만든다.",
+  "counts": {
+    "roleQuestsPerDay": { "min": 3, "max": 5 },
+    "chorePoolPerDay": { "min": 2, "max": 4 },
+    "surpriseBaseChance": 0.18,
+    "surpriseMaxChance": 0.4,
+    "surpriseDisciplinePivot": 60
+  },
+  "role": {
+    "rifle": [
+      { "id": "rifle-clean", "label": "총기 수입", "zone": "barracks", "workSeconds": 20 },
+      { "id": "rifle-ammo", "label": "탄약 수령", "zone": "storage", "workSeconds": 18 },
+      { "id": "rifle-guard", "label": "야간 경계근무", "zone": "guardPost", "workSeconds": 25 },
+      { "id": "rifle-watch", "label": "사주경계", "zone": "drillGround", "workSeconds": 22 },
+      { "id": "rifle-drill", "label": "제식 훈련", "zone": "drillGround", "workSeconds": 20 },
+      { "id": "rifle-patrol", "label": "울타리 순찰", "zone": "guardPost", "workSeconds": 24 }
+    ],
+    "comms": [
+      { "id": "comms-antenna", "label": "안테나 설치", "zone": "drillGround", "workSeconds": 24 },
+      { "id": "comms-battery", "label": "무전기 배터리 교체", "zone": "storage", "workSeconds": 16 },
+      { "id": "comms-code", "label": "암호 코드 갱신", "zone": "barracks", "workSeconds": 20 },
+      { "id": "comms-sched", "label": "정시 교신", "zone": "guardPost", "workSeconds": 18 },
+      { "id": "comms-line", "label": "유선 가설 점검", "zone": "trainingField", "workSeconds": 22 },
+      { "id": "comms-log", "label": "교신 일지 정리", "zone": "barracks", "workSeconds": 15 }
+    ],
+    "medic": [
+      { "id": "medic-stock", "label": "의약품 재고 정리", "zone": "infirmary", "workSeconds": 18 },
+      { "id": "medic-evac", "label": "환자 후송", "zone": "infirmary", "workSeconds": 24 },
+      { "id": "medic-hygiene", "label": "위생 점검", "zone": "barracks", "workSeconds": 20 },
+      { "id": "medic-water", "label": "식수 검수", "zone": "messHall", "workSeconds": 16 },
+      { "id": "medic-mess", "label": "배식 감독", "zone": "messHall", "workSeconds": 22 },
+      { "id": "medic-check", "label": "환자 발생 점검", "zone": "barracks", "workSeconds": 18 }
+    ],
+    "admin": [
+      { "id": "admin-board", "label": "일과표 게시", "zone": "barracks", "workSeconds": 15 },
+      { "id": "admin-report", "label": "인원 보고", "zone": "barracks", "workSeconds": 16 },
+      { "id": "admin-supply", "label": "보급 청구", "zone": "storage", "workSeconds": 22 },
+      { "id": "admin-heater", "label": "난방기 점검", "zone": "boilerRoom", "workSeconds": 24 },
+      { "id": "admin-tools", "label": "공구 정리", "zone": "storage", "workSeconds": 18 },
+      { "id": "admin-fuel", "label": "발전기 급유", "zone": "boilerRoom", "workSeconds": 20 }
+    ]
+  },
+  "chores": [
+    { "id": "chore-floor", "label": "생활관 바닥 청소", "zone": "barracks", "workSeconds": 15, "bands": "all" },
+    { "id": "chore-toilet", "label": "화장실 청소", "zone": "barracks", "workSeconds": 18, "bands": "all" },
+    { "id": "chore-hall", "label": "복도 정돈", "zone": "barracks", "workSeconds": 12, "bands": "all" },
+    { "id": "chore-trash", "label": "쓰레기 분리 배출", "zone": "messHall", "workSeconds": 14, "bands": "all" },
+    { "id": "chore-leftover", "label": "잔반 처리", "zone": "messHall", "workSeconds": 16, "bands": "all" },
+    { "id": "chore-carry", "label": "물자 운반 (창고→부서)", "zone": "storage", "workSeconds": 20, "bands": "all" },
+    { "id": "chore-laundry", "label": "세탁물 수령·배분", "zone": "barracks", "workSeconds": 15, "bands": "all" },
+    { "id": "chore-dish", "label": "식기 세척 보조", "zone": "messHall", "workSeconds": 18, "bands": "all" },
+    { "id": "chore-locker", "label": "관물대 정돈 점검", "zone": "barracks", "workSeconds": 12, "bands": "all" },
+    { "id": "chore-flag", "label": "태극기 게양·강하", "zone": "drillGround", "workSeconds": 10, "bands": "all" },
+    { "id": "chore-post", "label": "초소 주변 정리", "zone": "guardPost", "workSeconds": 16, "bands": "all" },
+
+    { "id": "chore-snow", "label": "제설", "zone": "drillGround", "workSeconds": 20, "bands": "coldOrBelow", "required": true },
+    { "id": "chore-sand", "label": "결빙 구간 모래 살포", "zone": "drillGround", "workSeconds": 18, "bands": "coldOrBelow", "required": true },
+    { "id": "chore-boiler", "label": "보일러실 순찰", "zone": "boilerRoom", "workSeconds": 16, "bands": "coldOrBelow", "required": true },
+    { "id": "chore-pipe", "label": "수도 동파 점검", "zone": "boilerRoom", "workSeconds": 18, "bands": "coldOrBelow", "required": true },
+    { "id": "chore-fuelcan", "label": "난로 유류통 운반", "zone": "storage", "workSeconds": 20, "bands": "coldOrBelow", "required": true },
+
+    { "id": "chore-weed", "label": "제초", "zone": "drillGround", "workSeconds": 20, "bands": "warmOrAbove", "required": true },
+    { "id": "chore-drain", "label": "배수로 정비", "zone": "drillGround", "workSeconds": 18, "bands": "warmOrAbove", "required": true },
+    { "id": "chore-shade", "label": "그늘막 설치 보조", "zone": "trainingField", "workSeconds": 16, "bands": "warmOrAbove", "required": true },
+    { "id": "chore-water", "label": "급수통 보충", "zone": "messHall", "workSeconds": 14, "bands": "warmOrAbove", "required": true },
+    { "id": "chore-spray", "label": "방역 소독 보조", "zone": "barracks", "workSeconds": 16, "bands": "warmOrAbove", "required": true },
+
+    { "id": "chore-firewood", "label": "땔감 수집", "zone": "trainingField", "workSeconds": 20, "bands": "all", "bivouacOnly": true },
+    { "id": "chore-fieldmess", "label": "취사장 정리", "zone": "trainingField", "workSeconds": 18, "bands": "all", "bivouacOnly": true },
+    { "id": "chore-tentdrain", "label": "텐트 주변 배수", "zone": "trainingField", "workSeconds": 16, "bands": "all", "bivouacOnly": true }
+  ],
+  "surprise": [
+    { "id": "sur-inspection", "label": "불시 점호", "zone": "barracks", "workSeconds": 15 },
+    { "id": "sur-patient", "label": "환자 발생", "zone": "infirmary", "workSeconds": 20 },
+    { "id": "sur-truck", "label": "보급 트럭 도착", "zone": "storage", "workSeconds": 24 },
+    { "id": "sur-lecture", "label": "정신교육 소집", "zone": "barracks", "workSeconds": 18 },
+    { "id": "sur-leak", "label": "누수 · 정전", "zone": "boilerRoom", "workSeconds": 22 },
+    { "id": "sur-lost", "label": "분실 장비 수색", "zone": "drillGround", "workSeconds": 25 },
+    { "id": "sur-officer", "label": "간부 순찰", "zone": "drillGround", "workSeconds": 14 },
+    { "id": "sur-help", "label": "타 분대 지원 요청", "zone": "trainingField", "workSeconds": 22 },
+    { "id": "sur-extra", "label": "제초 · 제설 추가", "zone": "drillGround", "workSeconds": 20 }
+  ],
+  "joint": {
+    "workSeconds": 40,
+    "zoneByDay": {
+      "default": "drillGround",
+      "storage": [4, 14],
+      "trainingField": [8, 9, 10, 12, 13, 15, 16, 17],
+      "guardPost": [7],
+      "barracks": [1, 18]
+    }
+  }
+}

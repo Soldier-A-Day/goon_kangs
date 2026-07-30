@@ -1,15 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { judgeDay, step, type Quest, type RunState } from "../src/index.js";
-import { fullSquad } from "./helpers.js";
-
-const SECOND = 1000;
-const FULL_DAY = 6 * 60 * SECOND;
+import { FULL_DAY, SECOND, beginDay, fullSquad, playDays, withQuests } from "./helpers.js";
 
 function quest(overrides: Partial<Quest> = {}): Quest {
   return {
     id: "q",
     kind: "role",
     label: "총기 수입",
+    training: null,
     ownerId: "p1",
     required: true,
     phase: "morning",
@@ -23,12 +21,13 @@ function quest(overrides: Partial<Quest> = {}): Quest {
   };
 }
 
-/** 하루를 통째로 흘려보내 점호까지 도달시킨다 */
-function playDay(state: RunState): RunState {
-  return step(step(state, { type: "beginDay" }).state, {
-    type: "tick",
-    elapsedMs: FULL_DAY,
-  }).state;
+/**
+ * 하루를 통째로 흘려보내 점호까지 도달시킨다.
+ * 배정기가 만든 일과는 지우고 테스트가 준 퀘스트만 남긴다 — 판정 규칙만 보기 위해서다.
+ */
+function playDay(state: RunState, quests: readonly Quest[] = []): RunState {
+  const started = withQuests(beginDay(state), quests);
+  return step(started, { type: "tick", elapsedMs: FULL_DAY }).state;
 }
 
 describe("JDG-01 판정 조건", () => {
@@ -96,8 +95,7 @@ describe("JDG-01 판정 조건", () => {
 describe("구제권 (총량 3회)", () => {
   it("미완료 필수 1건은 구제로 메워지고 구제권이 하나 줄어든다", () => {
     let state = fullSquad();
-    state.quests = [quest({ id: "a", status: "done" }), quest({ id: "b" })];
-    state = playDay(state);
+    state = playDay(state, [quest({ id: "a", status: "done" }), quest({ id: "b" })]);
 
     expect(state.status).toBe("running");
     expect(state.day).toBe(2);
@@ -108,8 +106,7 @@ describe("구제권 (총량 3회)", () => {
   it("구제권이 없으면 필수 1건 미달로 런이 끝난다", () => {
     let state = fullSquad();
     state.reliefsRemaining = 0;
-    state.quests = [quest({ id: "a" })];
-    state = playDay(state);
+    state = playDay(state, [quest({ id: "a" })]);
 
     expect(state.status).toBe("discharged");
     expect(state.judgements[0]?.failedAt).toBe("A");
@@ -135,8 +132,7 @@ describe("난이도", () => {
   it("정규 — 1회 미달로 즉시 종료된다", () => {
     let state = fullSquad({ config: { difficulty: "regular" } });
     state.reliefsRemaining = 0;
-    state.quests = [quest({ id: "a" })];
-    state = playDay(state);
+    state = playDay(state, [quest({ id: "a" })]);
     expect(state.status).toBe("discharged");
   });
 
@@ -144,19 +140,15 @@ describe("난이도", () => {
     let state = fullSquad({ config: { difficulty: "relaxed" } });
     state.reliefsRemaining = 0;
 
-    state.quests = [quest({ id: "a" })];
-    state = playDay(state);
+    state = playDay(state, [quest({ id: "a" })]);
     expect(state.status).toBe("running");
     expect(state.warnings).toBe(1);
-    expect(state.nextDayExtraRequired).toBe(2);
 
-    state.quests = [quest({ id: "b" })];
-    state = playDay(state);
+    state = playDay(state, [quest({ id: "b" })]);
     expect(state.status).toBe("running");
     expect(state.personalTimeRevoked).toBe(true);
 
-    state.quests = [quest({ id: "c" })];
-    state = playDay(state);
+    state = playDay(state, [quest({ id: "c" })]);
     expect(state.status).toBe("discharged");
     expect(state.warnings).toBe(3);
   });
@@ -167,8 +159,7 @@ describe("런 종료", () => {
     let state = fullSquad({ config: { difficulty: "relaxed" } });
     state.reliefsRemaining = 0;
     state.day = 18;
-    state.quests = [quest({ id: "a" })];
-    state = playDay(state);
+    state = playDay(state, [quest({ id: "a" })]);
 
     expect(state.status).toBe("discharged");
     expect(state.day).toBe(18);
@@ -176,11 +167,7 @@ describe("런 종료", () => {
   });
 
   it("18일차 판정을 통과하면 전역한다", () => {
-    let state = fullSquad();
-    state = step(state, { type: "beginDay" }).state;
-    for (let day = 0; day < 18; day += 1) {
-      state = step(state, { type: "tick", elapsedMs: FULL_DAY }).state;
-    }
+    const state = playDays(fullSquad(), 18);
     expect(state.status).toBe("cleared");
     expect(state.judgements).toHaveLength(18);
     expect(state.judgements.every((j) => j.passed)).toBe(true);
@@ -191,21 +178,20 @@ describe("런 종료", () => {
     for (const member of state.members.slice(1)) {
       member.presence = "npcLeave";
     }
-    state = playDay(state);
+    state = playDays(state, 1);
     expect(state.status).toBe("disbanded");
   });
 
   it("처음부터 1인으로 시작한 방은 해체 대상이 아니다", () => {
     let state = fullSquad({ members: [{ id: "p1", name: "김소총", role: "rifle" }] });
-    state = playDay(state);
+    state = playDays(state, 1);
     expect(state.status).toBe("running");
   });
 
   it("런이 끝난 뒤의 이벤트는 상태를 바꾸지 않는다", () => {
     let state = fullSquad();
     state.reliefsRemaining = 0;
-    state.quests = [quest({ id: "a" })];
-    state = playDay(state);
+    state = playDay(state, [quest({ id: "a" })]);
 
     const after = step(state, { type: "tick", elapsedMs: FULL_DAY }).state;
     expect(after.day).toBe(state.day);

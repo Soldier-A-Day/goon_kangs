@@ -119,6 +119,8 @@ export interface Quest {
   readonly id: string;
   readonly kind: QuestKind;
   readonly label: string;
+  /** 훈련 구간 체크포인트면 훈련 id. 일반 퀘스트는 null (TRN-02) */
+  readonly training: string | null;
   /** 개인 판정 대상이면 담당자 id, 합동이면 null */
   ownerId: string | null;
   /** 필수 여부 — 필수 미완료는 조건 A를 깨고 분대 전원 게임오버 (JDG-01) */
@@ -239,6 +241,7 @@ export type SimEvent =
 export type Effect =
   | { readonly type: "weatherRolled"; readonly day: number; readonly weather: WeatherState }
   | { readonly type: "phaseStarted"; readonly phase: PhaseId; readonly day: number }
+  | { readonly type: "surpriseRaised"; readonly quest: Quest }
   | { readonly type: "phaseEnded"; readonly phase: PhaseId; readonly lockedQuestIds: string[] }
   | { readonly type: "dayJudged"; readonly judgement: Judgement }
   | { readonly type: "runEnded"; readonly status: RunStatus }
