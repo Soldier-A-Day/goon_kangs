@@ -5,3 +5,4 @@ export * from "./phases.js";
 export * from "./run.js";
 export * from "./judge.js";
 export { step } from "./step.js";
+export * from "./curriculum.js";

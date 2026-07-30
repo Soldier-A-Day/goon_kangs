@@ -1,0 +1,189 @@
+{
+  "_source": "SAD-GDD-001 표 14-1 · 일차별 커리큘럼 (4인 편성 기준)",
+  "_note": "required는 1인당 하루 필수 건수다. 18일 합계 76건은 10.0 완주율 계산의 기준이므로 손대면 밸런스가 통째로 흔들린다. required.total = trainingCheckpoints + roleQuests (9.0 TRN-02 카운트 규칙).",
+  "days": [
+    {
+      "day": 1,
+      "climate": "fixedNormal",
+      "focus": "입소, 보직 선택, 관물대 정리",
+      "training": null,
+      "joint": "내무실 정돈",
+      "jointActors": 2,
+      "required": { "total": 2, "trainingCheckpoints": 0, "roleQuests": 2 },
+      "unlocks": ["기본 조작", "수첩"]
+    },
+    {
+      "day": 2,
+      "climate": "fixedNormal",
+      "focus": "일과 숙지, 제식, 총기 지급",
+      "training": null,
+      "joint": "탄약고 수령",
+      "jointActors": 2,
+      "required": { "total": 3, "trainingCheckpoints": 0, "roleQuests": 3 },
+      "unlocks": ["보직 퀘스트", "공통 일과", "군기"]
+    },
+    {
+      "day": 3,
+      "climate": "roll",
+      "focus": "사격훈련, 보급일, 1차 승급 심사",
+      "training": "marksmanship",
+      "joint": "사격 제원 전달 통신 → 소총",
+      "jointActors": 2,
+      "required": { "total": 3, "trainingCheckpoints": 1, "roleQuests": 2 },
+      "unlocks": ["보급 청구", "무전", "계급(일병)", "하달"]
+    },
+    {
+      "day": 4,
+      "climate": "roll",
+      "focus": "피복 정리, 불시 점호 확정 발생",
+      "training": null,
+      "joint": "창고 재물조사",
+      "jointActors": 3,
+      "required": { "total": 4, "trainingCheckpoints": 0, "roleQuests": 4 },
+      "unlocks": ["돌발 퀘스트"]
+    },
+    {
+      "day": 5,
+      "climate": "roll",
+      "focus": "화생방 훈련",
+      "training": "cbrn",
+      "joint": "제독소 운용",
+      "jointActors": 3,
+      "required": { "total": 4, "trainingCheckpoints": 2, "roleQuests": 2 },
+      "unlocks": ["방독면", "수분 압박"]
+    },
+    {
+      "day": 6,
+      "climate": "fixedNormal",
+      "focus": "정비일 — 휴식, 종교행사, 세탁, 승급 보류자 재심사",
+      "training": null,
+      "joint": null,
+      "jointActors": 0,
+      "required": { "total": 2, "trainingCheckpoints": 0, "roleQuests": 2 },
+      "unlocks": ["간부 대화"],
+      "maintenanceDay": true
+    },
+    {
+      "day": 7,
+      "climate": "roll",
+      "focus": "야간 경계근무 도입, 정신교육",
+      "training": null,
+      "joint": "초소 교대 인수인계",
+      "jointActors": 2,
+      "required": { "total": 4, "trainingCheckpoints": 0, "roleQuests": 4 },
+      "unlocks": ["야간 경계", "수면 부채"]
+    },
+    {
+      "day": 8,
+      "climate": "roll",
+      "focus": "20km 행군 (혹서 시 야간 이월)",
+      "training": "march",
+      "joint": "낙오자 부축 · 급수 관리",
+      "jointActors": 4,
+      "required": { "total": 5, "trainingCheckpoints": 4, "roleQuests": 1 },
+      "unlocks": ["대열 시스템"]
+    },
+    {
+      "day": 9,
+      "climate": "roll",
+      "focus": "숙영 1일차 — 텐트·배식·경계, 2차 승급 심사",
+      "training": "bivouac",
+      "joint": "텐트 설치 행정 주도",
+      "jointActors": 3,
+      "required": { "total": 5, "trainingCheckpoints": 3, "roleQuests": 2 },
+      "unlocks": ["야외 취침", "청결 압박", "계급(상병)"]
+    },
+    {
+      "day": 10,
+      "climate": "climateEvent",
+      "focus": "숙영 2일차 — 기상 악화(폭우/한파/폭염)",
+      "training": "bivouac",
+      "joint": "배수로 또는 난로 유지",
+      "jointActors": 4,
+      "required": { "total": 5, "trainingCheckpoints": 3, "roleQuests": 2 },
+      "unlocks": ["기후 이벤트"]
+    },
+    {
+      "day": 11,
+      "climate": "fixedNormal",
+      "focus": "정비일, 장비 손질, 환자 처리, 보급일, 재심사",
+      "training": null,
+      "joint": "차량 정비 행정 주도",
+      "jointActors": 2,
+      "required": { "total": 3, "trainingCheckpoints": 0, "roleQuests": 3 },
+      "unlocks": ["부상 누적 정산"],
+      "maintenanceDay": true
+    },
+    {
+      "day": 12,
+      "climate": "normalOrWarm",
+      "focus": "유격 1일차 — 기초 코스",
+      "training": "commando",
+      "joint": "릴레이 통과",
+      "jointActors": 4,
+      "required": { "total": 5, "trainingCheckpoints": 3, "roleQuests": 2 },
+      "unlocks": ["릴레이 협동"]
+    },
+    {
+      "day": 13,
+      "climate": "normalOrWarm",
+      "focus": "유격 2일차 — 종합 코스 (고난도)",
+      "training": "commando",
+      "joint": "전원 완주 필수",
+      "jointActors": 4,
+      "required": { "total": 6, "trainingCheckpoints": 4, "roleQuests": 2 },
+      "unlocks": []
+    },
+    {
+      "day": 14,
+      "climate": "roll",
+      "focus": "정비일, 재편성, 보급 대량 청구, 재심사",
+      "training": null,
+      "joint": "보급 트럭 하역",
+      "jointActors": 3,
+      "required": { "total": 3, "trainingCheckpoints": 0, "roleQuests": 3 },
+      "unlocks": ["분대장 재신임"],
+      "maintenanceDay": true
+    },
+    {
+      "day": 15,
+      "climate": "bandBranch",
+      "focus": "혹한기 훈련 또는 혹서기 대비 훈련, 3차 승급 심사",
+      "training": "seasonal",
+      "joint": "보온 라인 / 급수 라인 구축",
+      "jointActors": 4,
+      "required": { "total": 6, "trainingCheckpoints": 4, "roleQuests": 2 },
+      "unlocks": ["계절 전용 콘텐츠", "계급(병장)"]
+    },
+    {
+      "day": 16,
+      "climate": "roll",
+      "focus": "외부 지원 임무 — 별도 맵",
+      "training": "externalSupport",
+      "joint": "대민지원 편성",
+      "jointActors": 3,
+      "required": { "total": 5, "trainingCheckpoints": 3, "roleQuests": 2 },
+      "unlocks": ["외부 맵"]
+    },
+    {
+      "day": 17,
+      "climate": "roll",
+      "focus": "합동 전술훈련 — 4보직 전원 능력 사용",
+      "training": "combinedTactics",
+      "joint": "전 보직 순차 연계",
+      "jointActors": 4,
+      "required": { "total": 7, "trainingCheckpoints": 5, "roleQuests": 2 },
+      "unlocks": []
+    },
+    {
+      "day": 18,
+      "climate": "fixedNormal",
+      "focus": "전역 심사 — 18일 종합 판정, 엔딩",
+      "training": null,
+      "joint": "최종 점호",
+      "jointActors": 4,
+      "required": { "total": 4, "trainingCheckpoints": 0, "roleQuests": 4 },
+      "unlocks": ["엔딩 분기"]
+    }
+  ]
+}
