@@ -90,6 +90,8 @@ export const intentSchema = z.discriminatedUnion("type", [
     toId: z.string(),
   }),
   z.object({ type: z.literal("voteLeader"), candidateId: z.string() }),
+  /** 11.0 청구서 작성 — 서버가 행정병인지 확인한다 */
+  z.object({ type: z.literal("fileClaim"), items: z.array(z.string()).max(12) }),
 ]);
 export type Intent = z.infer<typeof intentSchema>;
 
@@ -115,6 +117,10 @@ export const memberViewSchema = z.object({
   travelRemainingMs: z.number(),
   stats: statsSchema,
   serviceScore: z.number(),
+  /** 11.0 소지 장비 */
+  inventory: z.array(z.string()),
+  /** 오늘 밴드에서 모자란 필수 장비 — 조건 D가 깨질 신호다 */
+  missingGear: z.array(z.string()),
   choresReceived: z.number(),
   vetoUsedToday: z.boolean(),
   onGuardTonight: z.boolean(),
@@ -160,6 +166,12 @@ export const snapshotSchema = z.object({
     feelsLike: z.number(),
   }),
   discipline: z.object({ value: z.number(), band: z.string() }),
+  supply: z.object({
+    points: z.number(),
+    isSupplyDay: z.boolean(),
+    /** 행정병이 제출해둔 청구서 */
+    pendingClaim: z.array(z.string()),
+  }),
   reliefsRemaining: z.number(),
   leaderId: z.string().nullable(),
   members: z.array(memberViewSchema),
@@ -193,6 +205,12 @@ export const serverEventSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("memberReturned"), memberId: z.string(), asRecruit: z.boolean() }),
   z.object({ type: z.literal("memberLeft"), memberId: z.string() }),
   z.object({ type: z.literal("forcedSleep"), memberId: z.string() }),
+  z.object({
+    type: z.literal("supplyClaimed"),
+    day: z.number(),
+    items: z.array(z.string()),
+    pointsLeft: z.number(),
+  }),
   z.object({
     type: z.literal("rankReviewed"),
     day: z.number(),

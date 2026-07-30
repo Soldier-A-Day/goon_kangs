@@ -73,6 +73,23 @@ export const QUICK_COMMANDS: { id: QuickCommand; label: string; key: string }[] 
   { id: "hurry", label: "서둘러", key: "8" },
 ];
 
+/** 11.0 보급 품목. sim의 data/supply.json과 같은 값이다 (web은 sim을 참조할 수 없다) */
+export const ITEM_LABELS: Record<string, string> = {
+  combatUniform: "전투복",
+  combatBoots: "전투화",
+  thermalLiner: "방한 내피",
+  gloves: "장갑",
+  canteen: "수통",
+  parka: "방상외피",
+  winterBoots: "방한화",
+  insulatedCanteen: "보온 수통",
+  canteen2: "수통 추가",
+  coolingTowel: "냉각 타월",
+  icePack: "얼음팩",
+  medkit: "의약품",
+  rations: "전투식량",
+};
+
 export const STAT_LABELS = [
   { key: "stamina", label: "체력", inverted: false },
   { key: "hydration", label: "수분", inverted: false },

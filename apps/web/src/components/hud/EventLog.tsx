@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 import type { Snapshot } from "@sad/protocol";
 import type { TimedEvent } from "@/lib/useGameSocket";
-import { PHASE_LABELS, QUICK_COMMANDS, RANK_LABELS } from "@/lib/labels";
+import { ITEM_LABELS, PHASE_LABELS, QUICK_COMMANDS, RANK_LABELS } from "@/lib/labels";
 
 /**
  * 방송·무전·판정이 한 줄씩 흐르는 로그.
@@ -135,6 +135,16 @@ function describe(
         tone: promoted ? "var(--accent)" : "var(--ink-2)",
       };
     }
+    case "supplyClaimed":
+      return {
+        text:
+          event.items.length === 0
+            ? `보급일 — 포인트가 모자라 아무것도 받지 못했다 (잔여 ${event.pointsLeft})`
+            : `보급 도착 — ${event.items
+                .map((id) => ITEM_LABELS[id] ?? id)
+                .join(" · ")} (잔여 ${event.pointsLeft})`,
+        tone: event.items.length === 0 ? "var(--alert)" : "var(--accent)",
+      };
     case "log":
       return { text: event.message };
     default:

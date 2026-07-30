@@ -1,6 +1,8 @@
 import {
   bandRule,
   disciplineBand,
+  isSupplyDay,
+  missingGear,
   phaseAt,
   type Effect,
   type RunState,
@@ -43,6 +45,11 @@ export function projectSnapshot(state: RunState, seq: number): Snapshot {
       value: Math.round(state.discipline),
       band: disciplineBand(state.discipline).id,
     },
+    supply: {
+      points: state.supplyPoints,
+      isSupplyDay: isSupplyDay(state.day),
+      pendingClaim: [...state.pendingClaim],
+    },
     reliefsRemaining: state.reliefsRemaining,
     leaderId: state.leaderId,
     members: state.members.map((member) => ({
@@ -62,6 +69,8 @@ export function projectSnapshot(state: RunState, seq: number): Snapshot {
         satiety: Math.round(member.stats.satiety),
       },
       serviceScore: member.serviceScore,
+      inventory: [...member.inventory],
+      missingGear: missingGear(member, state.weather.band),
       choresReceived: member.choresReceived,
       vetoUsedToday: member.vetoUsedToday,
       onGuardTonight: state.nightGuardIds.includes(member.id),
@@ -140,6 +149,13 @@ export function projectEffect(effect: Effect): ServerEvent | null {
       return { type: "memberLeft", memberId: effect.memberId };
     case "forcedSleep":
       return { type: "forcedSleep", memberId: effect.memberId };
+    case "supplyClaimed":
+      return {
+        type: "supplyClaimed",
+        day: effect.day,
+        items: [...effect.items],
+        pointsLeft: effect.pointsLeft,
+      };
     case "rankReviewed":
       return {
         type: "rankReviewed",

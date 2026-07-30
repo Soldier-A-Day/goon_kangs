@@ -8,6 +8,7 @@ import {
 } from "./delegation.js";
 import { applyDailyDiscipline } from "./discipline.js";
 import { applyDailyServiceScore, runReview } from "./ranks.js";
+import { accrueSupplyPoints, fileClaim, runSupplyDay } from "./supply.js";
 import {
   applyForcedSleep,
   checkCollapses,
@@ -19,7 +20,7 @@ import {
 import { applyJudgement, checkDisband } from "./judge.js";
 import { PHASE_COUNT, phaseAt, phaseDurationMsFor } from "./phases.js";
 import { generateDayQuests, rollSurprise } from "./quests.js";
-import { rollWeather } from "./weather.js";
+import { weatherFor } from "./weather.js";
 import { travelMs } from "./zones.js";
 import type {
   Effect,
@@ -78,6 +79,9 @@ export function step(state: RunState, event: SimEvent): StepResult {
     case "rejoinRun":
       rejoinRun(next, event.memberId, effects);
       break;
+    case "fileClaim":
+      fileClaim(next, event.memberId, event.items);
+      break;
   }
 
   return { state: next, effects };
@@ -91,10 +95,12 @@ function beginDay(state: RunState, effects: Effect[]): void {
 
   // 기온은 하루의 시작에 딱 한 번 뽑힌다. 밴드가 그날의 일과표 자체를 바꾸므로(1.0),
   // 퀘스트 배정보다 먼저 확정되어야 한다.
-  const [weather, rng] = rollWeather(state.rngState, state.day, state.season);
-  state.weather = weather;
-  state.rngState = rng;
-  effects.push({ type: "weatherRolled", day: state.day, weather });
+  state.weather = weatherFor(state.seed, state.day, state.season);
+  effects.push({ type: "weatherRolled", day: state.day, weather: state.weather });
+
+  // 보급은 아침에 도착한다. 판정 뒤로 미루면 보급일 당일의 조건 D를 막지 못해
+  // "그날 극단 밴드가 뽑히면 손쓸 방법이 없는" 확정 사망이 생긴다 (SUP-01)
+  runSupplyDay(state, effects);
 
   const [quests, afterQuests] = generateDayQuests(state);
   state.quests = quests;
@@ -212,6 +218,9 @@ function endDay(state: RunState, effects: Effect[]): void {
   checkDisband(state, effects);
   if (state.status !== "running") return;
 
+  // 포인트는 그날의 성과에서 나온다 — 청구는 다음 보급일 아침에 이뤄진다
+  accrueSupplyPoints(state);
+
   // 점호 판정 통과 → 심사 화면 → 승급 발표 (RANK-01)
   runReview(state, effects);
 
@@ -291,8 +300,15 @@ export function cloneState(state: RunState): RunState {
     ...state,
     rngState: { ...state.rngState },
     trust: { ...state.trust },
-    members: state.members.map((m) => ({ ...m, stats: { ...m.stats } })),
+    members: state.members.map((m) => ({
+      ...m,
+      stats: { ...m.stats },
+      inventory: [...m.inventory],
+    })),
     quests: state.quests.map((q) => ({ ...q })),
     judgements: [...state.judgements],
+    ledger: [...state.ledger],
+    nightGuardIds: [...state.nightGuardIds],
+    pendingClaim: [...state.pendingClaim],
   };
 }

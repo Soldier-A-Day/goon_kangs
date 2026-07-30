@@ -10,6 +10,7 @@ import { EventLog } from "@/components/hud/EventLog";
 import { Notebook } from "@/components/hud/Notebook";
 import { PhaseBar } from "@/components/hud/PhaseBar";
 import { QuickBar } from "@/components/hud/QuickBar";
+import { SupplyPanel } from "@/components/hud/SupplyPanel";
 import { ZoneMap } from "@/components/hud/ZoneMap";
 import { RANK_LABELS, ZONE_LABELS } from "@/lib/labels";
 import { loadSession } from "@/lib/session";
@@ -108,6 +109,8 @@ export default function PlayPage() {
               send({ type: "voteSkip", value: next });
             }}
           />
+
+          <SupplyPanel snapshot={snapshot} memberId={myId} onSend={send} />
 
           <Squad snapshot={snapshot} myId={myId} />
         </div>

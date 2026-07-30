@@ -1,0 +1,40 @@
+{
+  "_source": "SAD-GDD-001 11.0 보급 · 장비 시스템 (SUP-01) · 표 5-1 필수 장비 · 5.0 피복 보온치",
+  "_note": "포인트는 항상 부족하도록 잡는다 — 방한 장비를 살 것인가 의약품을 살 것인가가 판단이 되어야 하고, 다음 날 예보를 아는 행정병만 정답을 안다(11.0 긴장 구조).",
+
+  "supplyDays": [3, 6, 9, 12, 15],
+
+  "startingKit": {
+    "_note": "입소 시 지급되는 기본 피복. 평시·한랭·온난 밴드의 필수 장비는 여기서 충족된다 — 극단 밴드(극혹한·혹서·극혹서)의 장비만 청구 대상이다. 이렇게 두지 않으면 D-03 이전에 극단 밴드가 뽑히는 순간 아무 대응 없이 조건 D가 깨진다.",
+    "items": ["combatUniform", "combatBoots", "thermalLiner", "gloves", "canteen"]
+  },
+
+  "points": {
+    "start": 12,
+    "_accrualNote": "일과 완수 정시성 · 돌발 성공 · 군기 보너스에서 나온다(11.0). 우수분대는 +20%(12.0).",
+    "perDayBase": 4,
+    "onTimeBonus": 3,
+    "surpriseBonus": 2,
+    "excellentMultiplier": 1.2
+  },
+
+  "catalog": [
+    { "id": "parka", "label": "방상외피", "cost": 6, "slot": "outer", "warmth": 9 },
+    { "id": "winterBoots", "label": "방한화", "cost": 4, "slot": "feet", "warmth": 2 },
+    { "id": "insulatedCanteen", "label": "보온 수통", "cost": 3, "slot": "kit" },
+    { "id": "canteen2", "label": "수통 추가", "cost": 2, "slot": "kit" },
+    { "id": "coolingTowel", "label": "냉각 타월", "cost": 3, "slot": "kit" },
+    { "id": "icePack", "label": "얼음팩", "cost": 4, "slot": "kit" },
+    { "id": "medkit", "label": "의약품", "cost": 5, "slot": "kit", "staminaRecovery": 10 },
+    { "id": "rations", "label": "전투식량", "cost": 3, "slot": "kit", "satietyRecovery": 15 }
+  ],
+
+  "clothingWarmth": {
+    "_note": "5.0 피복 보온치. 체감온도 공식의 '피복 보온치' 항이 이 합계로 계산된다 — 기본값 +2를 쓰던 자리를 실제 착용 상태가 대체한다.",
+    "combatUniform": 2,
+    "thermalLiner": 5,
+    "parka": 9,
+    "winterBoots": 2,
+    "wetPenalty": -6
+  }
+}

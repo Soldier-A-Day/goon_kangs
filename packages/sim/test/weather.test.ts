@@ -3,11 +3,10 @@ import {
   BANDS,
   bandFor,
   bandRule,
-  createRngState,
   feelsLike,
   forecast,
   isForbidden,
-  rollWeather,
+  weatherFor,
   step,
   type TempBand,
 } from "../src/index.js";
@@ -95,7 +94,7 @@ describe("표 5-1 밴드", () => {
 describe("기온 롤", () => {
   it("튜토리얼·심사일은 평시로 고정된다", () => {
     for (const day of [1, 2, 18]) {
-      const [weather] = rollWeather(createRngState(day), day, "cold");
+      const weather = weatherFor(day, day, "cold");
       expect(weather.band, `D-${day}`).toBe("normal");
     }
   });
@@ -117,8 +116,8 @@ describe("기온 롤", () => {
 
   it("D-10과 D-15는 계절의 극단으로 못 박힌다", () => {
     for (const day of [10, 15]) {
-      const [cold] = rollWeather(createRngState(day), day, "cold");
-      const [hot] = rollWeather(createRngState(day), day, "hot");
+      const cold = weatherFor(day, day, "cold");
+      const hot = weatherFor(day, day, "hot");
       expect(cold.band, `D-${day} 혹한기`).toBe("extremeCold");
       expect(hot.band, `D-${day} 혹서기`).toBe("extremeHot");
     }
@@ -127,15 +126,15 @@ describe("기온 롤", () => {
   it("유격일(D-12·13)은 평시·온난을 벗어나지 않는다", () => {
     for (let seed = 0; seed < 100; seed += 1) {
       for (const day of [12, 13]) {
-        const [weather] = rollWeather(createRngState(seed), day, "hot");
+        const weather = weatherFor(seed, day, "hot");
         expect(["normal", "warm"]).toContain(weather.band);
       }
     }
   });
 
   it("같은 시드는 같은 날씨를 낸다", () => {
-    const a = rollWeather(createRngState(5), 7, "cold")[0];
-    const b = rollWeather(createRngState(5), 7, "cold")[0];
+    const a = weatherFor(5, 7, "cold");
+    const b = weatherFor(5, 7, "cold");
     expect(a).toEqual(b);
   });
 });
@@ -151,6 +150,26 @@ describe("예보", () => {
     expect(admin.band).not.toBeNull();
     expect(rifle.band).toBeNull();
     expect(rifle.hint).toMatch(/추워|더워/);
+  });
+
+  it("예보가 실제 날씨와 일치한다 — 그렇지 않으면 예보가 예보가 아니다", () => {
+    let state = fullSquad({ seed: 777, config: { season: "cold" } });
+    state = step(state, { type: "beginDay" }).state;
+
+    const predicted = forecast(state, state.season, "admin").band;
+
+    // 하루를 흘려 실제로 그날을 맞이한다
+    for (const quest of state.quests) {
+      quest.status = "done";
+      quest.workedMs = quest.workMs;
+    }
+    let guard = 0;
+    while (state.status === "running" && state.day === 1 && guard++ < 100) {
+      state = step(state, { type: "tick", elapsedMs: 30_000 }).state;
+    }
+
+    expect(state.day).toBe(2);
+    expect(state.weather.band).toBe(predicted);
   });
 
   it("마지막 날에는 내일이 없다", () => {
@@ -183,8 +202,9 @@ function countBand(
 ): Record<TempBand, number> {
   const counts: Partial<Record<TempBand, number>> = {};
   for (let seed = 0; seed < runs; seed += 1) {
-    const [weather] = rollWeather(createRngState(seed), day, season);
-    counts[weather.band] = (counts[weather.band] ?? 0) + 1;
+    const weather = weatherFor(seed, day, season);
+    const band: TempBand = weather.band;
+    counts[band] = (counts[band] ?? 0) + 1;
   }
   return {
     extremeCold: counts.extremeCold ?? 0,

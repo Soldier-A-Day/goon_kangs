@@ -1,4 +1,5 @@
 import { createRngState, roll } from "./rng.js";
+import { STARTING_KIT, SUPPLY_START } from "./supply.js";
 import { ROLES, type Member, type Role, type RunConfig, type RunState, type Stats } from "./types.js";
 
 export const DEFAULT_CONFIG: RunConfig = {
@@ -103,6 +104,8 @@ export function createRun(options: CreateRunOptions): RunState {
     delegationWindowMsLeft: 0,
     leaderOverridePhase: -1,
     ledger: [],
+    supplyPoints: SUPPLY_START,
+    pendingClaim: [],
     judgements: [],
   };
 }
@@ -129,6 +132,7 @@ function makeMember(
     collapseTimerMs: 0,
     evacuations: 0,
     rehabDaysLeft: 0,
+    inventory: [...STARTING_KIT],
   };
 }
 

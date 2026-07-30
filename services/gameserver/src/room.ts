@@ -224,6 +224,12 @@ export class Room {
         this.apply({ type: "vetoChore", memberId, questId: intent.questId });
         break;
 
+      case "fileClaim":
+        // 청구서는 행정병만 쓴다 — 자격 검증은 sim이 한다 (11.0)
+        this.apply({ type: "fileClaim", memberId, items: intent.items });
+        this.broadcastSnapshot(true);
+        break;
+
       case "leaderReassign":
         this.apply({
           type: "leaderReassign",

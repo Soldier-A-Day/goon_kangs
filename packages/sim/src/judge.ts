@@ -1,4 +1,5 @@
 import { humanCount } from "./run.js";
+import { hasRequiredGear } from "./supply.js";
 import type { Effect, Judgement, JudgementCondition, Quest, RunState } from "./types.js";
 
 /** 10.0 조건 C — 분대 군기 하한 */
@@ -33,9 +34,12 @@ export function judgeDay(state: RunState): Judgement {
     .every(isJointCleared);
 
   const conditionC = state.discipline >= DISCIPLINE_FLOOR;
+  // 조건 D — 복장·장비 점검. 청결과 필수 장비 소지를 함께 본다(JDG-01)
   const conditionD = state.members
     .filter((m) => m.presence === "player")
-    .every((m) => m.stats.hygiene >= HYGIENE_FLOOR);
+    .every(
+      (m) => m.stats.hygiene >= HYGIENE_FLOOR && hasRequiredGear(m, state.weather.band),
+    );
 
   const failedAt = firstFailure({
     A: conditionA,

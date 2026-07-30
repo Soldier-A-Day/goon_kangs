@@ -1,7 +1,7 @@
 import temperatureTable from "../data/temperature.json";
 import type { ClimateRule } from "./curriculum.js";
 import { planFor } from "./curriculum.js";
-import { nextInt, roll, type RngState } from "./rng.js";
+import { createRngState, nextInt, roll } from "./rng.js";
 import type { RunState, TempBand, WeatherState } from "./types.js";
 
 export interface BandRule {
@@ -73,21 +73,25 @@ export function bandFor(feels: number): TempBand {
 }
 
 /**
- * 하루의 기온을 뽑는다. 이 게임의 콘텐츠 셀렉터이므로 하루의 시작에 딱 한 번만 돈다.
+ * 하루의 기온.
+ *
+ * **일차마다 독립된 난수 스트림을 쓴다.** 메인 RNG를 소비하면 "내일 날씨"를 미리 볼 때와
+ * 실제로 그날이 왔을 때의 값이 달라진다 — 그 사이에 퀘스트 배정·돌발이 RNG를 앞으로
+ * 밀어놓기 때문이다. 그러면 5.0의 "행정병만 다음 날 밴드를 정확히 본다"가 거짓이 되고,
+ * 예보를 보고 보급을 청구하는 11.0의 긴장 구조도 성립하지 않는다.
+ *
+ * 시드가 정해지면 18일치 날씨가 이미 결정돼 있어야 예보가 예보일 수 있다.
  *
  * 커리큘럼의 기후 규칙(14.0)이 롤의 범위를 제한한다 — 튜토리얼과 심사일은 평시로 고정하고,
  * D-10과 D-15는 기후가 콘텐츠를 결정하는 칸이라 극단으로 못 박는다.
  */
-export function rollWeather(
-  rngState: RngState,
-  day: number,
-  season: Season,
-): readonly [WeatherState, RngState] {
+export function weatherFor(seed: number, day: number, season: Season): WeatherState {
   const climate = planFor(day).climate;
-  let rng = rngState;
+  // 일차를 섞어 스트림을 가른다. 같은 런의 같은 일차는 언제 물어도 같은 답이 나온다.
+  let rng = createRngState((seed ^ (day * 0x9e3779b1)) | 0);
 
   if (climate === "fixedNormal") {
-    return [makeWeather(12, 50, 0), rng];
+    return makeWeather(12, 50, 0);
   }
 
   // 선택한 계절이 기준값을 결정하고, 반대편은 낮은 확률로만 등장한다
@@ -118,7 +122,7 @@ export function rollWeather(
   const limit =
     climate === "normalOrWarm" ? ([1, 30] as const) : undefined;
 
-  return [makeWeather(airTemp, profile.humidity, wind, limit), rng];
+  return makeWeather(airTemp, profile.humidity, wind, limit);
 }
 
 function makeWeather(
@@ -159,7 +163,7 @@ export function forecast(
   if (state.day >= state.config.totalDays) {
     return { band: null, hint: "내일은 없다 — 오늘이 마지막이다" };
   }
-  const [weather] = rollWeather(state.rngState, state.day + 1, season);
+  const weather = weatherFor(state.seed, state.day + 1, season);
   if (viewerRole === "admin") {
     return { band: weather.band, hint: bandRule(weather.band).label };
   }

@@ -120,6 +120,8 @@ export interface Member {
   evacuations: number;
   /** 복귀 후 재활 일수 — 이 동안 본인 필수가 +1 된다 */
   rehabDaysLeft: number;
+  /** 11.0 소지 장비. 표 5-1 필수 장비 판정과 피복 보온치 계산에 쓰인다 */
+  inventory: string[];
 }
 
 /* ----------------------------------------------------------------- 퀘스트 */
@@ -234,6 +236,10 @@ export interface RunState {
   leaderOverridePhase: number;
   /** 런 종료 시 공개되는 하달 장부 */
   ledger: DelegationRecord[];
+  /** 11.0 분대 보급 포인트 — 항상 부족하도록 잡혀 있다 */
+  supplyPoints: number;
+  /** 행정병이 작성한 청구서. 비어 있으면 표준 청구로 채운다 */
+  pendingClaim: string[];
 
   judgements: Judgement[];
 }
@@ -275,7 +281,13 @@ export type SimEvent =
   /** 중도 이탈 — 장기 대리로 전환된다 */
   | { readonly type: "leaveRun"; readonly memberId: string }
   /** 재접속 */
-  | { readonly type: "rejoinRun"; readonly memberId: string };
+  | { readonly type: "rejoinRun"; readonly memberId: string }
+  /** 11.0 청구서 작성 — 행정병만 */
+  | {
+      readonly type: "fileClaim";
+      readonly memberId: string;
+      readonly items: readonly string[];
+    };
 
 export type Effect =
   | { readonly type: "weatherRolled"; readonly day: number; readonly weather: WeatherState }
@@ -327,6 +339,12 @@ export type Effect =
       readonly asRecruit: boolean;
     }
   | { readonly type: "forcedSleep"; readonly memberId: string }
+  | {
+      readonly type: "supplyClaimed";
+      readonly day: number;
+      readonly items: readonly string[];
+      readonly pointsLeft: number;
+    }
   | {
       readonly type: "rankReviewed";
       readonly day: number;
