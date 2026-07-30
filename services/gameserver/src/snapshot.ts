@@ -140,6 +140,21 @@ export function projectEffect(effect: Effect): ServerEvent | null {
       return { type: "memberLeft", memberId: effect.memberId };
     case "forcedSleep":
       return { type: "forcedSleep", memberId: effect.memberId };
+    case "rankReviewed":
+      return {
+        type: "rankReviewed",
+        day: effect.day,
+        isRetry: effect.isRetry,
+        require: effect.require,
+        outcomes: effect.outcomes.map((outcome) => ({
+          memberId: outcome.memberId,
+          promoted: outcome.promoted,
+          from: outcome.from,
+          to: outcome.to,
+          score: outcome.score,
+          require: outcome.require,
+        })),
+      };
     case "sleepSettled":
       return { type: "sleepSettled", guardIds: [...effect.guardIds] };
     case "choreDelegated":

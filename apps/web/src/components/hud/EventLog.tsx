@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 import type { Snapshot } from "@sad/protocol";
 import type { TimedEvent } from "@/lib/useGameSocket";
-import { PHASE_LABELS, QUICK_COMMANDS } from "@/lib/labels";
+import { PHASE_LABELS, QUICK_COMMANDS, RANK_LABELS } from "@/lib/labels";
 
 /**
  * 방송·무전·판정이 한 줄씩 흐르는 로그.
@@ -119,6 +119,22 @@ function describe(
               : "퇴소",
         tone: event.status === "cleared" ? "var(--accent)" : "var(--alert)",
       };
+    case "rankReviewed": {
+      // 점수 내역을 전원에게 보여준다 — 누가 필수만 하고 버텼는지가 드러나는 것이
+      // 이 시스템의 사회적 압력 장치다 (13.1 공개 원칙)
+      const lines = event.outcomes
+        .map(
+          (outcome) =>
+            `${nameOf(outcome.memberId)} ${outcome.score}/${outcome.require} ` +
+            (outcome.promoted ? `→ ${RANK_LABELS[outcome.to]}` : "보류"),
+        )
+        .join(" · ");
+      const promoted = event.outcomes.some((outcome) => outcome.promoted);
+      return {
+        text: `${event.isRetry ? "재심사" : "승급 심사"} — ${lines}`,
+        tone: promoted ? "var(--accent)" : "var(--ink-2)",
+      };
+    }
     case "log":
       return { text: event.message };
     default:

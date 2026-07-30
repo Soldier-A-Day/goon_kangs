@@ -193,6 +193,23 @@ export const serverEventSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("memberReturned"), memberId: z.string(), asRecruit: z.boolean() }),
   z.object({ type: z.literal("memberLeft"), memberId: z.string() }),
   z.object({ type: z.literal("forcedSleep"), memberId: z.string() }),
+  z.object({
+    type: z.literal("rankReviewed"),
+    day: z.number(),
+    isRetry: z.boolean(),
+    require: z.number(),
+    /** 점수 내역은 전원에게 공개된다 — 무임승차가 드러나는 것이 압력 장치다 (13.1) */
+    outcomes: z.array(
+      z.object({
+        memberId: z.string(),
+        promoted: z.boolean(),
+        from: rankSchema,
+        to: rankSchema,
+        score: z.number(),
+        require: z.number(),
+      }),
+    ),
+  }),
   z.object({ type: z.literal("sleepSettled"), guardIds: z.array(z.string()) }),
   z.object({ type: z.literal("choreDelegated"), fromId: z.string(), toId: z.string(), questId: z.string() }),
   z.object({ type: z.literal("choreVetoed"), memberId: z.string(), questId: z.string() }),

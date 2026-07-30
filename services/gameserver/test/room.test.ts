@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { ServerMessage, Snapshot } from "@sad/protocol";
 import { DISCONNECT_GRACE_MS, Room } from "../src/room.js";
 import { RoomStore, generateCode } from "../src/store.js";
+import { projectEffect } from "../src/snapshot.js";
 
 interface Harness {
   room: Room;
@@ -297,5 +298,44 @@ describe("재접속 유예", () => {
     h.room.tick(DISCONNECT_GRACE_MS + 1000);
 
     expect(h.room.run?.members.find((m) => m.id === ids[0])?.presence).toBe("npcLeave");
+  });
+});
+
+describe("승급 심사 투영", () => {
+  it("심사 결과가 점수 내역과 함께 클라이언트로 나간다", () => {
+    const event = projectEffect({
+      type: "rankReviewed",
+      day: 3,
+      isRetry: false,
+      require: 18,
+      outcomes: [
+        {
+          memberId: "p1",
+          promoted: true,
+          from: "private",
+          to: "pfc",
+          score: 22,
+          require: 18,
+          trustBonus: 12,
+        },
+      ],
+    });
+
+    expect(event).toMatchObject({ type: "rankReviewed", day: 3, require: 18 });
+    // 점수 내역은 전원에게 공개된다 (13.1 공개 원칙)
+    expect(event && "outcomes" in event ? event.outcomes[0] : null).toMatchObject({
+      memberId: "p1",
+      promoted: true,
+      score: 22,
+    });
+  });
+
+  it("클라이언트가 알 필요 없는 내부 신호는 흘리지 않는다", () => {
+    expect(
+      projectEffect({ type: "conditionCritical", memberId: "p1", stat: "stamina" }),
+    ).toBeNull();
+    expect(
+      projectEffect({ type: "delegationRefused", reason: "rankTooLow", questId: "c1" }),
+    ).toBeNull();
   });
 });
