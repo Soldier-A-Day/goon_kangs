@@ -63,3 +63,6 @@ unity/Temp/
 unity/Logs/
 unity/UserSettings/
 unity/Build/
+unity/Packages/packages-lock.json
+unity/*.csproj
+unity/*.sln
