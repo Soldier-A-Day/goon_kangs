@@ -1,4 +1,4 @@
-import { createRngState } from "./rng.js";
+import { createRngState, roll } from "./rng.js";
 import { ROLES, type Member, type Role, type RunConfig, type RunState, type Stats } from "./types.js";
 
 export const DEFAULT_CONFIG: RunConfig = {
@@ -59,11 +59,17 @@ export function createRun(options: CreateRunOptions): RunState {
 
   members.sort((a, b) => ROLES.indexOf(a.role) - ROLES.indexOf(b.role));
 
+  const config = { ...DEFAULT_CONFIG, ...options.config };
+  // 계절은 런 시작 시 한 번 확정한다 (5.0). 랜덤이면 여기서 뽑고 이후로는 바뀌지 않는다.
+  const [isCold, rngAfterSeason] = roll(createRngState(options.seed), 0.5);
+  const season = config.season === "random" ? (isCold ? "cold" : "hot") : config.season;
+
   return {
     runId: options.runId,
     seed: options.seed,
-    rngState: createRngState(options.seed),
-    config: { ...DEFAULT_CONFIG, ...options.config },
+    rngState: rngAfterSeason,
+    config,
+    season,
     status: "running",
 
     day: 1,

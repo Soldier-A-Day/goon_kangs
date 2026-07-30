@@ -180,6 +180,8 @@ export interface RunState {
   readonly seed: number;
   rngState: RngState;
   readonly config: RunConfig;
+  /** 런 시작 시 확정된 계절. 같은 18일이 두 가지 커리큘럼으로 갈린다 (5.0) */
+  readonly season: "cold" | "hot";
   status: RunStatus;
 
   /** 1부터 시작하는 일차 */
@@ -235,6 +237,7 @@ export type SimEvent =
   | { readonly type: "move"; readonly memberId: string; readonly to: Zone };
 
 export type Effect =
+  | { readonly type: "weatherRolled"; readonly day: number; readonly weather: WeatherState }
   | { readonly type: "phaseStarted"; readonly phase: PhaseId; readonly day: number }
   | { readonly type: "phaseEnded"; readonly phase: PhaseId; readonly lockedQuestIds: string[] }
   | { readonly type: "dayJudged"; readonly judgement: Judgement }

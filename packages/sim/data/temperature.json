@@ -1,0 +1,94 @@
+{
+  "_source": "SAD-GDD-001 5.0 온도 · 기후 시스템 · 표 5-1",
+  "_note": "drain은 시간대(칸)당 스탯 변화다. 기획서가 밴드별로 명시한 값(예: 극혹한 체력 −6 · 피로 +8)은 그대로 옮겼고, 명시가 없는 칸은 평시의 '표준 드레인'을 따른다. 표준 드레인 수치(체력 −2 · 수분 −3 · 피로 +4)는 기획서에 숫자가 없어 여기서 정의한 값이며 밸런싱 대상이다.",
+  "formula": {
+    "_note": "체감온도 = 기온 + 습도보정 − (풍속 × 0.6) + 피복 보온치 + 지형보정",
+    "windFactor": 0.6,
+    "humidityBonusMax": 5,
+    "humidityAppliesAboveTemp": 20,
+    "clothing": {
+      "combatUniform": 2,
+      "thermalLiner": 5,
+      "parka": 9,
+      "wetPenalty": -6
+    },
+    "terrain": {
+      "indoor": 8,
+      "mountain": -4,
+      "night": -6,
+      "shade": 3
+    }
+  },
+  "seasons": {
+    "cold": { "baseTemp": -10, "humidity": 40, "windMax": 8 },
+    "hot": { "baseTemp": 30, "humidity": 75, "windMax": 5 },
+    "_dailyVariation": 4,
+    "_oppositeBandChance": 0.05
+  },
+  "bands": [
+    {
+      "id": "extremeCold",
+      "label": "극혹한",
+      "min": -999,
+      "max": -12,
+      "drain": { "stamina": -6, "hydration": -3, "fatigue": 8 },
+      "duties": ["혹한기 적응훈련", "제설", "난방기 순찰", "동파 방지"],
+      "requiredGear": ["parka", "winterBoots", "insulatedCanteen"],
+      "forbidden": ["waterPurification", "nightLongMarch"],
+      "warmthGauge": true
+    },
+    {
+      "id": "cold",
+      "label": "한랭",
+      "min": -11,
+      "max": 0,
+      "drain": { "stamina": -2, "hydration": -2, "fatigue": 5 },
+      "duties": ["제설", "동상 예방 교육", "설상 기동"],
+      "requiredGear": ["thermalLiner", "gloves"],
+      "forbidden": []
+    },
+    {
+      "id": "normal",
+      "label": "평시",
+      "min": 1,
+      "max": 24,
+      "drain": { "stamina": -2, "hydration": -3, "fatigue": 4 },
+      "duties": [],
+      "requiredGear": ["combatUniform", "combatBoots"],
+      "forbidden": []
+    },
+    {
+      "id": "warm",
+      "label": "온난",
+      "min": 25,
+      "max": 30,
+      "drain": { "stamina": -2, "hydration": -5, "fatigue": 4 },
+      "duties": ["제초", "수분 섭취 점검"],
+      "requiredGear": ["canteen"],
+      "forbidden": []
+    },
+    {
+      "id": "hot",
+      "label": "혹서",
+      "min": 31,
+      "max": 34,
+      "drain": { "stamina": -4, "hydration": -10, "fatigue": 4 },
+      "duties": ["실내 정신교육", "장비 정비"],
+      "requiredGear": ["canteen", "canteen2", "coolingTowel"],
+      "forbidden": ["daytimeMarch", "commando"],
+      "afternoonOutdoorToIndoor": true,
+      "mandatoryShadeRestSeconds": 10
+    },
+    {
+      "id": "extremeHot",
+      "label": "극혹서",
+      "min": 35,
+      "max": 999,
+      "drain": { "stamina": -6, "hydration": -14, "fatigue": 4 },
+      "duties": ["야간 행군", "야간 사격"],
+      "requiredGear": ["canteen", "canteen2", "icePack"],
+      "forbidden": ["allDaytimeOutdoorTraining"],
+      "deferDaytimeOutdoorToNight": true
+    }
+  ]
+}

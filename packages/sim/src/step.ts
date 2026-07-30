@@ -1,5 +1,6 @@
 import { applyJudgement, checkDisband } from "./judge.js";
 import { PHASE_COUNT, phaseAt, phaseDurationMsFor } from "./phases.js";
+import { rollWeather } from "./weather.js";
 import { travelMs } from "./zones.js";
 import type {
   Effect,
@@ -52,6 +53,14 @@ export function step(state: RunState, event: SimEvent): StepResult {
 function beginDay(state: RunState, effects: Effect[]): void {
   state.phaseIndex = 0;
   state.carryoverMs = 0;
+
+  // 기온은 하루의 시작에 딱 한 번 뽑힌다. 밴드가 그날의 일과표 자체를 바꾸므로(1.0),
+  // 퀘스트 배정보다 먼저 확정되어야 한다.
+  const [weather, rng] = rollWeather(state.rngState, state.day, state.season);
+  state.weather = weather;
+  state.rngState = rng;
+  effects.push({ type: "weatherRolled", day: state.day, weather });
+
   startPhase(state, effects);
 }
 
