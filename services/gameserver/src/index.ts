@@ -9,6 +9,7 @@ import {
 } from "@sad/protocol";
 import { TICK_MS } from "./room.js";
 import { RoomStore } from "./store.js";
+import { storageFromEnv } from "./persistence.js";
 
 const PORT = Number(process.env.PORT ?? 8080);
 
@@ -21,12 +22,15 @@ const PORT = Number(process.env.PORT ?? 8080);
  */
 const sockets = new Map<string, WebSocket>();
 
-const store = new RoomStore((memberId, message) => {
-  const socket = sockets.get(memberId);
-  if (socket && socket.readyState === socket.OPEN) {
-    socket.send(JSON.stringify(message));
-  }
-});
+const store = new RoomStore(
+  (memberId, message) => {
+    const socket = sockets.get(memberId);
+    if (socket && socket.readyState === socket.OPEN) {
+      socket.send(JSON.stringify(message));
+    }
+  },
+  await storageFromEnv(),
+);
 
 /* ------------------------------------------------------------------ HTTP */
 

@@ -133,3 +133,28 @@ export function memoryStorage(now?: () => number): Storage {
     records: new MemoryRecordStore(),
   };
 }
+
+/**
+ * 환경변수가 있으면 실제 저장소, 없으면 인메모리.
+ *
+ * 로컬 개발과 테스트는 DB 없이 돌아가야 한다 — 저장소를 붙였다고 `docker compose`가
+ * 필요해지면 진입 장벽만 올라간다. 어느 쪽이 붙었는지는 로그로 남긴다.
+ */
+export async function storageFromEnv(): Promise<Storage> {
+  const { upstashFromEnv, UpstashRunSnapshotStore } = await import("./stores/upstash.js");
+  const { supabaseFromEnv, SupabaseRecordStore } = await import("./stores/supabase.js");
+
+  const redis = upstashFromEnv();
+  const supabase = supabaseFromEnv();
+
+  const snapshots = redis
+    ? new UpstashRunSnapshotStore(redis)
+    : new MemoryRunSnapshotStore();
+  const records = supabase ? new SupabaseRecordStore(supabase) : new MemoryRecordStore();
+
+  console.log(
+    `[storage] 스냅샷=${redis ? "upstash" : "메모리"} · 기록=${supabase ? "supabase" : "메모리"}`,
+  );
+
+  return { snapshots, records };
+}

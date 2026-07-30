@@ -54,3 +54,5 @@ next-env.d.ts
 
 # claude code (machine-local)
 .claude/settings.local.json
+# vercel marketplace 통합이 설치한 에이전트 스킬
+.agents/
