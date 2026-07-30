@@ -1,0 +1,25 @@
+{
+  "name": "@sad/gameserver",
+  "version": "0.1.0",
+  "private": true,
+  "description": "권위 서버 — 시간대 타이머·기온 롤·퀘스트 상태·판정을 소유한다 (17.0 NET-01)",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "start": "tsx src/index.ts",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@sad/protocol": "*",
+    "@sad/sim": "*",
+    "ws": "^8"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "@types/ws": "^8",
+    "tsx": "^4",
+    "typescript": "^5",
+    "vitest": "^3"
+  }
+}

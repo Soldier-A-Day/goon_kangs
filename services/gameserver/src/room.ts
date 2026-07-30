@@ -1,0 +1,368 @@
+import {
+  ROLES,
+  createRun,
+  step,
+  type Effect,
+  type Role,
+  type RunState,
+  type SimEvent,
+} from "@sad/sim";
+import type { Intent, LobbyState, ServerEvent, ServerMessage } from "@sad/protocol";
+import { projectEffect, projectSnapshot } from "./snapshot.js";
+
+/** 17.0 NET-01 — 시뮬레이션 20Hz, 스냅샷 10Hz */
+export const TICK_HZ = 20;
+export const SNAPSHOT_HZ = 10;
+export const TICK_MS = 1000 / TICK_HZ;
+
+/** 스킵 투표 성립 정족수 — 생존 인원의 3/4 (TIME-01) */
+export const SKIP_QUORUM_RATIO = 3 / 4;
+
+export interface Seat {
+  readonly role: Role;
+  memberId: string | null;
+  name: string | null;
+  ready: boolean;
+  connected: boolean;
+}
+
+export type Send = (memberId: string, message: ServerMessage) => void;
+
+/**
+ * 1방 = 1분대(4인 고정).
+ *
+ * 방은 상태를 소유하고 sim을 돌린다. 클라이언트가 보내는 것은 의도뿐이며,
+ * 진척·판정·기온은 전부 여기서 결정된다 — 판정이 곧 승패이므로 클라를 신뢰할 수 없다.
+ */
+export class Room {
+  readonly code: string;
+  readonly seats: Seat[];
+  hostId: string | null = null;
+  started = false;
+  run: RunState | null = null;
+
+  private seq = 0;
+  private sinceSnapshotMs = 0;
+  private pendingEvents: ServerEvent[] = [];
+  /** 지금 붙잡고 있는 퀘스트 — 진척은 서버가 센다 */
+  private readonly working = new Map<string, string>();
+  private readonly skipVotes = new Set<string>();
+  private readonly leaderVotes = new Map<string, string>();
+
+  constructor(
+    code: string,
+    private readonly config: Parameters<typeof createRun>[0]["config"],
+    private readonly seed: number,
+    private readonly send: Send,
+  ) {
+    this.code = code;
+    this.seats = ROLES.map((role) => ({
+      role,
+      memberId: null,
+      name: null,
+      ready: false,
+      connected: false,
+    }));
+  }
+
+  /* ------------------------------------------------------------- 로비 */
+
+  join(name: string, role: Role): { ok: true; memberId: string } | { ok: false; reason: string } {
+    if (this.started) return { ok: false, reason: "roomStarted" };
+    const seat = this.seats.find((s) => s.role === role);
+    if (!seat) return { ok: false, reason: "unknownRole" };
+    // 보직당 정확히 1명 — 중복이 없다 (3.0)
+    if (seat.memberId) return { ok: false, reason: "roleTaken" };
+
+    const memberId = `${role}-${Math.random().toString(36).slice(2, 8)}`;
+    seat.memberId = memberId;
+    seat.name = name;
+    seat.ready = false;
+    if (!this.hostId) this.hostId = memberId;
+    return { ok: true, memberId };
+  }
+
+  leaveLobby(memberId: string): void {
+    const seat = this.seats.find((s) => s.memberId === memberId);
+    if (!seat || this.started) return;
+    seat.memberId = null;
+    seat.name = null;
+    seat.ready = false;
+    if (this.hostId === memberId) {
+      this.hostId = this.seats.find((s) => s.memberId)?.memberId ?? null;
+    }
+  }
+
+  setReady(memberId: string, value: boolean): void {
+    const seat = this.seats.find((s) => s.memberId === memberId);
+    if (seat) seat.ready = value;
+  }
+
+  setConnected(memberId: string, value: boolean): void {
+    const seat = this.seats.find((s) => s.memberId === memberId);
+    if (seat) seat.connected = value;
+  }
+
+  get occupants(): Seat[] {
+    return this.seats.filter((s) => s.memberId !== null);
+  }
+
+  lobbyState(): LobbyState {
+    return {
+      type: "lobby",
+      code: this.code,
+      started: this.started,
+      hostId: this.hostId ?? "",
+      seats: this.seats.map((seat) => ({
+        role: seat.role,
+        memberId: seat.memberId,
+        name: seat.name,
+        ready: seat.ready,
+      })),
+    };
+  }
+
+  /**
+   * 런 시작. 빈 보직은 NPC가 채우며, 처음부터 비어 있던 자리에는
+   * 군기 −3/일이 붙지 않는다 (ROLE-03).
+   */
+  start(): boolean {
+    if (this.started) return false;
+    const members = this.occupants.map((seat) => ({
+      id: seat.memberId as string,
+      name: seat.name ?? "무명",
+      role: seat.role,
+    }));
+    if (members.length === 0) return false;
+
+    this.run = createRun({
+      runId: `run-${this.code}`,
+      seed: this.seed,
+      members,
+      config: this.config,
+    });
+    this.apply({ type: "beginDay" });
+    this.started = true;
+    this.broadcastSnapshot(true);
+    return true;
+  }
+
+  /* ------------------------------------------------------------- 진행 */
+
+  /** 서버 시계가 주입하는 시간. sim은 시계를 갖지 않는다. */
+  tick(elapsedMs: number): void {
+    if (!this.run || this.run.status !== "running") return;
+
+    // 붙잡고 있는 퀘스트에 먼저 진척을 넣는다 — 상호작용은 시간에 비례한다
+    for (const [memberId, questId] of this.working) {
+      this.apply({ type: "work", memberId, questId, deltaMs: elapsedMs });
+    }
+
+    this.apply({ type: "tick", elapsedMs });
+
+    this.sinceSnapshotMs += elapsedMs;
+    if (this.sinceSnapshotMs >= 1000 / SNAPSHOT_HZ) {
+      this.sinceSnapshotMs = 0;
+      this.broadcastSnapshot();
+    }
+    this.flushEvents();
+  }
+
+  /**
+   * 클라이언트 의도 처리. 여기서 서버가 거리·상태·권한을 검증한다.
+   * sim은 규칙을, 이 함수는 "그 의도를 낼 자격이 있는가"를 본다.
+   */
+  handleIntent(memberId: string, intent: Intent): void {
+    if (!this.run) {
+      if (intent.type === "ready") {
+        this.setReady(memberId, intent.value);
+        this.broadcastLobby();
+      }
+      return;
+    }
+    if (this.run.status !== "running") return;
+
+    const member = this.run.members.find((m) => m.id === memberId);
+    if (!member || member.presence !== "player") return;
+
+    switch (intent.type) {
+      case "move":
+        this.working.delete(memberId);
+        this.apply({ type: "move", memberId, to: intent.to });
+        break;
+
+      case "interact":
+        if (intent.active) this.working.set(memberId, intent.questId);
+        else this.working.delete(memberId);
+        break;
+
+      case "delegateChore":
+        this.apply({
+          type: "delegateChore",
+          fromId: memberId,
+          toId: intent.toId,
+          questId: intent.questId,
+        });
+        break;
+
+      case "vetoChore":
+        this.apply({ type: "vetoChore", memberId, questId: intent.questId });
+        break;
+
+      case "leaderReassign":
+        this.apply({
+          type: "leaderReassign",
+          leaderId: memberId,
+          questId: intent.questId,
+          toId: intent.toId,
+        });
+        break;
+
+      case "voteSkip":
+        this.voteSkip(memberId, intent.value);
+        break;
+
+      case "voteLeader":
+        this.voteLeader(memberId, intent.candidateId);
+        break;
+
+      case "quickCommand":
+        this.pendingEvents.push({
+          type: "quickCommand",
+          memberId,
+          command: intent.command,
+          zone: member.zone,
+        });
+        break;
+
+      case "chat":
+        this.relayChat(memberId, intent.text);
+        break;
+
+      case "ready":
+        break;
+    }
+
+    this.flushEvents();
+  }
+
+  /** 이탈 — 남은 팀의 세션을 지키는 쪽이 우선이다 (2.0) */
+  disconnect(memberId: string): void {
+    this.setConnected(memberId, false);
+    this.working.delete(memberId);
+    if (!this.run || !this.started) {
+      this.leaveLobby(memberId);
+      this.broadcastLobby();
+      return;
+    }
+    this.apply({ type: "leaveRun", memberId });
+    this.broadcastSnapshot(true);
+    this.flushEvents();
+  }
+
+  reconnect(memberId: string): void {
+    this.setConnected(memberId, true);
+    if (this.run) {
+      this.apply({ type: "rejoinRun", memberId });
+      this.sendTo(memberId, projectSnapshot(this.run, ++this.seq));
+    } else {
+      this.broadcastLobby();
+    }
+  }
+
+  /* ------------------------------------------------------------- 내부 */
+
+  private voteSkip(memberId: string, value: boolean): void {
+    if (!this.run) return;
+    if (value) this.skipVotes.add(memberId);
+    else this.skipVotes.delete(memberId);
+
+    const alive = this.run.members.filter((m) => m.presence === "player").length;
+    const needed = Math.ceil(alive * SKIP_QUORUM_RATIO);
+    if (this.skipVotes.size >= needed && needed > 0) {
+      this.skipVotes.clear();
+      this.apply({ type: "skipPhase" });
+      this.broadcastSnapshot(true);
+    }
+  }
+
+  private voteLeader(memberId: string, candidateId: string): void {
+    if (!this.run) return;
+    this.leaderVotes.set(memberId, candidateId);
+
+    const tally = new Map<string, number>();
+    for (const candidate of this.leaderVotes.values()) {
+      tally.set(candidate, (tally.get(candidate) ?? 0) + 1);
+    }
+    const voters = this.run.members.filter((m) => m.presence === "player").length;
+    for (const [candidate, count] of tally) {
+      // 2:2 동수면 현직 유지 — 과반이어야 바뀐다 (ROLE-02)
+      if (count > voters / 2) {
+        this.run.leaderId = candidate;
+        this.leaderVotes.clear();
+        this.broadcastSnapshot(true);
+        return;
+      }
+    }
+  }
+
+  /**
+   * 8.0 채널. 근접 채팅은 같은 구역에만, 무전은 통신병이 열어둔 채널로 전원에게.
+   * 무전이 끊기면 물리적으로 모여야 정보가 전달된다.
+   */
+  private relayChat(memberId: string, text: string): void {
+    if (!this.run) return;
+    const sender = this.run.members.find((m) => m.id === memberId);
+    if (!sender) return;
+
+    const radio = sender.role === "comms";
+    const event: ServerEvent = { type: "chat", memberId, text, radio };
+
+    for (const member of this.run.members) {
+      if (member.presence !== "player") continue;
+      if (!radio && member.zone !== sender.zone) continue;
+      this.sendTo(member.id, { type: "events", items: [event] });
+    }
+  }
+
+  private apply(event: SimEvent): void {
+    if (!this.run) return;
+    const result = step(this.run, event);
+    this.run = result.state;
+    this.collect(result.effects);
+  }
+
+  private collect(effects: readonly Effect[]): void {
+    for (const effect of effects) {
+      const projected = projectEffect(effect);
+      if (projected) this.pendingEvents.push(projected);
+    }
+  }
+
+  private flushEvents(): void {
+    if (this.pendingEvents.length === 0) return;
+    const items = this.pendingEvents;
+    this.pendingEvents = [];
+    this.broadcast({ type: "events", items });
+  }
+
+  broadcastSnapshot(force = false): void {
+    if (!this.run) return;
+    if (!force && !this.started) return;
+    this.broadcast(projectSnapshot(this.run, ++this.seq));
+  }
+
+  broadcastLobby(): void {
+    this.broadcast(this.lobbyState());
+  }
+
+  private broadcast(message: ServerMessage): void {
+    for (const seat of this.occupants) {
+      if (seat.memberId) this.sendTo(seat.memberId, message);
+    }
+  }
+
+  private sendTo(memberId: string, message: ServerMessage): void {
+    this.send(memberId, message);
+  }
+}
