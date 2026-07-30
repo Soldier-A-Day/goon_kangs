@@ -26,6 +26,7 @@ import { travelMs } from "./zones.js";
 import type {
   Effect,
   Member,
+  PhaseId,
   Quest,
   RunState,
   SimEvent,
@@ -122,6 +123,13 @@ function startPhase(state: RunState, effects: Effect[]): void {
   openDelegationWindow(state);
 
   const phase = phaseAt(state.phaseIndex);
+
+  // NPC 대리를 합동 퀘스트 장소에 세워둔다.
+  // 대리는 필수를 완수하지만 합동은 사람이 시작해야 한다(1.0 "혼자서는 하루를 못 끝낸다").
+  // 다만 머릿수는 채워줘야 한다 — JDG-03이 "NPC는 암구호를 읽어주지 못한다"고만 적은 것은
+  // 참여 자체는 한다는 전제이며, 그렇지 않으면 1~3인 방은 합동이 있는 날마다 조건 B로 죽는다.
+  stationProxies(state);
+
   const [surprise, rng] = rollSurprise(state, phase.id);
   state.rngState = rng;
   if (surprise) {
@@ -170,6 +178,11 @@ function endPhase(state: RunState, effects: Effect[]): void {
   const phase = phaseAt(state.phaseIndex);
   const locked: string[] = [];
 
+  // 잠그기 전에 NPC 대리가 제 몫의 필수를 끝낸다 (ROLE-03 · 2.0).
+  // 대리는 필수만 완수하고 선택·돌발·히든은 일절 수행하지 않는다 —
+  // 생존은 시켜주지만 성장은 시켜주지 않는다는 JDG-03의 원칙이 여기서도 같다.
+  completeProxyWork(state, phase.id);
+
   for (const quest of state.quests) {
     if (quest.phase !== phase.id) continue;
     if (quest.status === "done" || quest.status === "locked") continue;
@@ -192,6 +205,44 @@ function endPhase(state: RunState, effects: Effect[]): void {
 
   state.phaseIndex += 1;
   startPhase(state, effects);
+}
+
+/**
+ * 대리를 그날 합동 장소로 옮긴다. 이동에 시간이 걸리지 않는 것은
+ * 대리가 "이미 거기서 일하고 있는 사람"으로 취급되기 때문이다.
+ */
+function stationProxies(state: RunState): void {
+  const joint = state.quests.find(
+    (q) => q.kind === "joint" && q.status !== "done" && q.status !== "locked",
+  );
+  if (!joint) return;
+
+  for (const member of state.members) {
+    if (member.presence !== "npcVacant" && member.presence !== "npcLeave") continue;
+    member.zone = joint.zone;
+    member.travelRemainingMs = 0;
+  }
+}
+
+/**
+ * NPC 대리의 일과 처리.
+ *
+ * 처음부터 비어 있던 자리(npcVacant)와 이탈로 생긴 자리(npcLeave) 둘 다 해당한다.
+ * 이게 없으면 4인이 못 모인 방은 D-01 점호에서 조건 A가 무조건 깨져
+ * ROLE-03이 말하는 1~3인 방이 아예 성립하지 않는다.
+ */
+function completeProxyWork(state: RunState, phaseId: PhaseId): void {
+  for (const member of state.members) {
+    if (member.presence !== "npcVacant" && member.presence !== "npcLeave") continue;
+
+    for (const quest of state.quests) {
+      if (quest.ownerId !== member.id || quest.phase !== phaseId) continue;
+      if (!quest.required) continue;
+      if (quest.status === "done" || quest.status === "locked") continue;
+      quest.workedMs = quest.workMs;
+      quest.status = "done";
+    }
+  }
 }
 
 /**

@@ -242,3 +242,95 @@ describe("쓰러짐 감지", () => {
     expect(state.members.every((m) => m.evacuations === 0)).toBe(true);
   });
 });
+
+describe("ROLE-03 · 2.0 NPC 대리의 일과", () => {
+  it("빈 보직의 필수는 대리가 채운다 — 없으면 1~3인 방이 성립하지 않는다", () => {
+    const state = playDays(
+      fullSquad({ members: [{ id: "p1", name: "김소총", role: "rifle" }] }),
+      3,
+    );
+    expect(state.status).toBe("running");
+    expect(state.judgements.every((j) => j.passed)).toBe(true);
+  });
+
+  it("대리는 선택·돌발은 손대지 않는다 — 생존은 시켜주되 성장은 시켜주지 않는다", () => {
+    let state = beginDay(
+      fullSquad({ members: [{ id: "p1", name: "김소총", role: "rifle" }] }),
+    );
+
+    let guard = 0;
+    while (state.status === "running" && state.day === 1 && guard++ < 200) {
+      state = completeRequired(state);
+      state = step(state, { type: "tick", elapsedMs: 30 * SECOND }).state;
+    }
+
+    const npcIds = state.members
+      .filter((m) => m.presence === "npcVacant")
+      .map((m) => m.id);
+    const npcOptional = state.quests.filter(
+      (q) => npcIds.includes(q.ownerId ?? "") && !q.required,
+    );
+
+    expect(npcOptional.length).toBeGreaterThan(0);
+    expect(npcOptional.every((q) => q.status !== "done")).toBe(true);
+  });
+
+  it("이탈로 생긴 자리도 같은 대리가 이어받는다", () => {
+    let state = beginDay(fullSquad());
+    state = step(state, { type: "leaveRun", memberId: "p2" }).state;
+
+    // 다음 날로 넘어가도 p2 몫의 필수는 대리가 계속 끝낸다
+    let guard = 0;
+    while (state.status === "running" && state.day <= 2 && guard++ < 300) {
+      state = completeRequired(state);
+      state = step(state, { type: "tick", elapsedMs: 30 * SECOND }).state;
+    }
+
+    expect(state.status).toBe("running");
+    expect(state.judgements.every((j) => j.passed)).toBe(true);
+  });
+});
+
+describe("대리와 합동 퀘스트", () => {
+  it("대리는 합동 장소에 서서 머릿수를 채운다", () => {
+    const state = beginDay(
+      fullSquad({ members: [{ id: "p1", name: "김소총", role: "rifle" }] }),
+    );
+    const joint = state.quests.find((q) => q.kind === "joint");
+    if (!joint) throw new Error("합동 없음");
+
+    const proxies = state.members.filter((m) => m.presence === "npcVacant");
+    expect(proxies.length).toBeGreaterThan(0);
+    expect(proxies.every((m) => m.zone === joint.zone)).toBe(true);
+  });
+
+  it("1인 방도 합동을 완수할 수 있다 — 다만 사람이 붙잡아야 한다", () => {
+    let state = beginDay(
+      fullSquad({ members: [{ id: "p1", name: "김소총", role: "rifle" }] }),
+    );
+    const joint = state.quests.find((q) => q.kind === "joint");
+    if (!joint) throw new Error("합동 없음");
+
+    state = step(state, { type: "move", memberId: "p1", to: joint.zone }).state;
+    state = step(state, { type: "tick", elapsedMs: 30 * SECOND }).state;
+    state = step(state, {
+      type: "work",
+      memberId: "p1",
+      questId: joint.id,
+      deltaMs: joint.workMs,
+    }).state;
+
+    expect(state.quests.find((q) => q.id === joint.id)?.status).toBe("done");
+  });
+
+  it("사람이 붙잡지 않으면 대리만으로는 합동이 진행되지 않는다", () => {
+    let state = beginDay(
+      fullSquad({ members: [{ id: "p1", name: "김소총", role: "rifle" }] }),
+    );
+    const joint = state.quests.find((q) => q.kind === "joint");
+    if (!joint) throw new Error("합동 없음");
+
+    state = step(state, { type: "tick", elapsedMs: 30 * SECOND }).state;
+    expect(state.quests.find((q) => q.id === joint.id)?.workedMs).toBe(0);
+  });
+});
