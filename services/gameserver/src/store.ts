@@ -2,7 +2,7 @@ import { randomBytes, randomInt } from "node:crypto";
 import type { ServerMessage } from "@sad/protocol";
 import type { RunConfig } from "@sad/sim";
 import { Room, type Send } from "./room.js";
-import { MemoryPersistence, type Persistence } from "./persistence.js";
+import { memoryStorage, type Storage } from "./persistence.js";
 
 /** 초대 코드는 6자리. 헷갈리는 글자(0/O, 1/I)는 뺀다 */
 const CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -22,7 +22,7 @@ export class RoomStore {
 
   constructor(
     private readonly send: Send,
-    readonly persistence: Persistence = new MemoryPersistence(),
+    readonly storage: Storage = memoryStorage(),
   ) {}
 
   createRoom(config: Partial<RunConfig>): Room {
@@ -38,13 +38,13 @@ export class RoomStore {
   /** 방이 스스로 저장·기록하도록 연결한다 — 방은 저장소가 무엇인지 알 필요가 없다 */
   private wire(room: Room): void {
     room.onPersist = (target) => {
-      if (target.run) void this.persistence.saveRun(target.code, target.run);
+      if (target.run) void this.storage.snapshots.save(target.code, target.run);
     };
     room.onFinished = (target) => {
       const record = target.summarize();
-      if (record) void this.persistence.appendRecord(record);
-      // 끝난 런은 이어하기 대상이 아니다
-      void this.persistence.dropRun(target.code);
+      if (record) void this.storage.records.append(record);
+      // 끝난 런은 이어하기 대상이 아니다 — 기록은 남고 스냅샷은 지운다
+      void this.storage.snapshots.drop(target.code);
     };
   }
 
@@ -57,7 +57,7 @@ export class RoomStore {
     const existing = this.rooms.get(upper);
     if (existing) return existing;
 
-    const state = await this.persistence.loadRun(upper);
+    const state = await this.storage.snapshots.load(upper);
     if (!state) return null;
 
     const room = new Room(upper, state.config, state.seed, this.send);

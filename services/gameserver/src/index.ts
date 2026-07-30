@@ -64,12 +64,12 @@ const server = createServer(async (req, res) => {
     // GET /records — 리더보드 · 기록
     if (req.method === "GET" && url.pathname === "/records") {
       const limit = Number(url.searchParams.get("limit") ?? 50);
-      return end(res, 200, await store.persistence.listRecords(limit));
+      return end(res, 200, await store.storage.records.list({ limit }));
     }
 
     // GET /records/:runId — 하달 장부 (QST-05)
     if (req.method === "GET" && parts[0] === "records" && parts[1]) {
-      const record = await store.persistence.getRecord(parts[1]);
+      const record = await store.storage.records.get(parts[1]);
       if (!record) return end(res, 404, { error: "recordNotFound" });
       return end(res, 200, record);
     }
