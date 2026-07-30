@@ -1,16 +1,8 @@
 import Link from "next/link";
-import { HTTP_BASE, ROLE_LABELS, type Role } from "@/lib/api";
-import { ENDING_LABELS, HIDDEN_LABELS, RANK_LABELS, type RunRecord } from "@/lib/records";
+import { ROLE_LABELS, type Role } from "@/lib/api";
+import { HIDDEN_LABELS, RANK_LABELS, fetchRecord, outcomeLabel } from "@/lib/records";
 
-async function fetchRecord(runId: string): Promise<RunRecord | null> {
-  try {
-    const response = await fetch(`${HTTP_BASE}/records/${runId}`, { cache: "no-store" });
-    if (!response.ok) return null;
-    return (await response.json()) as RunRecord;
-  } catch {
-    return null;
-  }
-}
+export const revalidate = 0;
 
 /**
  * QST-05 하달 장부.
@@ -42,13 +34,7 @@ export default async function LedgerPage({
     <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-8 px-6 py-14">
       <header className="flex flex-col gap-2 border-t-2 border-ink pt-3">
         <span className="label">하달 장부 · {record.runId}</span>
-        <h1 className="text-3xl font-extrabold tracking-tight">
-          {record.ending
-            ? (ENDING_LABELS[record.ending.id] ?? record.ending.label)
-            : record.status === "disbanded"
-              ? "분대 해체"
-              : "퇴소"}
-        </h1>
+        <h1 className="text-3xl font-extrabold tracking-tight">{outcomeLabel(record)}</h1>
         <p className="text-sm text-ink-2">
           D-{record.finishedAtDay}까지 · {record.season === "cold" ? "혹한기" : "혹서기"} ·
           최종 군기 {record.discipline}
@@ -115,10 +101,7 @@ export default async function LedgerPage({
           <span className="label">달성한 히든</span>
           <ul className="flex flex-wrap gap-2">
             {record.hidden.map((id) => (
-              <li
-                key={id}
-                className="border border-rule bg-paper-3 px-3 py-1 text-sm"
-              >
+              <li key={id} className="border border-rule bg-paper-3 px-3 py-1 text-sm">
                 {HIDDEN_LABELS[id] ?? id}
               </li>
             ))}

@@ -1,19 +1,12 @@
 import Link from "next/link";
-import { HTTP_BASE, ROLE_LABELS, type Role } from "@/lib/api";
-import { ENDING_LABELS, RANK_LABELS, type RunRecord } from "@/lib/records";
+import { ROLE_LABELS, type Role } from "@/lib/api";
+import { RANK_LABELS, fetchRecords, outcomeLabel } from "@/lib/records";
 
-async function fetchRecords(): Promise<RunRecord[] | null> {
-  try {
-    const response = await fetch(`${HTTP_BASE}/records?limit=50`, { cache: "no-store" });
-    if (!response.ok) return null;
-    return (await response.json()) as RunRecord[];
-  } catch {
-    return null;
-  }
-}
+// 기록은 런이 끝날 때마다 늘어난다. 캐시하면 방금 끝낸 런이 안 보인다.
+export const revalidate = 0;
 
 export default async function RecordsPage() {
-  const records = await fetchRecords();
+  const result = await fetchRecords();
 
   return (
     <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-8 px-6 py-14">
@@ -25,11 +18,13 @@ export default async function RecordsPage() {
         </p>
       </header>
 
-      {records === null ? (
+      {!result.ok ? (
         <p className="border-l-[3px] border-alert bg-paper-3 px-4 py-3 text-sm text-alert">
-          게임 서버에 붙지 못했다. `npm run dev:server` 가 떠 있는지 확인하라.
+          {result.reason === "notConfigured"
+            ? "기록 저장소가 설정되지 않았다. NEXT_PUBLIC_SUPABASE_URL 과 키가 필요하다."
+            : "기록을 불러오지 못했다."}
         </p>
-      ) : records.length === 0 ? (
+      ) : result.records.length === 0 ? (
         <p className="text-sm text-ink-2">아직 끝난 런이 없다.</p>
       ) : (
         <div className="overflow-x-auto border border-rule">
@@ -47,7 +42,7 @@ export default async function RecordsPage() {
               </tr>
             </thead>
             <tbody>
-              {records.map((record) => (
+              {result.records.map((record) => (
                 <tr key={record.runId} className="border-b border-rule-2 last:border-0">
                   <td className="px-3 py-2">
                     <b
@@ -59,11 +54,7 @@ export default async function RecordsPage() {
                             : "var(--alert)",
                       }}
                     >
-                      {record.ending
-                        ? (ENDING_LABELS[record.ending.id] ?? record.ending.label)
-                        : record.status === "disbanded"
-                          ? "분대 해체"
-                          : "퇴소"}
+                      {outcomeLabel(record)}
                     </b>
                     {record.failedAt && (
                       <span className="label ml-2">조건 {record.failedAt}</span>
