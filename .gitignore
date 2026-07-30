@@ -56,3 +56,10 @@ next-env.d.ts
 .claude/settings.local.json
 # vercel marketplace 통합이 설치한 에이전트 스킬
 .agents/
+
+# unity — 에디터가 생성하는 것들 (생성된 Protocol.cs 는 커밋한다)
+unity/Library/
+unity/Temp/
+unity/Logs/
+unity/UserSettings/
+unity/Build/

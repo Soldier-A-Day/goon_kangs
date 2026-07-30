@@ -1,0 +1,21 @@
+{
+  "name": "@sad/csharpgen",
+  "version": "0.1.0",
+  "private": true,
+  "description": "프로토콜 단일 정의 → Unity C# DTO 생성 (ARCH-02)",
+  "type": "module",
+  "scripts": {
+    "start": "tsx src/index.ts",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@sad/protocol": "*"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "tsx": "^4",
+    "typescript": "^5",
+    "vitest": "^3"
+  }
+}

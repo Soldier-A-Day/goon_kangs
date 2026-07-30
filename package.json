@@ -16,6 +16,7 @@
     "build": "npm run build --workspaces --if-present",
     "lint": "npm run lint --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
-    "typecheck": "npm run typecheck --workspaces --if-present"
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "codegen:csharp": "npm run start --workspace @sad/csharpgen -- ../../unity/Assets/Scripts/Generated/Protocol.cs"
   }
 }
