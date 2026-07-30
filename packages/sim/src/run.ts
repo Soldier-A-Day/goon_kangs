@@ -88,6 +88,9 @@ export function createRun(options: CreateRunOptions): RunState {
     leaderId: null,
     reliefsRemaining: 3,
     warnings: 0,
+    nextDayExtraRequired: 0,
+    personalTimeRevoked: false,
+    startedHumans: options.members.length,
 
     judgements: [],
   };

@@ -205,6 +205,12 @@ export interface RunState {
   reliefsRemaining: number;
   /** 완화 난이도의 누적 경고 횟수 */
   warnings: number;
+  /** 완화 난이도 1차 경고의 대가 — 다음 날 필수 퀘스트에 얹힌다 */
+  nextDayExtraRequired: number;
+  /** 완화 난이도 2차 근신 — 다음 날 개인정비 시간대 박탈 */
+  personalTimeRevoked: boolean;
+  /** 런 시작 시점의 실제 플레이어 수. 분대 해체 판정의 기준이 된다 */
+  readonly startedHumans: number;
 
   judgements: Judgement[];
 }

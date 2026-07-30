@@ -1,3 +1,4 @@
+import { applyJudgement, checkDisband } from "./judge.js";
 import { PHASE_COUNT, phaseAt, phaseDurationMsFor } from "./phases.js";
 import { travelMs } from "./zones.js";
 import type {
@@ -125,14 +126,15 @@ function skipPhase(state: RunState, effects: Effect[]): void {
 }
 
 /**
- * 하루 마감 지점. 점호 판정(JDG-01)이 이 자리에 들어간다.
+ * 하루 마감. 점호 판정(JDG-01)이 여기서 내려지고, 통과해야만 다음 날이 온다 —
+ * 세이브·리트라이의 단위는 하루다(1.0).
  */
 function endDay(state: RunState, effects: Effect[]): void {
-  if (state.day >= state.config.totalDays) {
-    state.status = "cleared";
-    effects.push({ type: "runEnded", status: "cleared" });
-    return;
-  }
+  applyJudgement(state, effects);
+  if (state.status !== "running") return;
+
+  checkDisband(state, effects);
+  if (state.status !== "running") return;
 
   state.day += 1;
   for (const member of state.members) {
