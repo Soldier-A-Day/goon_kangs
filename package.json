@@ -11,6 +11,7 @@
   "scripts": {
     "dev": "npm run dev --workspace @sad/web",
     "dev:web": "npm run dev --workspace @sad/web",
+    "sim": "npm run start --workspace @sad/simrunner --",
     "build": "npm run build --workspaces --if-present",
     "lint": "npm run lint --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",

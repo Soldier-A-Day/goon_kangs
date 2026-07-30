@@ -110,6 +110,13 @@ export function applyJudgement(state: RunState, effects: Effect[]): void {
     state.personalTimeRevoked = true;
     effects.push({ type: "log", message: "2차 근신 — 다음 날 개인정비 시간 박탈" });
   }
+
+  // 경고로 버티는 것은 다음 날이 있을 때 얘기다. 마지막 날 판정을 통과하지 못하면
+  // 완화 난이도라도 전역은 없다 — 승리 조건은 18일차 심사 통과다(2.0).
+  if (state.day >= state.config.totalDays) {
+    state.status = "discharged";
+    effects.push({ type: "runEnded", status: "discharged" });
+  }
 }
 
 /**

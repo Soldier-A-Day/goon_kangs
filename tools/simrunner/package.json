@@ -1,0 +1,21 @@
+{
+  "name": "@sad/simrunner",
+  "version": "0.1.0",
+  "private": true,
+  "description": "헤드리스 밸런싱 시뮬레이터 — 완주율을 재는 도구. Unity 없이 TS만으로 돈다 (ARCH-02)",
+  "type": "module",
+  "scripts": {
+    "start": "tsx src/index.ts",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@sad/sim": "*"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "tsx": "^4",
+    "typescript": "^5",
+    "vitest": "^3"
+  }
+}

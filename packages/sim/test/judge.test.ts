@@ -163,6 +163,18 @@ describe("난이도", () => {
 });
 
 describe("런 종료", () => {
+  it("완화 난이도라도 마지막 날 판정을 놓치면 전역하지 못한다", () => {
+    let state = fullSquad({ config: { difficulty: "relaxed" } });
+    state.reliefsRemaining = 0;
+    state.day = 18;
+    state.quests = [quest({ id: "a" })];
+    state = playDay(state);
+
+    expect(state.status).toBe("discharged");
+    expect(state.day).toBe(18);
+    expect(state.warnings).toBe(1);
+  });
+
   it("18일차 판정을 통과하면 전역한다", () => {
     let state = fullSquad();
     state = step(state, { type: "beginDay" }).state;
