@@ -7,6 +7,7 @@ import {
   vetoChore,
 } from "./delegation.js";
 import { applyDailyDiscipline } from "./discipline.js";
+import { applyDailyServiceScore, runReview } from "./ranks.js";
 import {
   applyForcedSleep,
   checkCollapses,
@@ -202,13 +203,17 @@ function skipPhase(state: RunState, effects: Effect[]): void {
  * 세이브·리트라이의 단위는 하루다(1.0).
  */
 function endDay(state: RunState, effects: Effect[]): void {
-  // 그날의 성과를 군기에 먼저 반영한 뒤 판정한다 (DISC-01)
+  // 그날의 성과를 군기와 복무 점수에 먼저 반영한 뒤 판정한다 (DISC-01 · 표 13-1)
   applyDailyDiscipline(state, effects);
+  applyDailyServiceScore(state);
   applyJudgement(state, effects);
   if (state.status !== "running") return;
 
   checkDisband(state, effects);
   if (state.status !== "running") return;
+
+  // 점호 판정 통과 → 심사 화면 → 승급 발표 (RANK-01)
+  runReview(state, effects);
 
   // 점호 통과 → 야간 경계 배정 → 취침 정산 (COND-02)
   applySleep(state, effects);

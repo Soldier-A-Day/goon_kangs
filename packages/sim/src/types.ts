@@ -327,6 +327,22 @@ export type Effect =
       readonly asRecruit: boolean;
     }
   | { readonly type: "forcedSleep"; readonly memberId: string }
+  | {
+      readonly type: "rankReviewed";
+      readonly day: number;
+      readonly isRetry: boolean;
+      readonly require: number;
+      /** 점수 내역은 전원에게 공개된다 — 무임승차가 드러나는 것이 사회적 압력 장치다 */
+      readonly outcomes: readonly {
+        readonly memberId: string;
+        readonly promoted: boolean;
+        readonly from: Rank;
+        readonly to: Rank;
+        readonly score: number;
+        readonly require: number;
+        readonly trustBonus: number;
+      }[];
+    }
   | { readonly type: "runEnded"; readonly status: RunStatus }
   | { readonly type: "log"; readonly message: string };
 

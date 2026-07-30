@@ -253,7 +253,8 @@ describe("QST-05 거부권과 분대장 개입", () => {
     state = step(state, { type: "vetoChore", memberId: "p2", questId: "c1" }).state;
 
     expect(state.quests.find((q) => q.id === "c1")?.ownerId).toBe("p1");
-    expect(state.members.find((m) => m.id === "p1")?.serviceScore).toBe(-3);
+    // 거부 −3 에 상병 배율 1.4가 곱해진다 (표 13-2 감점 배율)
+    expect(state.members.find((m) => m.id === "p1")?.serviceScore).toBe(-4);
     expect(state.trust.assistant).toBe(trustBefore - 5);
     expect(state.members.find((m) => m.id === "p2")?.vetoUsedToday).toBe(true);
   });

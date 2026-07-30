@@ -1,5 +1,6 @@
 import { THRESHOLDS } from "./condition.js";
 import { penalizeIncident } from "./discipline.js";
+import { penalizeEvacuation } from "./ranks.js";
 import type { Effect, Member, RunState } from "./types.js";
 
 /**
@@ -57,6 +58,8 @@ export function evacuate(state: RunState, memberId: string, effects: Effect[]): 
 
   // 계급과 무관한 비용이므로 잃을 게 없는 이병이 쓰러져도 분대는 아프다
   penalizeIncident(state);
+  // 개인 비용은 복무 점수로 문다 — 계급이 높을수록 크게 (표 13-1)
+  penalizeEvacuation(member);
 
   effects.push({ type: "memberEvacuated", memberId: member.id, absorbed });
 }

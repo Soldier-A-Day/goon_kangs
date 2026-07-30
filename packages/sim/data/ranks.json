@@ -1,0 +1,49 @@
+{
+  "_source": "SAD-GDD-001 13.1 계급 · 승급 심사 (RANK-01) · 표 13-1 · 표 13-2",
+  "_note": "복무 점수는 전부 '안 해도 되는데 한 것'으로만 매긴다. 필수 완수는 살아있는 플레이어가 예외 없이 100%라 변별력이 0이므로 승급 기준이 될 수 없다.",
+  "reviews": [
+    { "day": 3, "rank": "pfc", "require": 18 },
+    { "day": 9, "rank": "corporal", "require": 70 },
+    { "day": 15, "rank": "sergeant", "require": 150 }
+  ],
+  "_retryNote": "보류자는 다음 정비일에 재심사를 받고 요구치가 10% 낮아진다. 초반에 뒤처져도 만회할 여지를 남긴다.",
+  "retries": [
+    { "day": 6, "rank": "pfc" },
+    { "day": 11, "rank": "corporal" },
+    { "day": 14, "rank": "sergeant" }
+  ],
+  "retryDiscount": 0.1,
+  "gains": {
+    "optionalRoleQuest": 2,
+    "surpriseSuccess": 3,
+    "jointFlawless": 4,
+    "trainingPerfect": 8,
+    "nightGuard": 3,
+    "proxyChore": 2,
+    "juniorAssist": 2,
+    "skillTierUp": 5,
+    "trustDivisor": 10,
+    "trustMax": 12
+  },
+  "penalties": {
+    "_note": "감점에만 계급 배율이 곱해진다. 계급이 높으면 같은 실수의 대가가 커지지만 해야 할 일의 양은 늘지 않는다 — 초안의 '계급이 오르면 필수 +1'은 폐기했다(4인 분대에서 판정 대상이 17 → 21건으로 늘어 완주율이 급락한다).",
+    "delegationVetoed": -3,
+    "late": -3,
+    "equipmentLost": -5,
+    "evacuated": -8,
+    "npcProxyPerDay": -3
+  },
+  "penaltyMultiplier": {
+    "private": 1.0,
+    "pfc": 1.2,
+    "corporal": 1.4,
+    "sergeant": 1.6
+  },
+  "grants": {
+    "private": [],
+    "pfc": ["하달 1건 (이병 대상)", "분대 진행률 가시화", "돌발 우선 수령권"],
+    "corporal": ["하달 2건 (이병 대상)", "선택 퀘스트 1회/일 이월", "간부 대화 효과 2배"],
+    "sergeant": ["하달 2건 (일병·이병 대상)", "구제권 발의", "분대장 우선순위 지정 +1회"]
+  },
+  "_unimplemented": "특기 숙련도 단계 상승(+5)과 후임 지원(+2)은 해당 시스템이 아직 없어 적립되지 않는다. 지각(−3)·장비 분실(−5)도 보급 시스템이 붙어야 발생한다."
+}

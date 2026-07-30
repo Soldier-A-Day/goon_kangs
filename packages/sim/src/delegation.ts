@@ -1,4 +1,5 @@
 import { adjustDiscipline } from "./discipline.js";
+import { award, penalize } from "./ranks.js";
 import { phaseAt } from "./phases.js";
 import { RANK_ORDER, type Effect, type Member, type Quest, type RunState } from "./types.js";
 
@@ -161,7 +162,7 @@ export function vetoChore(
   member.vetoUsedToday = true;
   member.choresReceived = Math.max(0, member.choresReceived - 1);
 
-  if (delegator) delegator.serviceScore += VETO_DELEGATOR_COST;
+  if (delegator) penalize(delegator, VETO_DELEGATOR_COST);
   // 거부한 사람은 간부 신뢰도를 잃는다 — 공짜 카드가 아니다
   state.trust.assistant = Math.max(0, state.trust.assistant + VETO_TRUST_COST);
 
@@ -257,7 +258,7 @@ export function delegationLedgerSummary(
 export function awardProxyScore(state: RunState, quest: Quest): void {
   if (quest.kind !== "chore" || quest.delegatedFrom === null) return;
   const performer = quest.ownerId ? find(state, quest.ownerId) : undefined;
-  if (performer) performer.serviceScore += PROXY_SERVICE_SCORE;
+  if (performer) award(performer, PROXY_SERVICE_SCORE);
 }
 
 function find(state: RunState, id: string): Member | undefined {

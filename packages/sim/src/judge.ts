@@ -22,7 +22,7 @@ export const PARTIAL_SUCCESS_RATIO = 0.7;
 export function judgeDay(state: RunState): Judgement {
   const required = state.quests.filter((q) => q.required);
   const requiredDone = required.filter((q) => q.status === "done").length;
-  const shortfall = required.length - requiredDone;
+  const shortfall = countShortfall(state);
 
   // 구제는 조건 A의 미완료 필수에만 쓴다 — 군기나 복장은 구제 대상이 아니다
   const reliefsUsed = Math.min(shortfall, state.reliefsRemaining);
@@ -55,6 +55,24 @@ export function judgeDay(state: RunState): Judgement {
     // 판정이 실패로 끝나면 구제권은 소모되지 않는다 — 살리지 못한 구제는 쓰지 않은 것이다
     reliefsUsed: failedAt === null ? reliefsUsed : 0,
   };
+}
+
+/**
+ * 조건 A의 미달 건수.
+ *
+ * 훈련 체크포인트도 개별로 센다 — 여기서 기획서가 스스로 어긋난다.
+ * 9.0 TRN-02는 "구간 통과율 70% 이상이면 필수 판정은 통과"라고 하지만,
+ * 같은 절의 카운트 규칙은 "체크포인트는 각각 필수 1건"이라 하고,
+ * 10.0은 그 전수(302건)를 판정 대상으로 놓고 완주율 15~25%를 역산한다.
+ * 셋을 동시에 만족시킬 수 없다.
+ *
+ * 상위 목표인 완주율을 지키는 쪽을 택했다 — 70%를 조건 A에 적용하면
+ * 실측 완주율이 15% → 31%로 뛰어 목표 구간을 벗어난다(tools/simrunner).
+ * 대신 70% 규칙은 훈련 자체의 성패(군기·보상)에만 쓴다.
+ * 결정 항목으로 남겨둔 상태이며, 확정되면 이 함수와 표 13-1의 훈련 +8을 함께 손봐야 한다.
+ */
+function countShortfall(state: RunState): number {
+  return state.quests.filter((q) => q.required && q.status !== "done").length;
 }
 
 /** 합동 퀘스트는 부분 성공 70%까지 인정한다 */
