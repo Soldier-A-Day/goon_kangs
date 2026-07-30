@@ -18,6 +18,18 @@ export const TICK_MS = 1000 / TICK_HZ;
 /** 스킵 투표 성립 정족수 — 생존 인원의 3/4 (TIME-01) */
 export const SKIP_QUORUM_RATIO = 3 / 4;
 
+/**
+ * 재접속 유예.
+ *
+ * 이탈 대리는 한도 없이 잔여 필수를 인수한다(2.0) — "게임을 못 하게 되는 것 자체가 최대 비용"이라
+ * 판정 회피에 악용될 수 없다는 전제 위에 선 규칙이다. 그런데 끊기자마자 대리로 넘기면
+ * 그 전제가 깨진다: 새로고침 한 번이면 몇 초 만에 돌아오면서 그날 필수를 전부 완수한 상태가 된다.
+ * 비용이 0이고 이득만 남으므로 판정을 통째로 우회할 수 있다.
+ *
+ * 그래서 유예를 둔다. 안에 돌아오면 아무 일도 없었던 것이고, 넘기면 그때 진짜 이탈로 본다.
+ */
+export const DISCONNECT_GRACE_MS = 30_000;
+
 export interface Seat {
   readonly role: Role;
   memberId: string | null;
@@ -47,6 +59,8 @@ export class Room {
   /** 지금 붙잡고 있는 퀘스트 — 진척은 서버가 센다 */
   private readonly working = new Map<string, string>();
   private readonly skipVotes = new Set<string>();
+  /** 끊겼지만 아직 유예 중인 사람 → 남은 유예 ms */
+  private readonly graceLeft = new Map<string, number>();
   private readonly leaderVotes = new Map<string, string>();
 
   constructor(
@@ -159,6 +173,7 @@ export class Room {
     }
 
     this.apply({ type: "tick", elapsedMs });
+    this.expireGraces(elapsedMs);
 
     this.sinceSnapshotMs += elapsedMs;
     if (this.sinceSnapshotMs >= 1000 / SNAPSHOT_HZ) {
@@ -246,27 +261,48 @@ export class Room {
     this.flushEvents();
   }
 
-  /** 이탈 — 남은 팀의 세션을 지키는 쪽이 우선이다 (2.0) */
+  /**
+   * 접속이 끊겼다. 곧바로 이탈로 보지 않고 유예를 준다 — 새로고침과 진짜 이탈은 다른 사건이다.
+   */
   disconnect(memberId: string): void {
     this.setConnected(memberId, false);
     this.working.delete(memberId);
+
     if (!this.run || !this.started) {
       this.leaveLobby(memberId);
       this.broadcastLobby();
       return;
     }
-    this.apply({ type: "leaveRun", memberId });
-    this.broadcastSnapshot(true);
-    this.flushEvents();
+
+    this.graceLeft.set(memberId, DISCONNECT_GRACE_MS);
   }
 
   reconnect(memberId: string): void {
     this.setConnected(memberId, true);
+    // 유예 안에 돌아왔다면 아무 일도 없었던 것이다
+    this.graceLeft.delete(memberId);
+
     if (this.run) {
       this.apply({ type: "rejoinRun", memberId });
       this.sendTo(memberId, projectSnapshot(this.run, ++this.seq));
     } else {
       this.broadcastLobby();
+    }
+  }
+
+  /** 유예를 넘긴 사람만 진짜 이탈로 처리한다 */
+  private expireGraces(elapsedMs: number): void {
+    if (this.graceLeft.size === 0) return;
+
+    for (const [memberId, left] of [...this.graceLeft]) {
+      const remaining = left - elapsedMs;
+      if (remaining > 0) {
+        this.graceLeft.set(memberId, remaining);
+        continue;
+      }
+      this.graceLeft.delete(memberId);
+      this.apply({ type: "leaveRun", memberId });
+      this.broadcastSnapshot(true);
     }
   }
 

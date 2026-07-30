@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { ServerMessage, Snapshot } from "@sad/protocol";
-import { Room } from "../src/room.js";
+import { DISCONNECT_GRACE_MS, Room } from "../src/room.js";
 import { RoomStore, generateCode } from "../src/store.js";
 
 interface Harness {
@@ -163,12 +163,13 @@ describe("진행", () => {
     expect(h.room.run?.leaderId).toBe(ids[0]);
   });
 
-  it("접속이 끊기면 이탈 대리로 전환된다", () => {
+  it("유예를 넘긴 이탈만 대리로 전환되고, 재접속하면 복귀한다", () => {
     const h = harness();
     const ids = fourPlayers(h.room);
     h.room.start();
 
     h.room.disconnect(ids[0] as string);
+    h.room.tick(DISCONNECT_GRACE_MS + 1000);
     expect(h.room.run?.members.find((m) => m.id === ids[0])?.presence).toBe("npcLeave");
 
     h.room.reconnect(ids[0] as string);
@@ -252,5 +253,49 @@ describe("토큰과 방 코드", () => {
     room.leaveLobby(joined.memberId);
     store.sweep();
     expect(store.size).toBe(0);
+  });
+});
+
+describe("재접속 유예", () => {
+  it("끊기자마자 이탈 대리로 넘기지 않는다", () => {
+    const h = harness();
+    const ids = fourPlayers(h.room);
+    h.room.start();
+
+    h.room.disconnect(ids[0] as string);
+    expect(h.room.run?.members.find((m) => m.id === ids[0])?.presence).toBe("player");
+  });
+
+  it("유예 안에 돌아오면 아무 일도 없었던 것이다 — 새로고침으로 필수를 우회할 수 없다", () => {
+    const h = harness();
+    const ids = fourPlayers(h.room);
+    h.room.start();
+
+    const before = h.room.run?.quests.filter(
+      (q) => q.required && q.ownerId === ids[0] && q.status !== "done",
+    ).length;
+
+    h.room.disconnect(ids[0] as string);
+    h.room.tick(5000);
+    h.room.reconnect(ids[0] as string);
+    h.room.tick(DISCONNECT_GRACE_MS + 1000);
+
+    const after = h.room.run?.quests.filter(
+      (q) => q.required && q.ownerId === ids[0] && q.status !== "done",
+    ).length;
+
+    expect(h.room.run?.members.find((m) => m.id === ids[0])?.presence).toBe("player");
+    expect(after).toBe(before);
+  });
+
+  it("유예를 넘기면 그때 진짜 이탈로 본다", () => {
+    const h = harness();
+    const ids = fourPlayers(h.room);
+    h.room.start();
+
+    h.room.disconnect(ids[0] as string);
+    h.room.tick(DISCONNECT_GRACE_MS + 1000);
+
+    expect(h.room.run?.members.find((m) => m.id === ids[0])?.presence).toBe("npcLeave");
   });
 });
