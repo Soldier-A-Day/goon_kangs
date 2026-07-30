@@ -14,3 +14,5 @@ export * from "./delegation.js";
 export * from "./evacuation.js";
 export * from "./ranks.js";
 export * from "./supply.js";
+export * from "./hidden.js";
+export * from "./persist.js";

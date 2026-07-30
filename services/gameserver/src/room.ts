@@ -2,6 +2,7 @@ import {
   ROLES,
   createRun,
   step,
+  summarizeRun,
   type Effect,
   type Role,
   type RunState,
@@ -62,6 +63,13 @@ export class Room {
   /** 끊겼지만 아직 유예 중인 사람 → 남은 유예 ms */
   private readonly graceLeft = new Map<string, number>();
   private readonly leaderVotes = new Map<string, string>();
+
+  /** 런이 끝났을 때 기록을 남길 곳. 서버가 주입한다 */
+  onFinished: ((room: Room) => void) | null = null;
+  /** 주기 스냅샷 — 전원 이탈해도 24시간 이어하기가 되도록 (17.0) */
+  onPersist: ((room: Room) => void) | null = null;
+  private sincePersistMs = 0;
+  private finishedReported = false;
 
   constructor(
     code: string,
@@ -165,7 +173,11 @@ export class Room {
 
   /** 서버 시계가 주입하는 시간. sim은 시계를 갖지 않는다. */
   tick(elapsedMs: number): void {
-    if (!this.run || this.run.status !== "running") return;
+    if (!this.run) return;
+    if (this.run.status !== "running") {
+      this.reportFinished();
+      return;
+    }
 
     // 붙잡고 있는 퀘스트에 먼저 진척을 넣는다 — 상호작용은 시간에 비례한다
     for (const [memberId, questId] of this.working) {
@@ -180,7 +192,16 @@ export class Room {
       this.sinceSnapshotMs = 0;
       this.broadcastSnapshot();
     }
+
+    // 저장은 매 틱이 아니라 일차가 넘어갈 만한 주기로 충분하다
+    this.sincePersistMs += elapsedMs;
+    if (this.sincePersistMs >= 10_000) {
+      this.sincePersistMs = 0;
+      this.onPersist?.(this);
+    }
+
     this.flushEvents();
+    if (this.run.status !== "running") this.reportFinished();
   }
 
   /**
@@ -294,6 +315,32 @@ export class Room {
     } else {
       this.broadcastLobby();
     }
+  }
+
+  /** 런 기록은 한 번만 남긴다 */
+  private reportFinished(): void {
+    if (this.finishedReported || !this.run) return;
+    if (this.run.status === "running") return;
+    this.finishedReported = true;
+    this.onFinished?.(this);
+  }
+
+  /** 저장된 스냅샷에서 방을 되살린다 (17.0 이어하기) */
+  restore(state: RunState): void {
+    this.run = state;
+    this.started = true;
+    for (const member of state.members) {
+      const seat = this.seats.find((s) => s.role === member.role);
+      if (seat && member.presence !== "npcVacant") {
+        seat.memberId = member.id;
+        seat.name = member.name;
+      }
+    }
+    this.hostId ??= this.occupants[0]?.memberId ?? null;
+  }
+
+  summarize() {
+    return this.run ? summarizeRun(this.run) : null;
   }
 
   /** 유예를 넘긴 사람만 진짜 이탈로 처리한다 */

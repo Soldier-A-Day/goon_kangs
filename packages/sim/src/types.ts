@@ -240,6 +240,8 @@ export interface RunState {
   supplyPoints: number;
   /** 행정병이 작성한 청구서. 비어 있으면 표준 청구로 채운다 */
   pendingClaim: string[];
+  /** 달성한 히든 퀘스트 — 4개를 모으면 분대 기록 엔딩이 열린다 (META-02) */
+  hiddenUnlocked: string[];
 
   judgements: Judgement[];
 }
@@ -361,6 +363,7 @@ export type Effect =
         readonly trustBonus: number;
       }[];
     }
+  | { readonly type: "hiddenUnlocked"; readonly id: string; readonly label: string }
   | { readonly type: "runEnded"; readonly status: RunStatus }
   | { readonly type: "log"; readonly message: string };
 

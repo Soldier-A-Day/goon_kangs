@@ -209,9 +209,20 @@ function RunEnded({
         )}
       </p>
 
-      <Link href="/" className="text-accent underline underline-offset-4">
-        처음으로
-      </Link>
+      <div className="flex flex-wrap gap-4">
+        <Link
+          href={`/ledger/run-${code}`}
+          className="text-accent underline underline-offset-4"
+        >
+          하달 장부 보기
+        </Link>
+        <Link href="/records" className="text-accent underline underline-offset-4">
+          분대 기록
+        </Link>
+        <Link href="/" className="text-ink-2 underline underline-offset-4">
+          처음으로
+        </Link>
+      </div>
     </main>
   );
 }

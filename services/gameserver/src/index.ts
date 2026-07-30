@@ -61,9 +61,22 @@ const server = createServer(async (req, res) => {
       });
     }
 
-    // GET /rooms/:code — 로비 상태
+    // GET /records — 리더보드 · 기록
+    if (req.method === "GET" && url.pathname === "/records") {
+      const limit = Number(url.searchParams.get("limit") ?? 50);
+      return end(res, 200, await store.persistence.listRecords(limit));
+    }
+
+    // GET /records/:runId — 하달 장부 (QST-05)
+    if (req.method === "GET" && parts[0] === "records" && parts[1]) {
+      const record = await store.persistence.getRecord(parts[1]);
+      if (!record) return end(res, 404, { error: "recordNotFound" });
+      return end(res, 200, record);
+    }
+
+    // GET /rooms/:code — 로비 상태. 없으면 저장된 스냅샷에서 되살린다 (17.0)
     if (req.method === "GET" && parts[0] === "rooms" && parts[1]) {
-      const room = store.get(parts[1]);
+      const room = store.get(parts[1]) ?? (await store.resume(parts[1]));
       if (!room) return end(res, 404, { error: "roomNotFound" });
       return end(res, 200, room.lobbyState());
     }

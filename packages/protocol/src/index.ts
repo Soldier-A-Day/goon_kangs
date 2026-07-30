@@ -232,6 +232,7 @@ export const serverEventSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("choreDelegated"), fromId: z.string(), toId: z.string(), questId: z.string() }),
   z.object({ type: z.literal("choreVetoed"), memberId: z.string(), questId: z.string() }),
   z.object({ type: z.literal("choreReassigned"), toId: z.string(), questId: z.string() }),
+  z.object({ type: z.literal("hiddenUnlocked"), id: z.string(), label: z.string() }),
   z.object({ type: z.literal("runEnded"), status: z.string() }),
   z.object({
     type: z.literal("quickCommand"),

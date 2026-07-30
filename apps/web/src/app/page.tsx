@@ -49,6 +49,12 @@ export default function Home() {
         >
           초대 코드로 입장
         </Link>
+        <Link
+          href="/records"
+          className="border-2 border-rule px-6 py-3 font-bold text-ink-2 transition-colors hover:bg-paper-2"
+        >
+          분대 기록
+        </Link>
       </div>
     </main>
   );

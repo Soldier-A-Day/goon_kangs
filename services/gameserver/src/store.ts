@@ -2,6 +2,7 @@ import { randomBytes, randomInt } from "node:crypto";
 import type { ServerMessage } from "@sad/protocol";
 import type { RunConfig } from "@sad/sim";
 import { Room, type Send } from "./room.js";
+import { MemoryPersistence, type Persistence } from "./persistence.js";
 
 /** 초대 코드는 6자리. 헷갈리는 글자(0/O, 1/I)는 뺀다 */
 const CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -19,14 +20,50 @@ export class RoomStore {
   private readonly rooms = new Map<string, Room>();
   private readonly sessions = new Map<string, Session>();
 
-  constructor(private readonly send: Send) {}
+  constructor(
+    private readonly send: Send,
+    readonly persistence: Persistence = new MemoryPersistence(),
+  ) {}
 
   createRoom(config: Partial<RunConfig>): Room {
     let code = generateCode();
     while (this.rooms.has(code)) code = generateCode();
 
     const room = new Room(code, config, randomInt(1, 2 ** 31 - 1), this.send);
+    this.wire(room);
     this.rooms.set(code, room);
+    return room;
+  }
+
+  /** 방이 스스로 저장·기록하도록 연결한다 — 방은 저장소가 무엇인지 알 필요가 없다 */
+  private wire(room: Room): void {
+    room.onPersist = (target) => {
+      if (target.run) void this.persistence.saveRun(target.code, target.run);
+    };
+    room.onFinished = (target) => {
+      const record = target.summarize();
+      if (record) void this.persistence.appendRecord(record);
+      // 끝난 런은 이어하기 대상이 아니다
+      void this.persistence.dropRun(target.code);
+    };
+  }
+
+  /**
+   * 17.0 이어하기 — 서버가 재시작했거나 방이 청소된 뒤에도
+   * 저장된 스냅샷이 있으면 같은 코드로 되살린다.
+   */
+  async resume(code: string): Promise<Room | null> {
+    const upper = code.toUpperCase();
+    const existing = this.rooms.get(upper);
+    if (existing) return existing;
+
+    const state = await this.persistence.loadRun(upper);
+    if (!state) return null;
+
+    const room = new Room(upper, state.config, state.seed, this.send);
+    this.wire(room);
+    room.restore(state);
+    this.rooms.set(upper, room);
     return room;
   }
 
@@ -53,10 +90,19 @@ export class RoomStore {
     this.sessions.delete(token);
   }
 
-  /** 빈 방 청소 — 시작 전 방에 아무도 없으면 지운다 */
+  /**
+   * 빈 방 청소.
+   *
+   * 시작 전 빈 방은 그냥 지운다. 시작한 뒤 끝난 방도 지우는데, 그 시점에는 이미
+   * 기록이 남고 스냅샷이 정리된 상태다(wire 참고) — 진행 중인 방은 건드리지 않는다.
+   */
   sweep(): void {
     for (const [code, room] of this.rooms) {
       if (!room.started && room.occupants.length === 0) {
+        this.rooms.delete(code);
+        continue;
+      }
+      if (room.run && room.run.status !== "running") {
         this.rooms.delete(code);
       }
     }

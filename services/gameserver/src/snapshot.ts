@@ -184,6 +184,8 @@ export function projectEffect(effect: Effect): ServerEvent | null {
       return { type: "choreVetoed", memberId: effect.memberId, questId: effect.questId };
     case "choreReassigned":
       return { type: "choreReassigned", toId: effect.toId, questId: effect.questId };
+    case "hiddenUnlocked":
+      return { type: "hiddenUnlocked", id: effect.id, label: effect.label };
     case "runEnded":
       return { type: "runEnded", status: effect.status };
     case "log":

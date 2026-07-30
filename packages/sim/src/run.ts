@@ -106,6 +106,7 @@ export function createRun(options: CreateRunOptions): RunState {
     ledger: [],
     supplyPoints: SUPPLY_START,
     pendingClaim: [],
+    hiddenUnlocked: [],
     judgements: [],
   };
 }

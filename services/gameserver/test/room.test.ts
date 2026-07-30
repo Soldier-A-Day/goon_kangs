@@ -3,6 +3,7 @@ import type { ServerMessage, Snapshot } from "@sad/protocol";
 import { DISCONNECT_GRACE_MS, Room } from "../src/room.js";
 import { RoomStore, generateCode } from "../src/store.js";
 import { projectEffect } from "../src/snapshot.js";
+import { MemoryPersistence, RUN_TTL_MS } from "../src/persistence.js";
 
 interface Harness {
   room: Room;
@@ -337,5 +338,82 @@ describe("승급 심사 투영", () => {
     expect(
       projectEffect({ type: "delegationRefused", reason: "rankTooLow", questId: "c1" }),
     ).toBeNull();
+  });
+});
+
+describe("17.0 이어하기와 기록", () => {
+  it("만료 전에는 저장된 런을 되살린다", async () => {
+    let clock = 1_000_000;
+    const store = new RoomStore(
+      () => {},
+      new MemoryPersistence(() => clock),
+    );
+    const room = store.createRoom({});
+    const joined = room.join("김소총", "rifle");
+    if (!joined.ok) throw new Error("입장 실패");
+    room.start();
+    room.tick(11_000); // 주기 저장이 돌 만큼
+
+    const resumed = await store.resume(room.code);
+    expect(resumed).not.toBeNull();
+    expect(resumed?.run?.day).toBe(room.run?.day);
+  });
+
+  it("24시간이 지나면 되살리지 않는다", async () => {
+    let clock = 1_000_000;
+    const store = new RoomStore(
+      () => {},
+      new MemoryPersistence(() => clock),
+    );
+    const room = store.createRoom({});
+    room.join("김소총", "rifle");
+    room.start();
+    room.tick(11_000);
+
+    const code = room.code;
+    store.sweep();
+    clock += RUN_TTL_MS + 1;
+
+    // 진행 중인 방은 sweep이 지우지 않으므로 직접 저장소만 확인한다
+    expect(await store.persistence.loadRun(code)).toBeNull();
+  });
+
+  it("런이 끝나면 기록이 남고 이어하기 스냅샷은 정리된다", async () => {
+    const persistence = new MemoryPersistence();
+    const store = new RoomStore(() => {}, persistence);
+    const room = store.createRoom({ difficulty: "regular" });
+    const joined = room.join("김소총", "rifle");
+    if (!joined.ok) throw new Error("입장 실패");
+    room.start();
+    room.tick(11_000);
+
+    // 필수를 남긴 채 하루를 넘겨 퇴소시킨다
+    if (!room.run) throw new Error("런 없음");
+    room.run.reliefsRemaining = 0;
+    let guard = 0;
+    while (room.run.status === "running" && guard++ < 200) {
+      room.tick(5_000);
+    }
+
+    expect(room.run.status).not.toBe("running");
+    const records = await persistence.listRecords();
+    expect(records).toHaveLength(1);
+    expect(records[0]?.status).toBe("discharged");
+    expect(await persistence.loadRun(room.code)).toBeNull();
+  });
+
+  it("기록은 한 번만 남는다", async () => {
+    const persistence = new MemoryPersistence();
+    const store = new RoomStore(() => {}, persistence);
+    const room = store.createRoom({});
+    room.join("김소총", "rifle");
+    room.start();
+    if (!room.run) throw new Error("런 없음");
+    room.run.status = "cleared";
+
+    room.tick(1000);
+    room.tick(1000);
+
+    expect(await persistence.listRecords()).toHaveLength(1);
   });
 });

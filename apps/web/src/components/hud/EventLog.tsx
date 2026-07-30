@@ -145,6 +145,8 @@ function describe(
                 .join(" · ")} (잔여 ${event.pointsLeft})`,
         tone: event.items.length === 0 ? "var(--alert)" : "var(--accent)",
       };
+    case "hiddenUnlocked":
+      return { text: `히든 달성 — ${event.label}`, tone: "var(--accent)" };
     case "log":
       return { text: event.message };
     default:

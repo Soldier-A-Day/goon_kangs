@@ -1,0 +1,58 @@
+{
+  "_source": "SAD-GDD-001 표 6-1 히든 퀘스트 · 13.0 META-02 엔딩 분기",
+  "_note": "표 6-1은 히든을 '런당 2~4, 조건 달성, 일부 보직 한정'으로만 정하고 목록을 주지 않는다. 아래는 그 자리를 채운 것이며 전부 분대 단위로 판정한다 — 엔딩(META-02)이 분대 단위이기 때문이다. 조건은 매일 밤 점호 직후에 검사한다.",
+  "requiredForRecordEnding": 4,
+  "quests": [
+    {
+      "id": "flawlessDay",
+      "label": "완전한 하루",
+      "hint": "필수도 선택도 하나 남기지 않고 하루를 마감한다",
+      "role": null
+    },
+    {
+      "id": "coldSnap",
+      "label": "혹한을 넘다",
+      "hint": "극혹한 밴드에서 필수를 전부 끝낸다",
+      "role": null
+    },
+    {
+      "id": "hydrated",
+      "label": "쓰러지지 않는다",
+      "hint": "혹서 이상에서 전원 수분 50 이상으로 하루를 마감한다",
+      "role": "medic"
+    },
+    {
+      "id": "ledgerClean",
+      "label": "제 몫은 제가",
+      "hint": "D-10까지 하달 없이 버틴다",
+      "role": null
+    },
+    {
+      "id": "proxyKing",
+      "label": "대행의 달인",
+      "hint": "하달받은 공통 일과를 분대 누적 5건 완수한다",
+      "role": null
+    },
+    {
+      "id": "steadfast",
+      "label": "우수분대",
+      "hint": "군기 90에 도달한다",
+      "role": "admin"
+    }
+  ],
+  "endings": {
+    "_note": "META-02 분기 기준 — 18일 무실패 여부 · 최종 계급 · 최종 군기 · 간부 신뢰도 합계 · 히든 달성 수",
+    "exemplary": {
+      "label": "모범 전역",
+      "requires": {
+        "noEvacuation": true,
+        "noRelief": true,
+        "minDiscipline": 80,
+        "minRank": "sergeant"
+      }
+    },
+    "record": { "label": "분대 기록 엔딩", "requiresAllHidden": true },
+    "barely": { "label": "간신히 전역", "whenWarnings": 1 },
+    "normal": { "label": "정상 전역" }
+  }
+}

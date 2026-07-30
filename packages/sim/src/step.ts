@@ -8,6 +8,7 @@ import {
 } from "./delegation.js";
 import { applyDailyDiscipline } from "./discipline.js";
 import { applyDailyServiceScore, runReview } from "./ranks.js";
+import { checkHiddenQuests } from "./hidden.js";
 import { accrueSupplyPoints, fileClaim, runSupplyDay } from "./supply.js";
 import {
   applyForcedSleep,
@@ -218,6 +219,9 @@ function endDay(state: RunState, effects: Effect[]): void {
   checkDisband(state, effects);
   if (state.status !== "running") return;
 
+  // 히든은 페널티가 없고 그날의 판정을 바꾸지 않는다 — 통과한 뒤에 확인한다 (표 6-1)
+  checkHiddenQuests(state, effects);
+
   // 포인트는 그날의 성과에서 나온다 — 청구는 다음 보급일 아침에 이뤄진다
   accrueSupplyPoints(state);
 
@@ -310,5 +314,6 @@ export function cloneState(state: RunState): RunState {
     ledger: [...state.ledger],
     nightGuardIds: [...state.nightGuardIds],
     pendingClaim: [...state.pendingClaim],
+    hiddenUnlocked: [...state.hiddenUnlocked],
   };
 }
