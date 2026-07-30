@@ -100,6 +100,9 @@ export function createRun(options: CreateRunOptions): RunState {
     startedHumans: options.members.length,
 
     nightGuardIds: [],
+    delegationWindowMsLeft: 0,
+    leaderOverridePhase: -1,
+    ledger: [],
     judgements: [],
   };
 }
@@ -122,6 +125,7 @@ function makeMember(
     serviceScore: 0,
     choresReceived: 0,
     vetoUsedToday: false,
+    delegatedThisWindow: 0,
   };
 }
 

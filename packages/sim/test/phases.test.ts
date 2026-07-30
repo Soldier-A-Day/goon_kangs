@@ -84,7 +84,8 @@ describe("TIME-01 시간대 엔진", () => {
   it("이월분은 한 칸만 늘리고 그 다음 칸으로 넘어가지 않는다", () => {
     let state = begin(fullSquad());
     state = step(state, { type: "skipPhase" }).state;
-    state = tick(state, 120 * SECOND);
+    // 오전 일과는 60초 이월 + 20초 하달 창(타이머 정지)이므로 140초를 흘려야 넘어간다
+    state = tick(state, 140 * SECOND);
     expect(state.phaseIndex).toBe(2);
     expect(state.phaseDurationMs).toBe(60 * SECOND);
   });

@@ -1,4 +1,11 @@
 import { applyPhaseCondition, applySleep } from "./condition.js";
+import {
+  awardProxyScore,
+  delegateChore,
+  leaderReassign,
+  openDelegationWindow,
+  vetoChore,
+} from "./delegation.js";
 import { applyDailyDiscipline } from "./discipline.js";
 import { applyJudgement, checkDisband } from "./judge.js";
 import { PHASE_COUNT, phaseAt, phaseDurationMsFor } from "./phases.js";
@@ -46,6 +53,15 @@ export function step(state: RunState, event: SimEvent): StepResult {
     case "work":
       applyWork(next, event.memberId, event.questId, event.deltaMs);
       break;
+    case "delegateChore":
+      delegateChore(next, event.fromId, event.toId, event.questId, effects);
+      break;
+    case "vetoChore":
+      vetoChore(next, event.memberId, event.questId, effects);
+      break;
+    case "leaderReassign":
+      leaderReassign(next, event.leaderId, event.questId, event.toId, effects);
+      break;
   }
 
   return { state: next, effects };
@@ -78,6 +94,10 @@ function startPhase(state: RunState, effects: Effect[]): void {
   state.phaseDurationMs = phaseDurationMsFor(state, state.phaseIndex);
   state.carryoverMs = 0;
 
+  // 오전·오후 일과는 20초 하달 창으로 시작한다. 이 동안 시간대 타이머는 정지한다 —
+  // 눈치싸움에 실제 일과 시간을 쓰게 하면 짜증이 된다 (QST-04)
+  openDelegationWindow(state);
+
   const phase = phaseAt(state.phaseIndex);
   const [surprise, rng] = rollSurprise(state, phase.id);
   state.rngState = rng;
@@ -99,6 +119,14 @@ function applyTick(state: RunState, elapsedMs: number, effects: Effect[]): void 
   }
 
   let remaining = elapsedMs;
+
+  // 하달 창이 열려 있는 동안은 시간대 타이머가 멈춰 있다
+  if (state.delegationWindowMsLeft > 0) {
+    const consumed = Math.min(state.delegationWindowMsLeft, remaining);
+    state.delegationWindowMsLeft -= consumed;
+    remaining -= consumed;
+  }
+
   while (remaining > 0 && state.status === "running") {
     const left = state.phaseDurationMs - state.phaseElapsedMs;
     if (remaining < left) {
@@ -208,6 +236,8 @@ function applyWork(
   quest.workedMs = Math.min(quest.workMs, quest.workedMs + deltaMs);
   if (quest.workedMs >= quest.workMs) {
     quest.status = "done";
+    // 대행 점수는 하달자가 아니라 수행자에게 간다 (6.2 역전 경로 1)
+    awardProxyScore(state, quest);
   }
 }
 

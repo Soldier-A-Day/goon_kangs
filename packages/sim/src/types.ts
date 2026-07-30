@@ -1,3 +1,4 @@
+import type { DelegationRecord } from "./delegation.js";
 import type { RngState } from "./rng.js";
 
 /* ---------------------------------------------------------------- 기본 열거 */
@@ -111,6 +112,8 @@ export interface Member {
   choresReceived: number;
   /** 오늘 하달 거부권을 썼는가 (1일 1회, QST-05) */
   vetoUsedToday: boolean;
+  /** 이번 하달 창에서 넘긴 건수 — 계급차 상한과 비교한다 */
+  delegatedThisWindow: number;
 }
 
 /* ----------------------------------------------------------------- 퀘스트 */
@@ -219,6 +222,12 @@ export interface RunState {
   readonly startedHumans: number;
   /** 오늘 밤 경계 근무자 — 회복량 50%를 감수한 사람들 (COND-02) */
   nightGuardIds: string[];
+  /** 하달 창 잔여 시간. 0보다 크면 시간대 타이머가 멈춰 있다 (QST-04) */
+  delegationWindowMsLeft: number;
+  /** 분대장이 개입한 시간대 인덱스 — 1회/시간대 */
+  leaderOverridePhase: number;
+  /** 런 종료 시 공개되는 하달 장부 */
+  ledger: DelegationRecord[];
 
   judgements: Judgement[];
 }
@@ -240,7 +249,23 @@ export type SimEvent =
       readonly deltaMs: number;
     }
   /** 구역 이동 시작 */
-  | { readonly type: "move"; readonly memberId: string; readonly to: Zone };
+  | { readonly type: "move"; readonly memberId: string; readonly to: Zone }
+  /** QST-04 하달 — 공통 일과를 하급자에게 넘긴다 */
+  | {
+      readonly type: "delegateChore";
+      readonly fromId: string;
+      readonly toId: string;
+      readonly questId: string;
+    }
+  /** QST-05 거부권 — 1일 1회 */
+  | { readonly type: "vetoChore"; readonly memberId: string; readonly questId: string }
+  /** 분대장 개입 — 1회/시간대 */
+  | {
+      readonly type: "leaderReassign";
+      readonly leaderId: string;
+      readonly questId: string;
+      readonly toId: string;
+    };
 
 export type Effect =
   | { readonly type: "weatherRolled"; readonly day: number; readonly weather: WeatherState }
@@ -259,6 +284,24 @@ export type Effect =
       readonly type: "conditionCritical";
       readonly memberId: string;
       readonly stat: keyof Stats;
+    }
+  | {
+      readonly type: "choreDelegated";
+      readonly fromId: string;
+      readonly toId: string;
+      readonly questId: string;
+    }
+  | {
+      readonly type: "delegationRefused";
+      readonly reason: string;
+      readonly questId: string;
+    }
+  | { readonly type: "choreVetoed"; readonly memberId: string; readonly questId: string }
+  | {
+      readonly type: "choreReassigned";
+      readonly leaderId: string;
+      readonly toId: string;
+      readonly questId: string;
     }
   | { readonly type: "runEnded"; readonly status: RunStatus }
   | { readonly type: "log"; readonly message: string };

@@ -1,5 +1,6 @@
 import conditionTable from "../data/condition.json";
 import { planFor } from "./curriculum.js";
+import { mentalRecoveryMultiplier } from "./delegation.js";
 import type { Effect, Member, PhaseId, RunState, Stats } from "./types.js";
 import { bandRule } from "./weather.js";
 
@@ -62,8 +63,11 @@ export function applyPhaseCondition(
     if (stats.satiety <= 0) stats.stamina += MODIFIERS.starvingStaminaDrain;
 
     if (recovery) {
+      // 3일 연속 하달을 받은 사람은 정신력 회복이 −30% 된다 (QST-05 남용 억제)
+      const mentalMultiplier = mentalRecoveryMultiplier(state, member);
       for (const [key, amount] of Object.entries(recovery)) {
-        stats[key as keyof Stats] += amount;
+        const scaled = key === "mental" ? amount * mentalMultiplier : amount;
+        stats[key as keyof Stats] += scaled;
       }
     }
 
@@ -89,7 +93,7 @@ export function applySleep(state: RunState, effects: Effect[]): void {
 
     stats.stamina += SLEEP.stamina * ratio;
     stats.fatigue += SLEEP.fatigue * ratio;
-    stats.mental += SLEEP.mental * ratio;
+    stats.mental += SLEEP.mental * ratio * mentalRecoveryMultiplier(state, member);
     stats.hygiene += SLEEP.hygiene * ratio;
 
     clampStats(stats);
