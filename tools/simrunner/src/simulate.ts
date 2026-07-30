@@ -1,13 +1,10 @@
 import {
   createRngState,
   createRun,
-  planFor,
   roll,
   step,
   type JudgementCondition,
-  type Quest,
   type RunConfig,
-  type RunState,
   type RunStatus,
 } from "@sad/sim";
 
@@ -57,34 +54,28 @@ export function simulateRun(
   let rng = createRngState(seed ^ 0x9e3779b9);
 
   while (state.status === "running") {
-    const plan = planFor(state.day);
-    const quests: Quest[] = [];
+    // sim이 배정한 그날의 일과를 봇이 정확도만큼 처리한다.
+    // 실패한 필수는 그대로 남아 점호에서 조건 A를 깎는다.
+    for (const quest of state.quests) {
+      if (quest.status === "done") continue;
 
-    for (const member of state.members) {
-      for (let i = 0; i < plan.required.total; i += 1) {
-        const [succeeded, next] = roll(rng, policy.accuracy);
-        rng = next;
-        quests.push({
-          id: `d${state.day}-${member.id}-${i}`,
-          kind: "role",
-          label: "필수",
-          training: null,
-          ownerId: member.id,
-          required: true,
-          phase: "morning",
-          zone: "barracks",
-          workMs: 10_000,
-          workedMs: succeeded ? 10_000 : 0,
-          minActors: 1,
-          status: succeeded ? "done" : "pending",
-          delegatedFrom: null,
-        });
+      if (quest.kind === "joint") {
+        // 협동 실패 모델은 아직 없다 — 합동은 항상 완수한 것으로 둔다
+        quest.workedMs = quest.workMs;
+        quest.status = "done";
+        continue;
+      }
+
+      if (!quest.required) continue;
+
+      const [succeeded, next] = roll(rng, policy.accuracy);
+      rng = next;
+      if (succeeded) {
+        quest.workedMs = quest.workMs;
+        quest.status = "done";
       }
     }
 
-    // 퀘스트 배정기(W2-3)가 들어오기 전까지의 임시 발판이다.
-    // 배정기가 생기면 이 블록은 통째로 사라지고 sim이 직접 퀘스트를 만든다.
-    state.quests = quests;
     state = step(state, { type: "tick", elapsedMs: FULL_DAY_MS }).state;
   }
 
