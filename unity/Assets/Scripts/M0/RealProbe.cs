@@ -65,7 +65,7 @@ namespace SoldierADay.M0
                 if (filter == null || filter.sharedMesh == null) continue;
 
                 stats.meshRenderers += 1;
-                stats.triangles += filter.sharedMesh.triangles.Length / 3;
+                stats.triangles += TrianglesOf(filter.sharedMesh);
                 foreach (var material in renderer.sharedMaterials)
                 {
                     if (material != null) materials.Add(material);
@@ -73,6 +73,10 @@ namespace SoldierADay.M0
 
                 // 정적으로 표시되지 않은 것은 배칭 대상이 아니다.
                 // 실제 게임에서 움직이는 물건이 늘면 이 수가 그대로 드로우콜이 된다(§2).
+                //
+                // `isStatic`은 정적 플래그가 **전부** 켜져야 true다. 처음에는
+                // BatchingStatic|OccluderStatic만 켜서, 정적 배칭이 걸린 맵도
+                // 배칭 불가로 잡혔다 — 씬 쪽에서 전부 켜도록 고쳤다.
                 if (!renderer.gameObject.isStatic) stats.unbatchable += 1;
             }
 
@@ -81,7 +85,7 @@ namespace SoldierADay.M0
                 if (skinned.sharedMesh == null) continue;
 
                 stats.skinnedRenderers += 1;
-                stats.triangles += skinned.sharedMesh.triangles.Length / 3;
+                stats.triangles += TrianglesOf(skinned.sharedMesh);
                 foreach (var material in skinned.sharedMaterials)
                 {
                     if (material != null) materials.Add(material);
@@ -93,6 +97,23 @@ namespace SoldierADay.M0
 
             stats.materials = materials.Count;
             return stats;
+        }
+
+        /// <summary>
+        /// 읽기 불가 메시의 삼각형을 센다.
+        ///
+        /// `mesh.triangles`는 `isReadable = false`인 메시에서 **빈 배열**을 돌려준다.
+        /// 임포트 규칙이 읽기를 끄므로(메모리 두 배를 피하려고) 실제 에셋은 전부
+        /// 여기에 해당한다 — 첫 실측에서 맵과 소총이 통째로 0으로 잡혔다.
+        ///
+        /// `GetIndexCount`는 메타데이터라 읽기 여부와 무관하게 답한다.
+        /// M0에서 `isReadable`에 세 번 걸렸는데, 이번엔 렌더링이 아니라 계측이었다.
+        /// </summary>
+        private static int TrianglesOf(Mesh mesh)
+        {
+            var total = 0u;
+            for (var i = 0; i < mesh.subMeshCount; i += 1) total += mesh.GetIndexCount(i);
+            return (int)(total / 3);
         }
 
         private void Update()

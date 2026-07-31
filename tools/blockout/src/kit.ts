@@ -32,13 +32,39 @@ export interface Module {
   readonly placements: readonly Placement[];
 }
 
-export function assemble(modules: readonly Module[], detail: number): Mesh {
-  const world = new Mesh();
+/** 배치된 모듈 하나. 씬에서 GameObject 하나가 된다 */
+export interface Part {
+  readonly name: string;
+  readonly mesh: Mesh;
+}
+
+/**
+ * 모듈을 배치해 **조각 목록**으로 돌려준다.
+ *
+ * 처음에는 전부 하나의 메시로 합쳐 뽑았다. 폴리 수는 맞지만 씬에 렌더러가
+ * 맵당 하나만 생겨서, §2가 모델링한 250~330 드로우콜이 6개로 나왔다 —
+ * **배칭을 재려고 만든 씬이 배칭을 재지 못했다.**
+ *
+ * 실제 모듈러 키트는 배치된 인스턴스마다 GameObject가 하나씩이고, 정적 배칭이
+ * 그것들을 빌드 시점에 묶는다. 묶이는지 아닌지가 §4가 보려는 것이므로
+ * 묶이기 전 상태로 내보내야 한다.
+ */
+export function assembleParts(modules: readonly Module[], detail: number): Part[] {
+  const parts: Part[] = [];
   for (const module of modules) {
     const piece = module.build(detail);
-    for (const spot of module.placements) world.merge(piece, spot.at, spot.yaw);
+    module.placements.forEach((spot, index) => {
+      const mesh = new Mesh();
+      mesh.merge(piece, spot.at, spot.yaw);
+      parts.push({ name: `${module.name}_${index}`, mesh });
+    });
   }
-  return world;
+  return parts;
+}
+
+/** 조각 전체의 삼각형 합. 예산 맞추기에 쓴다 */
+export function totalTriangles(parts: readonly Part[]): number {
+  return parts.reduce((sum, part) => sum + part.mesh.triangleCount, 0);
 }
 
 /** 격자 배치. 모듈러 키트가 실제로 놓이는 방식이다 */

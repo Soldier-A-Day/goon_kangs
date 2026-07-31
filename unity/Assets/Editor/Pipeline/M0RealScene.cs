@@ -106,13 +106,17 @@ namespace SoldierADay.EditorTools
                 if (renderer != null) renderer.sharedMaterial = material;
             }
 
+            // 플래그를 **전부** 켠다. 일부만 켜면 `gameObject.isStatic`이 false로
+            // 남아 런타임 계측이 "배칭 불가"로 센다 — 실제로는 배칭이 걸리는데도.
+            // 이 모듈들은 정말로 움직이지 않으므로 전부 켜는 것이 맞기도 하다.
+            var modules = 0;
             foreach (var t in instance.GetComponentsInChildren<Transform>(true))
             {
-                GameObjectUtility.SetStaticEditorFlags(
-                    t.gameObject, StaticEditorFlags.BatchingStatic | StaticEditorFlags.OccluderStatic);
+                t.gameObject.isStatic = true;
+                if (t.GetComponent<MeshRenderer>() != null) modules += 1;
             }
 
-            return $"  ✓ {id,-20} {tris,8:N0} tris · 정적 배칭";
+            return $"  ✓ {id,-20} {tris,8:N0} tris · 모듈 인스턴스 {modules} · 정적 배칭";
         }
 
         /// <summary>

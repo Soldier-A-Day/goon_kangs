@@ -159,37 +159,41 @@ export function cylinder(radius: number, height: number, sides: number, caps = t
  * 그래서 촘촘히 훑는다. 블록아웃 생성은 몇 밀리초라 아낄 이유가 없고,
  * 답이 맞는 것이 빠른 것보다 중요하다.
  */
-export function fitToBudget(
+export function fitToBudget<T>(
   budget: number,
-  build: (detail: number) => Mesh,
+  build: (detail: number) => T,
+  count: (value: T) => number,
   maxDetail = 64,
   step = 0.25,
-): { mesh: Mesh; detail: number } {
+): { value: T; detail: number; triangles: number } {
   let best = build(1);
   let bestDetail = 1;
+  let bestTris = count(best);
 
-  if (best.triangleCount > budget) {
+  if (bestTris > budget) {
     throw new Error(
-      `최소 디테일에서도 예산 초과: ${best.triangleCount} > ${budget}. ` +
+      `최소 디테일에서도 예산 초과: ${bestTris} > ${budget}. ` +
         "블록아웃 구성이 예산보다 크다 — 모듈을 줄이거나 예산을 다시 본다",
     );
   }
 
   for (let detail = 1 + step; detail <= maxDetail; detail += step) {
     const candidate = build(detail);
+    const tris = count(candidate);
 
     // 계단 하나를 건너뛸 뿐 총량은 대체로 단조 증가한다. 예산을 크게 넘어선
     // 뒤에도 계속 지으면 디테일 제곱으로 커지는 메시를 수백 번 만들게 된다 —
     // 처음에 그렇게 짰다가 생성이 5분을 넘겼다. 여유를 두고 끊는다.
-    if (candidate.triangleCount > budget * 1.5) break;
+    if (tris > budget * 1.5) break;
 
-    if (candidate.triangleCount <= budget && candidate.triangleCount > best.triangleCount) {
+    if (tris <= budget && tris > bestTris) {
       best = candidate;
       bestDetail = detail;
+      bestTris = tris;
     }
   }
 
-  return { mesh: best, detail: bestDetail };
+  return { value: best, detail: bestDetail, triangles: bestTris };
 }
 
 /**
@@ -199,19 +203,27 @@ export function fitToBudget(
  * 고쳤을 때 무엇이 달라졌는지 저장소에서 읽을 수 있다. 대신 리그를 담지 못하므로
  * 캐릭터·피복은 Unity 쪽에서 만든다.
  */
-export function toObj(mesh: Mesh, header: string): string {
+export function toObj(parts: readonly { name: string; mesh: Mesh }[], header: string): string {
   const lines: string[] = [];
-  lines.push(`# ${header}`);
-  lines.push(`# 삼각형 ${mesh.triangleCount} · 정점 ${mesh.positions.length}`);
-  lines.push("# 생성: tools/blockout — 손으로 고치지 말 것, 생성기를 고칠 것");
-  lines.push("o blockout");
+  const triangles = parts.reduce((sum, part) => sum + part.mesh.triangleCount, 0);
 
-  for (const p of mesh.positions) {
-    lines.push(`v ${p.x.toFixed(4)} ${p.y.toFixed(4)} ${p.z.toFixed(4)}`);
-  }
-  for (let i = 0; i < mesh.indices.length; i += 3) {
-    // OBJ 인덱스는 1-기반이다
-    lines.push(`f ${mesh.indices[i] + 1} ${mesh.indices[i + 1] + 1} ${mesh.indices[i + 2] + 1}`);
+  lines.push(`# ${header}`);
+  lines.push(`# 삼각형 ${triangles} · 조각 ${parts.length}`);
+  lines.push("# 생성: tools/blockout — 손으로 고치지 말 것, 생성기를 고칠 것");
+
+  // 조각마다 `o` 를 찍는다. Unity OBJ 임포터가 이걸 보고 GameObject를 나눈다 —
+  // 하나로 합쳐 내보내면 렌더러가 하나만 생겨 배칭을 잴 수 없다.
+  let base = 1; // OBJ 정점 인덱스는 1-기반이고 파일 전체에 걸쳐 누적된다
+  for (const part of parts) {
+    lines.push(`g ${part.name}`);
+    for (const p of part.mesh.positions) {
+      lines.push(`v ${p.x.toFixed(4)} ${p.y.toFixed(4)} ${p.z.toFixed(4)}`);
+    }
+    const idx = part.mesh.indices;
+    for (let i = 0; i < idx.length; i += 3) {
+      lines.push(`f ${idx[i] + base} ${idx[i + 1] + base} ${idx[i + 2] + base}`);
+    }
+    base += part.mesh.positions.length;
   }
 
   return lines.join("\n") + "\n";
