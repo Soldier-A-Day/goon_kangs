@@ -26,7 +26,6 @@ namespace SoldierADay.M0
             if (Cache.TryGetValue(key, out var cached) && cached != null) return cached;
 
             var mesh = Build(segments, rings);
-            mesh.name = $"Proxy_{mesh.triangles.Length / 3}tris";
             Cache[key] = mesh;
             return mesh;
         }
@@ -78,6 +77,8 @@ namespace SoldierADay.M0
             }
 
             var mesh = new Mesh();
+            // 이름은 업로드 전에 붙인다. UploadMeshData 뒤에는 triangles를 읽을 수 없다.
+            mesh.name = $"Proxy_{triangles.Count / 3}tris";
             // 프록시는 쉽게 65,535 정점을 넘는다
             mesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;
             mesh.SetVertices(vertices);
@@ -85,6 +86,8 @@ namespace SoldierADay.M0
             mesh.SetUVs(0, uvs);
             mesh.SetTriangles(triangles, 0);
             mesh.RecalculateBounds();
+            // CPU 사본을 버려 힙을 아낀다. 프록시를 수백 개 만들므로 이게 쌓이면
+            // 측정하려는 누수와 섞인다 — 다만 이후로는 triangles를 읽을 수 없다.
             mesh.UploadMeshData(markNoLongerReadable: true);
             return mesh;
         }
