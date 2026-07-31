@@ -86,9 +86,13 @@ namespace SoldierADay.M0
             mesh.SetUVs(0, uvs);
             mesh.SetTriangles(triangles, 0);
             mesh.RecalculateBounds();
-            // CPU 사본을 버려 힙을 아낀다. 프록시를 수백 개 만들므로 이게 쌓이면
-            // 측정하려는 누수와 섞인다 — 다만 이후로는 triangles를 읽을 수 없다.
-            mesh.UploadMeshData(markNoLongerReadable: true);
+            // CPU 사본을 **남긴다**. 읽을 수 없는 메시는 정적 배칭이 불가능해서
+            // 549개가 전부 개별 드로우콜이 되고, 그러면 드로우콜을 재려던 측정이
+            // 배칭 실패를 재는 것이 되어버린다.
+            //
+            // 힙 걱정은 여기서 하지 않는다 — 메시는 폴리 수별로 캐시되므로
+            // 종류가 4개뿐이고, 수백 개를 만들어도 사본은 4개다.
+            mesh.UploadMeshData(markNoLongerReadable: false);
             return mesh;
         }
     }

@@ -1,7 +1,11 @@
 {
   "name": "SoldierADay.Editor",
   "rootNamespace": "SoldierADay.EditorTools",
-  "references": ["SoldierADay.Runtime"],
+  "references": [
+    "SoldierADay.Runtime",
+    "Unity.RenderPipelines.Universal.Runtime",
+    "Unity.RenderPipelines.Core.Runtime"
+  ],
   "includePlatforms": ["Editor"],
   "autoReferenced": true
 }

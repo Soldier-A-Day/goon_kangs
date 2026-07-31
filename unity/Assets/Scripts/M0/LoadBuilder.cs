@@ -41,6 +41,21 @@ namespace SoldierADay.M0
         public int propsPerKind = 5;
         public int propTriangles = 300;
 
+        [Header("머티리얼")]
+        [Tooltip("프록시가 쓸 기준 머티리얼. 씬이 참조해야 빌드에 셰이더가 포함된다 — " +
+                 "Shader.Find는 문자열 조회라 참조로 잡히지 않는다.")]
+        public Material baseMaterial;
+
+        [Tooltip("AutoSweep이 부하를 직접 정할 때는 끈다")]
+        public bool buildOnStart = true;
+
+        [Header("스윕 — 런타임 토글")]
+        [Tooltip("1키: 그림자. 캐스터 패스는 드로우콜을 두 배로 만든다")]
+        public bool shadowsEnabled = true;
+
+        [Tooltip("2키: 정적 배칭. 끄면 오브젝트 수만큼 드로우콜이 그대로 나간다")]
+        public bool staticBatching = true;
+
         [Header("배치 범위")]
         public float fieldRadius = 60f;
 
@@ -52,13 +67,67 @@ namespace SoldierADay.M0
 
         private void Start()
         {
+            if (buildOnStart) Build();
+        }
+
+        /// <summary>
+        /// 런타임 스윕. M0의 산출물은 "어디서부터 무너지는가"인데, 축을 바꿀 때마다
+        /// 4분씩 재빌드하면 원인을 좁힐 수 없다. 키로 켜고 끄며 즉시 본다.
+        ///
+        ///   1  그림자 on/off      — 캐스터 패스가 드로우콜을 두 배로 만드는 몫
+        ///   2  정적 배칭 on/off   — 배칭이 실제로 먹는지
+        ///   3/4  오브젝트 절반/두 배 — 어느 수에서 30fps가 깨지는지
+        /// </summary>
+        private void Update()
+        {
+            if (Input.GetKeyDown(KeyCode.Alpha1))
+            {
+                shadowsEnabled = !shadowsEnabled;
+                ApplyShadows();
+            }
+            else if (Input.GetKeyDown(KeyCode.Alpha2))
+            {
+                staticBatching = !staticBatching;
+                Build();
+            }
+            else if (Input.GetKeyDown(KeyCode.Alpha3))
+            {
+                Scale(0.5f);
+            }
+            else if (Input.GetKeyDown(KeyCode.Alpha4))
+            {
+                Scale(2f);
+            }
+        }
+
+        private void Scale(float factor)
+        {
+            skinnedCount = Mathf.Max(1, Mathf.RoundToInt(skinnedCount * factor));
+            staticBlockCount = Mathf.Max(1, Mathf.RoundToInt(staticBlockCount * factor));
+            trainingBlockCount = Mathf.Max(1, Mathf.RoundToInt(trainingBlockCount * factor));
+            propsPerKind = Mathf.Max(1, Mathf.RoundToInt(propsPerKind * factor));
             Build();
+        }
+
+        private void ApplyShadows()
+        {
+            var mode = shadowsEnabled
+                ? UnityEngine.Rendering.ShadowCastingMode.On
+                : UnityEngine.Rendering.ShadowCastingMode.Off;
+            foreach (var go in _spawned)
+            {
+                if (go == null) continue;
+                var renderer = go.GetComponent<MeshRenderer>();
+                if (renderer != null) renderer.shadowCastingMode = mode;
+            }
+            Debug.Log($"[M0] 그림자 {(shadowsEnabled ? "on" : "off")}");
         }
 
         public void Build()
         {
             Clear();
             BuildMaterials();
+            if (_materials.Count == 0) return;
 
             var triangles = 0;
             var renderers = 0;
@@ -95,8 +164,10 @@ namespace SoldierADay.M0
                 }
             }
 
-            // 정적 배칭은 씬에 오브젝트가 다 올라온 뒤 한 번에 건다
-            StaticBatchingUtility.Combine(gameObject);
+            // 정적 배칭은 씬에 오브젝트가 다 올라온 뒤 한 번에 건다.
+            // 메시가 읽기 가능해야 한다 — 아니면 조용히 실패하고 드로우콜이 그대로 남는다.
+            if (staticBatching) StaticBatchingUtility.Combine(gameObject);
+            ApplyShadows();
 
             Report = new LoadReport
             {
@@ -109,19 +180,24 @@ namespace SoldierADay.M0
 
             Debug.Log(
                 $"[M0] 합성 부하 {triangles:N0} tris / 목표 {targetTriangles:N0} · " +
-                $"오브젝트 {_spawned.Count} · 재질 {_materials.Count}");
+                $"오브젝트 {_spawned.Count} · 재질 {_materials.Count} · " +
+                $"배칭 {(staticBatching ? "on" : "off")} · 그림자 {(shadowsEnabled ? "on" : "off")}");
         }
 
         private void BuildMaterials()
         {
-            // URP Lit을 쓴다. 실제 게임과 같은 셰이더여야 측정이 의미가 있다.
-            var shader = Shader.Find("Universal Render Pipeline/Lit") ?? Shader.Find("Standard");
+            if (baseMaterial == null)
+            {
+                Debug.LogError("[M0] baseMaterial이 비어 있다 — 씬에서 머티리얼을 지정해야 한다");
+                return;
+            }
 
             for (var i = 0; i < materialCount; i += 1)
             {
-                var material = new Material(shader) { name = $"M0_Mat_{i}" };
+                // 기준 머티리얼을 복제한다. 같은 셰이더라 변형이 늘지 않는다.
+                var material = new Material(baseMaterial) { name = $"M0_Mat_{i}" };
                 material.enableInstancing = true;
-                // 재질을 조금씩 다르게 해서 배칭이 색만 보고 합쳐버리지 않게 한다
+                // 색을 조금씩 다르게 해 배칭이 색만 보고 합쳐버리지 않게 한다
                 material.color = Color.HSVToRGB(i / (float)Mathf.Max(1, materialCount), 0.35f, 0.7f);
                 _materials.Add(material);
             }

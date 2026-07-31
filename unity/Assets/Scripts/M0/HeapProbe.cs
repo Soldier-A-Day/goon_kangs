@@ -36,6 +36,12 @@ namespace SoldierADay.M0
         private float _frameAccum;
         private int _frameCount;
 
+        // 화면 표시용 짧은 창. 구간 누적 평균은 초기 로딩 프레임에 오염돼
+        // 실시간 판독에 쓸 수 없다.
+        private float _recentAccum;
+        private int _recentCount;
+        private float _recentFps;
+
         public IReadOnlyList<Bucket> Buckets => _buckets;
 
         private void Update()
@@ -44,6 +50,15 @@ namespace SoldierADay.M0
             _frameAccum += frameMs;
             _frameCount += 1;
             if (frameMs > _worstFrameMs) _worstFrameMs = frameMs;
+
+            _recentAccum += frameMs;
+            _recentCount += 1;
+            if (_recentAccum >= 500f)
+            {
+                _recentFps = 1000f / (_recentAccum / _recentCount);
+                _recentAccum = 0f;
+                _recentCount = 0;
+            }
 
             if (Time.unscaledTime < _nextSample) return;
             _nextSample = Time.unscaledTime + sampleInterval;
@@ -131,7 +146,7 @@ namespace SoldierADay.M0
         {
             if (!showOverlay) return;
 
-            var fps = _frameCount > 0 ? 1000f / (_frameAccum / _frameCount) : 0f;
+            var fps = _recentFps;
             var heapMb = Profiler.GetMonoUsedSizeLong() / (1024f * 1024f);
             var minutes = Time.unscaledTime / 60f;
 
