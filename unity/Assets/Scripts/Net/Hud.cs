@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using SoldierADay.Protocol;
 using UnityEngine;
 
@@ -22,19 +23,14 @@ namespace SoldierADay.Net
     {
         public GameClient client;
         public NetBootstrap boot;
+        public Interactor interactor;
+        public ZoneWorld world;
+        public LocalPlayer player;
         public Font font;
 
         /// <summary>디자인 기준 해상도. 창 크기가 달라도 비율을 지킨다</summary>
         private const float DesignWidth = 1600f;
         private const float DesignHeight = 900f;
-
-        private static readonly (string id, string label)[] Zones =
-        {
-            ("barracks", "생활관"), ("drillGround", "연병장"),
-            ("messHall", "식당"), ("storage", "창고"),
-            ("guardPost", "초소"), ("infirmary", "의무실"),
-            ("boilerRoom", "보일러실"), ("trainingField", "훈련장"),
-        };
 
         /// <summary>표 3-2 퀵 커맨드 8종</summary>
         private static readonly (string id, string label)[] Commands =
@@ -71,6 +67,8 @@ namespace SoldierADay.Net
             DrawSquad(snapshot, new Rect(24, 164, 296, 156));
             DrawTasks(snapshot, new Rect(width - 384, 24, 360, height - 156));
             DrawCommandBar(new Rect(width * 0.5f - 268, height - 92, 536, 68));
+            DrawPrompt(width, height);
+            DrawCrosshair(width, height);
 
             GUI.matrix = matrix;
         }
@@ -185,63 +183,104 @@ namespace SoldierADay.Net
         {
             _theme.DrawPanel(rect);
 
-            GUI.Label(new Rect(rect.x + 20, rect.y + 14, 120, 16), "이동", _theme.Label);
-
-            var chipWidth = (rect.width - 40 - 8) / 2f;
-            for (var i = 0; i < Zones.Length; i += 1)
-            {
-                var chip = new Rect(
-                    rect.x + 20 + (i % 2) * (chipWidth + 8),
-                    rect.y + 36 + (i / 2) * 32,
-                    chipWidth, 28);
-
-                var here = snapshot != null && MyZone(snapshot) == Zones[i].id;
-                if (Chip(chip, Zones[i].label, here)) client.Move(Zones[i].id);
-            }
-
-            var listTop = rect.y + 36 + 4 * 32 + 12;
-            _theme.DrawFlat(new Rect(rect.x + 20, listTop - 6, rect.width - 40, 1), HudTheme.Divider);
-
             var done = 0;
             var total = 0;
             if (snapshot?.quests != null)
             {
                 foreach (var quest in snapshot.quests)
                 {
-                    if (quest == null) continue;
+                    if (quest == null || !IsMine(quest)) continue;
                     total += 1;
                     if (quest.status == SnapshotQuestsItemStatusValues.Done) done += 1;
                 }
             }
 
-            GUI.Label(new Rect(rect.x + 20, listTop + 6, 120, 16), "내 일과", _theme.Label);
+            GUI.Label(new Rect(rect.x + 20, rect.y + 16, 120, 16), "내 일과", _theme.Label);
             var counter = _theme.Meta;
             counter.alignment = TextAnchor.MiddleRight;
-            GUI.Label(new Rect(rect.x, listTop + 6, rect.width - 20, 16), $"{done} / {total}", counter);
+            GUI.Label(new Rect(rect.x, rect.y + 16, rect.width - 20, 16), $"{done} / {total}", counter);
             counter.alignment = TextAnchor.MiddleLeft;
 
             if (snapshot?.quests == null) return;
 
-            var view = new Rect(rect.x + 12, listTop + 28, rect.width - 24, rect.yMax - listTop - 40);
-            var rows = 0;
-            foreach (var quest in snapshot.quests)
-            {
-                if (quest != null && IsMine(quest)) rows += 1;
-            }
+            var ordered = Ordered(snapshot);
+            var view = new Rect(rect.x + 12, rect.y + 40, rect.width - 24, rect.height - 52);
 
             _taskScroll = GUI.BeginScrollView(
-                view, _taskScroll, new Rect(0, 0, view.width - 16, rows * 58f));
+                view, _taskScroll, new Rect(0, 0, view.width - 16, ordered.Count * 58f));
 
-            var y = 0f;
-            foreach (var quest in snapshot.quests)
+            for (var i = 0; i < ordered.Count; i += 1)
             {
-                if (quest == null || !IsMine(quest)) continue;
-                DrawTask(quest, new Rect(0, y, view.width - 16, 52));
-                y += 58f;
+                DrawTask(ordered[i], new Rect(0, i * 58f, view.width - 16, 52));
             }
 
             GUI.EndScrollView();
         }
+
+        /// <summary>
+        /// 일과 정렬.
+        ///
+        /// 서버는 생성 순서대로 보낸다 — 그 순서는 커리큘럼이 정하는 것이라
+        /// 화면에서는 **뒤죽박죽으로 보인다.** 게다가 돌발 일과(6.0)가 끼어들면
+        /// 목록이 통째로 밀려서, 방금 보던 줄이 어디로 갔는지 알 수 없다.
+        ///
+        /// 그래서 여기서 순서를 정한다. 기준은 "지금 손댈 수 있는 것이 위로"다.
+        ///   1. 진행 중  — 이미 하고 있는 것
+        ///   2. 지금 구역 — 걸어가지 않아도 되는 것
+        ///   3. 필수     — 완주를 가르는 것 (9.0)
+        ///   4. 시간대   — 일과표 순서 (4.0)
+        ///   5. id       — 위 넷이 같으면 순서가 흔들리지 않게
+        ///
+        /// 이건 규칙이 아니라 정렬이다. 무엇을 할 수 있는지는 여전히 서버가 정하고,
+        /// 순서를 바꾼다고 판정이 달라지지 않는다.
+        /// </summary>
+        private List<SnapshotQuestsItem> Ordered(Snapshot snapshot)
+        {
+            var here = MyZone(snapshot);
+            var list = new List<SnapshotQuestsItem>();
+
+            foreach (var quest in snapshot.quests)
+            {
+                if (quest != null && IsMine(quest)) list.Add(quest);
+            }
+
+            list.Sort((a, b) =>
+            {
+                var byDone = Rank(a) - Rank(b);
+                if (byDone != 0) return byDone;
+
+                var aHere = a.zone == here ? 0 : 1;
+                var bHere = b.zone == here ? 0 : 1;
+                if (aHere != bHere) return aHere - bHere;
+
+                var aRequired = a.required ? 0 : 1;
+                var bRequired = b.required ? 0 : 1;
+                if (aRequired != bRequired) return aRequired - bRequired;
+
+                var byPhase = PhaseOrder(a.phase) - PhaseOrder(b.phase);
+                if (byPhase != 0) return byPhase;
+
+                return string.CompareOrdinal(a.id, b.id);
+            });
+
+            return list;
+        }
+
+        private static int Rank(SnapshotQuestsItem quest) =>
+            quest.status == SnapshotQuestsItemStatusValues.Active ? 0
+            : quest.status == SnapshotQuestsItemStatusValues.Done ? 2 : 1;
+
+        /// <summary>4.0 일과표 순서. 스냅샷의 phase 문자열을 그대로 받는다</summary>
+        private static int PhaseOrder(string phase) => phase switch
+        {
+            "reveille" => 0,
+            "morning" => 1,
+            "afternoon" => 2,
+            "personal" => 3,
+            "evening" => 4,
+            "lightsOut" => 5,
+            _ => 6,
+        };
 
         private void DrawTask(SnapshotQuestsItem quest, Rect rect)
         {
@@ -286,6 +325,124 @@ namespace SoldierADay.Net
 
             var button = new Rect(rect.xMax - 66, rect.y + 12, 56, 28);
             if (Chip(button, active ? "중단" : "수행", active)) client.Interact(quest.id, !active);
+        }
+
+        /* ---------------------------------------------------------- 조준점 */
+
+        /// <summary>
+        /// 화면 한가운데 점.
+        ///
+        /// 1인칭에서는 "어디를 보고 있는가"가 곧 "무엇에 다가가는가"다. 점이 없으면
+        /// 상호작용 범위에 들어왔는지 감이 안 잡힌다. 시점을 잡지 않은 상태에서는
+        /// 대신 어떻게 잡는지 알려준다 — 브라우저는 클릭 없이 커서를 못 숨긴다.
+        /// </summary>
+        private void DrawCrosshair(float width, float height)
+        {
+            if (player == null) return;
+
+            if (!player.Looking)
+            {
+                var hint = new Rect(width * 0.5f - 150, height * 0.5f - 22, 300, 44);
+                _theme.DrawPanel(hint);
+                GUI.Label(hint, "화면을 클릭하면 시점 조작 · ESC로 해제", _theme.ChipText);
+                return;
+            }
+
+            var dot = new Rect(width * 0.5f - 2.5f, height * 0.5f - 2.5f, 5, 5);
+            _theme.DrawRounded(dot, 2.5f, new Color(1f, 1f, 1f, 0.75f));
+        }
+
+        /* -------------------------------------------------------- 프롬프트 */
+
+        /// <summary>
+        /// 눈앞의 것.
+        ///
+        /// 화면 가운데 아래에 뜬다 — 캐릭터가 거기 있고, 시선이 이미 가 있는 자리다.
+        /// 목록 어딘가를 다시 찾게 만들면 "걸어가서 한다"는 감각이 깨진다.
+        /// </summary>
+        private void DrawPrompt(float width, float height)
+        {
+            if (world != null && world.TravelRemaining > 0f)
+            {
+                var moving = new Rect(width * 0.5f - 130, height - 168, 260, 44);
+                _theme.DrawPanel(moving);
+                var style = _theme.ChipText;
+                var previous = style.normal.textColor;
+                style.normal.textColor = HudTheme.Warn;
+                GUI.Label(moving, $"이동 중  {world.TravelRemaining:0.0}초", style);
+                style.normal.textColor = previous;
+                return;
+            }
+
+            var near = interactor != null ? interactor.Nearest : null;
+            if (near == null) return;
+
+            if (near.kind == Interactable.Kind.Door) { DrawDoor(near, width, height); return; }
+
+            var rect = new Rect(width * 0.5f - 170, height - 168, 340, 52);
+            _theme.DrawPanel(rect);
+
+            _theme.DrawRounded(new Rect(rect.x + 14, rect.y + 14, 24, 24), 6f,
+                new Color(1f, 1f, 1f, 0.14f));
+            GUI.Label(new Rect(rect.x + 14, rect.y + 14, 24, 24), "E", _theme.ChipText);
+
+            GUI.Label(new Rect(rect.x + 48, rect.y + 8, rect.width - 60, 20),
+                near.active ? $"{near.label} 중단" : near.label, _theme.Body);
+            GUI.Label(new Rect(rect.x + 48, rect.y + 28, rect.width - 60, 16), near.detail, _theme.Meta);
+
+            if (Event.current.type == EventType.KeyDown && Event.current.keyCode == KeyCode.E)
+            {
+                client.Interact(near.questId, !near.active);
+                Event.current.Use();
+            }
+        }
+
+        /// <summary>
+        /// 문 앞. 여기서만 구역 이동이 뜬다.
+        ///
+        /// 어디서든 버튼으로 순간이동하면 6.1의 "동선이 멀다"가 사라진다 —
+        /// 공통 일과의 시간 비용 대부분이 이동인데, 그게 화면에서 공짜가 되면
+        /// 왜 시간이 모자란지가 읽히지 않는다.
+        /// </summary>
+        private void DrawDoor(Interactable door, float width, float height)
+        {
+            var rows = 4;
+            var rect = new Rect(width * 0.5f - 200, height - 96 - rows * 34 - 44, 400, rows * 34 + 40);
+            _theme.DrawPanel(rect);
+            GUI.Label(new Rect(rect.x + 20, rect.y + 12, 200, 16),
+                $"{door.detail} 출입문 · 어디로", _theme.Label);
+
+            // 포인터 락 중에는 커서가 없다. 숫자키로도 고를 수 있어야 시점을
+            // 풀지 않고 이동할 수 있다 — 문 앞에서 매번 ESC를 누르게 하면
+            // 걸어다니는 감각이 끊긴다.
+            var index = 0;
+            var chipWidth = (rect.width - 40 - 8) / 2f;
+            foreach (var pair in ZoneNames.All)
+            {
+                var here = pair.Key == MyZoneOrEmpty();
+                var chip = new Rect(
+                    rect.x + 20 + (index % 2) * (chipWidth + 8),
+                    rect.y + 34 + (index / 2) * 34,
+                    chipWidth, 28);
+
+                var picked = Chip(chip, $"{index + 1}  {pair.Value}", here);
+
+                if (Event.current.type == EventType.KeyDown &&
+                    Event.current.keyCode == KeyCode.Alpha1 + index)
+                {
+                    picked = true;
+                    Event.current.Use();
+                }
+
+                if (picked && !here) client.Move(pair.Key);
+                index += 1;
+            }
+        }
+
+        private string MyZoneOrEmpty()
+        {
+            var snapshot = client.Latest;
+            return snapshot != null ? MyZone(snapshot) : "";
         }
 
         /* -------------------------------------------------------- 퀵 커맨드 */
@@ -345,13 +502,6 @@ namespace SoldierADay.Net
             return "";
         }
 
-        private static string ZoneLabel(string zone)
-        {
-            foreach (var (id, label) in Zones)
-            {
-                if (id == zone) return label;
-            }
-            return zone;
-        }
+        private static string ZoneLabel(string zone) => ZoneNames.Of(zone);
     }
 }

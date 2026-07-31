@@ -42,12 +42,13 @@ namespace SoldierADay.EditorTools
             var cameraGo = new GameObject("Main Camera");
             cameraGo.tag = "MainCamera";
             var camera = cameraGo.AddComponent<Camera>();
-            camera.transform.position = new Vector3(0f, 20f, -30f);
             camera.farClipPlane = 2000f;
 
-            // 8개 구역 맵을 각자의 자리에 놓는다
+            // 8개 구역 맵. 한 번에 하나만 켜지므로(ZoneWorld) 겹치지 않게만 벌려둔다.
+            var worldGo = new GameObject("World");
             var placed = 0;
             var tris = 0;
+
             foreach (var zone in ZoneLayout.Zones)
             {
                 var entry = AssetManifest.Entries.FirstOrDefault(e => e.zone == zone);
@@ -57,21 +58,36 @@ namespace SoldierADay.EditorTools
                 if (path == null) continue;
 
                 var source = AssetDatabase.LoadAssetAtPath<GameObject>(path);
-                var instance = (GameObject)PrefabUtility.InstantiatePrefab(source);
+                var instance = (GameObject)PrefabUtility.InstantiatePrefab(source, worldGo.transform);
                 instance.name = entry.id;
                 instance.transform.position = ZoneLayout.AnchorOf(zone);
 
+                var bounds = new Bounds(instance.transform.position, Vector3.one);
+                var first = true;
                 foreach (var renderer in instance.GetComponentsInChildren<MeshRenderer>(true))
                 {
                     renderer.sharedMaterial = material;
                     var filter = renderer.GetComponent<MeshFilter>();
                     if (filter?.sharedMesh != null) tris += CountTriangles(filter.sharedMesh);
+
+                    if (first) { bounds = renderer.bounds; first = false; }
+                    else bounds.Encapsulate(renderer.bounds);
                 }
                 foreach (var t in instance.GetComponentsInChildren<Transform>(true))
                 {
                     t.gameObject.isStatic = true;
                 }
 
+                // 바닥 콜라이더. 블록아웃 메시마다 MeshCollider를 붙이면 구역당
+                // 수백 개가 되고, 그 비용은 걷는 재미에 아무것도 보태지 않는다.
+                // 지금 필요한 것은 "떨어지지 않는 것"뿐이다 — 벽 충돌은 나중 일이다.
+                var floor = new GameObject("바닥 콜라이더");
+                floor.transform.SetParent(instance.transform, true);
+                floor.transform.position = new Vector3(bounds.center.x, -0.5f, bounds.center.z);
+                var box = floor.AddComponent<BoxCollider>();
+                box.size = new Vector3(bounds.size.x + 20f, 1f, bounds.size.z + 20f);
+
+                instance.AddComponent<ZoneMap>().zone = zone;
                 placed += 1;
             }
 
@@ -84,8 +100,39 @@ namespace SoldierADay.EditorTools
             var squadGo = new GameObject("Squad");
             var squad = squadGo.AddComponent<SquadView>();
             squad.material = material;
-            squad.soldierPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(
+            var soldierPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(
                 $"{ArtRoot}/character/char.base.player/char.base.player.prefab");
+            squad.soldierPrefab = soldierPrefab;
+
+            // 내가 조작하는 분대원. 분대원 표시와 별개다 — 이쪽은 좌표를 스스로 갖고
+            // 걷고, 저쪽은 서버가 말한 구역에 세워질 뿐이다.
+            var playerGo = new GameObject("Player");
+            var controller = playerGo.AddComponent<CharacterController>();
+            controller.height = 1.75f;
+            controller.radius = 0.35f;
+            controller.center = new Vector3(0f, 0.9f, 0f);
+
+            if (soldierPrefab != null)
+            {
+                var body = (GameObject)PrefabUtility.InstantiatePrefab(soldierPrefab, playerGo.transform);
+                body.transform.localPosition = Vector3.zero;
+                foreach (var renderer in body.GetComponentsInChildren<Renderer>(true))
+                {
+                    renderer.sharedMaterial = material;
+                }
+            }
+
+            var player = playerGo.AddComponent<LocalPlayer>();
+            player.view = camera;
+
+            var interactor = playerGo.AddComponent<Interactor>();
+            interactor.origin = playerGo.transform;
+
+            var world = worldGo.AddComponent<ZoneWorld>();
+            world.client = client;
+            world.player = player;
+            world.squad = squad;
+            world.markerMaterial = material;
 
             // 한글 폰트. 없으면 서버가 보낸 라벨이 전부 빈칸으로 나온다.
             var font = AssetDatabase.LoadAssetAtPath<Font>("Assets/Fonts/SoldierKR.otf");
@@ -94,11 +141,14 @@ namespace SoldierADay.EditorTools
             var boot = netGo.AddComponent<NetBootstrap>();
             boot.client = client;
             boot.squad = squad;
-            boot.followCamera = camera;
+            boot.world = world;
 
             var hud = netGo.AddComponent<Hud>();
             hud.client = client;
             hud.boot = boot;
+            hud.interactor = interactor;
+            hud.world = world;
+            hud.player = player;
             hud.font = font;
 
             Directory.CreateDirectory(SceneDir);
@@ -108,7 +158,7 @@ namespace SoldierADay.EditorTools
             Debug.Log(
                 $"[M0_Net] 씬 생성 완료: {ScenePath}\n" +
                 $"  구역 맵 {placed}/8 배치 · {tris:N0} tris\n" +
-                $"  분대원 프리팹: {(squad.soldierPrefab != null ? "있음" : "없음 — 캡슐로 대체")}");
+                $"  분대원 프리팹: {(soldierPrefab != null ? "있음" : "없음 — 캡슐로 대체")}");
         }
 
         private static int CountTriangles(Mesh mesh)

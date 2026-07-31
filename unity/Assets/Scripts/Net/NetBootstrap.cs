@@ -34,7 +34,7 @@ namespace SoldierADay.Net
 
         public GameClient client;
         public SquadView squad;
-        public Camera followCamera;
+        public ZoneWorld world;
 
 
 
@@ -132,25 +132,7 @@ namespace SoldierADay.Net
             Status = "연결됨";
             Connected = true;
             squad?.Apply(snapshot);
-        }
-
-        private void LateUpdate()
-        {
-            // 카메라는 내 분대원을 따라간다. 구역이 90m씩 떨어져 있어(ZoneLayout)
-            // 고정 카메라로는 이동이 일어나도 화면에서 아무 일도 안 일어난다.
-            if (followCamera != null && squad != null && client != null)
-            {
-                var body = squad.BodyOf(client.MemberId);
-                if (body != null)
-                {
-                    var wanted = body.position + new Vector3(0f, 14f, -22f);
-                    followCamera.transform.position = Vector3.Lerp(
-                        followCamera.transform.position, wanted, 1f - Mathf.Exp(-3f * Time.deltaTime));
-                    followCamera.transform.rotation = Quaternion.LookRotation(
-                        body.position + Vector3.up - followCamera.transform.position);
-                }
-            }
-
+            world?.Apply(snapshot);
         }
 
     }

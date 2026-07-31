@@ -72,7 +72,17 @@ namespace SoldierADay.Net
                 body = GameObject.CreatePrimitive(PrimitiveType.Capsule);
                 body.transform.SetParent(transform, false);
                 body.transform.localScale = new Vector3(0.5f, 0.9f, 0.5f);
-                if (material != null) body.GetComponent<MeshRenderer>().sharedMaterial = material;
+            }
+
+            // 프리팹에도 재질을 씌운다. 캡슐 대체 경로에만 씌웠더니 **분대원이
+            // 마젠타로** 떴다 — 블록아웃 프리팹은 재질을 갖고 있지 않고,
+            // 재질 없는 렌더러는 URP에서 마젠타다.
+            if (material != null)
+            {
+                foreach (var renderer in body.GetComponentsInChildren<Renderer>(true))
+                {
+                    renderer.sharedMaterial = material;
+                }
             }
 
             body.name = $"{member.role}:{member.name}";
@@ -95,5 +105,22 @@ namespace SoldierADay.Net
 
         public Transform BodyOf(string memberId) =>
             _bodies.TryGetValue(memberId, out var body) ? body : null;
+
+        /// <summary>
+        /// 이 구역에 있는 분대원만 보인다.
+        ///
+        /// 켜진 맵은 하나뿐이므로(ZoneWorld) 다른 구역의 분대원은 꺼진 맵 자리의
+        /// 허공에 뜬다. 그러면 누가 여기 있는지가 오히려 헷갈린다. 판정과 무관한
+        /// 표시 필터이며, 어디 있는지는 스냅샷이 이미 말해준다.
+        /// </summary>
+        public void ShowOnly(string zone)
+        {
+            foreach (var pair in _bodies)
+            {
+                if (pair.Value == null) continue;
+                var here = ZoneOf.TryGetValue(pair.Key, out var at) && at == zone;
+                if (pair.Value.gameObject.activeSelf != here) pair.Value.gameObject.SetActive(here);
+            }
+        }
     }
 }
