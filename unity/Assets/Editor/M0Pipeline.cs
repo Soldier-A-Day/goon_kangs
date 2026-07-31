@@ -53,6 +53,7 @@ namespace SoldierADay.EditorTools
             builder.baseMaterial = EnsureProxyMaterial();
             // 스윕이 부하를 정하므로 Start의 자동 빌드는 끈다
             builder.buildOnStart = false;
+            probe.AddComponent<HeavyAxes>().baseMaterial = builder.baseMaterial;
             probe.AddComponent<AutoSweep>();
             // 힙 오버레이는 스윕 표와 겹치므로 숫자만 모은다
             probe.AddComponent<HeapProbe>().showOverlay = false;

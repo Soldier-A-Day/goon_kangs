@@ -1,7 +1,10 @@
 {
   "name": "SoldierADay.Runtime",
   "rootNamespace": "SoldierADay",
-  "references": [],
+  "references": [
+    "Unity.RenderPipelines.Universal.Runtime",
+    "Unity.RenderPipelines.Core.Runtime"
+  ],
   "includePlatforms": [],
   "excludePlatforms": [],
   "allowUnsafeCode": false,

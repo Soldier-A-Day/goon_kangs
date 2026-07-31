@@ -34,13 +34,18 @@ namespace SoldierADay.M0
                  "목표에서 60이 나와도 여유가 얼마인지 알 수 없다 — 깨지는 지점을 찾아야 안다")]
         public int maxMultiplier = 8;
 
+        [Tooltip("스킨드·파티클·후처리를 함께 켠다. 프록시가 재지 못한 축들이다")]
+        public bool heavyAxes = true;
+
         private LoadBuilder _builder;
+        private HeavyAxes _heavy;
         private readonly List<string> _rows = new List<string>();
         private string _status = "준비 중";
 
         private void Awake()
         {
             _builder = GetComponent<LoadBuilder>();
+            _heavy = GetComponent<HeavyAxes>();
             // 스윕이 스스로 부하를 정하므로 Start의 자동 빌드는 끈다
             _builder.buildOnStart = false;
         }
@@ -53,7 +58,7 @@ namespace SoldierADay.M0
             var baseTraining = _builder.trainingBlockCount;
             var baseProps = _builder.propsPerKind;
 
-            _rows.Add("배율\t오브젝트\t삼각형\tfps");
+            _rows.Add("배율\t오브젝트\t삼각형\t스킨드\t파티클\tfps");
 
             // 1/32 → 1/1 → 2× → 8×. 목표 부하를 넘겨야 여유가 보인다.
             var steps = new List<(string label, float scale)>();
@@ -71,6 +76,15 @@ namespace SoldierADay.M0
 
                 _status = $"{label} 부하 생성 중";
                 _builder.Build();
+
+                if (heavyAxes && _heavy != null)
+                {
+                    // 스킨드는 배칭이 안 되므로 배율을 그대로 태운다
+                    _heavy.skinnedCount = Mathf.Max(1, Mathf.RoundToInt(9 * scale));
+                    _heavy.particleCount = Mathf.Max(0, Mathf.RoundToInt(960 * scale));
+                    _heavy.baseMaterial = _builder.baseMaterial;
+                    _heavy.Build();
+                }
 
                 yield return new WaitForSecondsRealtime(settleSeconds);
 
@@ -90,12 +104,18 @@ namespace SoldierADay.M0
                 var measured = frames / Mathf.Max(0.0001f, elapsed);
 
                 var report = _builder.Report;
+                var heavy = _heavy != null ? _heavy.Report : default;
+                var totalTris = report.triangles + heavy.skinnedTriangles;
+
                 _rows.Add(
-                    $"{label}\t{report.spawnedObjects}\t{report.triangles:N0}\t{measured:F1}");
+                    $"{label}\t{report.spawnedObjects + heavy.skinnedRenderers}\t" +
+                    $"{totalTris:N0}\t스킨{heavy.skinnedRenderers}\t파티클{heavy.particles}\t{measured:F1}");
 
                 Debug.Log(
-                    $"[스윕] {label} · 오브젝트 {report.spawnedObjects} · " +
-                    $"{report.triangles:N0} tris · {measured:F1} fps");
+                    $"[스윕] {label} · 오브젝트 {report.spawnedObjects + heavy.skinnedRenderers} · " +
+                    $"{totalTris:N0} tris · 스킨드 {heavy.skinnedRenderers} · " +
+                    $"파티클 {heavy.particles} · 후처리 {(heavy.postProcessing ? "on" : "off")} · " +
+                    $"{measured:F1} fps");
 
                 if (measured < floorFps)
                 {
