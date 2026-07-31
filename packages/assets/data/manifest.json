@@ -44,6 +44,8 @@
     { "id": "base.guardPost", "category": "baseMap", "label": "초소 × 2", "zone": "guardPost", "count": 1, "lod0": 16000, "modules": 8, "milestone": "M3" },
     { "id": "base.perimeter", "category": "baseMap", "label": "부대 외곽 (담장·위병소·도로·화단)", "count": 1, "lod0": 50000, "modules": 18, "milestone": "M3" },
     { "id": "base.boilerRoom", "category": "baseMap", "label": "보일러실 · 정비고", "zone": "boilerRoom", "count": 1, "lod0": 22000, "modules": 9, "milestone": "M3" },
+    { "id": "base.infirmary", "category": "baseMap", "label": "의무실", "zone": "infirmary", "count": 1, "lod0": 20000, "modules": 8, "milestone": "M3", "note": "EVA 후송 판정의 목적지. sim이 구역으로 갖고 있는데 ASSETS.md 초판에 빠져 있었다. 예산은 성격이 비슷한 창고(25,000/10) 기준으로 조금 작게 잡았다" },
+    { "id": "base.trainingField", "category": "baseMap", "label": "부대 내 훈련장", "zone": "trainingField", "count": 1, "lod0": 35000, "modules": 12, "milestone": "M3", "note": "훈련 맵 9종(온디맨드)과 다른, 부대 안 상시 훈련 구역. 야외라 연병장(40,000/12) 기준" },
 
     { "id": "train.range", "category": "trainingMap", "label": "사격장", "count": 1, "lod0": 60000, "bundleMb": 8, "curriculum": "D-03", "milestone": "M3" },
     { "id": "train.cbrn", "category": "trainingMap", "label": "화생방 제독소", "count": 1, "lod0": 45000, "bundleMb": 6, "curriculum": "D-05", "milestone": "M3" },
@@ -72,7 +74,7 @@
     "entries": [
       { "id": "characters", "tris": 62000, "basis": "플레이어 4인 × (베이스 10,000 + 피복 평균 5,500)" },
       { "id": "npc", "tris": 16000, "basis": "간부 3 + 배경 2 중 화면에 걸리는 몫" },
-      { "id": "baseMap", "tris": 120000, "basis": "LOD + 오클루전 컬링 후 야외 최댓값 (실내는 40K 이하)" },
+      { "id": "baseMap", "tris": 120000, "basis": "LOD + 오클루전 컬링 후 야외 최댓값 (실내는 40K 이하). 구역 2개가 늘어도 이 값은 그대로다 — 의무실은 실내라 야외 최대 부하와 겹치지 않고, 훈련장은 격자 [4,4]로 연병장 [1,2]에서 멀어 거리·오클루전에 걸린다" },
       { "id": "trainingMap", "tris": 200000, "basis": "훈련 맵 1개 로드 중 최댓값 (행군 코스 1구간 기준)" },
       { "id": "props", "tris": 30000, "basis": "45종 중 화면에 동시에 걸리는 몫" },
       { "id": "equipment", "tris": 8000, "basis": "4인이 든 장비" }
@@ -98,8 +100,8 @@
     "_note": "ASSETS.md가 산문으로 적어둔 값. 항목에서 유도한 값과 어긋나면 테스트가 잡는다 — 어느 쪽이 틀렸든 둘이 갈라진 것 자체가 결함이다.",
     "clothingCount": 22,
     "clothingTris": 27100,
-    "baseMapTris": 243000,
-    "baseMapModules": 95,
+    "baseMapTris": 298000,
+    "baseMapModules": 115,
     "trainingMapTris": 920000,
     "trainingMapBundleMb": 111,
     "propCount": 45,

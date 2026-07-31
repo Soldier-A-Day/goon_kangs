@@ -21,7 +21,7 @@ describe("에셋 카탈로그", () => {
     // ASSETS.md가 산문으로 적은 값들. 하나라도 어긋나면 문서와 데이터가
     // 갈라진 것이고, 그 시점부터 어느 쪽도 믿을 수 없다.
     expect(categoryTris("clothing")).toBe(27_100);
-    expect(categoryTris("baseMap")).toBe(243_000);
+    expect(categoryTris("baseMap")).toBe(298_000);
     expect(categoryTris("trainingMap")).toBe(920_000);
     expect(categoryTris("prop")).toBe(60_000);
     expect(categoryTris("equipment")).toBe(7_750);
@@ -78,5 +78,22 @@ describe("에셋 카탈로그", () => {
     expect(new Set(slots)).toEqual(
       new Set(["상의", "하의", "외피", "두부", "수족", "군장"]),
     );
+  });
+});
+
+describe("sim과의 정합", () => {
+  it("sim이 아는 모든 구역에 부대 맵이 있다", async () => {
+    // 이 검사가 없어서 의무실과 훈련장이 빠진 채로 M0까지 왔다. sim은 후송 판정
+    // 때 인원을 의무실로 보내는데(EVA) 갈 곳이 없었다 — 규칙이 가리키는 장소가
+    // 에셋에 없으면 그 규칙은 화면에서 일어나지 못한다.
+    //
+    // 방향은 assets → sim 이다. 규칙이 장소를 정하고 미술이 그것을 채운다.
+    const { ZONES } = await import("@sad/sim");
+    const covered = new Set(
+      byCategory("baseMap").map((m) => m.zone).filter(Boolean),
+    );
+
+    const missing = ZONES.filter((zone) => !covered.has(zone));
+    expect(missing, `맵이 없는 구역: ${missing.join(", ")}`).toEqual([]);
   });
 });

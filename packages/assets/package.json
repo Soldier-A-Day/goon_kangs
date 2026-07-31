@@ -16,5 +16,8 @@
   "devDependencies": {
     "typescript": "^5",
     "vitest": "^3"
+  },
+  "dependencies": {
+    "@sad/sim": "*"
   }
 }
