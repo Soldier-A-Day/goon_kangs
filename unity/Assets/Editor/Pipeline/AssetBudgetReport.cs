@@ -128,7 +128,10 @@ namespace SoldierADay.EditorTools
 
                 if (Directory.Exists(dir))
                 {
-                    foreach (var guid in AssetDatabase.FindAssets("t:Model", new[] { dir }))
+                    // Model(임포트한 fbx·obj)과 Prefab(스킨드 메시)을 함께 센다.
+                    // 리그가 붙는 에셋은 OBJ로 담기지 않아 프리팹으로 만들어지므로,
+                    // Model만 세면 캐릭터와 피복이 통째로 '없음'으로 잡힌다.
+                    foreach (var guid in AssetDatabase.FindAssets("t:Model t:Prefab", new[] { dir }))
                     {
                         var path = AssetDatabase.GUIDToAssetPath(guid);
                         var model = AssetDatabase.LoadAssetAtPath<GameObject>(path);

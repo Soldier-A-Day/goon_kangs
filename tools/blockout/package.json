@@ -1,0 +1,20 @@
+{
+  "name": "@sad/blockout",
+  "version": "0.1.0",
+  "private": true,
+  "description": "M0 블록아웃 생성기. 카탈로그 예산에 맞춘 그레이박스 지오메트리를 OBJ로 뽑는다 — 에셋이 아니라 에셋을 만드는 코드가 저장소에 남는다",
+  "type": "module",
+  "scripts": {
+    "start": "tsx src/main.ts",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@sad/assets": "*"
+  },
+  "devDependencies": {
+    "tsx": "^4",
+    "typescript": "^5",
+    "vitest": "^3"
+  }
+}
