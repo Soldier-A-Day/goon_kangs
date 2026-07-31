@@ -53,6 +53,25 @@ namespace SoldierADay.M0
         private long _lastSampledHeap;
         private SnapshotChurn _churn;
 
+        // 창이 가려지면 Chrome이 rAF를 **멈춘다.** 1차 측정에서 최악 프레임
+        // 531,569ms(8.9분)가 찍혔다 — 그건 프레임이 아니라 브라우저가 쉰 시간이다.
+        // 한 번만 섞여도 그 구간의 최악·평균이 통째로 무의미해지므로, 오염된 구간은
+        // 프레임 지표를 버린다. **힙은 버리지 않는다** — 할당은 시간이 아니라
+        // 파싱 횟수를 따라가고, 멈춘 동안에는 파싱도 멈췄기 때문이다.
+        private bool _bucketWasHidden;
+        private bool _focused = true;
+
+        private void OnApplicationFocus(bool focused)
+        {
+            _focused = focused;
+            if (!focused) _bucketWasHidden = true;
+        }
+
+        private void OnApplicationPause(bool paused)
+        {
+            if (paused) _bucketWasHidden = true;
+        }
+
         private void Awake()
         {
             // OnGUI 안의 GetComponent도 매 이벤트 비용이다
@@ -62,6 +81,12 @@ namespace SoldierADay.M0
         private void Update()
         {
             var frameMs = Time.unscaledDeltaTime * 1000f;
+
+            // 복귀 직후 첫 프레임은 쉰 시간을 통째로 물고 온다. 포커스 이벤트가
+            // 프레임보다 먼저 오지 않는 경우도 있어 값으로도 한 번 거른다 —
+            // 1초 넘는 프레임은 이 씬에서 나올 수 없다(최악 부하가 8배에서 17ms다).
+            if (frameMs > 1000f) _bucketWasHidden = true;
+
             _frameAccum += frameMs;
             _frameCount += 1;
             if (frameMs > _worstFrameMs) _worstFrameMs = frameMs;
@@ -97,18 +122,22 @@ namespace SoldierADay.M0
                 heapFloorBytes = _bucketFloor,
                 worstFrameMs = _worstFrameMs,
                 averageFrameMs = _frameCount > 0 ? _frameAccum / _frameCount : 0f,
+                framesUsable = !_bucketWasHidden,
             };
             _buckets.Add(bucket);
 
             Debug.Log(
                 $"[M0] {bucket.minute}분 · 힙 저점 {bucket.heapFloorBytes / (1024f * 1024f):F1}MB · " +
-                $"최악 프레임 {bucket.worstFrameMs:F1}ms · 평균 {bucket.averageFrameMs:F1}ms");
+                (bucket.framesUsable
+                    ? $"최악 프레임 {bucket.worstFrameMs:F1}ms · 평균 {bucket.averageFrameMs:F1}ms"
+                    : "프레임 무효 (창이 가려짐)"));
 
             _bucketStart = Time.unscaledTime;
             _bucketFloor = long.MaxValue;
             _worstFrameMs = 0f;
             _frameAccum = 0f;
             _frameCount = 0;
+            _bucketWasHidden = !_focused;
         }
 
         /// <summary>
@@ -136,10 +165,38 @@ namespace SoldierADay.M0
             {
                 builder.AppendLine(
                     $"{bucket.minute}\t{bucket.heapFloorBytes / (1024f * 1024f):F1}\t" +
-                    $"{bucket.worstFrameMs:F1}\t{bucket.averageFrameMs:F1}");
+                    (bucket.framesUsable
+                        ? $"{bucket.worstFrameMs:F1}\t{bucket.averageFrameMs:F1}"
+                        : "무효\t무효"));
             }
             builder.AppendLine(Verdict());
+            builder.AppendLine(FrameVerdict());
             return builder.ToString();
+        }
+
+        /// <summary>
+        /// 프레임 판정. 표 18-2의 "최저 30fps"는 평균이 아니라 **최악**으로 봐야 한다 —
+        /// 평균 60에 순간 200ms가 섞이면 그 순간 조작이 불가능하고, 집합 판정처럼
+        /// 몇 초가 걸리는 상황에서는 그게 곧 실패다.
+        /// </summary>
+        private string FrameVerdict()
+        {
+            var usable = 0;
+            var worst = 0f;
+            // 0번 구간은 씬 생성(549 오브젝트 + 본 리그)이 통째로 들어가 2초짜리
+            // 프레임이 찍힌다. 그건 로딩 비용이지 플레이 중 프레임이 아니다.
+            for (var i = 1; i < _buckets.Count; i += 1)
+            {
+                if (!_buckets[i].framesUsable) continue;
+                usable += 1;
+                if (_buckets[i].worstFrameMs > worst) worst = _buckets[i].worstFrameMs;
+            }
+
+            if (usable == 0) return "프레임 판정 불가 — 유효 구간 없음 (창을 계속 띄워둬야 한다)";
+
+            return worst > 33.3f
+                ? $"프레임 미달 — 최악 {worst:F0}ms (유효 구간 {usable})"
+                : $"프레임 통과 — 최악 {worst:F0}ms (유효 구간 {usable})";
         }
 
         /// <summary>
@@ -158,6 +215,12 @@ namespace SoldierADay.M0
             public float worstFrameMs;
 
             public float averageFrameMs;
+
+            /// <summary>
+            /// 창이 가려진 적 없는 구간인가. 가려졌으면 프레임 값은 버린다 —
+            /// 브라우저가 쉰 시간이 한 프레임으로 기록되기 때문이다. 힙은 유효하다.
+            /// </summary>
+            public bool framesUsable;
         }
 
         /// <summary>

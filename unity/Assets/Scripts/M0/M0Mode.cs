@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using UnityEngine;
 
 namespace SoldierADay.M0
@@ -15,10 +16,36 @@ namespace SoldierADay.M0
     [DefaultExecutionOrder(-100)]
     public sealed class M0Mode : MonoBehaviour
     {
+#if UNITY_WEBGL && !UNITY_EDITOR
+        [DllImport("__Internal")]
+        private static extern System.IntPtr M0GetQuery();
+#endif
+
+        /// <summary>
+        /// 브라우저에게 쿼리 문자열을 직접 묻는다.
+        ///
+        /// 처음에는 `Application.absoluteURL`을 썼는데 `?mode=heap`이 잡히지 않아
+        /// 힙 모드로 열어도 스윕이 돌았다. 모드 전환이 안 되면 측정 자체를 못 하므로
+        /// 이 경로는 확실해야 한다.
+        /// </summary>
+        private static string ReadQuery()
+        {
+#if UNITY_WEBGL && !UNITY_EDITOR
+            var pointer = M0GetQuery();
+            return pointer == System.IntPtr.Zero ? "" : Marshal.PtrToStringUTF8(pointer) ?? "";
+#else
+            return Application.absoluteURL ?? "";
+#endif
+        }
+
         private void Awake()
         {
-            var url = Application.absoluteURL ?? "";
+            var url = ReadQuery();
             var heapMode = url.Contains("mode=heap");
+
+            // 모드가 왜 그렇게 정해졌는지 로그에 남긴다. 쿼리를 못 읽는 상황을
+            // 한 번 겪었으므로, 다음에 어긋나면 바로 보여야 한다.
+            Debug.Log($"[M0] 쿼리 \"{url}\" → {(heapMode ? "힙" : "스윕")} 모드");
 
             var sweep = GetComponent<AutoSweep>();
             var heap = GetComponent<HeapProbe>();
