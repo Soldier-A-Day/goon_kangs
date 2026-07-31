@@ -1,0 +1,20 @@
+{
+  "name": "@sad/assets",
+  "version": "0.1.0",
+  "private": true,
+  "description": "에셋 카탈로그와 예산. ASSETS.md의 숫자를 기계가 읽는 형태로 옮긴 것이며, Unity 임포트 규칙과 예산 검사가 여기를 단일 출처로 삼는다",
+  "type": "module",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./manifest": "./data/manifest.json"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "^5",
+    "vitest": "^3"
+  }
+}
