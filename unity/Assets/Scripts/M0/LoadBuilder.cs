@@ -66,7 +66,7 @@ namespace SoldierADay.M0
             // 스킨드 프록시 — 배칭이 되지 않으므로 드로우콜을 그대로 먹는다
             for (var i = 0; i < skinnedCount; i += 1)
             {
-                Spawn($"Skinned_{i}", skinnedTriangles, batchable: false, instanced: false);
+                Spawn($"Skinned_{i}", skinnedTriangles, batchable: false);
                 triangles += skinnedTriangles;
                 renderers += 1;
             }
@@ -74,14 +74,14 @@ namespace SoldierADay.M0
             // 환경 — 정적 배칭 대상
             for (var i = 0; i < staticBlockCount; i += 1)
             {
-                Spawn($"Env_{i}", staticBlockTriangles, batchable: true, instanced: false);
+                Spawn($"Env_{i}", staticBlockTriangles, batchable: true);
                 triangles += staticBlockTriangles;
             }
 
             // 훈련 맵 프록시 — 부대 맵과 함께 메모리에 있는 최악 상태를 재현한다
             for (var i = 0; i < trainingBlockCount; i += 1)
             {
-                Spawn($"Training_{i}", trainingBlockTriangles, batchable: true, instanced: false);
+                Spawn($"Training_{i}", trainingBlockTriangles, batchable: true);
                 triangles += trainingBlockTriangles;
             }
 
@@ -90,7 +90,7 @@ namespace SoldierADay.M0
             {
                 for (var n = 0; n < propsPerKind; n += 1)
                 {
-                    Spawn($"Prop_{kind}_{n}", propTriangles, batchable: false, instanced: true);
+                    Spawn($"Prop_{kind}_{n}", propTriangles, batchable: false);
                     triangles += propTriangles;
                 }
             }
@@ -131,7 +131,7 @@ namespace SoldierADay.M0
         /// 지정한 삼각형 수에 근접한 구를 만든다.
         /// 구를 쓰는 이유는 세그먼트 수로 폴리를 정밀하게 조절할 수 있어서다.
         /// </summary>
-        private void Spawn(string label, int triangles, bool batchable, bool instanced)
+        private void Spawn(string label, int triangles, bool batchable)
         {
             var go = new GameObject(label);
             go.transform.SetParent(transform, false);
@@ -143,10 +143,9 @@ namespace SoldierADay.M0
 
             var renderer = go.AddComponent<MeshRenderer>();
             renderer.sharedMaterial = _materials[_spawned.Count % _materials.Count];
-            // 인스턴싱 대상은 그림자를 켜둔다 — 캐스터 패스 비용을 같이 재기 위해서다
-            renderer.shadowCastingMode = instanced
-                ? UnityEngine.Rendering.ShadowCastingMode.On
-                : UnityEngine.Rendering.ShadowCastingMode.On;
+            // 전부 그림자를 켠다 — 캐스터 패스가 드로우콜을 두 배로 만드는 것이
+            // M0에서 봐야 할 지점이라 여기서 빼면 안 된다 (docs/M0_SCENE.md §2)
+            renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.On;
 
             _spawned.Add(go);
         }

@@ -109,6 +109,24 @@ namespace SoldierADay.M0
             return builder.ToString();
         }
 
+        /// <summary>
+        /// 한 구간의 측정 결과. 저점만 남기는 이유는 힙이 GC 주기 때문에 톱니로 흔들려서,
+        /// 꼭짓점은 GC 타이밍에 좌우되고 누수는 바닥이 우상향할 때만 드러나기 때문이다.
+        /// </summary>
+        public struct Bucket
+        {
+            /// <summary>구간 시작 시점 (분)</summary>
+            public int minute;
+
+            /// <summary>이 구간에서 관측된 Mono 힙 최저값</summary>
+            public long heapFloorBytes;
+
+            /// <summary>최악 프레임(ms). 30fps = 33.3ms 를 넘으면 조작이 불가능해진다</summary>
+            public float worstFrameMs;
+
+            public float averageFrameMs;
+        }
+
         private void OnGUI()
         {
             if (!showOverlay) return;
