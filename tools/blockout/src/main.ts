@@ -3,10 +3,14 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { ASSETS, type AssetEntry } from "@sad/assets";
 import { assembleParts, totalTriangles, type Module } from "./kit.js";
-import { BARRACKS, DRILL_GROUND } from "./maps.js";
+import {
+  BARRACKS, BOILER_ROOM, DRILL_GROUND, GUARD_POST, INFIRMARY,
+  MESS_HALL, PERIMETER, STORAGE, TRAINING_FIELD,
+} from "./maps.js";
 import { fitToBudget, toObj, type Mesh } from "./mesh.js";
 import { assemblePieces, type Prop } from "./parts.js";
 import { LARGE, MEDIUM, SMALL } from "./props.js";
+import { EQUIPMENT } from "./equipment.js";
 import { buildRifle } from "./rifle.js";
 import {
   BIVOUAC, CBRN, COLD_WEATHER, COMBINED, HOT_WEATHER,
@@ -172,6 +176,13 @@ function main(): void {
 
   emitKit("base.drillGround", DRILL_GROUND, true);
   emitKit("base.barracks", BARRACKS, true);
+  emitKit("base.storage", STORAGE, true);
+  emitKit("base.messHall", MESS_HALL, true);
+  emitKit("base.guardPost", GUARD_POST, true);
+  emitKit("base.perimeter", PERIMETER, true);
+  emitKit("base.boilerRoom", BOILER_ROOM, true);
+  emitKit("base.infirmary", INFIRMARY, true);
+  emitKit("base.trainingField", TRAINING_FIELD, true);
 
   emitKit("train.range", RANGE);
   emitKit("train.cbrn", CBRN);
@@ -182,6 +193,23 @@ function main(): void {
   emitKit("train.hotWeather", HOT_WEATHER);
   emitKit("train.village", VILLAGE);
   emitKit("train.combined", COMBINED);
+
+  // 보직 장비 — 종류마다 카탈로그 항목이 따로다(§4.1)
+  for (const item of EQUIPMENT) {
+    const entry = entryFor(item.assetId);
+    const fitted = fitToBudget(
+      entry.lod0 * entry.count,
+      (d) => assemblePieces(item.pieces, d),
+      (mesh: Mesh) => mesh.triangleCount,
+      24,
+    );
+    write(entry, `${item.id}.obj`,
+      toObj([{ name: item.id, mesh: fitted.value }], `${item.label} — 블록아웃`), true);
+    rows.push({
+      id: entry.id, triangles: fitted.triangles, budget: entry.lod0 * entry.count,
+      files: 1, parts: 1, note: entry.role ?? "",
+    });
+  }
 
   emitProps("prop.small", SMALL);
   emitProps("prop.medium", MEDIUM);

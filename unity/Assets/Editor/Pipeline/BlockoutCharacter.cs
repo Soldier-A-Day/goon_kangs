@@ -27,9 +27,18 @@ namespace SoldierADay.EditorTools
         {
             var log = new List<string>();
 
-            log.Add(BuildBody());
-            log.Add(BuildGarments("cloth.top", isTop: true));
-            log.Add(BuildGarments("cloth.bottom", isTop: false));
+            // 간부 3 + 배경 병력 2도 같은 리그를 쓴다. 16.0이 애니메이션을 한 리그로
+            // 통일한다고 정했으므로, NPC가 다른 골격을 쓰면 그 물량만큼 애니메이션이
+            // 따로 필요해진다 — 물량을 줄이려고 내린 결정이 무의미해진다.
+            log.Add(BuildBody("char.base.player"));
+            log.Add(BuildBody("char.base.cadre"));
+            log.Add(BuildBody("char.base.background"));
+            // 11.0의 6슬롯. M0 범위는 상·하의였고 나머지는 M1·M4다(카탈로그 참조).
+            foreach (var slot in new[] {
+                "cloth.top", "cloth.bottom", "cloth.outer", "cloth.head", "cloth.hands", "cloth.gear" })
+            {
+                log.Add(BuildGarments(slot));
+            }
 
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
@@ -85,16 +94,17 @@ namespace SoldierADay.EditorTools
         /// 있어야 스키닝이 접힐 때 찌그러지지 않는다 — 링 없이 만들면 팔꿈치가
         /// 종잇장처럼 접히고, 그건 애니메이션을 붙인 뒤에야 보인다.
         /// </summary>
-        private static string BuildBody()
+        private static string BuildBody(string id)
         {
-            var entry = AssetManifest.Find("char.base.player");
-            var budget = entry.TotalTris;
+            var entry = AssetManifest.Find(id);
+            // 여러 벌이면 벌당 예산으로 맞춘다 — 간부 3체, 배경 2체
+            var budget = entry.lod0;
 
             var detail = FitDetail(budget, BodyTriangles);
-            var root = new GameObject("char.base.player");
+            var root = new GameObject(entry.id);
             var bones = BuildSkeleton(root.transform);
 
-            var mesh = new Mesh { name = "char.base.player" };
+            var mesh = new Mesh { name = entry.id };
             var builder = new SkinBuilder(bones);
 
             foreach (var limb in BodyLimbs())
@@ -103,10 +113,16 @@ namespace SoldierADay.EditorTools
             }
 
             builder.Apply(mesh);
-            var saved = SaveSkinned(root, mesh, bones, entry);
+            var tris = mesh.triangles.Length / 3;
 
-            return $"  {entry.id}  {mesh.triangles.Length / 3:N0} / {budget:N0} tris " +
-                   $"({(float)(mesh.triangles.Length / 3) / budget:P0}) · 본 {bones.Count} · {saved}";
+            // 벌 수만큼 프리팹을 만든다. 예산 검사는 폴더 안의 모델을 모두 세므로,
+            // 3체가 필요한 항목에 1체만 두면 실제 부하를 과소평가한다.
+            var saved = entry.count > 1
+                ? SaveCopies(root, mesh, bones, entry)
+                : SaveSkinned(root, mesh, bones, entry);
+
+            return $"  {entry.id}  {tris:N0} × {entry.count} / {entry.TotalTris:N0} tris " +
+                   $"({(float)(tris * entry.count) / entry.TotalTris:P0}) · 본 {bones.Count} · {saved}";
         }
 
         private readonly struct Limb
@@ -178,7 +194,7 @@ namespace SoldierADay.EditorTools
         /// **같은 본을 참조**한다 — 그래야 스왑해도 애니메이션이 그대로 먹는다.
         /// 종류마다 두께와 덮는 범위만 다르다(전투복 < 체육복 < 방한 내피 < 우의).
         /// </summary>
-        private static string BuildGarments(string id, bool isTop)
+        private static string BuildGarments(string id)
         {
             var entry = AssetManifest.Find(id);
             var perPiece = entry.lod0;
@@ -188,15 +204,19 @@ namespace SoldierADay.EditorTools
             for (var variant = 0; variant < entry.count; variant += 1)
             {
                 // 종류가 올라갈수록 두껍다. 방한 내피·우의는 몸에서 더 떨어진다.
-                var thickness = 0.012f + variant * 0.008f;
-                var detail = FitDetail(perPiece, d => GarmentTriangles(d, isTop));
+                // 외피는 상의 위에 겹쳐 입으므로 상의 최대 두께보다 위에서 시작한다 —
+                // 겹치면 z-파이팅이 나고, 그건 정지 화면에서도 바로 보인다.
+                // 겹쳐 입는 순서: 상·하의 → 외피 → 군장. 뒤로 갈수록 두껍다
+                var baseThickness = id == "cloth.gear" ? 0.09f : id == "cloth.outer" ? 0.05f : 0.012f;
+                var thickness = baseThickness + variant * 0.008f;
+                var detail = FitDetail(perPiece, d => GarmentTriangles(d, id));
 
                 var root = new GameObject($"{id}.{variant}");
                 var bones = BuildSkeleton(root.transform);
                 var mesh = new Mesh { name = $"{id}.{variant}" };
                 var builder = new SkinBuilder(bones);
 
-                foreach (var limb in GarmentLimbs(isTop))
+                foreach (var limb in GarmentLimbs(id))
                 {
                     builder.Capsule(
                         limb.from, limb.to, limb.radius + thickness,
@@ -214,21 +234,37 @@ namespace SoldierADay.EditorTools
                    string.Join("\n", lines);
         }
 
-        private static IEnumerable<Limb> GarmentLimbs(bool isTop)
+        /// <summary>
+        /// 슬롯마다 덮는 부위가 다르다 (11.0의 6슬롯 구조).
+        ///
+        /// 슬롯이 겹치지 않아야 스왑이 성립한다 — 상의와 외피가 같은 부위를 덮으면
+        /// 둘 다 입었을 때 표면이 겹쳐 z-파이팅이 난다. 외피는 상의보다 **더 두껍게**
+        /// 만들어(BuildGarments의 thickness) 위에 덮이게 한다.
+        /// </summary>
+        private static IEnumerable<Limb> GarmentLimbs(string slot)
         {
             foreach (var limb in BodyLimbs())
             {
-                // 상의는 몸통과 팔, 하의는 골반과 다리. 머리·손·발은 피복 슬롯이 따로 있다(두부·수족).
-                var upper = limb.bone.Contains("Arm") || limb.bone == "Chest";
-                var lower = limb.bone.Contains("Leg") || limb.bone == "Hips";
-                if (isTop ? upper : lower) yield return limb;
+                var covers = slot switch
+                {
+                    "cloth.top" => limb.bone.Contains("Arm") || limb.bone == "Chest",
+                    "cloth.outer" => limb.bone.Contains("Arm") || limb.bone == "Chest" || limb.bone == "Hips",
+                    "cloth.bottom" => limb.bone.Contains("Leg") || limb.bone == "Hips",
+                    "cloth.head" => limb.bone == "Head",
+                    // 수족 — 전투화(발) + 장갑(손). 한 슬롯이 양쪽을 함께 담당한다
+                    "cloth.hands" => limb.bone.Contains("Hand") || limb.bone.Contains("Foot"),
+                    // 군장 — 전투조끼·배낭·완전군장. 몸통에 얹히므로 가장 바깥이다
+                    "cloth.gear" => limb.bone == "Chest" || limb.bone == "Hips",
+                    _ => false,
+                };
+                if (covers) yield return limb;
             }
         }
 
-        private static int GarmentTriangles(float detail, bool isTop)
+        private static int GarmentTriangles(float detail, string slot)
         {
             var total = 0;
-            foreach (var limb in GarmentLimbs(isTop))
+            foreach (var limb in GarmentLimbs(slot))
             {
                 total += SkinBuilder.CapsuleTriangles(Segments(detail), Rings(limb, detail));
             }
@@ -275,6 +311,30 @@ namespace SoldierADay.EditorTools
             Object.DestroyImmediate(root);
 
             return Path.GetFileName(prefabPath);
+        }
+
+        /// <summary>같은 형상을 벌 수만큼 저장한다. 메시는 공유한다</summary>
+        private static string SaveCopies(
+            GameObject root, Mesh mesh, Dictionary<string, Transform> bones, AssetManifest.Entry entry)
+        {
+            var dir = $"{ArtRoot}/{entry.category}/{entry.id}";
+            Directory.CreateDirectory(dir);
+            AssetDatabase.CreateAsset(mesh, $"{dir}/{entry.id}.mesh.asset");
+
+            var renderer = root.AddComponent<SkinnedMeshRenderer>();
+            renderer.sharedMesh = mesh;
+            renderer.bones = OrderedBones(bones);
+            renderer.rootBone = bones["Hips"];
+            renderer.localBounds = new Bounds(
+                bones["Hips"].InverseTransformPoint(mesh.bounds.center), mesh.bounds.size);
+
+            for (var i = 0; i < entry.count; i += 1)
+            {
+                PrefabUtility.SaveAsPrefabAsset(root, $"{dir}/{entry.id}_{i}.prefab");
+            }
+            Object.DestroyImmediate(root);
+
+            return $"{entry.count}벌";
         }
 
         private static Transform[] OrderedBones(Dictionary<string, Transform> bones)

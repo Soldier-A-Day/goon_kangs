@@ -178,7 +178,7 @@ export function fitToBudget<T>(
   build: (detail: number) => T,
   count: (value: T) => number,
   maxDetail = 64,
-  step = 0.25,
+  step = 0.05,
 ): { value: T; detail: number; triangles: number } {
   let best = build(1);
   let bestDetail = 1;

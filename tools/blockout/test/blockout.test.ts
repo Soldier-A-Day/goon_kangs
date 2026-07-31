@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { ASSETS } from "@sad/assets";
 import { assembleParts, totalTriangles } from "../src/kit.js";
-import { BARRACKS, DRILL_GROUND } from "../src/maps.js";
+import {
+  BARRACKS, BOILER_ROOM, DRILL_GROUND, GUARD_POST, INFIRMARY,
+  MESS_HALL, PERIMETER, STORAGE, TRAINING_FIELD,
+} from "../src/maps.js";
+import { EQUIPMENT } from "../src/equipment.js";
+import { LARGE, MEDIUM, SMALL } from "../src/props.js";
 import { fitToBudget, toObj } from "../src/mesh.js";
 import { buildRifle } from "../src/rifle.js";
 
@@ -11,11 +16,48 @@ const budgetOf = (id: string) => {
 };
 
 describe("블록아웃 생성기", () => {
-  it("모듈 종류 수가 카탈로그와 같다", () => {
+  it("부대 맵 9종의 모듈 수가 카탈로그와 같다", () => {
     // §2가 정한 모듈 수는 장식이 아니라 드로우콜·배칭의 전제다.
     // 어긋나면 폴리가 맞아도 배칭 특성이 실제와 달라진다.
-    expect(DRILL_GROUND.length).toBe(ASSETS.find((a) => a.id === "base.drillGround")!.modules);
-    expect(BARRACKS.length).toBe(ASSETS.find((a) => a.id === "base.barracks")!.modules);
+    const kits = {
+      "base.drillGround": DRILL_GROUND,
+      "base.barracks": BARRACKS,
+      "base.storage": STORAGE,
+      "base.messHall": MESS_HALL,
+      "base.guardPost": GUARD_POST,
+      "base.perimeter": PERIMETER,
+      "base.boilerRoom": BOILER_ROOM,
+      "base.infirmary": INFIRMARY,
+      "base.trainingField": TRAINING_FIELD,
+    };
+
+    for (const [id, kit] of Object.entries(kits)) {
+      expect(kit.length, id).toBe(ASSETS.find((a) => a.id === id)!.modules);
+    }
+
+    // 카탈로그의 부대 맵을 하나도 빠뜨리지 않았는가.
+    // 의무실이 빠진 채로 M0까지 온 적이 있다.
+    const cataloged = ASSETS.filter((a) => a.category === "baseMap").map((a) => a.id);
+    expect(Object.keys(kits).sort()).toEqual(cataloged.sort());
+  });
+
+  it("소품·장비 종수가 카탈로그와 같다", () => {
+    expect(SMALL.length).toBe(ASSETS.find((a) => a.id === "prop.small")!.count);
+    expect(MEDIUM.length).toBe(ASSETS.find((a) => a.id === "prop.medium")!.count);
+    expect(LARGE.length).toBe(ASSETS.find((a) => a.id === "prop.large")!.count);
+
+    // 소총은 별도 생성기라 여기 없다. 나머지 5종이 카탈로그와 맞아야 한다
+    const cataloged = ASSETS
+      .filter((a) => a.category === "equipment" && a.id !== "equip.rifle")
+      .map((a) => a.id);
+    expect(EQUIPMENT.map((e) => e.assetId).sort()).toEqual(cataloged.sort());
+  });
+
+  it("id가 중복되지 않는다", () => {
+    // 파일명이 곧 id다. 겹치면 하나가 조용히 덮어써지고 예산 검사에서
+    // 종수만 모자라게 나온다 — 어느 것이 사라졌는지는 안 나온다.
+    const ids = [...SMALL, ...MEDIUM, ...LARGE, ...EQUIPMENT].map((p) => p.id);
+    expect(new Set(ids).size).toBe(ids.length);
   });
 
   it("예산을 넘지 않는다", () => {
