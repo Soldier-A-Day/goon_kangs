@@ -1,0 +1,7 @@
+{
+  "name": "SoldierADay.Editor",
+  "rootNamespace": "SoldierADay.EditorTools",
+  "references": ["SoldierADay.Runtime"],
+  "includePlatforms": ["Editor"],
+  "autoReferenced": true
+}

@@ -66,3 +66,4 @@ unity/Build/
 unity/Packages/packages-lock.json
 unity/*.csproj
 unity/*.sln
+unity/Build/
