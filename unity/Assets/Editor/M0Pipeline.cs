@@ -80,8 +80,11 @@ namespace SoldierADay.EditorTools
         ///
         /// 기획서 ARCH-01이 Unity를 쓰는 이유로 든 것 중 하나가 URP Volume 프로파일
         /// (온도 6밴드 그레이딩)이므로, 어차피 실제 게임도 URP로 가야 한다.
+        ///
+        /// `internal`인 것은 M0_Real 씬도 **같은 파이프라인·재질**을 써야 하기 때문이다.
+        /// 렌더 설정이 다르면 두 씬을 비교하는 의미가 사라진다.
         /// </summary>
-        private static void EnsureRenderPipeline()
+        internal static void EnsureRenderPipeline()
         {
             var existing = AssetDatabase.LoadAssetAtPath<UniversalRenderPipelineAsset>(UrpAssetPath);
             if (existing == null)
@@ -118,7 +121,7 @@ namespace SoldierADay.EditorTools
         /// 머티리얼 에셋을 씬이 참조하면 Unity가 **실제로 쓰이는 변형만** 골라 넣는다.
         /// 빌드에 셰이더를 포함시키는 정석이 이쪽이다.
         /// </summary>
-        private static Material EnsureProxyMaterial()
+        internal static Material EnsureProxyMaterial()
         {
             EnsureRenderPipeline();
 
