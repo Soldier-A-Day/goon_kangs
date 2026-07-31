@@ -95,11 +95,11 @@ namespace SoldierADay.EditorTools
             boot.client = client;
             boot.squad = squad;
             boot.followCamera = camera;
-            boot.font = font;
 
-            var panel = netGo.AddComponent<CommandPanel>();
-            panel.client = client;
-            panel.font = font;
+            var hud = netGo.AddComponent<Hud>();
+            hud.client = client;
+            hud.boot = boot;
+            hud.font = font;
 
             Directory.CreateDirectory(SceneDir);
             EditorSceneManager.SaveScene(scene, ScenePath);

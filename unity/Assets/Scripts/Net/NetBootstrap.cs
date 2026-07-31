@@ -36,17 +36,15 @@ namespace SoldierADay.Net
         public SquadView squad;
         public Camera followCamera;
 
-        [Tooltip("한글 글리프가 있는 폰트. 없으면 시간대·기온 라벨이 빈칸으로 나온다")]
-        public Font font;
 
-        private GUIStyle _style;
 
         private LobbyClient _lobby;
-        private string _status = "시작 대기";
-        private string _detail = "";
-        private string _overlay = "";
-        private float _nextOverlay;
-        private int _snapshots;
+
+        /// <summary>HUD가 읽는 연결 상태. 그리기는 Hud가 맡는다</summary>
+        public string Status { get; private set; } = "시작 대기";
+        public string Detail { get; private set; } = "";
+        public bool Connected { get; private set; }
+        public int Snapshots { get; private set; }
 
 #if UNITY_WEBGL && !UNITY_EDITOR
         [DllImport("__Internal")] private static extern System.IntPtr M0GetQuery();
@@ -99,26 +97,26 @@ namespace SoldierADay.Net
             if (!autoStart) yield break;
 
             LobbyClient.Ticket ticket = null;
-            _status = "방 생성 중";
+            Status = "방 생성 중";
             yield return _lobby.CreateRoom(playerName, role, difficulty, season,
                 result => ticket = result, Fail);
             if (ticket == null) yield break;
 
-            _detail = $"방 {ticket.code} · 나 {ticket.memberId}";
-            _status = "런 시작 중";
+            Detail = $"방 {ticket.code} · 나 {ticket.memberId}";
+            Status = "런 시작 중";
             var started = false;
             yield return _lobby.StartRun(ticket.code, ticket.token, () => started = true, Fail);
             if (!started) yield break;
 
-            _status = "소켓 연결 중";
+            Status = "소켓 연결 중";
             client.token = ticket.token;
             client.Connect();
         }
 
         private void Fail(string reason)
         {
-            _status = "실패";
-            _detail = reason;
+            Status = "실패";
+            Detail = reason;
             Debug.LogError($"[net] {reason}");
         }
 
@@ -130,8 +128,9 @@ namespace SoldierADay.Net
 
         private void OnSnapshot(Snapshot snapshot)
         {
-            _snapshots += 1;
-            _status = "연결됨";
+            Snapshots += 1;
+            Status = "연결됨";
+            Connected = true;
             squad?.Apply(snapshot);
         }
 
@@ -152,78 +151,7 @@ namespace SoldierADay.Net
                 }
             }
 
-            if (Time.unscaledTime < _nextOverlay) return;
-            _nextOverlay = Time.unscaledTime + 0.5f;
-            Compose();
         }
 
-        private void Compose()
-        {
-            var text = new StringBuilder();
-            text.AppendLine($"[{_status}] {_detail}");
-            text.AppendLine($"스냅샷 {_snapshots}건");
-            text.AppendLine();
-
-            var snapshot = client?.Latest;
-            if (snapshot == null)
-            {
-                text.AppendLine("아직 스냅샷 없음");
-                _overlay = text.ToString();
-                return;
-            }
-
-            // 전부 서버가 보낸 값을 그대로 찍는다. 계산하는 것이 하나도 없다.
-            text.AppendLine($"{snapshot.day}/{snapshot.totalDays}일차 · {snapshot.status}");
-            if (snapshot.phase != null)
-            {
-                text.AppendLine($"{snapshot.phase.label} ({snapshot.phase.clock})");
-            }
-            if (snapshot.weather != null)
-            {
-                text.AppendLine($"{snapshot.weather.label} 체감 {snapshot.weather.feelsLike}도");
-            }
-            text.AppendLine();
-
-            if (snapshot.members != null)
-            {
-                foreach (var member in snapshot.members)
-                {
-                    if (member == null) continue;
-                    var me = member.id == client.MemberId ? "▶ " : "  ";
-                    text.AppendLine($"{me}{member.role,-6} {member.name,-8} {member.zone}");
-                }
-            }
-
-            if (snapshot.quests != null)
-            {
-                var done = 0;
-                foreach (var quest in snapshot.quests)
-                {
-                    if (quest?.status == SnapshotQuestsItemStatusValues.Done) done += 1;
-                }
-                text.AppendLine();
-                text.AppendLine($"퀘스트 {done}/{snapshot.quests.Length}");
-            }
-
-            _overlay = text.ToString();
-        }
-
-        private void OnGUI()
-        {
-            if (Event.current.type != EventType.Repaint) return;
-
-            // Unity 기본 폰트에는 한글 글리프가 없다. 서버가 보낸 시간대 이름과
-            // 기온 라벨이 **빈칸으로** 나오는데, 값은 정상이라 원인이 안 보인다.
-            if (_style == null)
-            {
-                _style = new GUIStyle(GUI.skin.label);
-                if (font != null) _style.font = font;
-            }
-
-            GUI.color = _status == "실패" ? Color.red : _status == "연결됨" ? Color.green : Color.yellow;
-            GUI.Box(new Rect(10, 10, 460, 300), "");
-            GUI.Label(new Rect(20, 16, 440, 290), _overlay, _style);
-            GUI.color = Color.white;
-        }
     }
 }
