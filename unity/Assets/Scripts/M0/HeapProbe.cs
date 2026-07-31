@@ -150,11 +150,25 @@ namespace SoldierADay.M0
             var heapMb = Profiler.GetMonoUsedSizeLong() / (1024f * 1024f);
             var minutes = Time.unscaledTime / 60f;
 
+            // 100분은 사람이 지켜보는 시간이다. 표가 실시간으로 차야 중간에
+            // 이상을 알아채고 끊을 수 있다 — 끝나고서야 아는 측정은 100분을 버린다.
+            var text = new StringBuilder();
+            text.AppendLine($"{minutes:F1}분 / 100분 · {fps:F0} fps · 힙 {heapMb:F1}MB");
+
+            var churn = GetComponent<SnapshotChurn>();
+            if (churn != null && churn.enabled)
+            {
+                text.AppendLine($"스냅샷 파싱 {churn.ParsedCount:N0}회");
+            }
+
+            text.AppendLine(Verdict());
+            text.AppendLine();
+            text.Append(Report());
+
             // 30fps 미달은 완화 불가 항목이라 눈에 띄어야 한다
             GUI.color = fps < 30f ? Color.red : fps < 60f ? Color.yellow : Color.green;
-            GUI.Label(
-                new Rect(10, 10, 420, 100),
-                $"{minutes:F1}분 · {fps:F0} fps · 힙 {heapMb:F1}MB\n{Verdict()}");
+            GUI.Box(new Rect(10, 10, 440, 120 + _buckets.Count * 18), "");
+            GUI.Label(new Rect(20, 16, 420, 110 + _buckets.Count * 18), text.ToString());
             GUI.color = Color.white;
         }
     }

@@ -55,8 +55,11 @@ namespace SoldierADay.EditorTools
             builder.buildOnStart = false;
             probe.AddComponent<HeavyAxes>().baseMaterial = builder.baseMaterial;
             probe.AddComponent<AutoSweep>();
-            // 힙 오버레이는 스윕 표와 겹치므로 숫자만 모은다
+            // 힙 오버레이는 스윕 표와 겹치므로 기본은 숫자만 모은다.
+            // ?mode=heap 이면 M0Mode가 켠다.
             probe.AddComponent<HeapProbe>().showOverlay = false;
+            probe.AddComponent<SnapshotChurn>();
+            probe.AddComponent<M0Mode>();
 
             Directory.CreateDirectory(SceneDir);
             EditorSceneManager.SaveScene(scene, ScenePath);
