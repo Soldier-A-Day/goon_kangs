@@ -44,6 +44,21 @@ namespace SoldierADay.M0
 
         public IReadOnlyList<Bucket> Buckets => _buckets;
 
+        // 오버레이 문자열은 캐시한다. OnGUI는 프레임당 여러 번(Layout·Repaint) 불리는데,
+        // 거기서 표를 새로 조립하면 **계측기가 자기가 재는 힙에 할당을 쏟는다.**
+        // 1차 100분 측정에서 이걸로 평균 프레임이 25ms까지 밀렸다 — 같은 부하를
+        // 스윕에서 쟀을 때는 16.9ms였다. 재는 행위가 결과를 바꾸면 측정이 아니다.
+        private string _overlayText = "";
+        private float _overlayNextAt;
+        private long _lastSampledHeap;
+        private SnapshotChurn _churn;
+
+        private void Awake()
+        {
+            // OnGUI 안의 GetComponent도 매 이벤트 비용이다
+            _churn = GetComponent<SnapshotChurn>();
+        }
+
         private void Update()
         {
             var frameMs = Time.unscaledDeltaTime * 1000f;
@@ -60,11 +75,14 @@ namespace SoldierADay.M0
                 _recentCount = 0;
             }
 
+            if (showOverlay) RefreshOverlay();
+
             if (Time.unscaledTime < _nextSample) return;
             _nextSample = Time.unscaledTime + sampleInterval;
 
             // 모노 힙이 실제로 쓰는 양. 예약량(Reserved)은 반납되지 않아 누수를 가린다.
             var used = Profiler.GetMonoUsedSizeLong();
+            _lastSampledHeap = used;
             if (used < _bucketFloor) _bucketFloor = used;
 
             if (Time.unscaledTime - _bucketStart < bucketSeconds) return;
@@ -142,33 +160,43 @@ namespace SoldierADay.M0
             public float averageFrameMs;
         }
 
-        private void OnGUI()
+        /// <summary>
+        /// 오버레이 문자열을 초당 두 번만 다시 만든다. 100분은 사람이 지켜보는
+        /// 시간이라 표가 실시간으로 차야 하지만, 사람 눈에 0.5초면 충분하다.
+        /// </summary>
+        private void RefreshOverlay()
         {
-            if (!showOverlay) return;
+            if (Time.unscaledTime < _overlayNextAt) return;
+            _overlayNextAt = Time.unscaledTime + 0.5f;
 
-            var fps = _recentFps;
-            var heapMb = Profiler.GetMonoUsedSizeLong() / (1024f * 1024f);
-            var minutes = Time.unscaledTime / 60f;
-
-            // 100분은 사람이 지켜보는 시간이다. 표가 실시간으로 차야 중간에
-            // 이상을 알아채고 끊을 수 있다 — 끝나고서야 아는 측정은 100분을 버린다.
             var text = new StringBuilder();
-            text.AppendLine($"{minutes:F1}분 / 100분 · {fps:F0} fps · 힙 {heapMb:F1}MB");
+            text.AppendLine(
+                $"{Time.unscaledTime / 60f:F1}분 / 100분 · {_recentFps:F0} fps · " +
+                $"힙 {_lastSampledHeap / (1024f * 1024f):F1}MB");
 
-            var churn = GetComponent<SnapshotChurn>();
-            if (churn != null && churn.enabled)
+            if (_churn != null && _churn.enabled)
             {
-                text.AppendLine($"스냅샷 파싱 {churn.ParsedCount:N0}회");
+                text.AppendLine($"스냅샷 파싱 {_churn.ParsedCount:N0}회");
             }
 
             text.AppendLine(Verdict());
             text.AppendLine();
             text.Append(Report());
+            _overlayText = text.ToString();
+        }
+
+        private void OnGUI()
+        {
+            if (!showOverlay) return;
+
+            // Layout 이벤트에서는 그릴 게 없다. 명시 Rect를 쓰므로 레이아웃 계산이
+            // 필요 없고, 이벤트마다 그리면 같은 일을 프레임당 두 번 이상 한다.
+            if (Event.current.type != EventType.Repaint) return;
 
             // 30fps 미달은 완화 불가 항목이라 눈에 띄어야 한다
-            GUI.color = fps < 30f ? Color.red : fps < 60f ? Color.yellow : Color.green;
+            GUI.color = _recentFps < 30f ? Color.red : _recentFps < 60f ? Color.yellow : Color.green;
             GUI.Box(new Rect(10, 10, 440, 120 + _buckets.Count * 18), "");
-            GUI.Label(new Rect(20, 16, 420, 110 + _buckets.Count * 18), text.ToString());
+            GUI.Label(new Rect(20, 16, 420, 110 + _buckets.Count * 18), _overlayText);
             GUI.color = Color.white;
         }
     }

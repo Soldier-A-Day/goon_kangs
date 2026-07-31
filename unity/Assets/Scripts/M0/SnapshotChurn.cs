@@ -76,17 +76,36 @@ namespace SoldierADay.M0
             Debug.Log($"[M0] 스냅샷 표본 {json.Length}바이트 · {hz}Hz 파싱 시작");
         }
 
+        /// <summary>
+        /// 밀린 만큼 따라잡는다. 프레임당 한 번만 파싱하면 **fps가 상한**이 되어
+        /// 60fps에서는 100Hz를 요청해도 60Hz밖에 나오지 않는다. 가속 측정(§5)의
+        /// 전제는 정해진 횟수를 소화하는 것이므로, 횟수가 프레임 수에 묶이면 안 된다.
+        ///
+        /// 다만 한 프레임에 몰아치는 양은 막는다 — 탭이 잠깐 멈췄다 돌아오면
+        /// 수천 건이 한 프레임에 터져 그 프레임이 최악 프레임으로 기록된다.
+        /// 그건 누수도 성능도 아닌 따라잡기 부채다.
+        /// </summary>
         private void Update()
         {
-            if (Time.unscaledTime < _nextAt) return;
-            _nextAt = Time.unscaledTime + 1f / Mathf.Max(1f, hz);
+            var interval = 1f / Mathf.Max(1f, hz);
+            var budget = Mathf.Max(1, Mathf.CeilToInt(hz / 30f));
 
-            _seq += 1;
-            var json = _prefix + _seq + _suffix;
-            var snapshot = JsonUtility.FromJson<Snapshot>(json);
-            ParsedCount += 1;
+            while (Time.unscaledTime >= _nextAt && budget > 0)
+            {
+                _nextAt += interval;
+                budget -= 1;
 
-            if (rebuildHudStrings) RebuildHud(snapshot);
+                _seq += 1;
+                var json = _prefix + _seq + _suffix;
+                var snapshot = JsonUtility.FromJson<Snapshot>(json);
+                ParsedCount += 1;
+
+                if (rebuildHudStrings) RebuildHud(snapshot);
+            }
+
+            // 예산을 다 쓰고도 밀려 있으면 부채를 탕감한다. 그러지 않으면
+            // 한 번 밀린 뒤 영원히 따라잡기만 하며 실제 주기를 잃는다.
+            if (Time.unscaledTime > _nextAt + 1f) _nextAt = Time.unscaledTime;
         }
 
         /// <summary>
