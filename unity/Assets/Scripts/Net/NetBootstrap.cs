@@ -36,6 +36,11 @@ namespace SoldierADay.Net
         public SquadView squad;
         public Camera followCamera;
 
+        [Tooltip("한글 글리프가 있는 폰트. 없으면 시간대·기온 라벨이 빈칸으로 나온다")]
+        public Font font;
+
+        private GUIStyle _style;
+
         private LobbyClient _lobby;
         private string _status = "시작 대기";
         private string _detail = "";
@@ -207,9 +212,17 @@ namespace SoldierADay.Net
         {
             if (Event.current.type != EventType.Repaint) return;
 
+            // Unity 기본 폰트에는 한글 글리프가 없다. 서버가 보낸 시간대 이름과
+            // 기온 라벨이 **빈칸으로** 나오는데, 값은 정상이라 원인이 안 보인다.
+            if (_style == null)
+            {
+                _style = new GUIStyle(GUI.skin.label);
+                if (font != null) _style.font = font;
+            }
+
             GUI.color = _status == "실패" ? Color.red : _status == "연결됨" ? Color.green : Color.yellow;
             GUI.Box(new Rect(10, 10, 460, 300), "");
-            GUI.Label(new Rect(20, 16, 440, 290), _overlay);
+            GUI.Label(new Rect(20, 16, 440, 290), _overlay, _style);
             GUI.color = Color.white;
         }
     }

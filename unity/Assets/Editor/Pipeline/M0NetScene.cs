@@ -87,10 +87,19 @@ namespace SoldierADay.EditorTools
             squad.soldierPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(
                 $"{ArtRoot}/character/char.base.player/char.base.player.prefab");
 
+            // 한글 폰트. 없으면 서버가 보낸 라벨이 전부 빈칸으로 나온다.
+            var font = AssetDatabase.LoadAssetAtPath<Font>("Assets/Fonts/SoldierKR.otf");
+            if (font == null) Debug.LogWarning("[M0_Net] 한글 폰트 없음 — tools/font/subset.py 로 만든다");
+
             var boot = netGo.AddComponent<NetBootstrap>();
             boot.client = client;
             boot.squad = squad;
             boot.followCamera = camera;
+            boot.font = font;
+
+            var panel = netGo.AddComponent<CommandPanel>();
+            panel.client = client;
+            panel.font = font;
 
             Directory.CreateDirectory(SceneDir);
             EditorSceneManager.SaveScene(scene, ScenePath);
