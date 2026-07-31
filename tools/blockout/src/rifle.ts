@@ -20,7 +20,7 @@ export function buildRifle(detail: number): Mesh {
 
   // 총열 + 소염기
   const barrel = cylinder(0.011, 0.34, sides);
-  mesh.merge(barrel, v(0.34, 0.02, 0), v(1, 1, 1));
+  mesh.merge(barrel, v(0.34, 0.02, 0));
   mesh.merge(cylinder(0.018, 0.06, sides), v(0.5, 0.02, 0));
 
   // 총열덮개

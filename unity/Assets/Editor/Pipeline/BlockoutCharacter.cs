@@ -264,7 +264,11 @@ namespace SoldierADay.EditorTools
             renderer.sharedMesh = mesh;
             renderer.bones = OrderedBones(bones);
             renderer.rootBone = bones["Hips"];
-            renderer.localBounds = mesh.bounds;
+            // localBounds는 **루트본 기준**이다. mesh.bounds를 그대로 넣으면 Hips가
+            // 서 있는 높이(0.95)만큼 위로 밀린 바운드가 되어, 캐릭터가 화면
+            // 가장자리로 갈 때 실제 위치와 다른 자리에서 컬링 판정이 난다.
+            renderer.localBounds = new Bounds(
+                bones["Hips"].InverseTransformPoint(mesh.bounds.center), mesh.bounds.size);
 
             AssetDatabase.CreateAsset(mesh, meshPath);
             PrefabUtility.SaveAsPrefabAsset(root, prefabPath);

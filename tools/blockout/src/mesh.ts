@@ -39,12 +39,22 @@ export class Mesh {
     this.triangle(a, c, d);
   }
 
-  /** 다른 메시를 옮겨 붙인다. 인덱스는 자동으로 다시 매긴다 */
-  merge(other: Mesh, offset: Vec3 = v(0, 0, 0), scale: Vec3 = v(1, 1, 1)): void {
+  /**
+   * 다른 메시를 옮겨 붙인다. 인덱스는 자동으로 다시 매긴다.
+   *
+   * Y축 회전을 받는 이유는 담장·연석처럼 **둘레를 두르는 모듈** 때문이다.
+   * 위치만 주면 좌우 변의 패널이 앞뒤 변과 같은 방향으로 서서, 벽이 아니라
+   * 갈빗대처럼 바깥으로 튀어나온다. 벽은 면이 안쪽을 향해야 벽이다.
+   */
+  merge(other: Mesh, offset: Vec3 = v(0, 0, 0), yawDegrees = 0): void {
     const base = this.positions.length;
+    const yaw = (yawDegrees * Math.PI) / 180;
+    const cos = Math.cos(yaw);
+    const sin = Math.sin(yaw);
+
     for (const p of other.positions) {
       this.positions.push(
-        v(p.x * scale.x + offset.x, p.y * scale.y + offset.y, p.z * scale.z + offset.z),
+        v(p.x * cos + p.z * sin + offset.x, p.y + offset.y, -p.x * sin + p.z * cos + offset.z),
       );
     }
     for (const i of other.indices) this.indices.push(base + i);
