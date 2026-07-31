@@ -50,8 +50,20 @@ export interface Budget {
   readonly note?: string;
 }
 
+/** 예산 이름은 고정이다. Record로 두면 조회마다 undefined 검사가 붙는다 */
+export interface Budgets {
+  readonly screenTris: Budget;
+  readonly drawCalls: Budget;
+  readonly textureMemoryMb: Budget;
+  readonly initialDownloadMb: Budget;
+  readonly mapBundleMb: Budget;
+  readonly heapMb: Budget;
+  readonly targetFps: Budget;
+  readonly minFps: Budget;
+}
+
 export const manifest = manifestJson as unknown as {
-  readonly budgets: Readonly<Record<string, Budget>>;
+  readonly budgets: Budgets;
   readonly importRules: {
     readonly textureCompression: string;
     readonly maxTextureSize: number;

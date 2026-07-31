@@ -114,18 +114,32 @@ export function box(size: Vec3, segments = 1): Mesh {
   return mesh;
 }
 
-/** Y축 원기둥. 뚜껑 포함 시 sides × 4, 미포함 시 sides × 2 삼각형 */
-export function cylinder(radius: number, height: number, sides: number, caps = true): Mesh {
+/**
+ * 원기둥. 뚜껑 포함 시 sides × 4, 미포함 시 sides × 2 삼각형.
+ *
+ * 축을 고를 수 있어야 한다. 처음에는 Y축 고정으로 두고 회전으로 눕히려 했는데
+ * **회전이 Y축이라 Y축 원기둥은 아무리 돌려도 눕지 않는다** — 트럭 바퀴가
+ * 바닥에 꽂힌 원판이 됐다. 그림을 찍고 나서야 보였다.
+ */
+export type Axis = "x" | "y" | "z";
+
+export function cylinder(
+  radius: number, height: number, sides: number, caps = true, axis: Axis = "y",
+): Mesh {
   const mesh = new Mesh();
   const n = Math.max(3, Math.floor(sides));
   const hy = height / 2;
+
+  // 축 방향으로 늘어나는 좌표계를 만든다
+  const along = (t: number, a: number, b: number): Vec3 =>
+    axis === "y" ? v(a, t, b) : axis === "x" ? v(t, a, b) : v(a, b, t);
 
   for (let i = 0; i < n; i += 1) {
     const angle = (i / n) * Math.PI * 2;
     const x = Math.cos(angle) * radius;
     const z = Math.sin(angle) * radius;
-    mesh.vertex(v(x, -hy, z));
-    mesh.vertex(v(x, hy, z));
+    mesh.vertex(along(-hy, x, z));
+    mesh.vertex(along(hy, x, z));
   }
 
   for (let i = 0; i < n; i += 1) {
@@ -135,8 +149,8 @@ export function cylinder(radius: number, height: number, sides: number, caps = t
   }
 
   if (caps) {
-    const top = mesh.vertex(v(0, hy, 0));
-    const bottom = mesh.vertex(v(0, -hy, 0));
+    const top = mesh.vertex(along(hy, 0, 0));
+    const bottom = mesh.vertex(along(-hy, 0, 0));
     for (let i = 0; i < n; i += 1) {
       const a = i * 2;
       const b = ((i + 1) % n) * 2;
@@ -221,7 +235,7 @@ export function toObj(parts: readonly { name: string; mesh: Mesh }[], header: st
     }
     const idx = part.mesh.indices;
     for (let i = 0; i < idx.length; i += 3) {
-      lines.push(`f ${idx[i] + base} ${idx[i + 1] + base} ${idx[i + 2] + base}`);
+      lines.push(`f ${idx[i]! + base} ${idx[i + 1]! + base} ${idx[i + 2]! + base}`);
     }
     base += part.mesh.positions.length;
   }

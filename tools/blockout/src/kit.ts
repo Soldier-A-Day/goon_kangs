@@ -25,6 +25,17 @@ export interface Placement {
 
 const place = (at: Vec3, yaw = 0): Placement => ({ at, yaw });
 
+/**
+ * 회전이 필요 없는 자리는 좌표만 적을 수 있게 한다.
+ *
+ * 맵 정의는 대부분 "여기에 하나" 뿐이라, 전부 `{ at, yaw: 0 }`으로 쓰면
+ * 정작 중요한 좌표가 껍데기에 묻힌다.
+ */
+export type Spot = Placement | Vec3;
+
+const normalize = (spots: readonly Spot[]): Placement[] =>
+  spots.map((spot) => ("at" in spot ? spot : place(spot)));
+
 export interface Module {
   readonly name: string;
   /** 이 모듈 하나의 형상 */
@@ -118,16 +129,30 @@ export function line(count: number, step: number, y = 0, z = 0, originX = 0): Pl
   return out;
 }
 
+/**
+ * Z축으로 늘어놓는다.
+ *
+ * `line()`이 X축인 것을 잊고 도로·행군 코스에 썼더니 **길이 끊겼다.**
+ * 타일은 Z로 20m 길고 X로 8m 넓은데 X 방향으로 20m 간격을 뒀으니
+ * 12m씩 벌어진 것이다. 폴리 수는 맞고 예산 검사도 통과했다 —
+ * 그림을 찍기 전까지 아무도 몰랐다.
+ */
+export function lineZ(count: number, step: number, y = 0, x = 0, originZ = 0): Placement[] {
+  const out: Placement[] = [];
+  for (let i = 0; i < count; i += 1) out.push(place(v(x, y, originZ + i * step)));
+  return out;
+}
+
 /** 상자 하나짜리 모듈. 블록아웃 대부분이 이 형태다 */
 export function boxModule(
   name: string,
   size: Vec3,
-  placements: readonly Placement[],
+  placements: readonly Spot[],
   detailScale = 1,
 ): Module {
   return {
     name,
-    placements,
+    placements: normalize(placements),
     build: (detail) => box(size, Math.max(1, Math.round(detail * detailScale))),
   };
 }
@@ -136,12 +161,12 @@ export function cylinderModule(
   name: string,
   radius: number,
   height: number,
-  placements: readonly Placement[],
+  placements: readonly Spot[],
   detailScale = 1,
 ): Module {
   return {
     name,
-    placements,
+    placements: normalize(placements),
     build: (detail) => cylinder(radius, height, Math.max(3, Math.round(detail * detailScale * 2))),
   };
 }
