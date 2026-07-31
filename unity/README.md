@@ -17,7 +17,8 @@ npm run codegen:csharp
 
 ## 처음 열 때
 
-1. Unity Hub에서 **6000.0.32f1** (Unity 6) 설치 — 모듈에 **WebGL Build Support** 포함
+1. Unity Hub에서 **6000.0.80f1** (Unity 6 LTS) 설치 — 모듈에 **Web Build Support** 포함
+   (헤드리스로도 된다: `"/Applications/Unity Hub.app/Contents/MacOS/Unity Hub" -- --headless install --version 6000.0.80f1 --module webgl --childModules`)
 2. 이 `unity/` 폴더를 프로젝트로 연다
 3. 에디터가 `.meta` 파일과 `ProjectSettings` 나머지를 생성한다 (첫 실행에서 시간이 걸린다)
 4. Edit → Project Settings → Player → WebGL
@@ -40,6 +41,21 @@ npm run dev
 
 WebGL 빌드에서는 브라우저 WebSocket을 `Assets/Plugins/WebGL/GameSocket.jslib` 브릿지로 쓴다.
 에디터에서는 `ClientWebSocket`으로 붙는다 — 에디터에서 서버에 못 붙으면 개발이 불가능하다.
+
+## M0 측정 씬
+
+구성 근거는 `docs/M0_SCENE.md`에 있다. 요지는 **M0 에셋 범위만 배치하면 측정이 무의미하다**는 것 —
+실제 최대 부하의 1/4밖에 안 되기 때문이다. 그래서 프록시로 목표 부하를 합성해서 잰다.
+
+빈 씬에 GameObject 하나를 만들고 붙인다.
+
+| 컴포넌트 | 역할 |
+|---|---|
+| `M0/LoadBuilder` | 목표 436K tris를 프록시로 합성. 인스펙터에서 스윕한다 |
+| `M0/HeapProbe` | 100분 힙 저점 + 최악 프레임 기록 |
+
+`LoadBuilder`의 값을 바꿔가며 **어디서부터 무너지는가**를 찾는 것이 M0의 산출물이다.
+잘 나온 숫자 하나가 아니다.
 
 ## M0에서 재야 하는 것
 
