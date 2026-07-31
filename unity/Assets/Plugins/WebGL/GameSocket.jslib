@@ -6,7 +6,11 @@
 //
 // 여기에는 규칙이 없다. 문자열을 나르는 것이 전부다 — 판정은 서버가 한다(ARCH-02).
 
-mergeInto(LibraryManager.library, {
+// **autoAddDeps가 없으면 $SadSocketState가 빌드에서 빠진다.**
+// Emscripten은 함수가 실제로 참조하는 심볼을 문자열로 추적하지 못하므로,
+// 상태 객체를 쓰는 함수마다 의존을 걸어줘야 한다. 없으면 컴파일도 빌드도
+// 통과하고 **실행할 때 ReferenceError로만 드러난다** — 소켓을 열려는 순간에.
+var SadSocketLibrary = {
   $SadSocketState: {
     socket: null,
     // C#이 붙어 있는 GameObject 이름. SendMessage 대상이다.
@@ -58,4 +62,7 @@ mergeInto(LibraryManager.library, {
   SadSocketReadyState: function () {
     return SadSocketState.socket ? SadSocketState.socket.readyState : 3;
   },
-});
+};
+
+autoAddDeps(SadSocketLibrary, "$SadSocketState");
+mergeInto(LibraryManager.library, SadSocketLibrary);

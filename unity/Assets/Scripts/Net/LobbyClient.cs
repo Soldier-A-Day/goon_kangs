@@ -84,8 +84,14 @@ namespace SoldierADay.Net
             }, onError);
         }
 
-        /// <summary>런 시작. 방장만 통과하며, 그 판정도 서버가 한다</summary>
-        public IEnumerator Start(string code, string token, Action onDone, Action<string> onError)
+        /// <summary>
+        /// 런 시작. 방장만 통과하며, 그 판정도 서버가 한다.
+        ///
+        /// 이름이 `Start`가 아닌 이유: MonoBehaviour의 생명주기 메시지와 겹치면
+        /// Unity가 이걸 콜백으로 부르려다 **"Start() can not take parameters"**로
+        /// 죽는다. 컴파일은 통과하고 실행할 때만 터진다.
+        /// </summary>
+        public IEnumerator StartRun(string code, string token, Action onDone, Action<string> onError)
         {
             var url = $"{baseUrl}/rooms/{code}/start?token={UnityWebRequest.EscapeURL(token)}";
             yield return Post(url, "{}", _ => onDone(), onError);

@@ -102,7 +102,7 @@ namespace SoldierADay.Net
             _detail = $"방 {ticket.code} · 나 {ticket.memberId}";
             _status = "런 시작 중";
             var started = false;
-            yield return _lobby.Start(ticket.code, ticket.token, () => started = true, Fail);
+            yield return _lobby.StartRun(ticket.code, ticket.token, () => started = true, Fail);
             if (!started) yield break;
 
             _status = "소켓 연결 중";
