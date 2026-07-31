@@ -157,7 +157,11 @@ namespace SoldierADay.EditorTools
                 var source = AssetDatabase.LoadAssetAtPath<GameObject>(riflePath);
                 var rifle = (GameObject)PrefabUtility.InstantiatePrefab(source, hand);
                 rifle.name = "equip.rifle";
-                rifle.transform.localPosition = Vector3.zero;
+                // 손 본은 손목 위치이고 총은 그보다 앞·아래로 나가야 한다. 0으로 두면
+                // 몸에 파묻혀 **화면에 없는데 계측기는 세는** 상태가 된다 — 그러면
+                // 프레임 값이 실제 게임과 어긋난다. 파지 자세에 맞춰 옮긴다.
+                rifle.transform.localPosition = new Vector3(0.06f, -0.02f, 0.14f);
+                rifle.transform.localRotation = Quaternion.Euler(0f, 90f, -8f);
                 foreach (var renderer in rifle.GetComponentsInChildren<MeshRenderer>(true))
                 {
                     renderer.sharedMaterial = material;

@@ -134,10 +134,10 @@ namespace SoldierADay.EditorTools
             yield return new Limb("Neck", new Vector3(0f, 1.42f, 0f), new Vector3(0f, 1.52f, 0f), 0.06f, 2);
             yield return new Limb("Head", new Vector3(0f, 1.52f, 0f), new Vector3(0f, 1.72f, 0f), 0.11f, 4);
 
-            yield return new Limb("LeftUpperArm", new Vector3(-0.18f, 1.38f, 0f), new Vector3(-0.44f, 1.38f, 0f), 0.055f, 3);
+            yield return new Limb("LeftUpperArm", new Vector3(-0.20f, 1.36f, 0f), new Vector3(-0.44f, 1.38f, 0f), 0.055f, 3);
             yield return new Limb("LeftLowerArm", new Vector3(-0.44f, 1.38f, 0f), new Vector3(-0.68f, 1.38f, 0f), 0.045f, 3);
             yield return new Limb("LeftHand", new Vector3(-0.68f, 1.38f, 0f), new Vector3(-0.78f, 1.38f, 0f), 0.04f, 2);
-            yield return new Limb("RightUpperArm", new Vector3(0.18f, 1.38f, 0f), new Vector3(0.44f, 1.38f, 0f), 0.055f, 3);
+            yield return new Limb("RightUpperArm", new Vector3(0.20f, 1.36f, 0f), new Vector3(0.44f, 1.38f, 0f), 0.055f, 3);
             yield return new Limb("RightLowerArm", new Vector3(0.44f, 1.38f, 0f), new Vector3(0.68f, 1.38f, 0f), 0.045f, 3);
             yield return new Limb("RightHand", new Vector3(0.68f, 1.38f, 0f), new Vector3(0.78f, 1.38f, 0f), 0.04f, 2);
 
