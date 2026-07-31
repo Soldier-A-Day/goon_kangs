@@ -132,12 +132,13 @@ namespace SoldierADay.M0
         private void OnGUI()
         {
             var text = new StringBuilder();
+            text.AppendLine(M0Mode.Banner);
             text.AppendLine(_status);
             foreach (var row in _rows) text.AppendLine(row);
 
             GUI.color = Color.white;
-            GUI.Box(new Rect(10, 10, 460, 30 + _rows.Count * 20), "");
-            GUI.Label(new Rect(20, 16, 440, 24 + _rows.Count * 20), text.ToString());
+            GUI.Box(new Rect(10, 10, 560, 50 + _rows.Count * 20), "");
+            GUI.Label(new Rect(20, 16, 540, 44 + _rows.Count * 20), text.ToString());
         }
     }
 }

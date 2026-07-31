@@ -164,6 +164,9 @@ namespace SoldierADay.EditorTools
             // 측정 중 프레임 제한이 걸리면 상한을 못 본다
             PlayerSettings.runInBackground = true;
 
+            var stamp = System.DateTime.Now.ToString("MMdd-HHmm");
+            StampBuild(stamp);
+
             var options = new BuildPlayerOptions
             {
                 scenes = new[] { ScenePath },
@@ -189,7 +192,54 @@ namespace SoldierADay.EditorTools
                     .Take(10);
                 foreach (var error in errors) Debug.LogError($"[M0] {error}");
                 EditorApplication.Exit(1);
+                return;
             }
+
+            BustLoaderCache(outputDir, stamp);
+        }
+
+        /// <summary>
+        /// 빌드 시각을 런타임이 읽을 수 있는 곳에 박는다.
+        ///
+        /// 화면에 뜨는 값이 방금 빌드한 시각과 다르면 **옛 빌드가 돌고 있는 것**이다.
+        /// 이걸 눈으로 확인할 방법이 없어서, 코드를 고치고 빌드했는데도 바뀌지 않는
+        /// 상황을 두 번 겪었다. 측정 결과보다 먼저 확인해야 하는 값이다.
+        /// </summary>
+        private static void StampBuild(string stamp)
+        {
+            const string dir = "Assets/Resources";
+            Directory.CreateDirectory(dir);
+            File.WriteAllText(Path.Combine(dir, "m0_build.txt"), stamp);
+            AssetDatabase.ImportAsset($"{dir}/m0_build.txt");
+        }
+
+        /// <summary>
+        /// 로더가 받아오는 URL에 빌드 도장을 붙인다.
+        ///
+        /// Unity WebGL 로더는 받은 파일을 **IndexedDB에 캐시**하는데, 키가 URL이라
+        /// 파일 내용이 바뀌어도 경로가 같으면 옛것을 그대로 쓴다. 서버가 보내는
+        /// `no-store`로는 막을 수 없다 — 브라우저 캐시가 아니라 Unity의 캐시다.
+        /// 페이지 주소에 `?v=` 를 붙여도 소용없다. 바뀌어야 하는 건 **데이터 URL**이다.
+        /// </summary>
+        private static void BustLoaderCache(string outputDir, string stamp)
+        {
+            var indexPath = Path.Combine(outputDir, "index.html");
+            if (!File.Exists(indexPath))
+            {
+                Debug.LogWarning($"[M0] index.html 없음 — 캐시 도장 생략: {indexPath}");
+                return;
+            }
+
+            var html = File.ReadAllText(indexPath);
+            // index.html은 `buildUrl + "/M0.data.br"` 꼴로 이어 붙이므로
+            // 파일명이 아니라 그 조각을 그대로 갈아끼운다
+            foreach (var name in new[] { "M0.data.br", "M0.framework.js.br", "M0.wasm.br" })
+            {
+                html = html.Replace($"\"/{name}\"", $"\"/{name}?b={stamp}\"");
+            }
+
+            File.WriteAllText(indexPath, html);
+            Debug.Log($"[M0] 빌드 도장 {stamp} — 로더 URL에 부착 완료");
         }
     }
 }

@@ -233,6 +233,7 @@ namespace SoldierADay.M0
             _overlayNextAt = Time.unscaledTime + 0.5f;
 
             var text = new StringBuilder();
+            text.AppendLine(M0Mode.Banner);
             text.AppendLine(
                 $"{Time.unscaledTime / 60f:F1}분 / 100분 · {_recentFps:F0} fps · " +
                 $"힙 {_lastSampledHeap / (1024f * 1024f):F1}MB");
@@ -258,8 +259,8 @@ namespace SoldierADay.M0
 
             // 30fps 미달은 완화 불가 항목이라 눈에 띄어야 한다
             GUI.color = _recentFps < 30f ? Color.red : _recentFps < 60f ? Color.yellow : Color.green;
-            GUI.Box(new Rect(10, 10, 440, 120 + _buckets.Count * 18), "");
-            GUI.Label(new Rect(20, 16, 420, 110 + _buckets.Count * 18), _overlayText);
+            GUI.Box(new Rect(10, 10, 560, 140 + _buckets.Count * 18), "");
+            GUI.Label(new Rect(20, 16, 540, 130 + _buckets.Count * 18), _overlayText);
             GUI.color = Color.white;
         }
     }

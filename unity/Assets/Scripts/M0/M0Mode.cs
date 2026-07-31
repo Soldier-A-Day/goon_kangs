@@ -38,14 +38,25 @@ namespace SoldierADay.M0
 #endif
         }
 
+        /// <summary>
+        /// 빌드 시각과 읽어낸 쿼리. **모든 오버레이의 첫 줄에 뜬다.**
+        ///
+        /// 고치고 빌드했는데 화면이 그대로인 상황을 겪었다. 그때 필요한 건 측정값이
+        /// 아니라 "지금 도는 게 방금 빌드한 것인가"라는 답이다. 콘솔을 뒤져서 알아야
+        /// 하면 늦는다 — 표 옆에 항상 떠 있어야 한다.
+        /// </summary>
+        public static string Banner { get; private set; } = "";
+
         private void Awake()
         {
             var url = ReadQuery();
             var heapMode = url.Contains("mode=heap");
 
-            // 모드가 왜 그렇게 정해졌는지 로그에 남긴다. 쿼리를 못 읽는 상황을
-            // 한 번 겪었으므로, 다음에 어긋나면 바로 보여야 한다.
-            Debug.Log($"[M0] 쿼리 \"{url}\" → {(heapMode ? "힙" : "스윕")} 모드");
+            var stampAsset = Resources.Load<TextAsset>("m0_build");
+            var stamp = stampAsset != null ? stampAsset.text.Trim() : "미상";
+            Banner = $"빌드 {stamp} · {(heapMode ? "힙" : "스윕")} 모드 · 쿼리 \"{url}\"";
+
+            Debug.Log($"[M0] {Banner}");
 
             var sweep = GetComponent<AutoSweep>();
             var heap = GetComponent<HeapProbe>();
