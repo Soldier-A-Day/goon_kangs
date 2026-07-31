@@ -145,7 +145,15 @@ namespace SoldierADay.EditorTools
         [MenuItem("SOLDIER/M0 WebGL 빌드")]
         public static void BuildWebGL()
         {
-            if (!File.Exists(ScenePath)) CreateScene();
+            // 씬은 전부 코드로 만들어지므로 **매번 다시 만든다.**
+            //
+            // 예전에는 파일이 없을 때만 만들었는데, 그 사이 CreateScene에 컴포넌트를
+            // 추가해도 씬에는 영영 들어가지 않았다. 코드는 빌드에 포함되니 컴파일도
+            // 통하고 로그도 안 뜬다 — 붙일 오브젝트가 없을 뿐이다. 이걸 모드 전환이
+            // 안 먹는 증상으로 만나 세 번을 헤맸다.
+            //
+            // 손으로 고친 씬을 지키려는 조건이었지만, 이 씬에는 손으로 고칠 것이 없다.
+            CreateScene();
 
             var outputDir = Path.GetFullPath(
                 Path.Combine(Application.dataPath, "..", "Build", "M0"));
