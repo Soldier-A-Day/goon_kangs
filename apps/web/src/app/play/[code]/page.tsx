@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { HTTP_BASE, WS_BASE } from "@/lib/api";
 import { loadSession } from "@/lib/session";
+import { ScreenshotButton } from "@/components/hud/ScreenshotButton";
 
 /**
  * 게임 화면 — Unity WebGL.
@@ -94,6 +95,13 @@ export default function PlayPage() {
             // 픽셀 퍼펙트를 위해 정수 배율을 요구한 것은 **월드 타일** 이야기이고,
             // UI는 네이티브 해상도로 그리는 것이 같은 §2.1의 결정이다.
             devicePixelRatio: typeof window === "undefined" ? 1 : window.devicePixelRatio,
+            // **스크린샷 버튼이 검은 PNG를 뽑지 않으려면 버퍼를 유지해야 한다.**
+            //
+            // WebGL은 화면에 합성한 뒤 기본적으로 드로잉 버퍼를 비운다
+            // (`preserveDrawingBuffer: false`). Unity 로더는 이 값을 통째로
+            // 덮어쓰므로(병합이 아니라 대입) `powerPreference`도 로더 기본값(2 ·
+            // high-performance)을 그대로 같이 넘겨야 GPU 선택 동작이 안 바뀐다
+            webglContextAttributes: { preserveDrawingBuffer: true, powerPreference: 2 },
           },
           (value) => setProgress(value),
         )
@@ -127,6 +135,8 @@ export default function PlayPage() {
         className="h-screen w-screen outline-none"
         onMouseDown={() => canvasRef.current?.focus()}
       />
+
+      {!loading && !failed && <ScreenshotButton canvasRef={canvasRef} />}
 
       {loading && (
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-6 bg-paper">
