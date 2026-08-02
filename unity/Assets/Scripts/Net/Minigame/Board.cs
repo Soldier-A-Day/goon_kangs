@@ -34,6 +34,27 @@ namespace SoldierADay.Net
         /// <summary>A · D 또는 ←→</summary>
         public float Horizontal;
 
+        /// <summary>
+        /// W · S 또는 ↑↓ (H-4 — 마우스 전용 판 키보드 대체).
+        ///
+        /// `Horizontal`과 짝을 이룬다. `SCRUB`·`SEARCH`·`TRACK`처럼 화면 위를
+        /// 자유롭게 훑어야 하는 판이 `VirtualCursor`로 커서를 세로로도 굴리는 데
+        /// 쓴다. 판이 열리면 `LocalPlayer`는 Suspended라 이동 입력과 겹칠 일이
+        /// 없다 — 같은 축을 두 곳이 동시에 쓰는 충돌이 아니다.
+        /// </summary>
+        public float Vertical;
+
+        /// <summary>
+        /// Space 또는 Enter — 클릭 한 번의 대체(H-4).
+        ///
+        /// `Tap`과 굳이 나눈 이유: `Tap`은 이미 MASH·PLACE·SORT 같은 원형이
+        /// "단발·연타" 조작 그 자체로 쓰고 있다(§클래스 요약). 거기에 Enter까지
+        /// 얹으면 그 원형들의 기존 의미가 넓어져 버린다. `Confirm`은 오직
+        /// "커서가 가리키는 자리를 클릭한 것과 같다"는 뜻으로만 쓰이는 새
+        /// 필드라, 마우스 클릭(`Pressed`)과 함께 있어도 뜻이 겹치지 않는다.
+        /// </summary>
+        public bool Confirm;
+
         public static BoardInput Read()
         {
             // HUD가 매 프레임 재는 값을 그대로 쓴다 — 여기서 따로 계산하면
@@ -54,8 +75,77 @@ namespace SoldierADay.Net
                 Tap = pressed || Input.GetKeyDown(KeyCode.Space),
                 Hold = down || Input.GetKey(KeyCode.Space),
                 Horizontal = Input.GetAxisRaw("Horizontal"),
+                Vertical = Input.GetAxisRaw("Vertical"),
+                Confirm = pressed || Input.GetKeyDown(KeyCode.Space) ||
+                          Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter),
             };
         }
+    }
+
+    /// <summary>
+    /// 마우스 좌표에 기대던 판(`SCRUB`·`SEARCH`·`TRACK`)을 위한 가상 커서(H-4).
+    ///
+    /// ── 왜 판마다 따로 만들지 않았나 ─────────────────────────────────────
+    /// 세 판 모두 "화면 위 한 점을 훑다가 클릭한다"는 같은 조작이다. 좌표
+    /// 스냅·클램프 로직을 세 번 베끼면 한 곳만 고쳐도 나머지 둘이 미묘하게
+    /// 어긋난다.
+    ///
+    /// ── 마우스와 키보드가 안 싸우는 이유 ──────────────────────────────────
+    /// 커서 위치는 판 영역 기준 정규화 좌표(0~1)로만 가진다. 마우스가 이번
+    /// 프레임에 **움직였고** 판 안에 있으면 그 자리로 스냅하고, 그 외에는
+    /// 화살표·WASD(`Horizontal`·`Vertical`)로만 움직인다 — "마지막으로 실제
+    /// 입력한 쪽이 이긴다"를 프레임 단위로 구현한 것이다. 마우스를 아예 안
+    /// 쓰는 플레이어는 커서가 화살표에만 반응하고, 마우스만 쓰는 플레이어는
+    /// (좌표 왕복 변환이라 오차가 픽셀 이하다) 예전과 똑같이 느껴진다.
+    /// </summary>
+    public sealed class VirtualCursor
+    {
+        /// <summary>판 영역 기준 정규화 좌표(0~1). 판 크기가 창 크기로 바뀌어도 그대로 유효하다</summary>
+        public Vector2 Norm = new Vector2(0.5f, 0.5f);
+
+        /// <summary>초당 이동량(정규화 비율) — 판 폭을 1로 볼 때 1이면 1초에 판을 가로지른다</summary>
+        private const float Speed = 1.15f;
+
+        /// <summary>직전 프레임의 마우스 좌표 — 음수는 "아직 한 번도 안 쟀다"는 뜻(첫 프레임 오탐 방지)</summary>
+        private Vector2 _lastMouse = new Vector2(-1f, -1f);
+
+        /// <summary>
+        /// 이번 프레임에 마우스가 커서를 옮겼는가 — 옮겼으면 `Draw`가 가상
+        /// 커서 그림(테두리 등)을 감춘다. 진짜 마우스 커서가 이미 그 자리에
+        /// 있는데 가상 커서 표시까지 겹치면 두 개로 보인다.
+        /// </summary>
+        public bool DrivenByMouse { get; private set; }
+
+        public void Tick(float dt, BoardInput input, Rect area)
+        {
+            if (area.width <= 0f || area.height <= 0f) return;
+
+            var moved = _lastMouse.x >= 0f && (input.Mouse - _lastMouse).sqrMagnitude > 0.01f;
+            _lastMouse = input.Mouse;
+
+            if (moved && area.Contains(input.Mouse))
+            {
+                Norm = new Vector2((input.Mouse.x - area.x) / area.width,
+                                   (input.Mouse.y - area.y) / area.height);
+                DrivenByMouse = true;
+                return;
+            }
+
+            // 화면 좌표는 위가 y=0(Board.cs §BoardInput.Read)이라, "위로"(Vertical
+            // 양수)는 y를 줄이는 쪽이다 — 더하면 화살표 위가 커서를 아래로 내린다
+            var kx = input.Horizontal;
+            var ky = -input.Vertical;
+            if (kx != 0f || ky != 0f)
+            {
+                Norm.x = Mathf.Clamp01(Norm.x + kx * Speed * dt);
+                Norm.y = Mathf.Clamp01(Norm.y + ky * Speed * dt);
+                DrivenByMouse = false;
+            }
+        }
+
+        /// <summary>판 영역 기준 화면 좌표 — `input.Mouse`를 쓰던 자리에 그대로 대신 넣는다</summary>
+        public Vector2 Screen(Rect area) =>
+            new Vector2(area.x + Norm.x * area.width, area.y + Norm.y * area.height);
     }
 
     /// <summary>

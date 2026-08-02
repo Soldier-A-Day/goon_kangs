@@ -33,7 +33,18 @@ namespace SoldierADay.Net
         /// <summary>회전 트윈 길이(초). 즉시 스냅되면 손맛이 없다</summary>
         private const float RotateDuration = 0.1f;
 
-        public override string Instruction => "관을 눌러 돌리고 끝까지 이어라";
+        /* ───────────────────────────────────────────── H-4 키보드 포커스 */
+
+        /// <summary>지금 포커스된 칸(0.._pipe.Length-1). 빈 칸이어도 올라갈 수 있다 —
+        /// 회전은 `RotateCellAt`이 알아서 무시한다(클릭이 빈 칸을 짚는 것과 같다)</summary>
+        private int _focus;
+        private float _hNavCooldown;
+        private float _vNavCooldown;
+        private const float NavCooldown = 0.14f;
+        private bool _usingKeyboard = true;
+        private Vector2 _lastMouseForFocus = new Vector2(-1f, -1f);
+
+        public override string Instruction => "관을 눌러 돌리고 끝까지 이어라 — 화살표로 옮기고 Space로 돌린다";
 
         public override string Status
         {
@@ -81,6 +92,14 @@ namespace SoldierADay.Net
             }
 
             Flow();
+
+            // 키보드 포커스는 "시작" 칸에서 출발한다 — 첫 Space가 곧바로
+            // 뜻있는 자리를 돌리게 한다
+            _focus = _start;
+            _hNavCooldown = 0f;
+            _vNavCooldown = 0f;
+            _usingKeyboard = true;
+            _lastMouseForFocus = new Vector2(-1f, -1f);
         }
 
         /// <summary>시작에서 끝까지 한 줄을 판다. 계단 모양이라 굽이가 생긴다</summary>
@@ -180,35 +199,100 @@ namespace SoldierADay.Net
 
         protected override void Advance(float dt, BoardInput input)
         {
-            if (!input.Pressed || _area.width <= 0f) return;
+            if (_area.width <= 0f) return;
 
-            for (var i = 0; i < _pipe.Length; i += 1)
+            UpdateFocusNav(dt, input);
+
+            if (input.Pressed)
             {
-                if (_pipe[i] == 0) continue;
-                if (!CellRect(i).Contains(input.Mouse)) continue;
-
-                _pipe[i] = Rotate(_pipe[i]);
-                _turns += 1;
-                // 논리는 즉시 바뀐다 — 트윈은 `Draw`가 이 시각을 기준으로
-                // 그려 보이는 것일 뿐, 판정은 이번 프레임에 이미 끝나 있다
-                _rotSince[i] = Time.time;
-                Sfx.Play("tap", 0.8f, 1.15f);
-                Flow();
-
-                // 필요 이상으로 돌리면 손이 헤맨 것이다. `rotations`의 두 배까지 봐준다
-                var budget = Mathf.Max(4, ParamInt("rotations", 5) * 2);
-                if (_turns == budget + 1 || _turns == budget * 2 + 1) Miss();
-
-                var lit = 0;
-                foreach (var l in _live) if (l) lit += 1;
-                var total = 0;
-                foreach (var p in _pipe) if (p != 0) total += 1;
-                Fill = total == 0 ? 1f : (float)lit / total;
-
-                // 끝에 닿고 **모든 갈래에 신호가 갔을 때** 통과다
-                if (_live[_end] && lit >= total) Clear();
+                _usingKeyboard = false;
+                for (var i = 0; i < _pipe.Length; i += 1)
+                {
+                    if (_pipe[i] == 0) continue;
+                    if (!CellRect(i).Contains(input.Mouse)) continue;
+                    RotateCellAt(i);
+                    return;
+                }
                 return;
             }
+
+            // H-4 — 클릭 대신 Space·Enter. 포커스가 있는 칸을 돌린다(빈 칸이면
+            // `RotateCellAt`이 아무 일도 하지 않는다 — 클릭으로 빈 칸을 짚는 것과 같다)
+            if (!input.Confirm) return;
+            _usingKeyboard = true;
+            RotateCellAt(_focus);
+        }
+
+        /// <summary>칸 하나를 90도 돌린다. 판정 로직은 여기 하나뿐이라 마우스 클릭과
+        /// 키보드 포커스 확정이 정확히 같은 결과를 낸다</summary>
+        private void RotateCellAt(int i)
+        {
+            if (_pipe[i] == 0) return; // 빈 칸
+
+            _pipe[i] = Rotate(_pipe[i]);
+            _turns += 1;
+            // 논리는 즉시 바뀐다 — 트윈은 `Draw`가 이 시각을 기준으로
+            // 그려 보이는 것일 뿐, 판정은 이번 프레임에 이미 끝나 있다
+            _rotSince[i] = Time.time;
+            Sfx.Play("tap", 0.8f, 1.15f);
+            Flow();
+
+            // 필요 이상으로 돌리면 손이 헤맨 것이다. `rotations`의 두 배까지 봐준다
+            var budget = Mathf.Max(4, ParamInt("rotations", 5) * 2);
+            if (_turns == budget + 1 || _turns == budget * 2 + 1) Miss();
+
+            var lit = 0;
+            foreach (var l in _live) if (l) lit += 1;
+            var total = 0;
+            foreach (var p in _pipe) if (p != 0) total += 1;
+            Fill = total == 0 ? 1f : (float)lit / total;
+
+            // 끝에 닿고 **모든 갈래에 신호가 갔을 때** 통과다
+            if (_live[_end] && lit >= total) Clear();
+        }
+
+        /// <summary>
+        /// 화살표·WASD로 포커스 칸을 옮긴다. 마우스가 이번 프레임에 움직이면
+        /// 포커스 테두리를 감춘다(발주 §공통 패턴 "마우스 사용 중엔 숨김") —
+        /// `AuditBoard`와 같은 방식이다.
+        /// </summary>
+        private void UpdateFocusNav(float dt, BoardInput input)
+        {
+            if (_lastMouseForFocus.x >= 0f && input.Mouse != _lastMouseForFocus) _usingKeyboard = false;
+            _lastMouseForFocus = input.Mouse;
+
+            _vNavCooldown -= dt;
+            if (Mathf.Abs(input.Vertical) > 0.5f)
+            {
+                if (_vNavCooldown <= 0f)
+                {
+                    // 화면 y는 아래로 갈수록 커진다 — 위쪽 화살표(Vertical +1)는
+                    // 행을 하나 줄인다
+                    MoveFocus(0, input.Vertical > 0f ? -1 : 1);
+                    _vNavCooldown = NavCooldown;
+                    _usingKeyboard = true;
+                }
+            }
+            else _vNavCooldown = 0f;
+
+            _hNavCooldown -= dt;
+            if (Mathf.Abs(input.Horizontal) > 0.5f)
+            {
+                if (_hNavCooldown <= 0f)
+                {
+                    MoveFocus(input.Horizontal > 0f ? 1 : -1, 0);
+                    _hNavCooldown = NavCooldown;
+                    _usingKeyboard = true;
+                }
+            }
+            else _hNavCooldown = 0f;
+        }
+
+        private void MoveFocus(int dx, int dy)
+        {
+            var x = Mathf.Clamp(_focus % _cols + dx, 0, _cols - 1);
+            var y = Mathf.Clamp(_focus / _cols + dy, 0, _rows - 1);
+            _focus = y * _cols + x;
         }
 
         private Rect CellRect(int index)
@@ -280,6 +364,9 @@ namespace SoldierADay.Net
                 theme.At(theme.Label, 12, HudTheme.Heat));
             GUI.Label(new Rect(CellRect(_end).x, CellRect(_end).y - 24f, 80f, 20f), "끝",
                 theme.At(theme.Label, 12, _live[_end] ? HudTheme.Accent : HudTheme.Alert));
+
+            // H-4 — 키보드 포커스 테두리. 마우스를 쓰는 동안은 감춘다
+            if (_usingKeyboard) theme.Border(CellRect(_focus), HudTheme.Cold, 3f);
 
             theme.Border(body, HudTheme.Rule);
         }

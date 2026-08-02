@@ -87,6 +87,17 @@ namespace SoldierADay.Net
         private bool _dragging;
         private Rect _area;
 
+        /// <summary>
+        /// H-4 — 브러시 자리를 마우스가 아니라 가상 커서에서 읽는다.
+        ///
+        /// 마우스로 문지를 때는 `Norm`이 매 프레임 마우스 좌표로 스냅되니
+        /// 동작이 예전과 같다. `Space`로 누른 채(`input.Hold`) 화살표·WASD로
+        /// 커서를 움직이면 그게 곧 문지르는 손이 된다 — 드래그 하나뿐인
+        /// 조작에 손을 하나 더 얹은 것이 아니라, 같은 손을 다른 방법으로
+        /// 쥔 것이다.
+        /// </summary>
+        private readonly VirtualCursor _cursor = new VirtualCursor();
+
         /* ───────────────────────────────────────────── 세면장(mirror) 김 서림 */
 
         /// <summary>재오염을 이미 시도했는가 — 성공 여부와 무관하게 판당 한 번뿐이다</summary>
@@ -96,7 +107,9 @@ namespace SoldierADay.Net
         private float _fogWarnT;
 
         public override string Instruction =>
-            _supplyMax > 0f ? "끌어서 문질러라 — 약제가 모자란다" : "끌어서 문질러라";
+            _supplyMax > 0f
+                ? "끌어서 문질러라(WASD+Space) — 약제가 모자란다"
+                : "끌어서 문질러라 — 화살표+Space도 된다";
 
         public override string Status
         {
@@ -238,7 +251,11 @@ namespace SoldierADay.Net
 
             if (_area.width <= 0f) return;
 
-            if (!input.Down || !_area.Contains(input.Mouse))
+            _cursor.Tick(dt, input, _area);
+
+            // `input.Hold` = 마우스 down 또는 Space held(Board.cs §BoardInput) —
+            // 어느 쪽으로 쥐었든 "지금 문지르고 있다"는 같은 뜻이다
+            if (!input.Hold)
             {
                 _dragging = false;
                 // 스트로크가 끊겼다 — 다음에 브러시가 어느 칸에 들어오든
@@ -247,8 +264,9 @@ namespace SoldierADay.Net
                 return;
             }
 
-            var moved = _dragging ? Vector2.Distance(input.Mouse, _last) : 0f;
-            _last = input.Mouse;
+            var brushPos = _cursor.Screen(_area);
+            var moved = _dragging ? Vector2.Distance(brushPos, _last) : 0f;
+            _last = brushPos;
             _dragging = true;
 
             if (_dry) return;
@@ -270,10 +288,10 @@ namespace SoldierADay.Net
             var scaleX = _area.width / _cols;
             var scaleY = _area.height / _rows;
 
-            var minX = Mathf.Max(0, Mathf.FloorToInt((input.Mouse.x - brush - _area.x) / scaleX));
-            var maxX = Mathf.Min(_cols - 1, Mathf.CeilToInt((input.Mouse.x + brush - _area.x) / scaleX));
-            var minY = Mathf.Max(0, Mathf.FloorToInt((input.Mouse.y - brush - _area.y) / scaleY));
-            var maxY = Mathf.Min(_rows - 1, Mathf.CeilToInt((input.Mouse.y + brush - _area.y) / scaleY));
+            var minX = Mathf.Max(0, Mathf.FloorToInt((brushPos.x - brush - _area.x) / scaleX));
+            var maxX = Mathf.Min(_cols - 1, Mathf.CeilToInt((brushPos.x + brush - _area.x) / scaleX));
+            var minY = Mathf.Max(0, Mathf.FloorToInt((brushPos.y - brush - _area.y) / scaleY));
+            var maxY = Mathf.Min(_rows - 1, Mathf.CeilToInt((brushPos.y + brush - _area.y) / scaleY));
 
             System.Array.Clear(_touching, 0, _touching.Length);
 
@@ -285,8 +303,8 @@ namespace SoldierADay.Net
             {
                 var cx = _area.x + (x + 0.5f) * scaleX;
                 var cy = _area.y + (y + 0.5f) * scaleY;
-                var dx = cx - input.Mouse.x;
-                var dy = cy - input.Mouse.y;
+                var dx = cx - brushPos.x;
+                var dy = cy - brushPos.y;
                 if (dx * dx + dy * dy > brush * brush) continue;
 
                 touched += 1;
@@ -478,12 +496,13 @@ namespace SoldierADay.Net
 
             theme.Border(body, HudTheme.Rule);
 
-            // 브러시 — 어디를 닦고 있는지 손이 보여야 한다
-            var mouse = BoardInput.Read().Mouse;
-            if (body.Contains(mouse))
+            // 브러시 — 어디를 닦고 있는지 손이 보여야 한다. 가상 커서 자리를
+            // 그대로 쓰므로 마우스로 몰든 화살표+Space로 몰든 같은 원이 따라온다
+            var cursorPos = _cursor.Screen(body);
+            if (body.Contains(cursorPos))
             {
                 var r = Param("brush", 28f) * 0.5f;
-                var ring = new Rect(mouse.x - r, mouse.y - r, r * 2f, r * 2f);
+                var ring = new Rect(cursorPos.x - r, cursorPos.y - r, r * 2f, r * 2f);
                 theme.Border(ring, _dry ? HudTheme.Alert : HudTheme.Accent, 2f);
             }
 

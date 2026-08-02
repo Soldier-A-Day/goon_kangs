@@ -46,8 +46,22 @@ namespace SoldierADay.Net
         private int _columns = 1;
         private Rect _area;
 
+        /* ───────────────────────────────────────────── H-4 키보드 포커스 */
+
+        /// <summary>지금 포커스된 줄. `_rows.Length`면 "이상 없음 보고" 버튼이다</summary>
+        private int _focus;
+        /// <summary>버튼에서 위로 나갈 때 돌아갈 칸 — 줄 포커스가 바뀔 때마다 갱신한다</summary>
+        private int _focusColumn;
+        private float _hNavCooldown;
+        private float _vNavCooldown;
+        private const float NavCooldown = 0.16f;
+
+        /// <summary>포커스 테두리를 보여줄지 — 마우스를 쓰는 동안은 감춘다(발주 §공통 패턴)</summary>
+        private bool _usingKeyboard = true;
+        private Vector2 _lastMouseForFocus = new Vector2(-1f, -1f);
+
         public override string Instruction =>
-            "대장과 다른 줄을 찍어라 — 정말 없으면 '이상 없음'";
+            "대장과 다른 줄을 찍어라 — 정말 없으면 '이상 없음'(↑↓←→ · Space)";
 
         // **총수는 어디에도 새지 않는다.** 예전 `적발 {_found}/{_need}`는 어긋난
         // 판에서도 목표 총수를 미리 알려줬다 — 그러면 다 찾기 전에도 "몇 개
@@ -63,6 +77,12 @@ namespace SoldierADay.Net
             _found = 0;
             _strikes = 0;
             _columns = count > 10 ? 2 : 1;
+            _focus = 0;
+            _focusColumn = 0;
+            _hNavCooldown = 0f;
+            _vNavCooldown = 0f;
+            _usingKeyboard = true;
+            _lastMouseForFocus = new Vector2(-1f, -1f);
 
             // 깨끗한 판인지 먼저 굴린다 — 같은 questId는 재시도에도 같은 값이
             // 나온다(`Rng`가 questId로 시드 고정된 것을 `Board.Begin`이 보장한다).
@@ -111,36 +131,60 @@ namespace SoldierADay.Net
 
         protected override void Advance(float dt, BoardInput input)
         {
-            if (!input.Pressed || _rows == null || _area.width <= 0f) return;
+            if (_rows == null || _area.width <= 0f) return;
 
-            for (var i = 0; i < _rows.Length; i += 1)
+            UpdateFocusNav(dt, input);
+
+            if (input.Pressed)
             {
-                if (!RowRect(i).Contains(input.Mouse)) continue;
-                var row = _rows[i];
-                if (row.Flagged) return;
-
-                row.Flagged = true;
-                if (row.Mismatch)
+                _usingKeyboard = false;
+                for (var i = 0; i < _rows.Length; i += 1)
                 {
-                    _found += 1;
-                    Fill = (float)_found / _need;
-                    if (_found >= _need) Clear();
+                    if (!RowRect(i).Contains(input.Mouse)) continue;
+                    PickRow(i);
                     return;
                 }
 
-                // 헛짚었다. 표시는 남는다 — 무엇을 잘못 봤는지 보여야 배운다
-                row.Wrong = true;
-                _strikes += 1;
-                Miss();
-                if (_strikes >= _limit) Fail();
+                // 버튼과 줄은 영역이 겹치지 않으니 순서는 상관없다(§과업 5) —
+                // 위 줄 순회에서 못 맞았을 때만 온다
+                if (ReportRect().Contains(input.Mouse)) PickReport();
                 return;
             }
 
-            // "이상 없음 보고" — 깨끗한 판이면 정답, 어긋남이 남아 있으면 오답
-            // 1회다(줄을 잘못 짚은 것과 같은 대가). 버튼과 줄은 영역이 겹치지
-            // 않으니 순서는 상관없다(§과업 5) — 위 줄 순회에서 못 맞았을 때만 온다
-            if (!ReportRect().Contains(input.Mouse)) return;
+            // H-4 — 클릭 대신 Space·Enter. 지금 포커스가 가리키는 줄(또는
+            // "이상 없음" 버튼)을 고른다
+            if (!input.Confirm) return;
+            _usingKeyboard = true;
+            if (_focus < _rows.Length) PickRow(_focus);
+            else PickReport();
+        }
 
+        /// <summary>줄 하나를 골랐다 — 마우스로 짚었든 포커스에서 Space를 눌렀든 결과는 같다</summary>
+        private void PickRow(int i)
+        {
+            var row = _rows[i];
+            if (row.Flagged) return;
+
+            row.Flagged = true;
+            if (row.Mismatch)
+            {
+                _found += 1;
+                Fill = (float)_found / _need;
+                if (_found >= _need) Clear();
+                return;
+            }
+
+            // 헛짚었다. 표시는 남는다 — 무엇을 잘못 봤는지 보여야 배운다
+            row.Wrong = true;
+            _strikes += 1;
+            Miss();
+            if (_strikes >= _limit) Fail();
+        }
+
+        /// <summary>"이상 없음 보고" — 깨끗한 판이면 정답, 어긋남이 남아 있으면 오답 1회다
+        /// (줄을 잘못 짚은 것과 같은 대가)</summary>
+        private void PickReport()
+        {
             if (_clean)
             {
                 Fill = 1f;
@@ -153,10 +197,105 @@ namespace SoldierADay.Net
             if (_strikes >= _limit) Fail();
         }
 
+        /// <summary>한 칸에 실제로 들어 있는 줄 수 — 짝이 안 맞으면 마지막 칸이 더 짧을 수 있다</summary>
+        private int PerColumn => Mathf.Max(1, Mathf.CeilToInt((float)_rows.Length / _columns));
+
+        private int ColumnCount(int column)
+        {
+            var start = column * PerColumn;
+            return Mathf.Clamp(_rows.Length - start, 0, PerColumn);
+        }
+
+        /// <summary>
+        /// 화살표·WASD로 포커스를 옮긴다.
+        ///
+        /// 마우스가 이번 프레임에 움직이면 포커스 테두리를 감춘다 — 마우스를
+        /// 쓰는 사람 화면에 낯선 테두리가 남아 있으면 안 된다(발주 §공통
+        /// 패턴 "마우스 사용 중엔 숨김"). `SortBoard`의 좌우 이동 쿨다운과
+        /// 같은 방식으로 축마다 따로 눌림을 뗀다.
+        /// </summary>
+        private void UpdateFocusNav(float dt, BoardInput input)
+        {
+            if (_lastMouseForFocus.x >= 0f && input.Mouse != _lastMouseForFocus) _usingKeyboard = false;
+            _lastMouseForFocus = input.Mouse;
+
+            _vNavCooldown -= dt;
+            if (Mathf.Abs(input.Vertical) > 0.5f)
+            {
+                if (_vNavCooldown <= 0f)
+                {
+                    // 화면 y는 아래로 갈수록 커진다(BoardInput.Mouse) — 위쪽
+                    // 화살표(Vertical +1)는 줄을 하나 앞으로(-1) 옮긴다
+                    MoveFocusVertical(input.Vertical > 0f ? -1 : 1);
+                    _vNavCooldown = NavCooldown;
+                    _usingKeyboard = true;
+                }
+            }
+            else _vNavCooldown = 0f;
+
+            _hNavCooldown -= dt;
+            if (Mathf.Abs(input.Horizontal) > 0.5f)
+            {
+                if (_hNavCooldown <= 0f)
+                {
+                    MoveFocusHorizontal(input.Horizontal > 0f ? 1 : -1);
+                    _hNavCooldown = NavCooldown;
+                    _usingKeyboard = true;
+                }
+            }
+            else _hNavCooldown = 0f;
+        }
+
+        private void MoveFocusVertical(int delta)
+        {
+            if (_rows == null || _rows.Length == 0) return;
+            var perColumn = PerColumn;
+
+            if (_focus >= _rows.Length)
+            {
+                // 버튼에 있다 — 위로만 나갈 수 있고, 마지막으로 있던 칸의
+                // 맨 아래 줄로 돌아간다
+                if (delta < 0)
+                {
+                    var lastLine = Mathf.Max(0, ColumnCount(_focusColumn) - 1);
+                    _focus = _focusColumn * perColumn + lastLine;
+                }
+                return;
+            }
+
+            var column = _focus / perColumn;
+            var line = _focus % perColumn + delta;
+            var count = ColumnCount(column);
+
+            if (line >= count)
+            {
+                // 이 칸의 마지막 줄 아래로 내려갔다 — 보고 버튼으로 넘어간다
+                _focusColumn = column;
+                _focus = _rows.Length;
+                return;
+            }
+
+            if (line < 0) line = 0;
+            _focus = column * perColumn + line;
+        }
+
+        private void MoveFocusHorizontal(int delta)
+        {
+            if (_rows == null || _rows.Length == 0 || _focus >= _rows.Length) return; // 버튼에선 좌우 이동이 없다
+
+            var perColumn = PerColumn;
+            var column = Mathf.Clamp(_focus / perColumn + delta, 0, _columns - 1);
+            var count = ColumnCount(column);
+            if (count <= 0) return; // 짝이 안 맞아 그 칸엔 줄이 아예 없다
+
+            var line = Mathf.Min(_focus % perColumn, count - 1);
+            _focus = column * perColumn + line;
+        }
+
         /// <summary>줄 영역. 하단 `ReportAreaH`만큼은 버튼 몫이라 여기서 뺀다</summary>
         private Rect RowRect(int index)
         {
-            var perColumn = Mathf.CeilToInt((float)_rows.Length / _columns);
+            var perColumn = PerColumn;
             var column = index / perColumn;
             var line = index % perColumn;
             var width = _area.width / _columns;
@@ -215,6 +354,9 @@ namespace SoldierADay.Net
                     GUI.Label(new Rect(rect.xMax - 60f, rect.y, 50f, rect.height), "오답",
                         theme.At(theme.Label, 12, HudTheme.Alert, TextAnchor.MiddleRight));
                 }
+
+                // H-4 — 키보드 포커스 테두리. 마우스를 쓰는 동안은 감춘다
+                if (_usingKeyboard && _focus == i) theme.Border(rect, HudTheme.Heat, 3f);
             }
 
             DrawReportButton(theme);
@@ -226,13 +368,16 @@ namespace SoldierADay.Net
         /// 답을 누설하므로 전 판에 똑같이 그린다. 마우스는 여기서 직접
         /// 읽는다 — `HudMinigame`의 결과창 버튼(`Retry`·`Quit`)과 같은
         /// 방식이다. 실제 클릭 판정은 `Advance`가 `input.Pressed`로 한다.
+        /// 키보드로 포커스가 여기 와 있으면(`_focus >= _rows.Length`) 마우스가
+        /// 안 얹혀 있어도 같은 강조를 켠다.
         /// </summary>
         private void DrawReportButton(HudTheme theme)
         {
             var rect = ReportRect();
-            var hot = rect.Contains(BoardInput.Read().Mouse);
+            var focused = _usingKeyboard && _focus >= _rows.Length;
+            var hot = rect.Contains(BoardInput.Read().Mouse) || focused;
             theme.Fill(rect, hot ? HudTheme.AccentW : HudTheme.Paper3);
-            theme.Border(rect, hot ? HudTheme.Accent : HudTheme.Rule3);
+            theme.Border(rect, hot ? HudTheme.Accent : HudTheme.Rule3, focused ? 3f : 1f);
             GUI.Label(rect, "이상 없음 보고",
                 theme.At(theme.Body, 16, hot ? HudTheme.Accent : HudTheme.Ink2,
                     TextAnchor.MiddleCenter));
