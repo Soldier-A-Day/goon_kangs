@@ -1,0 +1,43 @@
+# 게임 서버 배포 (Render)
+#
+# **상시 프로세스여야 한다.** 이 서버는 20Hz 틱 루프를 계속 돌면서 방 상태를
+# 메모리에 들고 있다(`Room`). 서버리스에 얹으면 요청 사이에 프로세스가 죽어
+# 진행 중인 런이 통째로 사라진다 — 시간을 서버가 주입한다는 전제(ARCH-02)가
+# 깨지는 지점이라 여기만은 컨테이너가 필요하다.
+#
+# 웹 셸(Next.js)은 Vercel에 있고 여기 없다. 오리진이 갈리므로 CORS와
+# `wss://`가 필요한데, Render가 TLS를 붙여주므로 후자는 저절로 풀린다.
+services:
+  - type: web
+    name: sad-gameserver
+    runtime: node
+    plan: free
+    region: singapore
+    branch: main
+
+    # 워크스페이스 저장소라 루트에서 설치해야 `@sad/sim`·`@sad/protocol`이 이어진다.
+    # `tsx`는 devDependency이므로 `--omit=dev`를 쓰면 start가 죽는다
+    buildCommand: npm ci
+    startCommand: npm run -w services/gameserver start
+
+    healthCheckPath: /health
+
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      # Render가 주는 포트를 그대로 쓴다. 서버는 `process.env.PORT`를 읽는다
+      - key: PORT
+        value: "10000"
+      # 웹 셸의 오리진. 비워두면 `*`로 열린다 — 붙이고 나서 좁히는 편이 낫다
+      - key: CORS_ORIGIN
+        sync: false
+      # 저장소는 선택이다 — 없으면 인메모리로 떨어진다(`persistence.ts`).
+      # 붙이면 24시간 이어하기와 전적 기록이 살아난다
+      - key: UPSTASH_REDIS_REST_URL
+        sync: false
+      - key: UPSTASH_REDIS_REST_TOKEN
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
