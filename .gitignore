@@ -78,3 +78,4 @@ unity/mono_crash.*.json
 # 여기가 비면 로더가 404를 내고 게임이 아예 안 뜬다. 코드와 번들은 한 덩어리로 움직인다.
 # 갱신은 `node tools/webgl-sync.mjs` 뒤 **배포할 때만** 한다.
 !apps/web/public/game/Build/
+.claude/worktrees/
