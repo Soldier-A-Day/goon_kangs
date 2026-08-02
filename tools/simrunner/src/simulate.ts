@@ -1,12 +1,18 @@
 import {
+  careRecovery,
   createRngState,
   createRun,
+  phaseAt,
+  planFor,
   roll,
   step,
   type Grade,
   type JudgementCondition,
+  type Member,
+  type Quest,
   type RngState,
   type RunConfig,
+  type RunState,
   type RunStatus,
 } from "@sad/sim";
 
@@ -69,8 +75,18 @@ export function simulateRun(
 
     // sim이 배정한 그날의 일과를 봇이 정확도만큼 처리한다. 퀘스트당 시도는 하루 한 번뿐이다 —
     // 하루 길이가 고정이 아니므로(우수분대 +20초) 고정 시간으로 끊으면 재시도가 생긴다.
+    //
+    // **회복(`kind: "care"`)은 여기서 처리하지 않는다.** 필수·합동은 스탯을 바꾸지
+    // 않으니 하루 시작에 몰아 끝내도 무방하지만, 회복은 스탯을 0~100으로 클램프한다.
+    // 하루 시작(청결이 전날 마감치에 가까운 상태)에 세면·샤워를 먼저 밀어 넣으면
+    // 회복분이 상한에서 잘려 나가고, 정작 하루 종일 깎인 뒤인 저녁엔 되돌릴 게
+    // 남지 않는다 — `packages/sim/test/helpers.ts`의 `completeCareNow`가 같은 이유로
+    // "그 칸에 들어섰을 때"만 적용한다. 처음엔 이 함수도 회복을 하루 시작에 몰아
+    // 처리했다가, 숙영 이틀(D-9·D-10)에서 정확도 100%인 봇도 매번 청결 0으로
+    // 전멸하는 것으로 드러났다 — sim 문제가 아니라 이 타이밍 버그였다.
     for (const quest of state.quests) {
       if (quest.status === "done") continue;
+      if (quest.kind === "care") continue;
 
       if (quest.kind === "joint") {
         // 협동 실패 모델은 아직 없다 — 합동은 항상 완수한 것으로 둔다
@@ -95,10 +111,14 @@ export function simulateRun(
       }
     }
 
-    // 일차가 바뀔 때까지 흘려보낸다
+    // 일차가 바뀔 때까지 흘려보낸다. 매 틱 지금 칸의 회복 행동을 처리한다 —
+    // 실제 플레이가 그 칸에 들어서서 먹고 씻는 것과 같은 타이밍이다.
     let guard = 0;
     while (state.status === "running" && state.day === day) {
       state = step(state, { type: "tick", elapsedMs: TICK_MS }).state;
+      if (state.status === "running" && state.day === day) {
+        applyDueCare(state);
+      }
       if (guard++ > 200) throw new Error(`하루가 끝나지 않는다: D-${day}`);
     }
   }
@@ -111,6 +131,47 @@ export function simulateRun(
     failedAt: last?.failedAt ?? null,
     reliefsUsed: state.judgements.reduce((sum, j) => sum + j.reliefsUsed, 0),
   };
+}
+
+/**
+ * 지금 칸에 배정된 회복 행동을 처리한다.
+ *
+ * 정확도 굴림은 적용하지 않는다 — 회복은 판정 대상이 아니고(`discipline.ts`의
+ * `optionalMissed`도 `care`는 명시적으로 뺀다), 밥 먹고 씻는 데 "실수"라는
+ * 개념이 없다. 대신 **타이밍은 지킨다**: 그 칸이 지금 칸일 때만 처리한다.
+ */
+function applyDueCare(state: RunState): void {
+  const phase = phaseAt(state.phaseIndex).id;
+  for (const quest of state.quests) {
+    if (quest.kind !== "care" || quest.phase !== phase) continue;
+    if (quest.status === "done") continue;
+    applyCareQuest(state, quest);
+  }
+}
+
+/**
+ * 회복 행동(kind === "care") 하나의 완료 처리.
+ *
+ * sim의 실제 완료 경로(`step.ts`의 `complete` → `applyCare`)는 `work`/`questCleared`
+ * 이벤트를 거쳐야만 돈다. 봇은 서버 없이 상태를 직접 조작하는 단순 모델이라 그 경로를
+ * 타지 않으므로, 여기서 `careRecovery`(공개 API)로 몫을 그대로 계산해 스탯에 적용한다 —
+ * `packages/sim`의 회복표를 다시 베끼지 않고 그 함수를 그대로 부른다.
+ *
+ * 클램프(0~100)는 `condition.ts`의 `clampStats`와 같은 규칙이다.
+ */
+function applyCareQuest(state: RunState, quest: Quest): void {
+  const member = state.members.find((m: Member) => m.id === quest.ownerId);
+  if (!member) return;
+
+  const bivouac = planFor(state.day).training === "bivouac";
+  const recovery = careRecovery(quest.id, bivouac);
+  for (const [key, amount] of Object.entries(recovery)) {
+    const stat = key as keyof Member["stats"];
+    member.stats[stat] = Math.min(100, Math.max(0, member.stats[stat] + amount));
+  }
+
+  quest.workedMs = quest.workMs;
+  quest.status = "done";
 }
 
 /** 기본 분포 — 대부분 B, 셋 중 하나쯤 A, 가끔 C */
