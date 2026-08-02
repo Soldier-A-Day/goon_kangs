@@ -144,6 +144,15 @@ export interface Stats {
 
 /* ------------------------------------------------------------------ 분대원 */
 
+/**
+ * B-2 위기 — 컨디션 붕괴 임계에 닿았을 때 즉시 후송 대신 거치는 중간 상태.
+ *
+ * `raiseCriticals`(condition.ts)가 경고를 세 스탯(stamina·hydration·fatigue)에
+ * 다 내지만, 실제로 쓰러지는 것은 이 둘뿐이다 — 피로 100은 강제취침이지 후송이
+ * 아니다(evacuation.ts). 그래서 위기도 이 둘로만 좁힌다.
+ */
+export type CrisisStat = "stamina" | "hydration";
+
 export interface Member {
   readonly id: string;
   readonly name: string;
@@ -185,6 +194,15 @@ export interface Member {
   warmthRemainingMs: number;
   /** 동상 디버프. 열원에 다시 가도 안 풀리고 **의무병만** 해제할 수 있다 (5.0) */
   frostbitten: boolean;
+  /**
+   * B-2 위기 — null이면 위기가 아니다. 값이 있으면 쓰러져 구조를 기다리는 중이고,
+   * 이동·상호작용이 전부 막힌다(`canWork`·`startMove` — step.ts).
+   */
+  crisisStat: CrisisStat | null;
+  /** 위기 남은 ms. 0에 닿으면 구조 실패로 보고 evacuation.ts의 기존 후송이 그대로 돈다 */
+  crisisMsLeft: number;
+  /** 구조자가 곁에서 붙잡은 누적 ms. RESCUE_REQUIRED_MS(crisis.ts)에 닿으면 구조 성공 */
+  rescueMs: number;
 }
 
 /* ----------------------------------------------------------------- 퀘스트 */
@@ -493,6 +511,19 @@ export type SimEvent =
       readonly type: "fileClaim";
       readonly memberId: string;
       readonly items: readonly string[];
+    }
+  /**
+   * B-2 위기 구조 — 쓰러진 동료 곁에서 붙잡고 있다.
+   *
+   * `work`와 같은 모양(붙잡은 시간이 진척)이지만 대상이 퀘스트가 아니라 사람이다.
+   * 새 미니게임을 만들지 않는다는 발주 경계가 여기서 나온다 — 기존 `interact`
+   * 경로를 그대로 흉내 낸 별도 채널일 뿐이다.
+   */
+  | {
+      readonly type: "rescueWork";
+      readonly rescuerId: string;
+      readonly targetId: string;
+      readonly deltaMs: number;
     };
 
 export type Effect =
@@ -582,7 +613,27 @@ export type Effect =
     }
   | { readonly type: "hiddenUnlocked"; readonly id: string; readonly label: string }
   | { readonly type: "runEnded"; readonly status: RunStatus }
-  | { readonly type: "log"; readonly message: string };
+  | { readonly type: "log"; readonly message: string }
+  /**
+   * B-2 위기 시작 — 화면이 결과보다 먼저 말해야 한다: "OOO 쓰러졌다 — N초 안에 가라."
+   * 즉시 후송하던 것을 여기서 가로챈다(evacuation.ts `checkCollapses`).
+   */
+  | {
+      readonly type: "crisisStarted";
+      readonly memberId: string;
+      readonly stat: CrisisStat;
+      readonly crisisMs: number;
+    }
+  /**
+   * B-2 구조 성공. 실패(시간 만료)는 새 이벤트를 만들지 않는다 — 기존
+   * `memberEvacuated`가 그 자리를 그대로 대신한다(긴장을 물타기하지 않는다).
+   */
+  | {
+      readonly type: "crisisRescued";
+      readonly memberId: string;
+      readonly rescuerId: string;
+      readonly stat: CrisisStat;
+    };
 
 export interface StepResult {
   readonly state: RunState;

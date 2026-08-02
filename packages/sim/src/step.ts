@@ -1,4 +1,5 @@
 import { applyPhaseCondition, applySleep } from "./condition.js";
+import { applyRescueWork, tickCrisis } from "./crisis.js";
 import { refreshRadio } from "./radio.js";
 import { clearWarmth, tickWarmth, travelMultiplier, workMultiplier } from "./warmth.js";
 import {
@@ -98,6 +99,9 @@ export function step(state: RunState, event: SimEvent): StepResult {
     case "fileClaim":
       fileClaim(next, event.memberId, event.items);
       break;
+    case "rescueWork":
+      applyRescueWork(next, event.rescuerId, event.targetId, event.deltaMs, effects);
+      break;
   }
 
   return { state: next, effects };
@@ -172,6 +176,10 @@ function applyTick(state: RunState, elapsedMs: number, effects: Effect[]): void 
   // 5.0 보온 게이지는 **실시간 90초**라 시간대 정산에 얹을 수 없다.
   // 여기서 ms 단위로 흘려야 한다
   tickWarmth(state, elapsedMs, effects);
+
+  // B-2 위기 시계도 실시간 45초다 — 하달 창처럼 멈추지 않는다. 쓰러진 사람에게
+  // UI 사정은 상관없다
+  tickCrisis(state, elapsedMs, effects);
 
   // 합동에서 대리가 채우는 제 몫 (ROLE-03)
   tickJointProxies(state, elapsedMs);
@@ -347,6 +355,9 @@ function endDay(state: RunState, effects: Effect[]): void {
 function startMove(state: RunState, memberId: string, to: Zone, onFoot: boolean): void {
   const member = state.members.find((m) => m.id === memberId);
   if (!member || member.zone === to) return;
+  // B-2 — 위기에 빠진 사람은 걸을 수 없다. 구조를 기다리는 자리에 그대로 있어야
+  // 동료가 곁으로 올 수 있다
+  if (member.crisisStat !== null) return;
 
   if (onFoot && isAdjacent(member.zone, to)) {
     member.travelRemainingMs = 0;
@@ -514,6 +525,9 @@ function applyCare(state: RunState, member: Member, questId: string): void {
 
 function canWork(state: RunState, member: Member, quest: Quest): boolean {
   if (member.presence === "evacuated") return false;
+  // B-2 — 위기에 빠진 사람은 자신도 남도 일과를 할 수 없다. 구조를 기다리는
+  // 것만이 지금 할 수 있는 일이다
+  if (member.crisisStat !== null) return false;
   if (member.travelRemainingMs > 0) return false;
   if (member.zone !== quest.zone) return false;
   if (quest.ownerId !== null && quest.ownerId !== member.id) return false;

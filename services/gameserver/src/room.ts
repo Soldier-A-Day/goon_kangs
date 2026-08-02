@@ -59,6 +59,8 @@ export class Room {
   private pendingEvents: ServerEvent[] = [];
   /** 지금 붙잡고 있는 퀘스트 — 진척은 서버가 센다 */
   private readonly working = new Map<string, string>();
+  /** B-2 지금 붙잡고 있는 위기의 동료(rescuerId → targetId) — `working`과 같은 모양, 대상만 사람이다 */
+  private readonly rescuing = new Map<string, string>();
   /**
    * 표시용 좌표. **검증하지 않고 되비추기만 한다.**
    *
@@ -206,6 +208,7 @@ export class Room {
     });
 
     this.working.clear();
+    this.rescuing.clear();
     this.positions.clear();
     this.skipVotes.clear();
     this.leaderVotes.clear();
@@ -232,6 +235,11 @@ export class Room {
     // 붙잡고 있는 퀘스트에 먼저 진척을 넣는다 — 상호작용은 시간에 비례한다
     for (const [memberId, questId] of this.working) {
       this.apply({ type: "work", memberId, questId, deltaMs: elapsedMs });
+    }
+
+    // B-2 — 위기의 동료를 붙잡고 있는 것도 같은 자리에서, 같은 방식으로 진척된다
+    for (const [rescuerId, targetId] of this.rescuing) {
+      this.apply({ type: "rescueWork", rescuerId, targetId, deltaMs: elapsedMs });
     }
 
     this.apply({ type: "tick", elapsedMs });
@@ -274,12 +282,20 @@ export class Room {
     switch (intent.type) {
       case "move":
         this.working.delete(memberId);
+        this.rescuing.delete(memberId);
         this.apply({ type: "move", memberId, to: intent.to, onFoot: intent.onFoot });
         break;
 
       case "interact":
         if (intent.active) this.working.set(memberId, intent.questId);
         else this.working.delete(memberId);
+        break;
+
+      case "rescue":
+        // B-2 — `interact`와 같은 모양이지만 대상이 사람이다. 자격 검증(곁에
+        // 있는가·의무병인가·이미 후송됐는가)은 전부 sim이 한다(ARCH-02)
+        if (intent.active) this.rescuing.set(memberId, intent.targetId);
+        else this.rescuing.delete(memberId);
         break;
 
       case "jointStep":
@@ -375,6 +391,7 @@ export class Room {
   disconnect(memberId: string): void {
     this.setConnected(memberId, false);
     this.working.delete(memberId);
+    this.rescuing.delete(memberId);
 
     if (!this.run || !this.started) {
       this.leaveLobby(memberId);

@@ -677,6 +677,28 @@ namespace SoldierADay.Net
                     return;
                 }
 
+                case ServerEventTypeValues.CrisisStarted:
+                {
+                    // B-2 — 화면이 결과(후송)보다 먼저 말한다. 즉시 후송하던 것을
+                    // "위기"가 가로챈 자리다(evacuation.ts checkCollapses)
+                    var name = NameOf(item.memberId);
+                    var seconds = Mathf.RoundToInt((float)item.crisisMs / 1000f);
+                    Notify("위기", $"{name}{HudTheme.Josa(name, "이", "가")} 쓰러졌다 — {seconds}초 안에 가라",
+                        HudTheme.Alert, 5.6f);
+                    return;
+                }
+
+                case ServerEventTypeValues.CrisisRescued:
+                {
+                    // B-2 — 구조 성공. 실패(시간 만료)는 새 case가 아니라 기존
+                    // MemberEvacuated가 그대로 나간다 — 긴장을 물타기하지 않는다
+                    var name = NameOf(item.memberId);
+                    var rescuer = NameOf(item.rescuerId);
+                    Notify("구조", $"{rescuer}{HudTheme.Josa(rescuer, "이", "가")} {name}{HudTheme.Josa(name, "을", "를")} 살렸다",
+                        HudTheme.Accent);
+                    return;
+                }
+
                 case ServerEventTypeValues.WeatherRolled:
                     Notify("기온", item.label, HudTheme.BandColor(item.band));
                     return;

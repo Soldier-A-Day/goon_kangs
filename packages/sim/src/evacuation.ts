@@ -1,4 +1,5 @@
 import { THRESHOLDS } from "./condition.js";
+import { enterCrisis } from "./crisis.js";
 import { penalizeIncident } from "./discipline.js";
 import { penalizeEvacuation } from "./ranks.js";
 import type { Effect, Member, RunState } from "./types.js";
@@ -54,6 +55,11 @@ export function evacuate(state: RunState, memberId: string, effects: Effect[]): 
 
   member.presence = "evacuated";
   member.collapseTimerMs = 0;
+  // 위기 도중에 후송이 결정될 수도 있다(크리시스 타임아웃) — 후송된 사람은
+  // 더 이상 위기가 아니다, 그 자리는 이제 "실려 나간" 상태다
+  member.crisisStat = null;
+  member.crisisMsLeft = 0;
+  member.rescueMs = 0;
   member.evacuations += 1;
 
   // 계급과 무관한 비용이므로 잃을 게 없는 이병이 쓰러져도 분대는 아프다
@@ -131,8 +137,15 @@ export function tickRehab(state: RunState): void {
 /**
  * 컨디션 붕괴 감지. 시간대 정산 직후에 돈다.
  *
- * 체력이 0이면 즉시, 수분 2단계(열사병)는 60초를 버티면 쓰러진다.
- * 진짜 사고는 대개 하루 후반에 터지므로 인수 한도(2건)에 걸리지 않고 구제된다.
+ * 체력이 0이면 즉시, 수분 2단계(열사병)는 60초를 버티면 위기에 들어간다 —
+ * **더는 여기서 바로 후송하지 않는다(B-2).** 위기는 45초짜리 구조 창이고,
+ * 실패하면 `crisis.ts`의 `tickCrisis`가 기존 후송을 그대로 돌린다. 진짜 사고는
+ * 대개 하루 후반에 터지므로 후송이 나더라도 인수 한도(2건)에 걸리지 않고
+ * 구제된다는 원래 성질은 그대로다.
+ *
+ * NPC 대리(`presence !== "player"`)는 애초에 이 루프에 들어오지 않는다 — 대리는
+ * 컨디션으로 후송된 적이 없었고, 위기도 겪지 않는다. 이 게이트 하나로 봇 완주율은
+ * 위기 도입 전과 완전히 동일하다(별도 자동구조 장치가 필요 없다).
  */
 export function checkCollapses(
   state: RunState,
@@ -141,17 +154,18 @@ export function checkCollapses(
 ): void {
   for (const member of state.members) {
     if (member.presence !== "player") continue;
+    if (member.crisisStat !== null) continue; // 이미 위기 대응 중 — 새 트리거를 또 걸지 않는다
     const stats = member.stats;
 
     if (stats.stamina <= 0) {
-      evacuate(state, member.id, effects);
+      enterCrisis(state, member, "stamina", effects);
       continue;
     }
 
     if (stats.hydration <= THRESHOLDS.dehydrationStage2) {
       member.collapseTimerMs += elapsedMsInPhase;
       if (member.collapseTimerMs >= THRESHOLDS.collapseAfterSeconds * 1000) {
-        evacuate(state, member.id, effects);
+        enterCrisis(state, member, "hydration", effects);
       }
       continue;
     }

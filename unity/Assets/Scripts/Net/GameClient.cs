@@ -111,6 +111,23 @@ namespace SoldierADay.Net
         }
 
         /// <summary>
+        /// B-2 위기 구조 — 쓰러진 동료 곁에서 E 홀드.
+        ///
+        /// `Interact`와 같은 모양이지만 대상이 퀘스트가 아니라 사람이다. 판정은
+        /// 전부 서버(`packages/sim/src/crisis.ts`)가 한다 — 여기서는 "지금 이
+        /// 사람을 붙잡고 있다"는 신고만 보낸다.
+        /// </summary>
+        public void Rescue(string targetId, bool active)
+        {
+            Send(new Intent
+            {
+                type = IntentTypeValues.Rescue,
+                targetId = targetId,
+                active = active,
+            });
+        }
+
+        /// <summary>
         /// 미니게임 판을 통과했다.
         ///
         /// **완료 시점을 클라만 아는 유일한 경로다.** 서버는 커버리지도 오답

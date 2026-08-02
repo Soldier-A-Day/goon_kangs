@@ -1,4 +1,5 @@
 import {
+  RESCUE_REQUIRED_MS,
   bandRule,
   disciplineBand,
   isSupplyDay,
@@ -92,6 +93,10 @@ export function projectSnapshot(
       // 5.0 보온 게이지. 극혹한이 아니면 0이고 클라는 그때 이 UI를 띄우지 않는다
       warmthRemainingMs: Math.round(member.warmthRemainingMs),
       frostbitten: member.frostbitten,
+      // B-2 위기 — null이면 위기 아님. 미니맵 마커·HUD 프롬프트가 이 세 값으로 그린다
+      crisisStat: member.crisisStat,
+      crisisMsLeft: Math.round(member.crisisMsLeft),
+      rescueProgress: Math.min(1, member.rescueMs / RESCUE_REQUIRED_MS),
       x: positions?.get(member.id)?.x ?? 0,
       y: positions?.get(member.id)?.y ?? 0,
     })),
@@ -247,6 +252,23 @@ export function projectEffect(effect: Effect): ServerEvent | null {
         type: "delegationRefused",
         reason: effect.reason as Extract<ServerEvent, { type: "delegationRefused" }>["reason"],
         questId: effect.questId,
+      };
+    case "crisisStarted":
+      // B-2 — 화면이 결과보다 먼저 말한다: "OOO 쓰러졌다 — N초 안에 가라"
+      return {
+        type: "crisisStarted",
+        memberId: effect.memberId,
+        stat: effect.stat,
+        crisisMs: effect.crisisMs,
+      };
+    case "crisisRescued":
+      // 실패(시간 만료)는 새 이벤트가 아니라 기존 memberEvacuated로 나간다 —
+      // 긴장을 물타기하지 않는다
+      return {
+        type: "crisisRescued",
+        memberId: effect.memberId,
+        rescuerId: effect.rescuerId,
+        stat: effect.stat,
       };
     case "conditionCritical":
       // 예전에는 여기서 버렸다 — 스태미나 0·탈수 2단계·강제취침 임계가 후송/강제취침

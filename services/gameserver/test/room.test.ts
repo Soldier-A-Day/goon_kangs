@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { phaseAt } from "@sad/sim";
+import { RESCUE_REQUIRED_MS, phaseAt } from "@sad/sim";
 import type { ServerMessage, Snapshot } from "@sad/protocol";
 import { DISCONNECT_GRACE_MS, Room } from "../src/room.js";
 import { RoomStore, generateCode } from "../src/store.js";
@@ -188,6 +188,76 @@ describe("진행", () => {
 
     h.room.reconnect(ids[0] as string);
     expect(h.room.run?.members.find((m) => m.id === ids[0])?.presence).toBe("player");
+  });
+});
+
+describe("B-2 위기 구조", () => {
+  it("컨디션이 무너지면 위기 이벤트가 나가고, 곁에서 붙잡으면 구조된다", () => {
+    const h = harness();
+    const [rifle, comms] = fourPlayers(h.room);
+    h.room.start();
+    if (!h.room.run || !rifle || !comms) throw new Error("런 없음");
+
+    const target = h.room.run.members.find((m) => m.id === rifle);
+    if (!target) throw new Error("분대원 없음");
+    target.stats.stamina = 0;
+
+    // 시간대를 끝까지 흘려 checkCollapses가 위기를 걸게 한다 — 더는 즉시 후송이 아니다(B-2)
+    h.room.tick(h.room.run.phaseDurationMs);
+
+    const crisisEvents = h.sent
+      .map((s) => s.message)
+      .filter((m): m is Extract<ServerMessage, { type: "events" }> => m.type === "events")
+      .flatMap((m) => m.items)
+      .filter((e) => e.type === "crisisStarted");
+    expect(crisisEvents.length).toBeGreaterThan(0);
+
+    const down = h.room.run.members.find((m) => m.id === rifle);
+    expect(down?.presence).toBe("player");
+    expect(down?.crisisStat).toBe("stamina");
+
+    // comms가 곁에서 E를 홀드한다 — 같은 구역이라 곧바로 붙잡을 수 있다
+    h.room.handleIntent(comms, { type: "rescue", targetId: rifle, active: true });
+    h.room.tick(RESCUE_REQUIRED_MS);
+
+    const rescued = h.room.run.members.find((m) => m.id === rifle);
+    expect(rescued?.crisisStat).toBeNull();
+    expect(rescued?.presence).toBe("player");
+    expect(rescued?.stats.stamina).toBeGreaterThan(0);
+  });
+
+  it("이동하면 붙잡고 있던 구조도 놓는다", () => {
+    const h = harness();
+    const [rifle, comms] = fourPlayers(h.room);
+    h.room.start();
+    if (!h.room.run || !rifle || !comms) throw new Error("런 없음");
+
+    const target = h.room.run.members.find((m) => m.id === rifle);
+    if (!target) throw new Error("분대원 없음");
+    target.stats.stamina = 0;
+    h.room.tick(h.room.run.phaseDurationMs);
+
+    h.room.handleIntent(comms, { type: "rescue", targetId: rifle, active: true });
+    h.room.handleIntent(comms, { type: "move", to: "Z08" });
+    h.room.tick(RESCUE_REQUIRED_MS);
+
+    expect(h.room.run.members.find((m) => m.id === rifle)?.rescueMs).toBe(0);
+  });
+
+  it("위기 중에는 이동 의도가 걸려도 그 자리에 그대로 있는다", () => {
+    const h = harness();
+    const [rifle] = fourPlayers(h.room);
+    h.room.start();
+    if (!h.room.run || !rifle) throw new Error("런 없음");
+
+    const target = h.room.run.members.find((m) => m.id === rifle);
+    if (!target) throw new Error("분대원 없음");
+    const zoneBefore = target.zone;
+    target.stats.stamina = 0;
+    h.room.tick(h.room.run.phaseDurationMs);
+
+    h.room.handleIntent(rifle, { type: "move", to: "Z08" });
+    expect(h.room.run.members.find((m) => m.id === rifle)?.zone).toBe(zoneBefore);
   });
 });
 
@@ -397,6 +467,18 @@ describe("승급 심사 투영", () => {
     expect(
       projectEffect({ type: "delegationRefused", reason: "rankTooLow", questId: "c1" }),
     ).toEqual({ type: "delegationRefused", reason: "rankTooLow", questId: "c1" });
+  });
+
+  it("B-2 위기 시작은 스탯과 제한 시간을 함께 투영한다", () => {
+    expect(
+      projectEffect({ type: "crisisStarted", memberId: "p1", stat: "stamina", crisisMs: 45_000 }),
+    ).toEqual({ type: "crisisStarted", memberId: "p1", stat: "stamina", crisisMs: 45_000 });
+  });
+
+  it("B-2 구조 성공은 구조자를 함께 투영한다 — 실패는 memberEvacuated가 그대로 대신한다", () => {
+    expect(
+      projectEffect({ type: "crisisRescued", memberId: "p1", rescuerId: "p3", stat: "stamina" }),
+    ).toEqual({ type: "crisisRescued", memberId: "p1", rescuerId: "p3", stat: "stamina" });
   });
 });
 
