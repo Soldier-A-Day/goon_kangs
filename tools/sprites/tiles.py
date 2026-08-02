@@ -703,6 +703,61 @@ def _doorway(w=1, h=1):
     return img
 
 
+# ══════════════════════════════════════════════════════ D-5 소품 정체성
+#
+# `PROPS` 90여 종 중 상당수가 원형 그리기 함수를 나눠 쓴다(위 주석 "105종이
+# 같은 색 이동 규칙 아래 놓이게 한다") — 그런데 같은 함수를 같은 크기로
+# 부르면(예: 관물대·서류함·청소도구함·약제함이 전부 `_locker(1, 1)`) 나오는
+# 픽셀이 **완전히 같다.** 심지어 `_sandbag`·`_stall`·`_doorway`처럼 인자
+# `w, h`를 무시하고 고정 크기만 그리는 함수는 `PROPS` 표의 칸 수가 달라도
+# (모래주머니 1×1 vs 토사 퇴적 2×1) 결과가 같아진다. "105종"이 도감에서
+# 그림 105장이 되려면 이 중복이 전수 0이어야 한다(WORKORDER D-5).
+#
+# 이름 해시로 표식을 찍으면 충돌 확률에 기댄다 — 105개면 낮지만 0은 아니다.
+# 대신 **같은 그림을 공유하는 묶음 안에서 매기는 지역 순번**을 쓴다: 묶음의
+# 0번(가장 먼저 나오는 이름)은 원본 그대로 두고, 1번부터 코너 표식을 찍는다.
+# 순번이 다르면 표식도 반드시 다르므로 충돌이 구조적으로 없다 — 이 저장소가
+# 결정론(같은 입력이면 항상 같은 출력)을 요구하는 것과도 맞는다(이 파일 머리말
+# "노이즈는 결정적이다").
+_STAMP_COLORS = ("alert", "cold", "accent", "lamp0")
+
+
+def _stencil(img: Image.Image, variant: int) -> None:
+    """
+    묶음 안 `variant`번째 소품의 코너에 2×2 표식을 찍는다(0번은 그대로 둔다).
+
+    병영 물품에 실제로 이름·번호를 스텐실로 찍어 구분하는 것의 축소판이다 —
+    새 원형을 그리는 대신 기존 그림 위에 "이건 다른 물건"이라는 표시만
+    더한다. 색은 `_STAMP_COLORS`(전부 `P.W`에 등록된 팔레트 값)에서만
+    고르므로 §4.2 검사를 항상 통과한다.
+
+    경계는 `img.size`(실제로 그려진 캔버스)에서 직접 구한다 — `PROPS` 표가
+    적어둔 칸 수(`w, h`)가 아니다. `_sandbag`·`_doorway`·`_stall`처럼 인자
+    `w, h`를 무시하고 고정 크기만 그리는 함수가 있어서(이 파일 "D-5 소품
+    정체성" 주석), 표에 적힌 칸 수로 우측·아래쪽 코너를 계산하면 실제
+    캔버스보다 바깥으로 나가 `PX.rect`가 잘라내고(clip) 아무것도 안 찍는
+    사고가 났다 — 처음엔 `w, h`를 인자로 받아 썼다가 이 버그로 걸렸다.
+
+    코너 4곳 × 색 4종 = 16가지를 한 바퀴(ring) 쓰고, 그래도 모자라면
+    (지금 최대 묶음은 7개뿐이라 실제로는 일어나지 않는다) 코너를 안쪽으로
+    1px씩 더 밀어 새 바퀴를 연다 — 묶음이 아무리 커져도 순번마다 좌표나
+    색 중 하나는 반드시 달라진다.
+    """
+    W_, H_ = img.size
+    if variant <= 0 or W_ < 4 or H_ < 4:
+        return
+    ring, rem = divmod(variant - 1, len(_STAMP_COLORS) * 4)
+    color_i, corner_i = divmod(rem, 4)
+    color = P.W[_STAMP_COLORS[color_i]]
+    left, top = 1 + ring, 1 + ring
+    right, bottom = W_ - 3 - ring, H_ - 3 - ring
+    cx = left if corner_i in (0, 2) else right
+    cy = top if corner_i in (0, 1) else bottom
+    cx = max(0, min(W_ - 2, cx))
+    cy = max(0, min(H_ - 2, cy))
+    PX.rect(img, cx, cy, cx + 1, cy + 1, color)
+
+
 #: 이름 → (타일 폭, 타일 높이, 함수, 통과 가능한가)
 #:
 #: 이름이 곧 계약이다 — 맵 오소링과 `ZoneMap.AnchorFor`가 같은 문자열로 찾는다.
@@ -922,9 +977,18 @@ def generate(out_dir: str) -> dict:
     os.makedirs(labels_dir, exist_ok=True)
     index["labels"] = []
 
+    # D-5 소품 정체성 — 원본 픽셀(스텐실 찍기 전)이 같은 소품끼리 묶어서
+    # 묶음 안 순번(variant)을 매긴다. 묶음의 첫 이름은 그대로, 나머지는
+    # `_stencil()`로 갈라놓는다 (위 "D-5 소품 정체성" 주석 참고).
+    seen: dict[bytes, int] = {}
     for name, (w, h, fn, walkable) in PROPS.items():
         safe = f"prop_{abs(_hash(sum(map(ord, name)), len(name))) % 100000:05d}"
-        fn(w, h).save(os.path.join(props_dir, f"{safe}.png"))
+        img = fn(w, h)
+        dupe_key = img.tobytes()
+        variant = seen.get(dupe_key, 0)
+        seen[dupe_key] = variant + 1
+        _stencil(img, variant)
+        img.save(os.path.join(props_dir, f"{safe}.png"))
         index["props"].append({"name": name, "file": f"props/{safe}.png",
                                "w": w, "h": h, "walkable": walkable})
 
