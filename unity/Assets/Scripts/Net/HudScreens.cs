@@ -109,6 +109,24 @@ namespace SoldierADay.Net
         {
             if (snapshot?.phase == null) return;
 
+            // **하루 마감 연출이 도는 동안에는 스냅샷이 창을 열지 못한다.**
+            //
+            // 창을 여는 길이 둘인데 서로를 모른다 — 하달 창과 아침 일과표는 여기
+            // 스냅샷이 열고, 판정·승급·취침은 `OnEvent`의 큐가 연다. 그래서 하달
+            // 창이 연출 도중에 `_screen`을 가져가면 `Update()`가 하달 분기에서
+            // 먼저 빠져나가 큐를 돌리는 곳에 영영 닿지 못하고, 남은 화면들이 다음
+            // 판정이 올 때까지 갇힌다. 아침 일과표는 반대로 조용히 사라진다 —
+            // 연출 도중에 날이 바뀌면 `_lastDay`만 갱신되고 창은 안 뜬다.
+            //
+            // 건너뛰어도 잃는 것이 없다. 스냅샷은 10Hz로 계속 오고 하달 창은 몇십
+            // 초 열려 있으므로, 연출이 끝난 바로 다음 스냅샷이 그대로 연다.
+            if (_screen is Screen.RollCall or Screen.Rank or Screen.Sleep ||
+                _dayEndQueue.Count > 0)
+            {
+                if (snapshot.phase.id != SnapshotPhaseIdValues.Rollcall) _beforeSleep = snapshot;
+                return;
+            }
+
             // §7.3 하달 창은 서버가 연다 — `delegationWindowMsLeft`가 0보다 크면 열려 있다
             if (snapshot.phase.delegationWindowMsLeft > 0d && _delegationDone != snapshot.phase.id)
             {
