@@ -106,7 +106,8 @@ export function applyJudgement(state: RunState, effects: Effect[]): void {
   const judgement = judgeDay(state);
   state.judgements.push(judgement);
   state.reliefsRemaining -= judgement.reliefsUsed;
-  effects.push({ type: "dayJudged", judgement });
+  // 차감을 먼저 반영한 뒤에 실어 보낸다 — 이펙트에는 반드시 판정 "후" 잔여만 나간다
+  effects.push({ type: "dayJudged", judgement, reliefsRemaining: state.reliefsRemaining });
 
   if (judgement.passed) {
     if (state.day >= state.config.totalDays) {

@@ -476,7 +476,12 @@ export type Effect =
   | { readonly type: "phaseStarted"; readonly phase: PhaseId; readonly day: number }
   | { readonly type: "surpriseRaised"; readonly quest: Quest }
   | { readonly type: "phaseEnded"; readonly phase: PhaseId; readonly lockedQuestIds: string[] }
-  | { readonly type: "dayJudged"; readonly judgement: Judgement }
+  | {
+      readonly type: "dayJudged";
+      readonly judgement: Judgement;
+      /** 이 판정 반영 **후** 런에 남은 구제권. 차감 순서를 따로 타지 않도록 여기서 확정해 실어 보낸다 */
+      readonly reliefsRemaining: number;
+    }
   | { readonly type: "sleepSettled"; readonly guardIds: readonly string[] }
   | {
       readonly type: "disciplineChanged";

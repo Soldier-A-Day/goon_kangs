@@ -157,6 +157,8 @@ export function projectEffect(effect: Effect): ServerEvent | null {
         day: effect.judgement.day,
         passed: effect.judgement.passed,
         failedAt: effect.judgement.failedAt,
+        reliefsUsed: effect.judgement.reliefsUsed,
+        reliefsRemaining: effect.reliefsRemaining,
       };
     case "disciplineChanged":
       return { type: "disciplineChanged", to: effect.to, band: effect.band };

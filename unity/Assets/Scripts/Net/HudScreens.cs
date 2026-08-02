@@ -1350,10 +1350,22 @@ namespace SoldierADay.Net
             var y = panel.y + 114f;
             var stopped = false;
 
+            // 구제권은 조건 A에만 붙는다(judge.ts) — 통과했어도 대가를 치른 통과라
+            // 초록(Accent)으로 두면 "다 잘했다"로 읽힌다. 주황(Heat)으로 구분하고,
+            // 그마저 다 썼으면(reliefsRemaining == 0) 실패색(Alert)까지 끌어와 강하게 읽히게 한다
+            var reliefsUsed = _judgement.reliefsUsed;
+            var reliefsRemaining = _judgement.reliefsRemaining;
+            var reliefExhausted = !failed && reliefsUsed > 0d && reliefsRemaining <= 0d;
+
             for (var i = 0; i < conditions.Length; i += 1)
             {
                 var (key, label, value) = conditions[i];
-                var row = new Rect(panel.x + 32f, y, 1136f, i == 2 && failedAt == "C" ? 76f : 70f);
+                var isReliefRow = i == 0 && !failed && reliefsUsed > 0d;
+                var reliefTone = reliefExhausted ? HudTheme.Alert : HudTheme.Heat;
+                var baseHeight = i == 2 && failedAt == "C" ? 76f : 70f;
+                var noteHeight = isReliefRow ? 24f : 0f;
+                var row = new Rect(panel.x + 32f, y, 1136f, baseHeight + noteHeight);
+                var mainRect = new Rect(row.x, row.y, row.width, baseHeight);
 
                 var shown = t >= Reveal[i];
                 var isFail = failed && failedAt == key;
@@ -1363,28 +1375,41 @@ namespace SoldierADay.Net
                 var previous = GUI.color;
                 if (!shown || skipped) GUI.color = new Color(1f, 1f, 1f, 0.3f);
 
-                theme.Fill(row, isFail ? HudTheme.AlertW : HudTheme.Paper3);
+                var rowExhausted = isReliefRow && reliefExhausted;
+                theme.Fill(row, isFail || rowExhausted ? HudTheme.AlertW : HudTheme.Paper3);
                 if (isFail) theme.Spine(row, HudTheme.Alert, 6f);
+                else if (isReliefRow) theme.Spine(row, reliefTone, 6f);
 
-                GUI.Label(new Rect(row.x + 24f, row.y, 40f, row.height), key,
-                    theme.At(theme.Display, 22, isFail ? HudTheme.Alert : HudTheme.Accent));
-                GUI.Label(new Rect(row.x + 72f, row.y, 600f, row.height), label,
+                GUI.Label(new Rect(mainRect.x + 24f, mainRect.y, 40f, mainRect.height), key,
+                    theme.At(theme.Display, 22, isFail ? HudTheme.Alert : isReliefRow ? reliefTone : HudTheme.Accent));
+                GUI.Label(new Rect(mainRect.x + 72f, mainRect.y, 600f, mainRect.height), label,
                     theme.At(theme.Heading, 21, skipped ? HudTheme.Ink3 : HudTheme.Ink));
 
                 if (shown && !skipped)
                 {
-                    GUI.Label(new Rect(row.x + 620f, row.y, 240f, row.height), value,
-                        theme.At(theme.Mono, 19, isFail ? HudTheme.Alert : HudTheme.Ink2,
+                    GUI.Label(new Rect(mainRect.x + 620f, mainRect.y, 240f, mainRect.height), value,
+                        theme.At(theme.Mono, 19, isFail ? HudTheme.Alert : isReliefRow ? reliefTone : HudTheme.Ink2,
                             TextAnchor.MiddleRight));
 
-                    var mark = new Rect(row.x + 1078f, row.y + row.height * 0.5f - 13f, 26f, 26f);
+                    var mark = new Rect(mainRect.x + 1078f, mainRect.y + mainRect.height * 0.5f - 13f, 26f, 26f);
                     if (isFail) HudIcons.Cross(mark, HudTheme.Alert);
-                    else HudIcons.Check(mark, HudTheme.Accent);
+                    else HudIcons.Check(mark, isReliefRow ? reliefTone : HudTheme.Accent);
+
+                    if (isReliefRow)
+                    {
+                        // 구제권을 몇 장 썼고 몇 장 남았는지 — 다 소진했으면 다음 미달이
+                        // 곧 런의 끝이라는 것까지 이 줄에서 못 박는다
+                        GUI.Label(new Rect(row.x + 72f, row.y + baseHeight, 1040f, noteHeight),
+                            reliefExhausted
+                                ? $"구제권 {reliefsUsed:0}장 사용 — 구제 소진, 다음 미달은 즉시 퇴소"
+                                : $"구제권 {reliefsUsed:0}장 사용 (남은 구제 {reliefsRemaining:0})",
+                            theme.At(theme.Small, 14, reliefTone));
+                    }
                 }
                 else if (skipped)
                 {
                     // §7.5 "실패한 조건 아래는 아예 판정하지 않고 —로 남긴다"
-                    GUI.Label(new Rect(row.x + 1060f, row.y, 60f, row.height), "—",
+                    GUI.Label(new Rect(mainRect.x + 1060f, mainRect.y, 60f, mainRect.height), "—",
                         theme.At(theme.Mono, 24, HudTheme.Ink3, TextAnchor.MiddleCenter));
                 }
 

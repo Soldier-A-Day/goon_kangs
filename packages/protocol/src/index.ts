@@ -501,6 +501,10 @@ export const serverEventSchema = z.discriminatedUnion("type", [
     day: z.number(),
     passed: z.boolean(),
     failedAt: z.enum(["A", "B", "C", "D"]).nullable(),
+    /** 이 판정에서 구제권을 몇 건 썼는가 — 0이면 구제 없이 통과했다는 뜻이다 */
+    reliefsUsed: z.number(),
+    /** 판정 **후** 남은 구제권. 0이면 다음 미달은 곧바로 런 종료다 */
+    reliefsRemaining: z.number(),
   }),
   z.object({ type: z.literal("disciplineChanged"), to: z.number(), band: z.string() }),
   z.object({ type: z.literal("memberEvacuated"), memberId: z.string(), absorbed: z.boolean() }),

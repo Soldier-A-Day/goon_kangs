@@ -1116,6 +1116,10 @@ namespace SoldierADay.Protocol
         // 선택적 — variant에 따라 없을 수 있다
         public string failedAt;
         // 선택적 — variant에 따라 없을 수 있다
+        public double reliefsUsed;
+        // 선택적 — variant에 따라 없을 수 있다
+        public double reliefsRemaining;
+        // 선택적 — variant에 따라 없을 수 있다
         public double to;
         // 선택적 — variant에 따라 없을 수 있다
         public string memberId;
@@ -1451,6 +1455,10 @@ namespace SoldierADay.Protocol
         public bool passed;
         // 선택적 — variant에 따라 없을 수 있다
         public string failedAt;
+        // 선택적 — variant에 따라 없을 수 있다
+        public double reliefsUsed;
+        // 선택적 — variant에 따라 없을 수 있다
+        public double reliefsRemaining;
         // 선택적 — variant에 따라 없을 수 있다
         public double to;
         // 선택적 — variant에 따라 없을 수 있다
