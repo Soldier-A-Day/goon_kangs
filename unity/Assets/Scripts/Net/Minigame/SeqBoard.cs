@@ -13,6 +13,16 @@ namespace SoldierADay.Net
     ///
     /// `steps`가 2 이상이면 **자릿수가 점증한다** — 6 → 8 → 10. 한 번 외우고
     /// 끝나는 것이 아니라, 외운 것 위에 덧붙는다.
+    ///
+    /// ── A-5 2차 — 자리마다 고유 피치 ─────────────────────────────────────
+    /// 값(0~9 또는 `_keys` 인덱스) 하나마다 계이름처럼 고유한 피치가 붙는다.
+    /// **자리(순서)가 아니라 값**에 붙이는 이유는, 그래야 같은 숫자·같은 절차
+    /// 단계가 언제 나오든 항상 같은 음이라 귀로 외울 수 있어서다(자리에 붙이면
+    /// 매번 다른 음이 나 배울 수 없다). 노출(`_reveal`) 동안 순서대로 그
+    /// 음들을 들려주고, 플레이어가 맞게 누를 때도 같은 음을 재생해 시각·청각
+    /// 기억이 같은 자료를 가리키게 한다. 난이도가 올라 노출 시간(`show`)이
+    /// 짧아져도 이 재생은 노출 구간에 맞춰 자동으로 빨라질 뿐 끊기지 않는다 —
+    /// 짧아진 몫을 소리가 그대로 보상한다.
     /// </summary>
     public sealed class SeqBoard : Board
     {
@@ -26,6 +36,14 @@ namespace SoldierADay.Net
         private float _flash;
         private bool _wrong;
         private Rect _area;
+
+        /// <summary>노출 동안 몇 번째 값까지 소리로 들려줬는가</summary>
+        private int _revealSounded;
+
+        /// <summary>지금 진행 중인 노출 구간의 전체 길이(초). 처음 노출은 `_showFor`,
+        /// 오답 뒤 재노출은 그 60%라 값이 달라진다 — 슬롯 계산이 이걸 따라가야
+        /// "몇 번째 값을 이미 들려줬는가"가 재노출에서도 어긋나지 않는다</summary>
+        private float _revealDuration;
 
         public override string Instruction =>
             _reveal > 0f ? "외워라" : "본 순서대로 눌러라";
@@ -78,6 +96,17 @@ namespace SoldierADay.Net
 
             _at = 0;
             _reveal = _showFor;
+            _revealDuration = _showFor;
+            _revealSounded = 0;
+        }
+
+        /// <summary>값(0~9 또는 `_keys` 인덱스) 하나마다 고유한 피치. 순서가 아니라
+        /// 값에 붙어야 같은 숫자·같은 절차가 매번 같은 음으로 들려 귀로 외울 수 있다</summary>
+        private float PitchForValue(int value)
+        {
+            var poolSize = _keys?.Length ?? 10;
+            var t = poolSize <= 1 ? 0f : (float)value / (poolSize - 1);
+            return Mathf.Lerp(0.7f, 1.9f, t);
         }
 
         protected override void Advance(float dt, BoardInput input)
@@ -87,6 +116,17 @@ namespace SoldierADay.Net
             if (_reveal > 0f)
             {
                 _reveal -= dt;
+
+                // 노출 구간을 자리 수만큼 나눠, 그 칸이 열리는 순간 그 값의 음을
+                // 들려준다 — `show`가 난이도로 짧아져도 슬롯이 같이 줄어들 뿐이라
+                // 항상 마지막 값까지 소리가 끝까지 따라간다
+                var elapsed = _revealDuration - _reveal;
+                var slot = _revealDuration / Mathf.Max(1, _sequence.Length);
+                while (_revealSounded < _sequence.Length && elapsed >= _revealSounded * slot)
+                {
+                    Sfx.Play("tap", 0.7f, PitchForValue(_sequence[_revealSounded]));
+                    _revealSounded += 1;
+                }
                 return;
             }
 
@@ -95,6 +135,9 @@ namespace SoldierADay.Net
 
             if (pressed == _sequence[_at])
             {
+                // 노출 때 들려준 것과 같은 음을 다시 재생한다 — 시각으로 맞았다는
+                // 확인이자, 그 값의 음을 한 번 더 귀에 새기는 복습이다
+                Sfx.Play("tap", 1f, PitchForValue(_sequence[_at]));
                 _at += 1;
                 _flash = 0.5f;
                 _wrong = false;
@@ -120,7 +163,12 @@ namespace SoldierADay.Net
             _at = 0;
             Miss();
             // 두 번 틀리면 다시 보여준다 — 못 외운 채로 시간만 태우게 두지 않는다
-            if (Mistakes % 2 == 0) _reveal = _showFor * 0.6f;
+            if (Mistakes % 2 == 0)
+            {
+                _reveal = _showFor * 0.6f;
+                _revealDuration = _reveal;
+                _revealSounded = 0;
+            }
         }
 
         private float Progressed() =>
@@ -191,7 +239,7 @@ namespace SoldierADay.Net
             {
                 var bar = new Rect(body.center.x - 120f, body.y + 96f, 240f, 6f);
                 theme.Fill(bar, HudTheme.Rule3);
-                theme.Fill(new Rect(bar.x, bar.y, bar.width * (_reveal / Mathf.Max(0.01f, _showFor)),
+                theme.Fill(new Rect(bar.x, bar.y, bar.width * (_reveal / Mathf.Max(0.01f, _revealDuration)),
                                     bar.height), HudTheme.Heat);
             }
 

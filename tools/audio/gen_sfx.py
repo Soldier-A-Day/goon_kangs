@@ -1,26 +1,35 @@
 #!/usr/bin/env python3
-"""저장소 최초의 소리 4종을 파이썬으로 직접 합성한다 (A-2).
+"""저장소 최초의 소리 4종(A-2) + D-4 1단계 확장 6종을 파이썬으로 직접 합성한다.
 
 외부 음원을 받지 않는다 — 라이선스를 확인할 길이 없다. 사인파 + 노이즈 +
 짧은 감쇠 봉투만으로 만든다. 컨셉은 "등사판 서류": 낮고 건조하게, 8비트
 게임기의 밝고 통통 튀는 삑삑이가 되면 안 된다. 그래서
 
-  - 기본 주파수를 전부 낮게 잡는다(85~330Hz대 — 화려한 칩튠은 500Hz 위에서 산다)
+  - 기본 주파수를 전부 낮게 잡는다(80~420Hz대 — 화려한 칩튠은 500Hz 위에서 산다)
   - 서스테인·비브라토를 안 쓴다. 어택은 짧고 감쇠는 지수형이다 — 도장 찍듯 뚝 끊긴다
   - 사각파 대신 `tanh` 소프트클립("buzz")을 쓴다. 순수 구형파는 그 자체로
     레트로 게임기 소리를 낸다
 
+D-4 1단계에서 늘어난 6종(walk·door·open·close·alarm·pop)도 같은 규칙을
+따른다 — 새 파형·새 질감을 만들지 않고 기존 `_tone`/`_noise` 조합만 쓴다.
+`drift`(주파수 선형 변화)만 이번에 처음 실전 투입했다 — 문이 삐걱이는 소리,
+판이 열리고 닫힐 때의 미끄러지는 톤에 쓴다.
+
 재생성:
     python3 tools/audio/gen_sfx.py
 
-출력: unity/Assets/Resources/Audio/{tap,success,miss,warning}.wav
-      (PCM 16bit, 22.05kHz, 모노)
+출력: unity/Assets/Resources/Audio/{tap,success,miss,warning,
+      walk,door,open,close,alarm,pop}.wav (PCM 16bit, 22.05kHz, 모노)
 
 왜 `Resources/Audio`인가: `Sfx.cs`가 씬 수정도 인스펙터 배선도 없이 런타임에
 `Resources.Load<AudioClip>()`로 클립을 찾아야 한다 — Unity에서 임포트 후
 그게 되는 유일한 폴더가 `Resources`다. 발주서가 적은 원래 경로
 `unity/Assets/Audio/`는 인스펙터에 수동으로 끌어다 놓는 워크플로에서만
 동작하는데, 그러면 이 생성 스크립트가 "재생성 가능"하지 않게 된다.
+
+**결정론**: `random`은 매번 `seed=`를 명시한 `random.Random(seed)`로만 쓴다
+(전역 `random` 상태·시각 기반 값은 안 쓴다) — 그래서 이 스크립트를 몇 번을
+다시 돌려도 바이트 단위로 같은 WAV가 나온다.
 """
 import math
 import os
@@ -153,6 +162,55 @@ def gen_warning():
     return _concat(beep, 0.14, beep)
 
 
+def gen_walk():
+    """발소리, 50ms — `tap`(도장)보다 낮고 훨씬 여리다. 걸음마다 매 프레임
+    깔리므로 존재감이 크면 금방 피곤해진다 — tri 저역 톤 + 짧은 무게감 노이즈뿐."""
+    body = _tone(95, 0.05, amp=0.30, attack=0.001, decay_tau=0.018, wave_shape="tri")
+    thud = _noise(0.04, amp=0.12, decay_tau=0.015, seed=10, smooth=3)
+    return _mix(body, thud)
+
+
+def gen_door():
+    """문 여닫힘, 240ms — 낮은 톤이 위로 삐걱이며 미끄러지다(`drift`) 끝에 짧은
+    노크로 닫힌다. 지금은 자산만 만들어 둔다 — 실제 건물 문 배선은 D-4 2단계 몫."""
+    creak = _tone(140, 0.22, amp=0.26, attack=0.02, decay_tau=0.12,
+                  wave_shape="buzz", drift=0.55)
+    knock = _tone(80, 0.05, amp=0.38, attack=0.001, decay_tau=0.02, wave_shape="sine")
+    return _concat(creak, 0.02, knock)
+
+
+def gen_open():
+    """판 열림, 90ms — 톤이 짧게 위로 미끄러진다(종이가 펼쳐지는 느낌).
+    `tap`(도장)과 달리 어택을 풀어서 "찍는" 소리가 아니라 "펼치는" 소리로 간다."""
+    return _tone(90, 0.09, amp=0.42, attack=0.015, decay_tau=0.05,
+                 wave_shape="sine", drift=2.6)
+
+
+def gen_close():
+    """판 닫힘, 80ms — `open`의 반대. 톤이 아래로 미끄러지며 뚝 끊긴다(어택이
+    짧다 — 펼쳤던 것을 도로 접는 순간은 열 때보다 급하다)."""
+    return _tone(300, 0.08, amp=0.40, attack=0.001, decay_tau=0.035,
+                 wave_shape="sine", drift=-3.0)
+
+
+def gen_alarm():
+    """위기 시작 경고, 낮은음 3연타 약 570ms — 기존 `warning`(2회, 260Hz)보다
+    한 옥타브 가까이 낮고 한 번 더 친다. UI 오류음이 아니라 사람이 쓰러졌다는
+    신호라 더 무겁게 간다."""
+    pulse = _tone(150, 0.16, amp=0.46, attack=0.004, decay_tau=0.07, wave_shape="buzz")
+    grit = _noise(0.16, amp=0.05, decay_tau=0.06, seed=12, smooth=1)
+    beat = _mix(pulse, grit)
+    return _concat(beat, 0.09, beat, 0.09, beat)
+
+
+def gen_pop():
+    """완료 팝, 70ms — 짧고 또렷한 튐 소리. `HoldBoard`가 런타임에 pitch를
+    올려 콤보 상승감을 주는 것을 전제로, 원본은 밋밋한 단일 톤 하나로 둔다."""
+    body = _tone(210, 0.07, amp=0.48, attack=0.001, decay_tau=0.025, wave_shape="sine")
+    sparkle = _tone(420, 0.05, amp=0.11, attack=0.001, decay_tau=0.018, wave_shape="tri")
+    return _mix(body, sparkle)
+
+
 def main():
     os.makedirs(OUT_DIR, exist_ok=True)
     generators = {
@@ -160,6 +218,12 @@ def main():
         "success": gen_success,
         "miss": gen_miss,
         "warning": gen_warning,
+        "walk": gen_walk,
+        "door": gen_door,
+        "open": gen_open,
+        "close": gen_close,
+        "alarm": gen_alarm,
+        "pop": gen_pop,
     }
     for name, gen in generators.items():
         samples = gen()

@@ -23,7 +23,15 @@ namespace SoldierADay.Net
     public sealed class Sfx : MonoBehaviour
     {
         private const int PoolSize = 6;
-        private static readonly string[] Keys = { "tap", "success", "miss", "warning" };
+
+        /// <summary>D-4 1단계 — `tools/audio/gen_sfx.py`가 이 이름 그대로 WAV를 낸다.
+        /// 여기 없는 키는 `Resources.Load`가 못 찾아 조용히 무시된다(§WebGL 오디오 잠금과
+        /// 같은 "재시도 없이 버린다" 철학) — 새 자산을 추가하면 반드시 여기도 같이 늘린다</summary>
+        private static readonly string[] Keys =
+        {
+            "tap", "success", "miss", "warning",
+            "walk", "door", "open", "close", "alarm", "pop",
+        };
 
         private static Sfx _instance;
 

@@ -74,6 +74,7 @@ namespace SoldierADay.Net
         {
             _body = GetComponent<Rigidbody2D>();
             if (_rig == null) _rig = GetComponent<CharacterRig>();
+            if (_rig != null) _rig.StepContact += PlayFootstep;
 
             // 탑다운에는 중력이 없다. 벽에 부딪혀도 돌지 않아야 한다
             _body.gravityScale = 0f;
@@ -81,6 +82,11 @@ namespace SoldierADay.Net
         }
 
         public void Bind(CharacterRig rig) => _rig = rig;
+
+        /// <summary>D-4 3단계 — 걷기 접지 프레임마다 발소리. `Vfx.HandleStepContact`가
+        /// 같은 신호로 먼지를 뿌리는 것과 같은 자리다(`CharacterRig.StepContact`).
+        /// 소리 한 줄만 붙인다 — 판정·이동 로직은 그대로 둔다</summary>
+        private static void PlayFootstep() => Sfx.Play("walk", 0.5f);
 
         public CharacterRig Rig => _rig;
 

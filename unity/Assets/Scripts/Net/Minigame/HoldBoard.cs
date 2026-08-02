@@ -38,6 +38,12 @@ namespace SoldierADay.Net
     /// 쌓는 스팸이 되지 않게 하는 여유다. 시간이 다 되면 여전히 실패다
     /// (`TimesOut` 기본값 그대로) — 이 판은 판단이 아니라 반응 훈련이라
     /// 시간초과를 봐줄 이유가 없다.
+    ///
+    /// ── A-5 2차 — 콤보 상승감 ─────────────────────────────────────────────
+    /// 장애물을 연속으로 통과할 때마다 통과음(`tap`) 피치가 조금씩 올라간다
+    /// (`_combo`). 부딪히면 그 자리에서 1배로 되돌아간다 — 시각으로는 무적
+    /// 깜빡임이 "지금 안전하다"를 말해 주고, 청각으로는 피치 리셋이 "콤보가
+    /// 끊겼다"를 말해 준다.
     /// </summary>
     public sealed class HoldBoard : Board
     {
@@ -79,6 +85,14 @@ namespace SoldierADay.Net
         private int _passedCount;
         private float _invulnT;
         private bool _phase2;
+
+        /// <summary>연속 통과 수 — 부딪히면 0으로 되돌아간다. `_passedCount`(누적 총합)와
+        /// 달리 이건 "지금 몇 번째 콤보인가"라 통과음 피치가 여기에 붙는다</summary>
+        private int _combo;
+
+        /// <summary>이 콤보 수쯤에서 피치 상승이 상한(1.5배)에 닿는다. 그 뒤로는 더 안 오른다 —
+        /// 계속 올리면 언젠가는 삑삑거리는 칩튠이 되어 저장소 톤 원칙과 어긋난다</summary>
+        private const float ComboPitchCap = 8f;
 
         public override string Instruction => "눌러서 떠라 — 장애물을 피해 버텨라";
 
@@ -141,6 +155,7 @@ namespace SoldierADay.Net
             _vel = 0f;
             _scrollX = 0f;
             _passedCount = 0;
+            _combo = 0;
             _invulnT = 0f;
             _phase2 = false;
 
@@ -205,7 +220,10 @@ namespace SoldierADay.Net
                 {
                     _passed[i] = true;
                     _passedCount += 1;
-                    Sfx.Play("tap");
+                    _combo += 1;
+                    // 콤보 상승감 — 연속으로 통과할수록 같은 `tap`이 조금씩 높게 튄다.
+                    // 부딪히면(아래 hit 처리) 다시 1배로 가라앉는다
+                    Sfx.Play("tap", 1f, Mathf.Lerp(1f, 1.5f, Mathf.Clamp01(_combo / ComboPitchCap)));
                 }
 
                 // 무적 동안은 새 충돌을 판정하지 않는다 — 부딪힌 직후 가운데로
@@ -236,6 +254,7 @@ namespace SoldierADay.Net
             if (hit && _invulnT <= 0f)
             {
                 Miss();
+                _combo = 0;
                 _invulnT = InvulnDuration;
                 _playerY = 0.5f;
                 _vel = 0f;
