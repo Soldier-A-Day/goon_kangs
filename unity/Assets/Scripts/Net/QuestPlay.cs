@@ -143,7 +143,14 @@ namespace SoldierADay.Net
             if (_resultAge < ResultHold) return;
 
             // 판이 없는 일과는 통과를 신고할 것이 없다 — 서버가 시간으로 끝낸다
-            if (_spec != null) client?.ClearQuest(QuestId, Board.Grade());
+            if (_spec != null)
+            {
+                var grade = Board.Grade();
+                client?.ClearQuest(QuestId, grade);
+                // 연속 A 상승 곡선은 여기서만 잰다 — 실패는 등급이 없어 스택을
+                // 건드리지 않는다. 흔들리지 않았다는 것을 통과로만 증명한다
+                GradeStreak.Record(grade);
+            }
             // 완료 선언은 서버가 한다. 여기서는 붙잡은 것을 놓고 판을 닫을 뿐이다
             Send(false);
             Close();
@@ -162,6 +169,10 @@ namespace SoldierADay.Net
             Settling = false;
             _fadePulse = 1f;
 
+            // **연속 A 상승 곡선.** 보상은 서버 소관이라 손대지 않는다 — 조이는
+            // 것은 제한 시간뿐이다. 스택이 없으면 배율이 1이라 평소와 같다
+            var limit = (float)quest.workSeconds * GradeStreak.LimitScale;
+
             // **판이 없는 일과도 판을 띄운다.**
             //
             // 회복 행동 · 합동 · 훈련 체크포인트가 여기 해당한다. 예전에는 여기서
@@ -169,10 +180,10 @@ namespace SoldierADay.Net
             // 판을 안 띄우면 붙잡는 주체도 같이 사라진다 — 밥도 세면도 영영 못
             // 하게 되고, E를 눌러도 아무 일이 안 일어난다.
             Board = _spec == null
-                ? Chore((float)quest.workSeconds, questId)
+                ? Chore(limit, questId)
                 : quest.jointTotal > 0
-                    ? Joint(quest, questId)
-                    : Boards.Open(_spec, (float)quest.workSeconds, questId);
+                    ? Joint(quest, questId, limit)
+                    : Boards.Open(_spec, limit, questId);
 
             // 판이 화면을 덮으므로 걷지 못한다. 그 자리에서 하는 일이다
             if (player != null) player.Suspended = true;
@@ -194,7 +205,9 @@ namespace SoldierADay.Net
             Settling = false;
 
             var quest = Find(QuestId);
-            var limit = quest != null ? (float)quest.workSeconds : Board.Limit;
+            var limit = quest != null
+                ? (float)quest.workSeconds * GradeStreak.LimitScale
+                : Board.Limit;
             Board = _spec == null ? Chore(limit, QuestId) : Boards.Open(_spec, limit, QuestId);
         }
 
@@ -204,7 +217,7 @@ namespace SoldierADay.Net
         /// 혼자 통과하는 판이 아니라 **인원이 나눠 채우는 판**이라 겉을 한 겹
         /// 씌운다. 조각은 서버가 세고, 통과 선언도 서버가 한다.
         /// </summary>
-        private Board Joint(SnapshotQuestsItem quest, string questId)
+        private Board Joint(SnapshotQuestsItem quest, string questId, float limitSeconds)
         {
             var board = new JointBoard
             {
@@ -213,7 +226,7 @@ namespace SoldierADay.Net
                 NeedActors = Mathf.Max(1, (int)quest.minActors),
             };
             board.OnStep = () => client?.JointStep(questId);
-            board.Begin(_spec, (float)quest.workSeconds, questId);
+            board.Begin(_spec, limitSeconds, questId);
             return board;
         }
 

@@ -106,6 +106,26 @@ namespace SoldierADay.Net
         public BoardState State { get; private set; }
 
         /// <summary>
+        /// 시간이 다 흘렀을 때 실패가 아니라 그때까지의 Fill로 등급을 매겨
+        /// 통과하는 판인가.
+        ///
+        /// 14종 원형 전부 기본은 false(시간초과=실패)다. 판단형(대조 점검·
+        /// 분류)은 시간이 압박이어야 맞지만, 과정형(문지르기·탐색·자유 배치)은
+        /// 파워워시 시뮬레이터의 젠이 돼야 하는데 같은 잣대를 쓰면 못 끝낸
+        /// 죄로 처음부터 다시 시킨다 — 그 판만 여기를 override한다.
+        /// </summary>
+        protected virtual bool GradesOnTimeout => false;
+
+        /// <summary>
+        /// 시간초과로 끝났다 — 등급 상한과 결과 문구가 갈린다.
+        ///
+        /// `GradesOnTimeout` 판이 시간 안에 끝내지 못하고 Fill로 통과했을 때,
+        /// 또는 Fill이 절반도 안 돼 재시도로 넘어갔을 때 켜진다. 시간 안에
+        /// 끝낸 통과·실수로 인한 즉시 실패와는 결과 화면 문구가 달라야 한다.
+        /// </summary>
+        public bool TimedOut { get; private set; }
+
+        /// <summary>
         /// 0~1. 성공/실수 플래시 세기 — 지수 감쇠. `HudMinigame`이 본문 위에 겹쳐 그린다.
         ///
         /// 예전에는 `RhythmBoard` 등 3종이 저마다 `_flash` 필드를 따로 들고
@@ -133,6 +153,7 @@ namespace SoldierADay.Net
             State = BoardState.Running;
             FlashT = 0f;
             ResultAge = 0f;
+            TimedOut = false;
             _presentedState = BoardState.Running;
             Rng = new System.Random(StableHash(questId ?? ""));
             Setup();
@@ -155,11 +176,43 @@ namespace SoldierADay.Net
             Advance(dt, input);
 
             if (State != BoardState.Running) return State;
-            if (TimesOut && Elapsed >= Limit) State = BoardState.Failed;
+            if (TimesOut && Elapsed >= Limit) HandleTimeout();
             return State;
         }
 
         protected abstract void Advance(float dt, BoardInput input);
+
+        /// <summary>
+        /// 시간이 다 흘렀을 때의 판정.
+        ///
+        /// 판단형은 여전히 실패다 — 압박이 그 원형의 본질이다. 과정형
+        /// (`GradesOnTimeout`)은 그때까지 채운 양이 절반을 넘었으면 인정하고
+        /// 통과시킨다. 다만 다 끝낸 것과 같은 세기로 축하하면 시간초과가
+        /// 성공처럼 읽히므로 플래시는 짧게 절제한다. 절반도 못 채웠으면
+        /// 가만히 있어도(AFK) 판이 넘어가는 구멍이 되므로 그대로 재시도로
+        /// 돌려보낸다.
+        /// </summary>
+        private void HandleTimeout()
+        {
+            TimedOut = true;
+
+            if (!GradesOnTimeout)
+            {
+                State = BoardState.Failed;
+                return;
+            }
+
+            if (Fill >= 0.5f)
+            {
+                State = BoardState.Cleared;
+                SetFlash(true, 0.12f);
+                Sfx.Play("success");
+            }
+            else
+            {
+                State = BoardState.Failed;
+            }
+        }
 
         /// <summary>
         /// 시간이 다 흐르면 실패인가.
@@ -234,9 +287,18 @@ namespace SoldierADay.Net
         ///   A  실수 0 · 제한 시간의 20% 이상 남김
         ///   B  실수 1 이하
         ///   C  통과는 했다
+        ///
+        /// **시간초과로 통과했으면 이 잣대를 안 쓴다.** 실수·여유는 시간 안에
+        /// 끝낸 사람에게만 의미가 있는 축이라, 시간이 다 돼서 넘어간 판은
+        /// 그때까지 채운 양(Fill)으로만 잰다. A는 시간 안에 끝낸 사람의
+        /// 몫이라 시간초과로는 닿지 않는다.
+        ///
+        ///   B  Fill 85% 이상
+        ///   C  그 외
         /// </summary>
         public string Grade()
         {
+            if (TimedOut) return Fill >= 0.85f ? SnapshotQuestsItemGradeValues.B : SnapshotQuestsItemGradeValues.C;
             if (Mistakes == 0 && TimeLeftRatio >= 0.2f) return SnapshotQuestsItemGradeValues.A;
             if (Mistakes <= 1) return SnapshotQuestsItemGradeValues.B;
             return SnapshotQuestsItemGradeValues.C;
