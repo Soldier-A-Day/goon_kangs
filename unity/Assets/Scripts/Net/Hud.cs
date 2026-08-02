@@ -120,7 +120,8 @@ namespace SoldierADay.Net
             // **런이 끝났거나 붙지 못했으면 여기서 끝난다.**
             // 그 아래 HUD는 그릴 이유가 없고, 멈춘 화면을 그대로 두면
             // 플레이어는 퇴소된 줄도 모른 채 얼어붙은 부대를 본다
-            if (HudEnding.Draw(_theme, client, () => boot?.RestartRun(), GoLobby))
+            if (HudEnding.Draw(_theme, client, () => boot?.RestartRun(), GoLobby,
+                    boot != null && boot.Restarting, boot != null ? boot.RestartError : ""))
             {
                 GUI.matrix = matrix;
                 return;
@@ -594,7 +595,13 @@ namespace SoldierADay.Net
             HudIcons.Dot(new Rect(head.xMax - 16f, head.y + 9f, 8f, 8f), radioColor);
 
             var body = new Rect(rect.x + 12f, head.yMax + 10f, rect.width - 24f, rect.height - head.height - 22f);
-            DrawSectorPlan(body, snapshot, radio);
+
+            // **잘라낸다.** 미니맵은 구역을 확대해서 보므로 옆방이 패널 밖으로
+            // 뻗어 나간다. 그대로 두면 지도가 화면 절반에 그려진다.
+            // 그룹 안에서는 좌표가 그룹 기준이라 원점을 0으로 넘긴다
+            GUI.BeginGroup(body);
+            DrawSectorPlan(new Rect(0f, 0f, body.width, body.height), snapshot, radio);
+            GUI.EndGroup();
         }
 
         /// <summary>
@@ -614,6 +621,23 @@ namespace SoldierADay.Net
         /// 부대와 훈련장은 걸어서 이어져 있지만 **한 지도에 그릴 것은 아니다.**
         /// 사이드뷰 코스는 아예 다른 화면이라 또 따로 둔다.
         /// </summary>
+        /// <summary>
+        /// 미니맵이 한 번에 보는 폭(타일).
+        ///
+        /// 부대에서 제일 넓은 야외 구역(연병장 46타일)이 겨우 들어가는 값이다 —
+        /// 이보다 넓히면 방이 손톱만 해지고, 좁히면 연병장 한가운데서 사방이
+        /// 잘려 어디쯤인지 알 수 없다.
+        /// </summary>
+        private const float MaxView = 48f;
+
+        /// <summary>
+        /// 시야 중심을 지도 안에 물린다. 다 담기면 가운데로 놓는다.
+        /// </summary>
+        private static float Framed(float at, float view, float lo, float hi) =>
+            view >= hi - lo
+                ? (lo + hi) * 0.5f
+                : Mathf.Clamp(at, lo + view * 0.5f, hi - view * 0.5f);
+
         private static string RegionOf(string zone)
         {
             if (string.IsNullOrEmpty(zone) || !zone.StartsWith("TR")) return "base";
@@ -661,6 +685,44 @@ namespace SoldierADay.Net
             var pad = detailed ? 26f : 14f;
             var inner = new Rect(area.x + pad, area.y + pad, area.width - pad * 2f,
                                  area.height - pad * 2f);
+
+            // **미니맵은 지금 있는 구역을 확대해서 본다.**
+            //
+            // 권역 전체를 220px 안에 욱여넣으면 방 하나가 손톱만 해져서,
+            // 내가 어느 방에 있는지는 알아도 **그 방 안 어디인지**를 알 수 없다.
+            // 부대 전체 배치는 지도 창(TAB)이 맡고, 여기는 "지금 여기"만 본다.
+            // 둘레를 조금 남기는 것은 옆방으로 가는 문이 보여야 하기 때문이다.
+            if (!detailed && world.Here != null)
+            {
+                var seen = world.Here.area;
+
+                // 구역과 그 둘레 55%가 패널을 채우는 배율 — 방에서는 지금까지와 같다
+                var fit = Mathf.Min(inner.width / (seen.width * 2.1f),
+                                    inner.height / (seen.height * 2.1f));
+
+                // **한 번에 이보다 넓게 보지 않는다.**
+                //
+                // 구역을 통째로 담으려 하면 긴 구역에서 무너진다 — 생활관동 복도는
+                // 56타일짜리 한 칸이라, 둘레까지 얹으면 118타일을 220px에 넣게 되고
+                // 배율이 부대 지도와 같아진다. 지도 밖까지 프레임이 나가서 패널
+                // 왼쪽 위 3분의 1이 빈 종이가 되고, 부대는 오른쪽 아래로 쏠린다.
+                // 그게 복도에서 미니맵이 깨져 보이던 것의 정체다.
+                var zoom = Mathf.Max(fit, inner.width / MaxView);
+                var view = new Vector2(inner.width / zoom, inner.height / zoom);
+
+                // 다 못 담으면 **사람을 따라간다.** 구역 중앙에 고정하면 복도
+                // 동쪽 끝에 서 있는데 화면은 서쪽 문을 비춘다
+                var focus = world.player != null
+                    ? (Vector2)world.player.transform.position
+                    : seen.center;
+
+                // 지도 밖을 비추지 않는다 — 빈 종이가 차지한 만큼 부대가 줄어든다
+                focus = new Vector2(Framed(focus.x, view.x, min.x, max.x),
+                                    Framed(focus.y, view.y, min.y, max.y));
+
+                min = focus - view * 0.5f;
+                max = focus + view * 0.5f;
+            }
 
             var span = max - min;
             var k = Mathf.Min(inner.width / span.x, inner.height / span.y);
@@ -907,6 +969,11 @@ namespace SoldierADay.Net
                     var box = BoxOf(zone.area);
                     if (box.width < 40f || box.height < 22f) continue;
 
+                    // 방 크기에 맞춰 키운다. 11pt로 고정해뒀더니 1920 기준으로
+                    // 그린 지도에서 이름이 벽선보다 가늘어 읽히지 않았다 —
+                    // 지도를 여는 이유가 이름을 읽는 것인데 그게 안 됐다
+                    var size = Mathf.RoundToInt(Mathf.Clamp(box.height * 0.15f, 8f, 13f));
+
                     // **이름은 방 한가운데**에 놓는다. 왼쪽 위에 붙이면 벽선과
                     // 붙어서 글자가 벽에 걸린 표찰처럼 보이고, 어느 방의
                     // 이름인지도 한 칸 애매해진다.
@@ -915,8 +982,8 @@ namespace SoldierADay.Net
                     // 이름은 없는 이름과 같다. 짧은 쪽이 부대에서 실제로 부르는
                     // 말이기도 하다(사지방 · 체단장 · 위병소).
                     GUI.Label(box, ZoneNames.ShortOf(zone.id),
-                        _theme.At(_theme.Small, 11,
-                            zone.id == here ? HudTheme.Ink : HudTheme.Ink2,
+                        _theme.At(_theme.Heading, size,
+                            zone.id == here ? HudTheme.Accent : HudTheme.Ink,
                             TextAnchor.MiddleCenter));
                 }
             }
@@ -929,11 +996,11 @@ namespace SoldierADay.Net
                 if (!detailed && box.width <= 40f) continue;
 
                 var mine = world.Here != null && building.area.Overlaps(world.Here.area);
-                GUI.Label(new Rect(box.x, box.y - (detailed ? 19f : 13f),
-                                   Mathf.Max(box.width, detailed ? 160f : 96f), 18f),
+                GUI.Label(new Rect(box.x, box.y - (detailed ? 28f : 13f),
+                                   Mathf.Max(box.width, detailed ? 220f : 96f), 24f),
                     building.name,
-                    _theme.At(_theme.Label, detailed ? 12 : 10,
-                        mine ? HudTheme.Accent : HudTheme.Ink2));
+                    _theme.At(_theme.Label, detailed ? 13 : 11,
+                        mine ? HudTheme.Accent : HudTheme.Ink3));
             }
 
             if (snapshot?.members == null) return;
@@ -970,7 +1037,8 @@ namespace SoldierADay.Net
                 var dot = new Rect(at.x - 4f, at.y - 4f, 8f, 8f);
                 var color = HudTheme.RoleColor(member.role);
 
-                // §7.9 범례 "타 구역 아군 — 무전으로만". 속 빈 원으로 구분한다
+                // 형태 = 가시성(속 찬 점/속 빈 원), 색 = 보직(RoleColor) — 서로 다른 축이라 겹쳐 찍는다.
+                // §7.9 범례가 이 둘을 나눠서 설명한다(HudScreens.cs DrawBaseMap)
                 if (sameZone) HudIcons.Dot(dot, color);
                 else HudIcons.Circle(dot, 2f, color);
             }

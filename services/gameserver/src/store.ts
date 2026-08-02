@@ -63,6 +63,9 @@ export class RoomStore {
     const room = new Room(upper, state.config, state.seed, this.send);
     this.wire(room);
     room.restore(state);
+    // 새 Room이라 seq가 0부터 다시 센다 — 클라의 연결별 리셋(GameClient.Connect)이
+    // 주 방어선이지만, 서버도 겹겹이 막아둔다 (room.ts의 bumpSeqFloor 참고)
+    room.bumpSeqFloor(Date.now());
     this.rooms.set(upper, room);
     return room;
   }
@@ -108,8 +111,15 @@ export class RoomStore {
   /**
    * 빈 방 청소.
    *
-   * 시작 전 빈 방은 그냥 지운다. 시작한 뒤 끝난 방도 지우는데, 그 시점에는 이미
-   * 기록이 남고 스냅샷이 정리된 상태다(wire 참고) — 진행 중인 방은 건드리지 않는다.
+   * 시작 전 빈 방은 그냥 지운다. 시작한 뒤 끝난 방도 지우는데, **아무도 붙어 있지
+   * 않을 때만**이다 — 그 시점에는 이미 기록이 남고 스냅샷이 정리된 상태다(wire 참고).
+   * 진행 중인 방은 건드리지 않는다.
+   *
+   * 끝난 방에 소켓이 붙어 있다는 것은 분대가 종료 화면을 보고 있다는 뜻이다.
+   * 화면을 읽고 "이 방에서 다시"를 누르기까지는 몇 초에서 몇십 초가 걸리는데,
+   * 이 청소가 60초마다 돌면서 그 사이에 방을 지워버리면 재시작 POST가
+   * roomNotFound로 죽는다 — 화면은 그대로 종료 화면이라 아무 일도 안 일어난
+   * 것처럼 보인다. 붙어 있는 사람이 하나라도 있으면 청소를 미룬다.
    */
   sweep(): void {
     for (const [code, room] of this.rooms) {
@@ -117,7 +127,8 @@ export class RoomStore {
         this.rooms.delete(code);
         continue;
       }
-      if (room.run && room.run.status !== "running") {
+      if (room.run && room.run.status !== "running" &&
+          !room.occupants.some((seat) => seat.connected)) {
         this.rooms.delete(code);
       }
     }

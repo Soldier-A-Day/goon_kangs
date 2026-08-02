@@ -30,6 +30,21 @@ namespace SoldierADay.Net
         private Snapshot _beforeSleep;
         private double _lastDay = -1d;
 
+        /// <summary>하루 마감에서 판정 다음으로 보여줄 화면들(승급 → 취침 정산 순).
+        ///
+        /// 서버는 하루 마감 이펙트를 한 WS 메시지로 묶어 보내고(room.ts:506),
+        /// GameClient.cs가 그걸 한 프레임에 동기 for문으로 전부 발화시킨다. 그 순간
+        /// OnEvent가 도착 즉시 `_screen`을 갈아치우면 마지막 이벤트만 화면에 남는다 —
+        /// 판정·승급 화면이 단 한 프레임도 그려지지 못하고 취침 정산으로 직행했던
+        /// 원인이 이거다. 그래서 여기서는 화면을 바로 바꾸지 않고 큐에 쌓아 두고,
+        /// 지금 떠 있는 화면이 제 몫의 시간을 다 채운 뒤에야 하나씩 꺼낸다.</summary>
+        private readonly Queue<Screen> _dayEndQueue = new();
+
+        /// <summary>지금 떠 있는 승급/취침 정산 화면이 언제 떴는가(unscaledTime).
+        /// 판정(RollCall) 화면은 기존 `_rollCallStart`를 그대로 쓴다 — 그 화면만
+        /// 기획서에 박힌 6.4초 고정 연출이라 별도 필드로 이미 다뤄지고 있었다.</summary>
+        private float _dayEndScreenStart;
+
         /// <summary>이 시간대의 하달을 내가 끝냈는가. 창을 다시 띄우지 않는다</summary>
         private string _delegationDone;
 
@@ -64,8 +79,16 @@ namespace SoldierADay.Net
                 if (slot >= 0) Send(slot);
             }
 
-            // 점호·하달은 서버 상태가 열고 닫는다. 플레이어가 닫을 수 없다
-            if (_screen is Screen.RollCall or Screen.Delegation) return;
+            // 점호·하달은 서버 상태가 열고 닫는다. 플레이어가 닫을 수 없다.
+            // 승급·취침 정산도 하루 마감 연출의 한 토막이라 여기 묶는다 — Tab/M/Space
+            // 같은 창 전환 키가 끼어들면 큐가 진행되는 도중에 다른 창으로 새 버린다.
+            if (_screen is Screen.RollCall or Screen.Delegation)
+                return;
+            if (_screen is Screen.Rank or Screen.Sleep)
+            {
+                UpdateDayEndAdvance();
+                return;
+            }
 
             if (Input.GetKeyDown(KeyCode.Tab))
                 _screen = _screen == Screen.Notebook ? Screen.None : Screen.Notebook;
@@ -120,22 +143,91 @@ namespace SoldierADay.Net
             switch (item.type)
             {
                 case ServerEventTypeValues.DayJudged:
+                    // 새 판정이 도착했다 = 이전 하루의 연출은 뭐가 남아 있었든 끝난 걸로
+                    // 친다. 밀린 연출을 큐에 그대로 두면 다음 하루가 시작된 뒤에도
+                    // 어제 화면이 뒤늦게 튀어나온다 — 화면이 하루 뒤처지는 쪽이
+                    // 훨씬 큰 고장이므로 무조건 버리고 지금 판정을 최우선으로 보여준다.
                     _judgement = item;
+                    _dayEndQueue.Clear();
                     _rollCallStart = Time.unscaledTime;
                     _screen = Screen.RollCall;
                     break;
 
-                case ServerEventTypeValues.SleepSettled:
-                    _sleepSettle = item;
-                    if (_screen == Screen.RollCall && _judgement != null && !_judgement.passed) break;
-                    _screen = Screen.Sleep;
-                    break;
-
                 case ServerEventTypeValues.RankReviewed:
                     _rankReview = item;
-                    _screen = Screen.Rank;
+                    // 판정 실패 날은 RollCall 화면이 그대로 남아 종료 흐름(퇴소)으로
+                    // 가야 한다(§7.5, HudEnding 담당). 승급 화면을 끼워 넣으면 그 흐름을
+                    // 밀어내 버리므로, SleepSettled와 똑같은 가드를 여기도 건다.
+                    if (_judgement != null && !_judgement.passed) break;
+                    EnqueueDayEnd(Screen.Rank);
+                    break;
+
+                case ServerEventTypeValues.SleepSettled:
+                    _sleepSettle = item;
+                    // 실패 시엔 RollCall 화면을 지키는 기존 동작 그대로 — 취침 정산을
+                    // 보여주지 않고 버려서(§7.5) 판정 화면이 종료 흐름으로 이어지게 한다.
+                    if (_judgement != null && !_judgement.passed) break;
+                    EnqueueDayEnd(Screen.Sleep);
                     break;
             }
+        }
+
+        /// <summary>하루 마감 화면을 큐에 쌓는다. 지금 아무 화면도 안 떠 있으면(이론상
+        /// 판정 없이 단독으로 도착한 경우) 즉시 보여준다 — 놀리지 않는다.</summary>
+        private void EnqueueDayEnd(Screen screen)
+        {
+            if (_screen == Screen.None)
+            {
+                _screen = screen;
+                _dayEndScreenStart = Time.unscaledTime;
+            }
+            else
+            {
+                _dayEndQueue.Enqueue(screen);
+            }
+        }
+
+        /// <summary>지금 화면을 접고 큐에서 다음 화면을 꺼낸다. 큐가 비었으면 닫는다.
+        /// RollCall(6.4초 고정 연출)이 끝나는 지점과, 아래 <see cref="UpdateDayEndAdvance"/>가
+        /// Rank·Sleep 화면을 넘길 때 둘 다 이걸 거쳐서 화면이 큐 순서를 벗어나지 않는다.</summary>
+        private void AdvanceDayEnd()
+        {
+            _screen = _dayEndQueue.Count > 0 ? _dayEndQueue.Dequeue() : Screen.None;
+            _dayEndScreenStart = Time.unscaledTime;
+        }
+
+        /// <summary>승급·취침 정산 화면의 자동/수동 전환.
+        ///
+        /// 판정 화면은 §7.5 6.4초 고정 연출이라 스킵을 안 받는다 — DrawRollCall이
+        /// 자체 타이머(`_rollCallStart`)로 알아서 <see cref="AdvanceDayEnd"/>를 부른다.
+        /// 여기서는 그 뒤에 오는 두 화면만 다룬다.
+        ///
+        /// 최소 시간 동안은 무슨 입력이 와도 넘기지 않는다(내용을 최소한은 보게).
+        /// 그 뒤로는 자동 전환 시각이 되거나 아무 키/클릭이 오면 즉시 다음으로
+        /// 넘긴다 — 실시간 멀티라 서버는 계속 틱을 돌기 때문에, 입력을 기다리며
+        /// 영영 멈춰 있는 경로를 만들면 안 된다(요구사항 4).
+        ///
+        /// 값 근거 — 기획서에 이 두 화면의 연출 시간이 명시돼 있지 않아 화면
+        /// 내용량으로 정했다:
+        /// - 승급(Rank): 분대원 4명짜리 표 하나, 단계식 리빌 없이 한 번에 그려진다.
+        ///   최소 3.0s(표를 눈으로 훑는 데 필요한 시간), 자동 전환 6.0s(최소치의 2배 —
+        ///   판정 화면 6.4s와 체감 속도를 맞췄다).
+        /// - 취침 정산(Sleep): 스탯 6종 + 군기까지 숫자를 하나씩 대조해야 해서 더 준다.
+        ///   최소 2.5s, 자동 전환 10.0s — 원래 "SPACE — 닫기"로 수동 닫기만 있던
+        ///   화면이라(자동으로 안 넘어가도 됐다) 자동 하한을 가장 넉넉하게 잡았다.
+        /// </summary>
+        private void UpdateDayEndAdvance()
+        {
+            if (_screen != Screen.Rank && _screen != Screen.Sleep) return;
+
+            var elapsed = Time.unscaledTime - _dayEndScreenStart;
+            var floor = _screen == Screen.Rank ? 3.0f : 2.5f;
+            var autoAdvance = _screen == Screen.Rank ? 6.0f : 10.0f;
+            // `Input.anyKeyDown`은 키보드뿐 아니라 마우스 버튼도 포함한다 — 클릭도 스킵으로 친다
+            var skipRequested = Input.anyKeyDown;
+
+            if (elapsed >= autoAdvance || (elapsed >= floor && skipRequested))
+                AdvanceDayEnd();
         }
 
         /* ══════════════════════════════════════════════════════ 그리기 */
@@ -1299,7 +1391,11 @@ namespace SoldierADay.Net
                 failed ? $"D-{_judgement.day:00} 까지 생존" : "다음 날로 넘어간다",
                 theme.At(theme.Body, 17, HudTheme.Ink, TextAnchor.MiddleCenter));
 
-            if (!failed && t > 6.4f) _screen = Screen.None;
+            // 6.4초 = 기획서(SAD-GDD-002 §16 사운드 박스) "점호 판정 트랙은 6.4초
+            // 연출에 큐 포인트 4개" — 그 시각에 다음 화면(승급이 있으면 승급, 없으면
+            // 취침 정산)으로 넘긴다. 실패 시엔 절대 안 넘긴다 — RollCall 화면이 그대로
+            // 남아 §7.5 종료 흐름(HudEnding)으로 이어져야 한다.
+            if (!failed && t > 6.4f) AdvanceDayEnd();
         }
 
         /* ═══════════════════════════════════════════ §7.6 취침 정산 */
@@ -1515,11 +1611,17 @@ namespace SoldierADay.Net
                 _hud.visibility != null ? "● " + _hud.visibility.RadioLabel : "",
                 theme.At(theme.Body, 15, radioColor, TextAnchor.MiddleRight));
 
-            var area = new Rect(panel.x + 36f, panel.y + 106f, panel.width - 72f, panel.height - 220f);
+            // 범례가 3줄이 됐다(사람 형태/색 분리 때문에) — 지도 area를 그만큼 줄여서 자리를 낸다.
+            // 아래 legend 쪽수와 짝을 맞춰서 바꿔야 한다.
+            var area = new Rect(panel.x + 36f, panel.y + 106f, panel.width - 72f, panel.height - 300f);
             _hud.DrawSectorPlan(area, snapshot, radio, detailed: true);
 
-            // 범례 — §1.3-A가 무엇을 하고 있는지 화면에서 읽혀야 한다
-            var legend = new Rect(panel.x + 36f, panel.yMax - 96f, panel.width - 72f, 60f);
+            // 범례 — §1.3-A가 무엇을 하고 있는지 화면에서 읽혀야 한다.
+            // 사람 마커는 두 축이 겹쳐 있다: 형태(속 찬 점/속 빈 원) = 같은 구역인지 아닌지,
+            // 색(HudTheme.RoleColor) = 보직. 예전 범례는 이 둘을 색 하나로 뭉쳐 설명해서
+            // 통신(Cold)·의무(White)가 아닌 보직은 범례와 다른 색으로 찍히는 거짓말이 됐다
+            // (Hud.cs "5. 사람" 참고). 형태 줄과 색 줄을 분리해서 적는다.
+            var legend = new Rect(panel.x + 36f, panel.yMax - 176f, panel.width - 72f, 140f);
             theme.Fill(new Rect(legend.x, legend.y, legend.width, 1f), HudTheme.Rule);
             GUI.Label(new Rect(legend.x, legend.y + 8f, 200f, 20f), "LEGEND",
                 theme.At(theme.Label, 12, HudTheme.Ink2));
@@ -1534,12 +1636,36 @@ namespace SoldierADay.Net
             GUI.Label(new Rect(legend.x + 330f, legend.y + 32f, 280f, 20f), "타 구역 — 스프라이트 미렌더",
                 theme.At(theme.Small, 14, HudTheme.Ink2));
 
-            HudIcons.Dot(new Rect(legend.x + 640f, legend.y + 36f, 12f, 12f), HudTheme.White);
-            GUI.Label(new Rect(legend.x + 660f, legend.y + 32f, 260f, 20f), "같은 구역 — 실시간",
+            // 형태 = 가시성. 색이 아니라 속 찬 점/속 빈 원으로 구분한다 — 실제로 그리는 것과 맞춘다
+            HudIcons.Dot(new Rect(legend.x + 640f, legend.y + 36f, 8f, 8f), HudTheme.Ink3);
+            GUI.Label(new Rect(legend.x + 656f, legend.y + 32f, 220f, 20f), "같은 구역 — 속 찬 점(실시간)",
                 theme.At(theme.Small, 14, HudTheme.Ink2));
 
-            HudIcons.Circle(new Rect(legend.x + 900f, legend.y + 36f, 12f, 12f), 2f, HudTheme.Cold);
-            GUI.Label(new Rect(legend.x + 920f, legend.y + 32f, 280f, 20f), "타 구역 — 무전으로만",
+            HudIcons.Circle(new Rect(legend.x + 880f, legend.y + 36f, 8f, 8f), 2f, HudTheme.Ink3);
+            GUI.Label(new Rect(legend.x + 896f, legend.y + 32f, 200f, 20f), "타 구역 — 속 빈 원(무전)",
+                theme.At(theme.Small, 14, HudTheme.Ink2));
+
+            // 무전 두절이면 타 구역 마커는 파랗게 뜨는 게 아니라 아예 안 그려진다(Hud.cs §1.3-C).
+            // 이 문장이 없으면 "왜 아무도 안 보이지"를 고장으로 읽는다
+            GUI.Label(new Rect(legend.x, legend.y + 58f, legend.width, 20f),
+                "무전 두절(Radio Down) 시 타 구역 인원 표시는 사라진다 — 고장이 아니다",
+                theme.At(theme.Small, 14, HudTheme.Ink2));
+
+            // 색 = 보직. 완장 색과 같은 값(RoleColor)이라 월드와 UI가 일치한다
+            var roleY = legend.y + 84f;
+            var roleX = legend.x;
+            foreach (var role in new[] { "comms", "medic", "admin", "" })
+            {
+                theme.Chip(new Rect(roleX, roleY, 44f, 22f),
+                    HudTheme.RoleTag(role), HudTheme.RoleColor(role), HudTheme.Paper);
+                roleX += 54f;
+            }
+            GUI.Label(new Rect(roleX + 10f, roleY, 170f, 22f), "— 마커 색 = 보직",
+                theme.At(theme.Small, 14, HudTheme.Ink2));
+
+            // 지도의 주황선은 사람이 아니라 문(HudTheme.Heat) — 사람으로 오독하는 신고가 있었다
+            theme.Fill(new Rect(legend.x + 460f, roleY + 1f, 20f, 20f), HudTheme.Heat);
+            GUI.Label(new Rect(legend.x + 490f, roleY, 280f, 22f), "주황선 — 문(사람 아님)",
                 theme.At(theme.Small, 14, HudTheme.Ink2));
         }
 

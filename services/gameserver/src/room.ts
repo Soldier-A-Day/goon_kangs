@@ -412,6 +412,21 @@ export class Room {
     this.hostId ??= this.occupants[0]?.memberId ?? null;
   }
 
+  /**
+   * 되살아난 방의 seq가 이전 연결보다 뒤로 가지 않게 바닥을 올린다 (17.0 이어하기, 보조 방어).
+   *
+   * `resume()`은 새 `Room` 인스턴스를 만들기 때문에 `seq`가 0부터 다시 센다. 클라이언트가
+   * 연결마다 `_lastSeq`를 리셋하는 것이 진짜 수정이지만(GameClient.Connect), 그걸 못 믿을
+   * 경로가 하나라도 남아 있으면(예: 리셋 전에 이전 연결의 스냅샷이 아직 처리 대기 중인 경우)
+   * 서버 쪽에서도 막아두는 편이 싸다. 스냅샷 저장 형식에 seq를 추가로 실어 정확히
+   * 이어 받는 대신, 벽시계 기반 값으로 바닥만 올린다 — 저장 포맷을 바꾸지 않고도
+   * 이전 연결에서 나올 수 있었던 어떤 카운터 값보다 항상 크다는 것을 보장한다
+   * (수 시간짜리 런도 10Hz로 세면 수만 단위이고, epoch ms는 그보다 몇 자릿수 크다).
+   */
+  bumpSeqFloor(floor: number): void {
+    if (floor > this.seq) this.seq = floor;
+  }
+
   summarize() {
     return this.run ? summarizeRun(this.run) : null;
   }

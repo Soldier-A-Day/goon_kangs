@@ -48,7 +48,7 @@ namespace SoldierADay.Net
         public static readonly Color Paper2 = Hex("1B1F17");
         public static readonly Color Paper3 = Hex("232819");
         public static readonly Color Ink = Hex("DFE2D6");
-        public static readonly Color Ink2 = Hex("99A18D");
+        public static readonly Color Ink2 = Hex("BCC2B1");
         /// <summary>
         /// 설명·보조 텍스트.
         ///
@@ -56,7 +56,7 @@ namespace SoldierADay.Net
         /// 두면, 정작 화면에서 규칙을 알려주는 문장(칸 안내·범례·각주)이 전부
         /// 그 색이라 읽히지 않는다. 위계는 크기가 맡는다 — 이 색은 14px 이하에서만 쓴다.
         /// </summary>
-        public static readonly Color Ink3 = Hex("B4B8AB");
+        public static readonly Color Ink3 = Hex("D4D8CB");
         /// <summary>
         /// 구분선. 목업 값(#333A2B · #262C1F)보다 한 단계 밝다.
         ///
@@ -72,6 +72,12 @@ namespace SoldierADay.Net
         /// </summary>
         public static readonly Color Rule = Hex("5E6B4E");
         public static readonly Color Rule2 = Hex("4C5740");
+        // **작은 글씨는 크기와 대비를 같이 올렸다.**
+        //
+        // 위계를 색으로 세우려다 보조 문구가 배경에 묻혔다 — 화면에서 규칙을
+        // 알려주는 문장(칸 안내 · 범례 · 각주)이 전부 그 색이라, 읽히지 않으면
+        // 그 문장들이 없는 것과 같다. 위계는 크기가 맡고 색은 읽히는 선을 지킨다.
+
         /// <summary>가장 옅은 괘선 — 이미 칠해진 칸의 테두리. 칸 경계는 채움이 말한다</summary>
         public static readonly Color Rule3 = Hex("373F2E");
         public static readonly Color Accent = Hex("9AB06F");
@@ -149,8 +155,8 @@ namespace SoldierADay.Net
         public readonly GUIStyle Title;     // 26 — 창 제목
         public readonly GUIStyle Heading;   // 19~22 — 항목 제목
         public readonly GUIStyle Body;      // 17 — 본문
-        public readonly GUIStyle Small;     // 14 — 보조
-        public readonly GUIStyle Label;     // 12 mono — 코드번호 · 섹션 라벨
+        public readonly GUIStyle Small;     // 16 — 보조
+        public readonly GUIStyle Label;     // 13 mono — 코드번호 · 섹션 라벨
         public readonly GUIStyle Mono;      // 숫자 — 카운트다운이 흔들리지 않아야 한다
         public readonly GUIStyle MonoBig;
 
@@ -165,8 +171,8 @@ namespace SoldierADay.Net
             Title = Make(body, 26, FontStyle.Bold, Ink);
             Heading = Make(body, 19, FontStyle.Bold, Ink);
             Body = Make(body, 17, FontStyle.Normal, Ink);
-            Small = Make(body, 14, FontStyle.Normal, Ink2);
-            Label = Make(mono ?? body, 12, FontStyle.Bold, Ink2);
+            Small = Make(body, 16, FontStyle.Normal, Ink3);
+            Label = Make(mono ?? body, 13, FontStyle.Bold, Ink3);
             Mono = Make(mono ?? body, 17, FontStyle.Normal, Ink);
             MonoBig = Make(mono ?? body, 26, FontStyle.Bold, Ink);
         }

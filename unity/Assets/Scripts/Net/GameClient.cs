@@ -58,6 +58,19 @@ namespace SoldierADay.Net
                 Debug.LogError("[GameClient] 세션 토큰이 없다. 로비에서 발급받아야 한다.");
                 return;
             }
+
+            // **새 연결이면 이전 시퀀스는 의미가 없다.**
+            //
+            // seq 필터(OnMessage의 snapshot 분기)의 목적은 한 연결 안에서 순서가
+            // 뒤바뀐 스냅샷을 버리는 것이지, 연결을 가로질러 상태를 지키는 게 아니다.
+            // 서버가 잠들었다 깨거나 프로세스가 재시작되면 `resume()`이 되살린 방은
+            // seq를 0부터 다시 센다(room.ts) — 그런데 여기서 리셋을 안 하면 재접속
+            // 후 서버 seq(1, 2, 3…)가 이전 연결에서 쌓인 `_lastSeq`(수천)를 넘어설
+            // 때까지 모든 스냅샷이 조용히 폐기되어, 화면은 아무 오류 없이 멈춘 것처럼
+            // 보인다. Render 무료 플랜은 15분 놀면 잠들기 때문에 이 경로는 예외가
+            // 아니라 일상이다. 그래서 새 연결을 여는 시점(재접속 포함)마다 여기서
+            // 리셋한다 — 서버가 seq를 이어 받든 말든 클라는 항상 안전하다.
+            _lastSeq = -1;
             _socket.Connect($"{serverUrl}?token={Uri.EscapeDataString(token)}");
         }
 
