@@ -169,6 +169,13 @@ namespace SoldierADay.Net
             rig.SetLook(member.role, member.rank);
             rig.Play("idle");
 
+            // D-3 #1·#7 — 위상과 배속을 멤버ID 해시로 어긋낸다. 이게 없으면 4인이
+            // 같은 박자로 숨 쉬어 로봇 군단처럼 보인다(BENCHMARK.md §3 지적 그대로).
+            // `OffsetPhase`는 `Play` 직후에 불러야 한다 — `Play`가 시계를 0으로 되돌린다
+            var seed = CharacterRig.StableHash(member.id);
+            rig.OffsetPhase(seed);
+            rig.SetPaceSeed(seed);
+
             return new Member { go = go, rig = rig, role = member.role, rank = member.rank };
         }
 

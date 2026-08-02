@@ -52,6 +52,10 @@ namespace SoldierADay.Net
         private Vector2 _input;
         private bool _running;
 
+        /// <summary>D-3 #7 — 내 캐릭터도 남들과 같은 멤버별 미세 변주를 받는다.
+        /// `client.MemberId`는 서버 응답이 온 뒤에야 채워지므로 한 번만, 되는 대로 건다</summary>
+        private bool _paceApplied;
+
         private void Awake()
         {
             _body = GetComponent<Rigidbody2D>();
@@ -81,6 +85,12 @@ namespace SoldierADay.Net
                 : Vector2.zero;
             if (_input.sqrMagnitude > 1f) _input.Normalize();
             _running = free && Input.GetKey(KeyCode.LeftShift);
+
+            if (!_paceApplied && _rig != null && client != null && !string.IsNullOrEmpty(client.MemberId))
+            {
+                _rig.SetPaceSeed(CharacterRig.StableHash(client.MemberId));
+                _paceApplied = true;
+            }
 
             // 잠긴 동안(이동 연출)은 `ZoneWorld`가 옮긴다 — 그 속도로 애니를 돌린다
             if (free) _rig?.Step(_input * speed, _running);
