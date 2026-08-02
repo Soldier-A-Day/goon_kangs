@@ -5,19 +5,16 @@ using UnityEngine;
 namespace SoldierADay.Net
 {
     /// <summary>
-    /// HUD.
+    /// 인게임 HUD (SAD-ART-001 §7.1).
+    ///
+    /// 좌표는 전부 **1920×1080 기준**이고 확정 목업(`files-3/MOCKUP_01_HUD_인게임.svg`)
+    /// 실측이다. 창 크기가 달라도 비율만 바뀐다 — §2.1이 UI를 네이티브 해상도로
+    /// 분리한 이유가 이것이라, 월드가 640×360으로 픽셀 퍼펙트여도 HUD는 선명하다.
     ///
     /// **판단하지 않는다.** 버튼은 의도를 보낼 뿐이고 되는지 안 되는지는 서버가
-    /// 정한다. 클라가 "지금은 이동할 수 없다"를 스스로 막으면 규칙이 두 곳에
-    /// 살게 되고(ARCH-02), 서버가 거절할 상황을 클라가 다르게 판단하는 순간
-    /// 화면과 실제가 갈라진다.
-    ///
-    /// 그래서 버튼을 잠그지 않는다. 대신 **왜 안 되는지 읽을 거리를 준다** —
-    /// 일과마다 구역과 시간대를 함께 띄운다. 이유가 안 보이면 "버튼이 고장났다"로
-    /// 읽히고, 그건 막는 것만큼 나쁘다.
-    ///
-    /// 배치는 세 덩어리다. 왼쪽은 **상태**(지금 어떤가), 오른쪽은 **할 일**(무엇을
-    /// 하나), 아래는 **말하기**(퀵 커맨드 8종 — 3.0에서 음성 없이 맞추는 유일한 수단).
+    /// 정한다. 클라가 "지금은 못 한다"를 스스로 막으면 규칙이 두 곳에 살게 되고
+    /// (ARCH-02), 서버가 거절할 상황을 클라가 다르게 판단하는 순간 화면과 실제가
+    /// 갈라진다. 그래서 잠그는 대신 **왜 안 되는지 읽을 거리를 준다**(§7.1.5).
     /// </summary>
     public sealed class Hud : MonoBehaviour
     {
@@ -25,483 +22,1424 @@ namespace SoldierADay.Net
         public NetBootstrap boot;
         public Interactor interactor;
         public ZoneWorld world;
-        public LocalPlayer player;
+        public ZoneVisibility visibility;
+        public WeatherGrading grading;
+        /// <summary>§9.0 사이드뷰 코스 — 페이스 게이지를 그린다</summary>
+        public LaneRun lane;
+        /// <summary>§9.0 방독면 착용 3단계 QTE</summary>
+        public MaskDrill mask;
+        /// <summary>§10.0 후송 — 화면이 회색으로 빠지는 동안 안내를 띄운다</summary>
+        public Evacuation evacuation;
+        /// <summary>§6.1 일과 수행 — E로 열리는 판</summary>
+        public QuestPlay play;
         public Font font;
-
-        /// <summary>디자인 기준 해상도. 창 크기가 달라도 비율을 지킨다</summary>
-        private const float DesignWidth = 1600f;
-        private const float DesignHeight = 900f;
-
-        /// <summary>표 3-2 퀵 커맨드 8종</summary>
-        private static readonly (string id, string label)[] Commands =
-        {
-            ("assemble", "집합"), ("wait", "대기"), ("allClear", "이상무"), ("needHelp", "도움"),
-            ("done", "완료"), ("cannot", "불가"), ("overHere", "이쪽"), ("hurry", "서둘러"),
-        };
-
-        private static readonly System.Collections.Generic.Dictionary<string, string> RoleLabel =
-            new System.Collections.Generic.Dictionary<string, string>
-            {
-                { "rifle", "소총" }, { "comms", "통신" }, { "medic", "의무" }, { "admin", "행정" },
-            };
+        public Font monoFont;
 
         private HudTheme _theme;
-        private Vector2 _taskScroll;
+        private HudScreens _screens;
+        private readonly List<Toast> _toasts = new List<Toast>();
+        private readonly List<Bubble> _bubbles = new List<Bubble>();
+
+        /// <summary>§7.1.6 알림 카드 — 최대 4개 스택, 각 4초 후 페이드</summary>
+        private sealed class Toast
+        {
+            public string tag;
+            public string text;
+            public Color color;
+            public float born;
+        }
+
+        /// <summary>§7.8 발신 시 동시 출력 3종 중 하나 — 머리 위 말풍선 3초</summary>
+        private sealed class Bubble
+        {
+            public string memberId;
+            public string command;
+            public float born;
+        }
+
+        private void Awake()
+        {
+            _screens = new HudScreens(this);
+        }
+
+        private void OnEnable()
+        {
+            if (client == null) return;
+            client.EventReceived += OnEvent;
+            client.SnapshotReceived += OnSnapshot;
+        }
+
+        private void OnDisable()
+        {
+            if (client == null) return;
+            client.EventReceived -= OnEvent;
+            client.SnapshotReceived -= OnSnapshot;
+        }
+
+        private void OnSnapshot(Snapshot snapshot) => _screens.OnSnapshot(snapshot);
+
+        /* ══════════════════════════════════════════════════════ 입력 */
+
+        private void Update()
+        {
+            _screens.Update();
+
+            if (world?.player != null)
+            {
+                world.player.Suspended = _screens.BlocksMovement;
+            }
+
+            // 상호작용은 `QuestPlay`가 맡는다 — E를 누르면 그 일과의 판이 열리고,
+            // 통과하면 끝난다. HUD는 그 판을 그리기만 한다
+        }
+
+        /* ══════════════════════════════════════════════════════ 그리기 */
 
         private void OnGUI()
         {
             if (client == null) return;
-            _theme ??= new HudTheme(font);
+            if (_theme == null)
+            {
+                _theme = new HudTheme(font, monoFont != null ? monoFont : font);
+                HudIcons.Bind(_theme);
+            }
 
-            // 기준 해상도로 스케일한다. 그러지 않으면 창이 커질수록 HUD가
-            // 구석에 몰린 작은 글씨가 되고, 작아지면 화면을 다 덮는다.
-            var scale = Mathf.Min(Screen.width / DesignWidth, Screen.height / DesignHeight);
+            // §7 기준 해상도로 스케일한다. 비율을 지켜야 목업 좌표가 그대로 산다
+            var scale = Mathf.Min(Screen.width / HudTheme.DesignWidth,
+                                  Screen.height / HudTheme.DesignHeight);
             var matrix = GUI.matrix;
-            GUI.matrix = Matrix4x4.TRS(Vector3.zero, Quaternion.identity, new Vector3(scale, scale, 1f));
+            GUI.matrix = Matrix4x4.TRS(Vector3.zero, Quaternion.identity,
+                                       new Vector3(scale, scale, 1f));
 
-            var width = Screen.width / scale;
-            var height = Screen.height / scale;
+            _mouse = new Vector2(Input.mousePosition.x / scale,
+                                 (Screen.height - Input.mousePosition.y) / scale);
+            _hovered = -1;
 
             var snapshot = client.Latest;
-            DrawStatus(snapshot, new Rect(24, 24, 296, 128));
-            DrawSquad(snapshot, new Rect(24, 164, 296, 156));
-            DrawTasks(snapshot, new Rect(width - 384, 24, 360, height - 156));
-            DrawCommandBar(new Rect(width * 0.5f - 268, height - 92, 536, 68));
-            DrawPrompt(width, height);
-            DrawCrosshair(width, height);
+
+            // 월드 위에 겹치는 것부터 — 이름표·말풍선은 UI 패널보다 뒤여야 한다
+            DrawWorldOverlay(snapshot);
+
+            DrawStateOverlays();
+            DrawWhereAmI();
+            DrawPhaseBar(snapshot);
+            DrawToasts();
+            DrawMinimap(snapshot);
+            DrawNotebookSummary(snapshot);
+            DrawCondition(snapshot);
+            DrawPrompt(snapshot);
+            DrawBodyHeat(snapshot);
+            DrawLane();
+            DrawMask();
+            DrawEvacuation();
+            DrawMinigame();
+
+            _screens.Draw(_theme, snapshot);
 
             GUI.matrix = matrix;
         }
 
-        /* ------------------------------------------------------------ 상태 */
+        public HudTheme Theme => _theme;
 
-        private void DrawStatus(Snapshot snapshot, Rect rect)
+        /* ───────────────────────────────── §9.0 사이드뷰 코스 (행군 · 유격) */
+
+        /// <summary>
+        /// 페이스 게이지 (§9.0 "너무 앞서면 체력 과소모, 뒤처지면 대열 이탈").
+        ///
+        /// **가운데가 안전한 게이지**다. 이 게임의 다른 막대는 전부 "많을수록
+        /// 좋다"인데 이것만 다르므로, 안전 구간을 눈에 보이게 칠하지 않으면
+        /// 플레이어는 끝까지 밀어붙이려 든다.
+        /// </summary>
+        private void DrawLane()
         {
-            _theme.DrawPanel(rect);
+            if (lane == null || !lane.Running) return;
 
-            var connected = boot != null && boot.Connected;
-            var dot = new Rect(rect.xMax - 26, rect.y + 16, 8, 8);
-            _theme.DrawRounded(dot, 4f, connected ? HudTheme.Accent : HudTheme.Warn);
+            var box = new Rect(HudTheme.DesignWidth * 0.5f - 260f, 96f, 520f, 92f);
+            _theme.Panel(box, HudTheme.Paper2, HudTheme.Rule);
 
-            if (snapshot == null)
+            GUI.Label(new Rect(box.x + 16f, box.y + 10f, 300f, 20f), lane.LegName,
+                _theme.At(_theme.Label, 13, HudTheme.Ink2));
+            GUI.Label(new Rect(box.xMax - 176f, box.y + 10f, 160f, 20f),
+                $"체크포인트 {lane.Checkpoints}/4",
+                _theme.At(_theme.Label, 13, HudTheme.Accent, TextAnchor.MiddleRight));
+
+            // 코스 진행
+            _theme.Bar(new Rect(box.x + 16f, box.y + 36f, box.width - 32f, 8f),
+                       lane.Progress, HudTheme.Accent, HudTheme.Rule);
+
+            // 페이스 — 안전 구간을 먼저 칠하고 그 위에 바늘을 세운다
+            var pace = new Rect(box.x + 16f, box.y + 56f, box.width - 32f, 14f);
+            _theme.Fill(pace, HudTheme.Rule);
+            _theme.Fill(new Rect(pace.x + pace.width * 0.2f, pace.y,
+                                 pace.width * 0.6f, pace.height), HudTheme.AccentW);
+
+            var safe = lane.Pace > 0.2f && lane.Pace < 0.8f;
+            _theme.Fill(new Rect(pace.x + pace.width * lane.Pace - 2f, pace.y - 3f,
+                                 4f, pace.height + 6f),
+                        safe ? HudTheme.Accent : HudTheme.Alert);
+
+            if (!safe)
             {
-                GUI.Label(new Rect(rect.x + 20, rect.y + 20, 240, 24),
-                    boot != null ? boot.Status : "연결 중", _theme.Title);
-                GUI.Label(new Rect(rect.x + 20, rect.y + 48, 240, 20),
-                    boot != null ? boot.Detail : "", _theme.Meta);
-                return;
-            }
-
-            // 일차 — 가장 크게. 18일이 이 게임의 뼈대다(4.0)
-            GUI.Label(new Rect(rect.x + 20, rect.y + 14, 120, 40), $"D-{snapshot.day:00}", _theme.Display);
-            GUI.Label(new Rect(rect.x + 20 + Measure($"D-{snapshot.day:00}", _theme.Display) + 8, rect.y + 28, 120, 20),
-                $"/ {snapshot.totalDays}", _theme.Meta);
-
-            _theme.DrawFlat(new Rect(rect.x + 20, rect.y + 62, rect.width - 40, 1), HudTheme.Divider);
-
-            if (snapshot.phase != null)
-            {
-                GUI.Label(new Rect(rect.x + 20, rect.y + 72, 180, 24), snapshot.phase.label, _theme.Title);
-                GUI.Label(new Rect(rect.x + 20, rect.y + 94, 180, 18), snapshot.phase.clock, _theme.Meta);
-
-                // 시간대 진행. 남은 시간이 눈에 보여야 6.1의 "시간이 모자란다"가 읽힌다
-                if (snapshot.phase.durationMs > 0)
-                {
-                    var ratio = (float)(snapshot.phase.elapsedMs / snapshot.phase.durationMs);
-                    _theme.DrawProgress(
-                        new Rect(rect.x + 20, rect.y + 114, rect.width - 40, 3),
-                        ratio, new Color(1f, 1f, 1f, 0.35f));
-                }
-            }
-
-            if (snapshot.weather != null)
-            {
-                var color = HudTheme.BandColor(snapshot.weather.band);
-                var text = $"{snapshot.weather.label}  {snapshot.weather.feelsLike:0}°";
-                var chip = new Rect(rect.xMax - 20 - (Measure(text, _theme.ChipText) + 24), rect.y + 74, Measure(text, _theme.ChipText) + 24, 24);
-
-                _theme.DrawRounded(chip, 12f, new Color(color.r, color.g, color.b, 0.16f));
-                var style = _theme.ChipText;
-                var previous = style.normal.textColor;
-                style.normal.textColor = color;
-                GUI.Label(chip, text, style);
-                style.normal.textColor = previous;
+                GUI.Label(new Rect(box.x, box.y + 72f, box.width, 20f),
+                    lane.Pace >= 0.8f ? "과속 — 체력이 빠진다" : "낙오 — 대열로 붙어라",
+                    _theme.At(_theme.Small, 14, HudTheme.Alert, TextAnchor.MiddleCenter));
             }
         }
 
-        /* ------------------------------------------------------------ 분대 */
+        /* ────────────────────────────────────── §9.0 방독면 착용 컷인 */
 
-        private void DrawSquad(Snapshot snapshot, Rect rect)
+        /// <summary>
+        /// 방독면 3단계 QTE (§1.3-3 재설계 "정면 클로즈업 컷인 오버레이").
+        ///
+        /// 화면을 덮는다. 착용하는 동안 다른 것을 못 하는 것이 이 절차의
+        /// 압박이고, 뒤에서 부대가 계속 도는 것이 보이면 그 압박이 사라진다.
+        /// </summary>
+        private void DrawMask()
         {
-            _theme.DrawPanel(rect);
-            GUI.Label(new Rect(rect.x + 20, rect.y + 12, 200, 16), "분대", _theme.Label);
+            if (mask == null || !mask.Active) return;
+
+            _theme.Fill(new Rect(0f, 0f, HudTheme.DesignWidth, HudTheme.DesignHeight),
+                        HudTheme.Dim, 0.88f);
+
+            var box = new Rect(HudTheme.DesignWidth * 0.5f - 340f,
+                               HudTheme.DesignHeight * 0.5f - 150f, 680f, 300f);
+            _theme.Panel(box, HudTheme.Paper2, HudTheme.Alert, 2f);
+
+            GUI.Label(new Rect(box.x + 28f, box.y + 20f, 400f, 22f),
+                "화생방 — 방독면 착용", _theme.At(_theme.Label, 13, HudTheme.Alert));
+            GUI.Label(new Rect(box.x + 28f, box.y + 48f, 620f, 36f),
+                MaskDrill.Steps[Mathf.Clamp(mask.Step, 0, 2)],
+                _theme.At(_theme.Title, 28, HudTheme.Ink));
+
+            // 단계 표시 — 세 칸이 차례로 찬다
+            for (var i = 0; i < MaskDrill.Steps.Length; i += 1)
+            {
+                _theme.Fill(new Rect(box.x + 28f + i * 40f, box.y + 98f, 32f, 6f),
+                            i < mask.Step ? HudTheme.Accent : HudTheme.Rule);
+            }
+
+            // 타이밍 창
+            var bar = new Rect(box.x + 28f, box.y + 130f, box.width - 56f, 26f);
+            _theme.Fill(bar, HudTheme.Rule);
+            _theme.Fill(new Rect(bar.x + bar.width * mask.WindowMin, bar.y,
+                                 bar.width * (mask.WindowMax - mask.WindowMin), bar.height),
+                        HudTheme.AccentW);
+            _theme.Fill(new Rect(bar.x + bar.width * mask.Cursor - 2f, bar.y - 4f,
+                                 4f, bar.height + 8f), HudTheme.Ink);
+
+            GUI.Label(new Rect(box.x + 28f, box.y + 172f, 620f, 24f),
+                "구간에 들어올 때 Space", _theme.At(_theme.Body, 16, HudTheme.Ink2));
+
+            if (mask.MissFlash > 0f)
+            {
+                GUI.Label(new Rect(box.x + 28f, box.y + 202f, 620f, 26f),
+                    "밀폐 실패 — 한 단계 되돌아간다",
+                    _theme.At(_theme.Heading, 18, HudTheme.Alert));
+            }
+        }
+
+        /* ────────────────────────────────────────────── §10.0 후송 */
+
+        private void DrawEvacuation()
+        {
+            if (evacuation == null || evacuation.Fade <= 0.02f) return;
+
+            var box = new Rect(HudTheme.DesignWidth * 0.5f - 300f,
+                               HudTheme.DesignHeight * 0.5f - 70f, 600f, 140f);
+            _theme.Panel(box, HudTheme.Paper2, HudTheme.Alert, 2f);
+
+            GUI.Label(new Rect(box.x + 28f, box.y + 22f, 400f, 22f), "EVA — 후송",
+                _theme.At(_theme.Label, 13, HudTheme.Alert));
+            GUI.Label(new Rect(box.x + 28f, box.y + 50f, 540f, 34f), Evacuation.Notice,
+                _theme.At(_theme.Title, 24, HudTheme.Ink));
+            GUI.Label(new Rect(box.x + 28f, box.y + 96f, 540f, 24f),
+                "분대의 하루는 계속된다 — 남은 필수는 대행으로 넘어간다",
+                _theme.At(_theme.Body, 15, HudTheme.Ink2));
+        }
+
+        /* ─────────────────────────────── 현재 위치 · 근처 안내 (좌상단) */
+
+        /// <summary>
+        /// 지금 어디에 있는가.
+        ///
+        /// 걸어서 구역을 옮기게 되면서 필요해졌다 — 문을 몇 개 지나면 방 25개
+        /// 중 어디인지 금세 헷갈리고, 미니맵만으로는 "실내인지 밖인지"가 안 읽힌다.
+        ///
+        /// 그 아래에 **근처에 무엇이 있는지**를 띄운다. 바닥 타일에 이름을 박는
+        /// 대신인데, 타일에 구운 글자는 소품에 가리고 캐릭터가 밟고 서면
+        /// 안 보인다. 상호작용 프롬프트와 같은 자리에 두면 시선이 한 곳에 모인다.
+        /// </summary>
+        private void DrawWhereAmI()
+        {
+            if (world == null) return;
+
+            var here = world.HereName;
+            var outdoor = world.Here == null;
+
+            var rect = new Rect(48f, 48f, 380f, 64f);
+            _theme.Fill(rect, HudTheme.Paper, 0.92f);
+            _theme.Spine(rect, outdoor ? HudTheme.Cold : HudTheme.Accent);
+
+            GUI.Label(new Rect(rect.x + 22f, rect.y + 8f, 340f, 20f),
+                outdoor ? "OUTDOOR" : "LOCATION",
+                _theme.At(_theme.Label, 12, outdoor ? HudTheme.Cold : HudTheme.Accent));
+            GUI.Label(new Rect(rect.x + 22f, rect.y + 30f, 340f, 28f), here,
+                _theme.At(_theme.Heading, 21, HudTheme.Ink));
+
+            if (world.player == null) return;
+            var at = (Vector2)world.player.transform.position;
+            var y = rect.yMax + 8f;
+
+            // 근처 문 안내 — 바닥에 이름을 박는 대신이다
+            if (world.NearestDoor(at, 5f, out var label, out var isExit))
+            {
+                var hint = new Rect(rect.x, y, rect.width, 40f);
+                _theme.Fill(hint, HudTheme.Paper, 0.94f);
+                _theme.Border(hint, HudTheme.Rule);
+                _theme.Spine(hint, isExit ? HudTheme.Heat : HudTheme.Accent, 3f);
+                GUI.Label(new Rect(hint.x + 20f, hint.y, hint.width - 40f, hint.height),
+                    (isExit ? "▶  " : "▪  ") + label,
+                    _theme.At(_theme.Body, 17, isExit ? HudTheme.Heat : HudTheme.Ink));
+                y = hint.yMax + 8f;
+            }
+
+            DrawCompass(new Rect(rect.x, y, rect.width, 0f), at);
+        }
+
+        /// <summary>§4.3 방위 8분할 — 화살표는 형태로 읽힌다</summary>
+        private static readonly string[] Arrows = { "↑", "↗", "→", "↘", "↓", "↙", "←", "↖" };
+
+        /// <summary>
+        /// 어느 쪽에 무엇이 있는가.
+        ///
+        /// 걸어서만 이동하는데 부대가 110×85 타일이라, 지도를 열지 않으면
+        /// 방향 감각이 사라진다. 가까운 곳 넷만 띄운다 — 전부 띄우면 읽는 데
+        /// 시간이 걸리고, 그건 지도를 여는 것과 다를 바 없다.
+        /// </summary>
+        private void DrawCompass(Rect anchor, Vector2 at)
+        {
+            if (world?.buildings == null) return;
+
+            _compass.Clear();
+
+            foreach (var building in world.buildings)
+            {
+                // 지금 들어와 있는 동은 빼고. "여기가 여기다"는 위에 이미 있다
+                if (building.area.Contains(at)) continue;
+                _compass.Add((building.name, building.area.center));
+            }
+            foreach (var zone in world.zones)
+            {
+                if (zone == null || zone.kind != "outdoor") continue;
+                if (zone.area.Contains(at)) continue;
+                _compass.Add((zone.zoneName, zone.area.center));
+            }
+
+            _compass.Sort((a, b) =>
+                Vector2.SqrMagnitude(a.at - at).CompareTo(Vector2.SqrMagnitude(b.at - at)));
+
+            var count = Mathf.Min(4, _compass.Count);
+            if (count == 0) return;
+
+            var panel = new Rect(anchor.x, anchor.y, anchor.width, 28f + count * 24f);
+            _theme.Fill(panel, HudTheme.Paper, 0.94f);
+            _theme.Border(panel, HudTheme.Rule);
+            GUI.Label(new Rect(panel.x + 20f, panel.y + 5f, 300f, 18f), "NEARBY",
+                _theme.At(_theme.Label, 11, HudTheme.Ink2));
+
+            for (var i = 0; i < count; i += 1)
+            {
+                var (name, center) = _compass[i];
+                var delta = center - at;
+                // 8분할. 12시에서 시계 방향이라 화살표 배열과 순서가 같다
+                var angle = Mathf.Atan2(delta.x, delta.y) * Mathf.Rad2Deg;
+                if (angle < 0f) angle += 360f;
+                var arrow = Arrows[Mathf.RoundToInt(angle / 45f) % 8];
+
+                var row = new Rect(panel.x + 20f, panel.y + 26f + i * 24f, panel.width - 40f, 22f);
+                GUI.Label(row, arrow, _theme.At(_theme.Heading, 18, HudTheme.Accent));
+                GUI.Label(new Rect(row.x + 26f, row.y, row.width - 90f, row.height), name,
+                    _theme.At(_theme.Body, 15, HudTheme.Ink));
+                // 1타일 = 0.5m (PLAN 01 축척)
+                GUI.Label(new Rect(row.xMax - 64f, row.y, 60f, row.height),
+                    $"{delta.magnitude * 0.5f:0}m",
+                    _theme.At(_theme.Label, 12, HudTheme.Ink2, TextAnchor.MiddleRight));
+            }
+        }
+
+        private readonly List<(string name, Vector2 at)> _compass =
+            new List<(string, Vector2)>();
+
+        /* ─────────────────────────────────────── §7.1.1 상단 시간대 바 */
+
+        private void DrawPhaseBar(Snapshot snapshot)
+        {
+            // 목업 실측: 960×72 @ (480, 48)
+            var rect = new Rect(480f, 48f, 960f, 72f);
+            _theme.Fill(rect, HudTheme.Paper, 0.94f);
+            _theme.Border(rect, HudTheme.Rule);
+            _theme.Fill(new Rect(rect.x, rect.yMax - 2f, rect.width, 2f), HudTheme.Ink);
+
+            if (snapshot?.phase == null)
+            {
+                GUI.Label(new Rect(rect.x + 24f, rect.y, 400f, rect.height),
+                    boot != null ? boot.Status : "연결 중", _theme.As(_theme.Title, HudTheme.Ink2));
+                return;
+            }
+
+            var band = snapshot.weather?.band ?? "normal";
+            var bandColor = HudTheme.BandColor(band);
+
+            // 밴드 아이콘 48×48 — §7.1.1 "색 + 형태로 구분"
+            var icon = new Rect(rect.x + 24f, rect.y + 12f, 48f, 48f);
+            _theme.Fill(icon, HudTheme.AccentW);
+            HudIcons.Band(band, icon, bandColor);
+
+            GUI.Label(new Rect(rect.x + 88f, rect.y + 18f, 200f, 36f),
+                HudTheme.PhaseLabel(snapshot.phase.id), _theme.At(_theme.Title, 24, HudTheme.Ink));
+
+            var weather = $"{HudTheme.BandLabel(band)} {snapshot.weather?.feelsLike ?? 0d:0}°C";
+            GUI.Label(new Rect(rect.x + 220f, rect.y + 20f, 260f, 32f), weather,
+                _theme.At(_theme.Heading, 16, bandColor));
+
+            // 진행 바 400×12 @ x+400, y+30
+            var bar = new Rect(rect.x + 400f, rect.y + 30f, 400f, 12f);
+            var elapsed = (float)snapshot.phase.elapsedMs;
+            var duration = Mathf.Max(1f, (float)snapshot.phase.durationMs);
+            var left = Mathf.Clamp01(1f - elapsed / duration);
+
+            // §7.1.1 "잔여 20% 이하부터 alert로 전환 + 1Hz 점멸"
+            var urgent = left <= 0.2f;
+            var fill = urgent ? HudTheme.Alert : HudTheme.Accent;
+            if (urgent && !HudTheme.Pulse(1f)) fill = HudTheme.Rule;
+            _theme.Bar(bar, elapsed / duration, fill);
+
+            var paused = snapshot.phase.delegationWindowMsLeft > 0d;
+            if (paused)
+            {
+                // §7.1.1 하달 창 중에는 사선 해칭 + `일시정지` 라벨.
+                // 바가 멈춘 것만으로는 접속이 끊긴 것과 구분되지 않는다
+                _theme.Hatch(bar, new Color(HudTheme.Cold.r, HudTheme.Cold.g, HudTheme.Cold.b, 0.5f));
+                GUI.Label(new Rect(bar.x, bar.yMax + 4f, 200f, 20f), "일시정지 — 하달 창",
+                    _theme.At(_theme.Label, 12, HudTheme.Cold));
+            }
+            else
+            {
+                GUI.Label(new Rect(bar.x, bar.yMax + 4f, 240f, 20f),
+                    $"TIMESLOT {snapshot.phase.clock}", _theme.At(_theme.Label, 12, HudTheme.Ink2));
+            }
+
+            var remain = Mathf.Max(0f, (duration - elapsed) / 1000f);
+            var clock = $"{Mathf.FloorToInt(remain / 60f):00}:{Mathf.FloorToInt(remain % 60f):00}";
+            GUI.Label(new Rect(rect.xMax - 176f, rect.y + 18f, 152f, 40f), clock,
+                _theme.At(_theme.Display, 30, urgent ? HudTheme.Alert : HudTheme.Ink, TextAnchor.MiddleRight));
+        }
+
+        /* ─────────────────────────────────────── §7.1.6 좌상단 알림 스택 */
+
+        private void OnEvent(ServerEvent item)
+        {
+            if (item == null) return;
+
+            switch (item.type)
+            {
+                case ServerEventTypeValues.QuickCommand:
+                    // §7.8 말풍선 3초. 미니맵 핑은 무전 연결 시에만(§1.3-C)
+                    _bubbles.Add(new Bubble
+                    {
+                        memberId = item.memberId, command = item.command, born = Time.unscaledTime,
+                    });
+                    return;
+
+                case ServerEventTypeValues.SurpriseRaised:
+                    // **돌발은 하던 일을 끊고 들어온다.**
+                    //
+                    // 예전에는 알림 카드 하나가 전부라, 돌발이 "일과 목록에 한 줄
+                    // 늘어난 것"이었다. 그러면 별도 슬롯이지 돌발이 아니다 —
+                    // 판이 열려 있으면 그 판을 여기서 끊는다. 진척은 서버가 들고
+                    // 있으므로 잃는 것은 판에 쓴 시간이고, 그게 돌발의 대가다.
+                    if (play != null && play.QuestId != null)
+                    {
+                        play.Close();
+                        Notify("돌발", $"{item.label} — 하던 일이 끊겼다", HudTheme.Alert);
+                        return;
+                    }
+                    Notify("돌발", item.label, HudTheme.Heat);
+                    return;
+
+                case ServerEventTypeValues.DisciplineChanged:
+                    Notify("군기", $"{item.to:0} · {item.band}", HudTheme.Alert);
+                    return;
+
+                case ServerEventTypeValues.ChoreDelegated:
+                    Notify("하달", NameOf(item.fromId) + " → " + NameOf(item.toId), HudTheme.Heat);
+                    return;
+
+                case ServerEventTypeValues.ChoreVetoed:
+                    Notify("거부", NameOf(item.memberId), HudTheme.Ink2);
+                    return;
+
+                case ServerEventTypeValues.MemberEvacuated:
+                    Notify("후송", NameOf(item.memberId), HudTheme.Alert);
+                    return;
+
+                case ServerEventTypeValues.WeatherRolled:
+                    Notify("기온", item.label, HudTheme.BandColor(item.band));
+                    return;
+
+                case ServerEventTypeValues.HiddenUnlocked:
+                    Notify("히든", item.label, HudTheme.Accent);
+                    return;
+
+                case ServerEventTypeValues.PhaseEnded when item.lockedCount > 0d:
+                    Notify("시간대 종료", $"미완료 {item.lockedCount:0}건 잠김", HudTheme.Alert);
+                    return;
+            }
+
+            _screens.OnEvent(item);
+        }
+
+        private void Notify(string tag, string text, Color color)
+        {
+            _toasts.Add(new Toast { tag = tag, text = text, color = color, born = Time.unscaledTime });
+            // §7.1.6 최대 4개 스택
+            while (_toasts.Count > 4) _toasts.RemoveAt(0);
+        }
+
+        private void DrawToasts()
+        {
+            for (var i = _toasts.Count - 1; i >= 0; i -= 1)
+            {
+                if (Time.unscaledTime - _toasts[i].born > 4.6f) _toasts.RemoveAt(i);
+            }
+
+            // 목업 실측: 380×64 @ (48, 48), 간격 76
+            for (var i = 0; i < _toasts.Count; i += 1)
+            {
+                var toast = _toasts[i];
+                var age = Time.unscaledTime - toast.born;
+                var alpha = age > 4f ? Mathf.Clamp01(1f - (age - 4f) / 0.6f) : 1f;
+
+                var rect = new Rect(48f, 132f + i * 76f, 380f, 64f);
+                var previous = GUI.color;
+                GUI.color = new Color(1f, 1f, 1f, alpha);
+
+                _theme.Fill(rect, HudTheme.Paper, 0.92f * alpha);
+                _theme.Spine(rect, toast.color);
+                GUI.Label(new Rect(rect.x + 22f, rect.y + 8f, 340f, 20f), toast.tag,
+                    _theme.At(_theme.Label, 12, toast.color));
+                GUI.Label(new Rect(rect.x + 22f, rect.y + 30f, 340f, 26f), toast.text,
+                    _theme.At(_theme.Body, 17, HudTheme.Ink));
+
+                GUI.color = previous;
+            }
+        }
+
+        private string NameOf(string memberId)
+        {
+            var snapshot = client.Latest;
+            if (snapshot?.members == null || string.IsNullOrEmpty(memberId)) return "누군가";
+            foreach (var member in snapshot.members)
+            {
+                if (member?.id == memberId) return member.name;
+            }
+            return "누군가";
+        }
+
+        /* ─────────────────────────────────────── §7.1.3 우상단 미니맵 */
+
+        private void DrawMinimap(Snapshot snapshot)
+        {
+            // 목업 실측: 220×220 @ (1652, 48)
+            var rect = new Rect(1652f, 48f, 220f, 220f);
+            _theme.Fill(rect, HudTheme.Paper, 0.94f);
+            _theme.Border(rect, HudTheme.Rule);
+
+            var head = new Rect(rect.x, rect.y, rect.width, 26f);
+            _theme.Fill(head, HudTheme.Paper2);
+            GUI.Label(new Rect(head.x + 12f, head.y, 120f, head.height), "SECTOR MAP",
+                _theme.At(_theme.Label, 11, HudTheme.Ink2));
+
+            var radio = visibility != null ? visibility.Radio : RadioState.Ok;
+            var radioColor = visibility != null ? visibility.RadioColor : HudTheme.Accent;
+            var label = visibility != null ? visibility.RadioLabel : "무전 연결";
+
+            // §7.1.3 두절이면 적색 라벨이 항상 떠 있어야 한다
+            GUI.Label(new Rect(head.x + 100f, head.y, 96f, head.height), label,
+                _theme.At(_theme.Label, 11, radioColor, TextAnchor.MiddleRight));
+            HudIcons.Dot(new Rect(head.xMax - 16f, head.y + 9f, 8f, 8f), radioColor);
+
+            var body = new Rect(rect.x + 12f, head.yMax + 10f, rect.width - 24f, rect.height - head.height - 22f);
+            DrawSectorPlan(body, snapshot, radio);
+        }
+
+        /// <summary>
+        /// 부대 배치도. 미니맵과 부대 지도(§7.9)가 **같은 그림**을 쓴다 —
+        /// 두 화면의 배치가 다르면 익힌 지도가 쓸모없어진다.
+        ///
+        /// 방을 낱개로 늘어놓지 않고 **동 단위 사각형**으로 묶는다. 방 25개가
+        /// 다 그려지면 어느 것이 한 건물인지 읽히지 않고, 부대를 익히는 단위는
+        /// 방이 아니라 동이다.
+        ///
+        /// 내 위치는 구역 중앙이 아니라 **실제 좌표**로 찍는다. 중앙에 고정하면
+        /// 큰 연병장에서 어디쯤인지 알 수 없고, 걸어도 점이 안 움직인다.
+        /// </summary>
+        /// <summary>
+        /// 구역이 속한 권역.
+        ///
+        /// 부대와 훈련장은 걸어서 이어져 있지만 **한 지도에 그릴 것은 아니다.**
+        /// 사이드뷰 코스는 아예 다른 화면이라 또 따로 둔다.
+        /// </summary>
+        private static string RegionOf(string zone)
+        {
+            if (string.IsNullOrEmpty(zone) || !zone.StartsWith("TR")) return "base";
+            // TR03 · TR07 · TR08 은 사이드뷰 코스다 — 위에서 본 지도가 아니다
+            return zone == "TR03" || zone == "TR07" || zone == "TR08" ? "lane" : "training";
+        }
+
+        /// <summary>
+        /// 부대 배치도 (§7.9). 미니맵과 부대 지도가 **같은 그림**을 쓴다 —
+        /// 두 화면의 배치가 다르면 익힌 지도가 쓸모없어진다.
+        ///
+        /// ── 도면처럼 그린다 ──────────────────────────────────────────────
+        /// 이 화면을 세 번 고쳐 쓰고 나서야 문제가 방식에 있다는 것이 분명해졌다.
+        /// 구역마다 **채운 사각형**을 그리면 무엇을 해도 상자가 늘어선 표가 되지
+        /// 배치도가 되지 않는다. 그래서 단위를 바꿨다 — 이 함수가 그리는 것은
+        /// 사각형이 아니라 **벽과 문**이다.
+        ///
+        ///   1. 벽    한 겹 선. 동 외벽은 두껍고 방 칸막이는 얇다
+        ///   2. 문    벽을 **지운 자리**다. 도면이 문을 그리는 방식 그대로이고,
+        ///            "여기로 드나든다"가 선 하나 없이 읽힌다
+        ///   3. 채움  지금 서 있는 구역에만. 그것이 이 지도의 유일한 상태다
+        ///
+        /// 나머지(이름 · 분대원 마커)는 그 위에 얹는다.
+        /// </summary>
+        public void DrawSectorPlan(Rect area, Snapshot snapshot, RadioState radio, bool detailed = false)
+        {
+            if (world?.zones == null || world.zones.Length == 0) return;
+
+            // 지금 있는 권역만 그린다. 훈련 맵까지 한 장에 넣으면 부대가
+            // 손톱만 해지고, 지도의 목적은 "여기가 어디인가"이지 세계의 크기가 아니다
+            var region = RegionOf(visibility != null ? visibility.CurrentZone : null);
+
+            var min = new Vector2(float.MaxValue, float.MaxValue);
+            var max = new Vector2(float.MinValue, float.MinValue);
+            foreach (var zone in world.zones)
+            {
+                if (zone == null || RegionOf(zone.id) != region) continue;
+                min = Vector2.Min(min, zone.area.min);
+                max = Vector2.Max(max, zone.area.max);
+            }
+            if (max.x <= min.x || max.y <= min.y) return;
+
+            // 여백 — 도면은 종이 끝에 붙여 그리지 않는다. 동 이름이 위로 나가므로
+            // 위쪽을 더 준다
+            var pad = detailed ? 26f : 14f;
+            var inner = new Rect(area.x + pad, area.y + pad, area.width - pad * 2f,
+                                 area.height - pad * 2f);
+
+            var span = max - min;
+            var k = Mathf.Min(inner.width / span.x, inner.height / span.y);
+            var ox = inner.x + (inner.width - span.x * k) * 0.5f;
+            var oy = inner.y + (inner.height - span.y * k) * 0.5f;
+
+            // 월드 y는 위로, 화면 y는 아래로 증가한다
+            Vector2 ToScreen(Vector2 at) =>
+                new Vector2(ox + (at.x - min.x) * k, oy + (max.y - at.y) * k);
+
+            Rect BoxOf(Rect r)
+            {
+                var a = ToScreen(new Vector2(r.xMin, r.yMax));
+                return new Rect(a.x, a.y, r.width * k, r.height * k);
+            }
+
+            bool InFrame(Rect r) => r.Overlaps(new Rect(min.x, min.y, span.x, span.y));
+
+            bool TryBuilding(Rect r, out ZoneWorld.Building found)
+            {
+                foreach (var b in world.buildings)
+                {
+                    if (b.area.Contains(r.center)) { found = b; return true; }
+                }
+                found = default;
+                return false;
+            }
+
+            var here = visibility != null ? visibility.CurrentZone : "";
+
+            // 배치도에는 선이 **두 종류뿐**이다.
+            //
+            //   heavy  영역 벽 — 동과 독립 구역을 감싸는 테두리
+            //   light  격벽   — 그 영역 안에서 방을 나누는 칸막이
+            //
+            // **둘의 차이가 눈에 띄어야** "이건 건물 하나이고 안이 이렇게 나뉘어
+            // 있다"가 읽힌다. 한때 1.68px 대 1.00px까지 좁혀놓았더니 두 선이
+            // 같아 보였고, 그러면 방마다 상자가 늘어선 것과 구분이 안 된다.
+            //
+            // 최소 3배를 유지한다. 미니맵처럼 배율이 작을 때도 영역 벽은
+            // 2px 아래로 내려가지 않는다 — 그 아래는 선이 아니라 얼룩이다.
+            var heavy = Mathf.Max(2f, k * 0.45f);
+            var light = Mathf.Max(1f, k * 0.12f);
+
+            // **선은 정수 픽셀에 앉힌다.**
+            //
+            // 격벽과 문은 같은 위치를 계산해서 나오는데(둘 다 두 방의 중점),
+            // 소수점이 조금 다르면 1px짜리 선이 서로 다른 픽셀 줄에 떨어진다 —
+            // 그게 "두께는 같은데 주황색이 한 줄 위" 의 정체였다.
+            //
+            // 스냅하면 값이 반 픽셀 안쪽에서 다르든 같은 줄에 앉는다. 덤으로
+            // 1px 선이 두 줄에 반씩 걸쳐 흐려지는 것도 없어진다.
+            Rect Snap(Rect r) => new Rect(
+                Mathf.Round(r.x), Mathf.Round(r.y),
+                Mathf.Max(1f, Mathf.Round(r.width)), Mathf.Max(1f, Mathf.Round(r.height)));
+
+            void Wall(float x, float y, float w, float h, Color c) =>
+                _theme.Fill(Snap(new Rect(x, y, w, h)), c);
+
+            void Outline(Rect box, float weight, Color c)
+            {
+                Wall(box.xMin, box.yMin, box.width, weight, c);
+                Wall(box.xMin, box.yMax - weight, box.width, weight, c);
+                Wall(box.xMin, box.yMin, weight, box.height, c);
+                Wall(box.xMax - weight, box.yMin, weight, box.height, c);
+            }
+
+            /// 문이 앉을 자리. **자기가 뚫은 벽과 정확히 겹쳐야** 한다 —
+            /// 반 칸이라도 어긋나면 벽 옆에 색 띠가 하나 더 붙은 것처럼 보인다
+            Rect DoorLine(ZoneWorld.Door door)
+            {
+                var box = BoxOf(door.area);
+                var vertical = door.area.width < door.area.height;
+                var thick = door.isExit ? heavy : light;
+
+                if (door.isExit)
+                {
+                    // 동 출입구는 외벽 위에 있다. 외벽 선은 동 사각형의 변에
+                    // 붙어 그려지므로 그 변에 맞춘다
+                    foreach (var b in world.buildings)
+                    {
+                        if (!b.area.Overlaps(door.area)) continue;
+                        var shell = BoxOf(b.area);
+                        return vertical
+                            ? new Rect(box.center.x < shell.center.x
+                                           ? shell.xMin : shell.xMax - thick,
+                                       box.yMin, thick, box.height)
+                            : new Rect(box.xMin,
+                                       box.center.y < shell.center.y
+                                           ? shell.yMin : shell.yMax - thick,
+                                       box.width, thick);
+                    }
+                }
+
+                // 방문은 격벽 한가운데에 온다 — 격벽도 두 방의 중점에 긋는다
+                return vertical
+                    ? new Rect(box.center.x - thick * 0.5f, box.yMin, thick, box.height)
+                    : new Rect(box.xMin, box.center.y - thick * 0.5f, box.width, thick);
+            }
+
+            /* ── 1. 지금 서 있는 구역 — 유일한 채움 ── */
+            foreach (var zone in world.zones)
+            {
+                if (zone == null || zone.id != here) continue;
+                if (RegionOf(zone.id) != region) continue;
+                _theme.Fill(BoxOf(zone.area), HudTheme.Accent, 0.30f);
+            }
+
+            /* ── 2. 벽 ── */
+
+            // 동 외벽 · 독립 구역 — 두꺼운 선
+            foreach (var building in world.buildings)
+            {
+                if (!InFrame(building.area)) continue;
+                Outline(BoxOf(building.area), heavy, HudTheme.Accent);
+            }
+            foreach (var zone in world.zones)
+            {
+                if (zone == null || RegionOf(zone.id) != region) continue;
+                // 야외이거나, 동에 속하지 않은 단독 건물(보일러실)이거나
+                if (zone.kind != "outdoor" && TryBuilding(zone.area, out _)) continue;
+                Outline(BoxOf(zone.area), heavy, HudTheme.Accent);
+            }
+
+            // 방 칸막이 — 얇은 선. **동 외벽에 닿는 변은 그리지 않는다.**
+            // 그리면 외벽이 두 겹이 되어 "벽 안에 방벽이 또" 있는 모양이 된다
+            //
+            // **격벽은 두 방의 한가운데 한 줄만 긋는다.**
+            //
+            // 이 맵은 이웃이 두 가지다 — 가로로는 벽 타일 한 칸을 사이에 두고
+            // 떨어져 있고, 세로로는 (방과 복도처럼) 변을 그대로 맞대고 있다.
+            // 앞서 전부 한 칸씩 부풀렸더니, 이미 맞닿아 있던 복도 쪽이 서로를
+            // 지나쳐 **이중벽**이 됐다.
+            //
+            // 두 경우를 한 규칙으로 푼다 — 가까운 맞은편 변을 찾아 그 **중점**에
+            // 긋는다. 맞닿아 있으면 중점이 곧 그 변이고, 한 칸 떨어져 있으면
+            // 벽 한가운데다. 어느 쪽이든 선은 한 줄이다.
+            var peers = new List<Rect>();
+
+            foreach (var zone in world.zones)
+            {
+                if (zone == null || zone.kind == "outdoor") continue;
+                if (RegionOf(zone.id) != region) continue;
+                if (!TryBuilding(zone.area, out var owner)) continue;
+
+                peers.Clear();
+                foreach (var other in world.zones)
+                {
+                    if (other == null || other == zone || other.kind == "outdoor") continue;
+                    if (!owner.area.Contains(other.area.center)) continue;
+                    peers.Add(other.area);
+                }
+
+                var r = zone.area;
+
+                // 맞은편 변이 1.5타일 안이면 그 중점으로 옮긴다.
+                //
+                // **떨어진 경우와 겹친 경우를 모두 본다.** 방끼리는 벽 타일을
+                // 사이에 두고 떨어져 있고(gap +1), 방과 복도는 벽 한 장을
+                // 공유하느라 사각형이 겹친다(gap −1).
+                //
+                // 그리고 **실제로 맞닿은 방만** 후보로 삼는다. 이걸 빼먹었더니
+                // 체단장(아래 줄)의 왼쪽 변이 2분대(위 줄)의 오른쪽 변과 우연히
+                // 1타일 거리라 그쪽으로 붙었고, 사지방은 제자리에 그어서
+                // 그 사이만 선이 두 줄이 됐다. 닿지도 않은 방과 벽을 나눌 수는 없다.
+                float Span(float a1, float a2, float b1, float b2) =>
+                    Mathf.Min(a2, b2) - Mathf.Max(a1, b1);
+
+                float Meet(float mine, System.Func<Rect, float> facing, bool horizontal)
+                {
+                    var best = mine;
+                    var near = float.MaxValue;
+                    foreach (var p in peers)
+                    {
+                        // 수직 방향으로 겹쳐야 옆에 붙은 방이다.
+                        // 공유 벽 한 장(1타일)만 겹친 것은 옆이 아니라 위아래다
+                        var shared = horizontal
+                            ? Span(r.yMin, r.yMax, p.yMin, p.yMax)
+                            : Span(r.xMin, r.xMax, p.xMin, p.xMax);
+                        if (shared <= 1.5f) continue;
+
+                        var gap = Mathf.Abs(facing(p) - mine);
+                        if (gap > 1.5f || gap >= near) continue;
+                        near = gap;
+                        best = (mine + facing(p)) * 0.5f;
+                    }
+                    return best;
+                }
+
+                var left = Meet(r.xMin, p => p.xMax, true);
+                var right = Meet(r.xMax, p => p.xMin, true);
+                var bottom = Meet(r.yMin, p => p.yMax, false);
+                var top = Meet(r.yMax, p => p.yMin, false);
+
+                var box = BoxOf(Rect.MinMaxRect(left, bottom, right, top));
+                var shell = BoxOf(owner.area);
+
+                // 동 외벽에 닿는 변은 그리지 않는다 — 그리면 외벽이 두 겹이 된다.
+                // 오차는 픽셀이 아니라 **타일**로 잰다. 미니맵과 지도는 배율이
+                // 다르고, 고정 픽셀로 두면 한쪽에서만 성립한다
+                var edge = k * 0.9f;
+
+                // **선 위에 걸쳐 긋는다** — 안쪽으로 밀어 그리면 문과 반 두께만큼
+                // 어긋난다. 문은 제 자리를 중심으로 그리기 때문이고, 그 반 칸이
+                // 지도에서 "벽 옆에 색 띠가 하나 더 붙은" 모양으로 보였다.
+                var half = light * 0.5f;
+                if (box.xMin > shell.xMin + edge)
+                    Wall(box.xMin - half, box.yMin, light, box.height, HudTheme.Accent);
+                if (box.xMax < shell.xMax - edge)
+                    Wall(box.xMax - half, box.yMin, light, box.height, HudTheme.Accent);
+                if (box.yMin > shell.yMin + edge)
+                    Wall(box.xMin, box.yMin - half, box.width, light, HudTheme.Accent);
+                if (box.yMax < shell.yMax - edge)
+                    Wall(box.xMin, box.yMax - half, box.width, light, HudTheme.Accent);
+            }
+
+            /* ── 3. 문 = 벽 위에 덧댄 주황색 선 ──
+             *
+             * 벽을 **지우지 않는다.** 지워서 틈을 내면 도면답기는 한데, 동
+             * 출입구가 복도 폭 그대로(4타일) 뚫려 있어서 좌우 외벽이 그 높이만큼
+             * 통째로 사라지고 동이 위아래 두 덩이로 갈라져 보였다.
+             *
+             * 대신 그 자리를 **색으로 덧댄다.** 윤곽은 끊기지 않은 채로 남고,
+             * 주황색이 곧 "여기가 열려 있다"가 된다 — 이 화면에서 초록이 아닌
+             * 유일한 색이라 세지 않아도 눈에 들어온다.
+             *
+             * **문은 전부 열려 있다.** 한때 다른 분대 생활관을 "잠김"으로 적어
+             * 뒀지만 그 플래그를 아무도 안 봐서 실제로는 늘 들어갈 수 있었다.
+             * 지금은 그 거짓말을 지웠고, 지도도 있는 그대로 그린다. */
+            foreach (var door in world.doors)
+            {
+                if (!InFrame(door.area)) continue;
+                _theme.Fill(Snap(DoorLine(door)), HudTheme.Heat);
+            }
+
+            /* ── 4. 이름 ── */
+            if (detailed)
+            {
+                foreach (var zone in world.zones)
+                {
+                    if (zone == null || RegionOf(zone.id) != region) continue;
+                    if (zone.kind == "corridor") continue;   // 복도는 지나가는 곳이다
+
+                    var box = BoxOf(zone.area);
+                    if (box.width < 40f || box.height < 22f) continue;
+
+                    // **이름은 방 한가운데**에 놓는다. 왼쪽 위에 붙이면 벽선과
+                    // 붙어서 글자가 벽에 걸린 표찰처럼 보이고, 어느 방의
+                    // 이름인지도 한 칸 애매해진다.
+                    //
+                    // 짧은 이름을 쓴다 — 긴 이름은 좁은 방에서 잘리고, 잘린
+                    // 이름은 없는 이름과 같다. 짧은 쪽이 부대에서 실제로 부르는
+                    // 말이기도 하다(사지방 · 체단장 · 위병소).
+                    GUI.Label(box, ZoneNames.ShortOf(zone.id),
+                        _theme.At(_theme.Small, 11,
+                            zone.id == here ? HudTheme.Ink : HudTheme.Ink2,
+                            TextAnchor.MiddleCenter));
+                }
+            }
+
+            // 동 이름은 외벽 **위쪽 바깥**에 — 도면의 표제와 같은 자리다
+            foreach (var building in world.buildings)
+            {
+                if (!InFrame(building.area)) continue;
+                var box = BoxOf(building.area);
+                if (!detailed && box.width <= 40f) continue;
+
+                var mine = world.Here != null && building.area.Overlaps(world.Here.area);
+                GUI.Label(new Rect(box.x, box.y - (detailed ? 19f : 13f),
+                                   Mathf.Max(box.width, detailed ? 160f : 96f), 18f),
+                    building.name,
+                    _theme.At(_theme.Label, detailed ? 12 : 10,
+                        mine ? HudTheme.Accent : HudTheme.Ink2));
+            }
 
             if (snapshot?.members == null) return;
 
-            var y = rect.y + 34;
+            /* ── 5. 사람 ── */
+
+            // 내 위치 — **실제 좌표**로 찍는다. 구역 중앙에 고정하면 걸어도
+            // 점이 안 움직이고, 넓은 연병장에서 어디쯤인지 알 수 없다
+            if (world.player != null &&
+                InFrame(new Rect(world.player.transform.position, Vector2.one)))
+            {
+                var me = ToScreen(world.player.transform.position);
+                HudIcons.Circle(new Rect(me.x - 7f, me.y - 7f, 14f, 14f), 2f, HudTheme.White);
+                HudIcons.Dot(new Rect(me.x - 3f, me.y - 3f, 6f, 6f), HudTheme.White);
+            }
+
             foreach (var member in snapshot.members)
             {
-                if (member == null) continue;
-                var me = member.id == client.MemberId;
-                var row = new Rect(rect.x + 12, y, rect.width - 24, 26);
+                if (member == null || member.id == client.MemberId) continue;
 
-                if (me) _theme.DrawRounded(row, 8f, new Color(1f, 1f, 1f, 0.07f));
+                // §1.3-C 마커 게이팅 — 같은 구역이면 늘 보이고, 다른 구역은 무전이 살아야 한다
+                var sameZone = visibility == null || visibility.CanSee(member.zone);
+                if (!sameZone && radio == RadioState.Down) continue;
+                if (!sameZone && !(visibility?.MarkerVisible ?? true)) continue;
 
-                // 보직 칩 — 4보직 1:1 대응(3.0)이라 색이 아니라 글자로 구분한다.
-                // 색으로 하면 4가지를 외워야 하고, 두 글자면 바로 읽힌다.
-                var badge = new Rect(row.x + 8, row.y + 4, 34, 18);
-                _theme.DrawRounded(badge, 5f,
-                    me ? new Color(HudTheme.Accent.r, HudTheme.Accent.g, HudTheme.Accent.b, 0.22f)
-                       : HudTheme.SurfaceRaised);
-
-                var badgeStyle = _theme.ChipText;
-                badgeStyle.fontSize = 10;
-                var previous = badgeStyle.normal.textColor;
-                badgeStyle.normal.textColor = me ? HudTheme.Accent : HudTheme.TextSecondary;
-                GUI.Label(badge, RoleLabel.TryGetValue(member.role, out var label) ? label : member.role, badgeStyle);
-                badgeStyle.normal.textColor = previous;
-                badgeStyle.fontSize = 12;
-
-                GUI.Label(new Rect(row.x + 50, row.y, 120, 26), member.name, _theme.Body);
-
-                // 이동 중이면 남은 시간을 보여준다. 서버가 준 값이며 클라는 세지 않는다.
-                var zone = member.travelRemainingMs > 0
-                    ? $"이동 중 {member.travelRemainingMs / 1000f:0.0}초"
-                    : ZoneLabel(member.zone);
-                var zoneStyle = _theme.Meta;
-                zoneStyle.alignment = TextAnchor.MiddleRight;
-                GUI.Label(new Rect(row.x, row.y, row.width - 10, 26), zone, zoneStyle);
-                zoneStyle.alignment = TextAnchor.MiddleLeft;
-
-                y += 30;
-            }
-        }
-
-        /* ------------------------------------------------------- 이동·일과 */
-
-        private void DrawTasks(Snapshot snapshot, Rect rect)
-        {
-            _theme.DrawPanel(rect);
-
-            var done = 0;
-            var total = 0;
-            if (snapshot?.quests != null)
-            {
-                foreach (var quest in snapshot.quests)
+                ZoneMap zone = null;
+                foreach (var candidate in world.zones)
                 {
-                    if (quest == null || !IsMine(quest)) continue;
-                    total += 1;
-                    if (quest.status == SnapshotQuestsItemStatusValues.Done) done += 1;
+                    if (candidate != null && candidate.id == member.zone) { zone = candidate; break; }
                 }
+                if (zone == null || RegionOf(zone.id) != region) continue;
+
+                var at = ToScreen(zone.area.center);
+                var dot = new Rect(at.x - 4f, at.y - 4f, 8f, 8f);
+                var color = HudTheme.RoleColor(member.role);
+
+                // §7.9 범례 "타 구역 아군 — 무전으로만". 속 빈 원으로 구분한다
+                if (sameZone) HudIcons.Dot(dot, color);
+                else HudIcons.Circle(dot, 2f, color);
             }
-
-            GUI.Label(new Rect(rect.x + 20, rect.y + 16, 120, 16), "내 일과", _theme.Label);
-            var counter = _theme.Meta;
-            counter.alignment = TextAnchor.MiddleRight;
-            GUI.Label(new Rect(rect.x, rect.y + 16, rect.width - 20, 16), $"{done} / {total}", counter);
-            counter.alignment = TextAnchor.MiddleLeft;
-
-            if (snapshot?.quests == null) return;
-
-            var ordered = Ordered(snapshot);
-            var view = new Rect(rect.x + 12, rect.y + 40, rect.width - 24, rect.height - 52);
-
-            _taskScroll = GUI.BeginScrollView(
-                view, _taskScroll, new Rect(0, 0, view.width - 16, ordered.Count * 58f));
-
-            for (var i = 0; i < ordered.Count; i += 1)
-            {
-                DrawTask(ordered[i], new Rect(0, i * 58f, view.width - 16, 52));
-            }
-
-            GUI.EndScrollView();
         }
 
-        /// <summary>
-        /// 일과 정렬.
-        ///
-        /// 서버는 생성 순서대로 보낸다 — 그 순서는 커리큘럼이 정하는 것이라
-        /// 화면에서는 **뒤죽박죽으로 보인다.** 게다가 돌발 일과(6.0)가 끼어들면
-        /// 목록이 통째로 밀려서, 방금 보던 줄이 어디로 갔는지 알 수 없다.
-        ///
-        /// 그래서 여기서 순서를 정한다. 기준은 "지금 손댈 수 있는 것이 위로"다.
-        ///   1. 진행 중  — 이미 하고 있는 것
-        ///   2. 지금 구역 — 걸어가지 않아도 되는 것
-        ///   3. 필수     — 완주를 가르는 것 (9.0)
-        ///   4. 시간대   — 일과표 순서 (4.0)
-        ///   5. id       — 위 넷이 같으면 순서가 흔들리지 않게
-        ///
-        /// 이건 규칙이 아니라 정렬이다. 무엇을 할 수 있는지는 여전히 서버가 정하고,
-        /// 순서를 바꾼다고 판정이 달라지지 않는다.
-        /// </summary>
-        private List<SnapshotQuestsItem> Ordered(Snapshot snapshot)
+        /// <summary>벽 두께만큼 부풀린다 — 이웃 방과 변을 맞대게 하려는 것이다</summary>
+        private static Rect Grow(Rect r, float by) =>
+            new Rect(r.x - by * 0.5f, r.y - by * 0.5f, r.width + by, r.height + by);
+
+        /* ─────────────────────────────────────── §7.1.4 우측 수첩 요약 */
+
+        private void DrawNotebookSummary(Snapshot snapshot)
         {
-            var here = MyZone(snapshot);
-            var list = new List<SnapshotQuestsItem>();
+            // 목업 실측: 280×120 @ (1592, 640)
+            var rect = new Rect(1592f, 640f, 280f, 120f);
 
-            foreach (var quest in snapshot.quests)
+            var counts = HudScreens.CountQuests(snapshot, client.MemberId);
+            var left = counts.requiredTotal - counts.requiredDone;
+
+            // §7.1.4 필수 미완료가 남은 채 시간대 잔여 20% 이하가 되면 전체 카드가 점멸
+            var phase = snapshot?.phase;
+            var urgent = left > 0 && phase != null && phase.durationMs > 0d &&
+                         1d - phase.elapsedMs / phase.durationMs <= 0.2d;
+
+            _theme.Fill(rect, HudTheme.Paper, 0.94f);
+            _theme.Border(rect,
+                urgent && HudTheme.Pulse(1f) ? HudTheme.Alert : urgent ? HudTheme.Rule : HudTheme.Rule,
+                urgent ? 2f : 1f);
+
+            GUI.Label(new Rect(rect.x + 16f, rect.y + 12f, 240f, 20f), "NOTEBOOK  [TAB]",
+                _theme.At(_theme.Label, 11, HudTheme.Ink2));
+
+            Row(rect, 44f, "필수", $"{counts.requiredDone} / {counts.requiredTotal}",
+                left > 0 ? HudTheme.Alert : HudTheme.Accent, 19);
+            Row(rect, 70f, "선택", $"{counts.optionalDone} / {counts.optionalTotal}", HudTheme.Ink2, 17);
+            Row(rect, 94f, "합동", counts.jointLabel, counts.jointColor, 15);
+
+            void Row(Rect box, float y, string label, string value, Color color, int size)
             {
-                if (quest != null && IsMine(quest)) list.Add(quest);
+                GUI.Label(new Rect(box.x + 16f, box.y + y, 120f, 22f), label,
+                    _theme.At(_theme.Body, 17, HudTheme.Ink));
+                GUI.Label(new Rect(box.xMax - 156f, box.y + y, 140f, 22f), value,
+                    _theme.At(_theme.Mono, size, color, TextAnchor.MiddleRight));
             }
-
-            list.Sort((a, b) =>
-            {
-                var byDone = Rank(a) - Rank(b);
-                if (byDone != 0) return byDone;
-
-                var aHere = a.zone == here ? 0 : 1;
-                var bHere = b.zone == here ? 0 : 1;
-                if (aHere != bHere) return aHere - bHere;
-
-                var aRequired = a.required ? 0 : 1;
-                var bRequired = b.required ? 0 : 1;
-                if (aRequired != bRequired) return aRequired - bRequired;
-
-                var byPhase = PhaseOrder(a.phase) - PhaseOrder(b.phase);
-                if (byPhase != 0) return byPhase;
-
-                return string.CompareOrdinal(a.id, b.id);
-            });
-
-            return list;
         }
 
-        private static int Rank(SnapshotQuestsItem quest) =>
-            quest.status == SnapshotQuestsItemStatusValues.Active ? 0
-            : quest.status == SnapshotQuestsItemStatusValues.Done ? 2 : 1;
+        /* ─────────────────────────────────────── §7.1.2 좌하단 컨디션 링 */
 
-        /// <summary>4.0 일과표 순서. 스냅샷의 phase 문자열을 그대로 받는다</summary>
-        private static int PhaseOrder(string phase) => phase switch
+        /// <summary>§7.1.2 표의 6스탯. 취침 정산(§7.6)도 같은 순서를 쓴다</summary>
+        public static readonly (string id, string name)[] Stats =
         {
-            "reveille" => 0,
-            "morning" => 1,
-            "afternoon" => 2,
-            "personal" => 3,
-            "evening" => 4,
-            "lightsOut" => 5,
-            _ => 6,
+            ("stamina", "체력"), ("hydration", "수분"), ("fatigue", "피로"),
+            ("mental", "정신력"), ("hygiene", "청결"), ("satiety", "포만감"),
         };
 
-        private void DrawTask(SnapshotQuestsItem quest, Rect rect)
+        private void DrawCondition(Snapshot snapshot)
         {
-            var active = quest.status == SnapshotQuestsItemStatusValues.Active;
-            var finished = quest.status == SnapshotQuestsItemStatusValues.Done;
+            var me = HudScreens.FindMember(snapshot, client.MemberId);
+            if (me?.stats == null) return;
 
-            _theme.DrawRounded(rect, 10f,
-                active ? new Color(HudTheme.Accent.r, HudTheme.Accent.g, HudTheme.Accent.b, 0.10f)
-                       : new Color(1f, 1f, 1f, 0.04f));
+            // 목업 실측: 클러스터 원점 (48, 912). 3×2 배치
+            var origin = new Vector2(48f, 912f);
+            var showValues = Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt);
 
-            // 필수는 왼쪽 띠로 표시한다. 아이콘을 쓰면 뜻을 외워야 하는데,
-            // 띠는 "이건 다르다"가 즉시 읽힌다. 9.0의 필수 판정이 완주를 가른다.
-            if (quest.required && !finished)
+            // **바탕 패널을 두지 않는다.**
+            //
+            // 검은 판을 깔면 읽히기는 하지만 월드를 그만큼 가린다. §7.1.2가 이
+            // 클러스터를 화면 구석에 얇게 두라고 한 이유가 그것이다.
+            //
+            // 대신 링 자체를 강하게 만든다 — 트랙을 가장 어두운 색(`Dim`)으로
+            // 깔면 배경이 나무 바닥이든 눈밭이든 링의 테두리가 항상 잡히고,
+            // 그 위의 채움은 밝은 색이라 두 겹으로 읽힌다.
+
+            for (var i = 0; i < Stats.Length; i += 1)
             {
-                _theme.DrawRounded(new Rect(rect.x, rect.y + 8, 3, rect.height - 16),
-                    1.5f, active ? HudTheme.Accent : HudTheme.Warn);
+                var (id, name) = Stats[i];
+                var raw = Value(me.stats, id);
+
+                // 피로만 0에서 시작해 100으로 오른다 — 링은 "남은 여유"를 채운다
+                var value = id == "fatigue" ? 1f - raw / 100f : raw / 100f;
+                var danger = Danger(id, raw);
+
+                var cx = origin.x + (i % 3) * 60f;
+                var cy = origin.y + (i / 3) * 64f;
+
+                // §7.1.2 평시 40px / 위험 진입 시 56px + 1.5Hz 점멸.
+                //
+                // 명세의 평시 α0.55는 **너무 흐렸다.** 여섯 개가 다 회색 얼룩으로
+                // 보여서 어느 것이 무슨 수치인지는커녕 몇 개인지도 안 읽혔다.
+                // 위험과 평시를 가르는 것은 알파가 아니라 **크기와 색**이면 충분하다
+                var size = danger ? 56f : 44f;
+                var alpha = 1f;
+                if (danger && !HudTheme.Pulse(1.5f)) alpha = 0.75f;
+
+                var rect = new Rect(cx + (56f - size) * 0.5f, cy + (56f - size) * 0.5f, size, size);
+                var color = Tint(id, danger);
+
+                // §7.1.2는 "링 중앙에 수치 표기 없음(시야 방해)"이라 못박았지만,
+                // 그러면 여섯 개가 무엇인지 알 방법이 없다. 마우스를 올렸을 때만
+                // 이름과 값을 띄우면 평소 화면은 그대로 두면서 배울 수 있다
+                if (rect.Contains(_mouse)) _hovered = i;
+
+                var previous = GUI.color;
+                GUI.color = new Color(1f, 1f, 1f, alpha);
+                // 트랙을 `Dim`으로 — 링이 어떤 배경 위에 놓여도 윤곽이 남는다.
+                // `Rule2`는 이제 밝아져서 트랙으로 쓰면 채움과 구분이 안 된다
+                HudIcons.DrawRing(rect, id, value, color, HudTheme.Dim);
+                HudIcons.Stat(id, new Rect(rect.x + size * 0.28f, rect.y + size * 0.28f,
+                                           size * 0.44f, size * 0.44f), HudTheme.White);
+                GUI.color = previous;
+
+                // §7.1.2 "링 중앙에 수치 표기 없음. Alt 키 홀드 시 수치 표시"
+                if (showValues || danger)
+                {
+                    GUI.Label(new Rect(rect.x - 8f, rect.yMax - 2f, rect.width + 16f, 18f),
+                        $"{raw:0}", _theme.At(_theme.Label, 12, color, TextAnchor.MiddleCenter));
+                }
             }
 
-            var titleStyle = _theme.Body;
-            var previous = titleStyle.normal.textColor;
-            titleStyle.normal.textColor = finished ? HudTheme.TextMuted : HudTheme.TextPrimary;
-            GUI.Label(new Rect(rect.x + 14, rect.y + 6, rect.width - 90, 18), quest.label, titleStyle);
-            titleStyle.normal.textColor = previous;
+            GUI.Label(new Rect(origin.x, origin.y + 128f, 300f, 20f), "CONDITION   [ALT] 수치",
+                _theme.At(_theme.Label, 11, HudTheme.Ink2));
 
-            // 구역·시간대를 함께 띄운다. 다른 구역의 일과를 누르면 서버가 거절하는데,
-            // 막지 않는 대신 이유를 읽을 수 있어야 한다.
-            GUI.Label(new Rect(rect.x + 14, rect.y + 24, rect.width - 90, 16),
-                $"{ZoneLabel(quest.zone)} · {quest.phase}", _theme.Meta);
-
-            _theme.DrawProgress(new Rect(rect.x + 14, rect.y + 42, rect.width - 90, 3),
-                (float)quest.progress, finished ? HudTheme.TextMuted : HudTheme.Accent);
-
-            if (finished)
-            {
-                var mark = _theme.ChipText;
-                var before = mark.normal.textColor;
-                mark.normal.textColor = HudTheme.TextMuted;
-                GUI.Label(new Rect(rect.xMax - 66, rect.y, 56, rect.height), "완료", mark);
-                mark.normal.textColor = before;
-                return;
-            }
-
-            var button = new Rect(rect.xMax - 66, rect.y + 12, 56, 28);
-            if (Chip(button, active ? "중단" : "수행", active)) client.Interact(quest.id, !active);
+            if (_hovered >= 0 && _hovered < Stats.Length) DrawStatTip(origin, me.stats, _hovered);
         }
 
-        /* ---------------------------------------------------------- 조준점 */
+        /// <summary>마우스를 올린 링이 무엇인지</summary>
+        private int _hovered = -1;
+        private Vector2 _mouse;
 
-        /// <summary>
-        /// 화면 한가운데 점.
-        ///
-        /// 1인칭에서는 "어디를 보고 있는가"가 곧 "무엇에 다가가는가"다. 점이 없으면
-        /// 상호작용 범위에 들어왔는지 감이 안 잡힌다. 시점을 잡지 않은 상태에서는
-        /// 대신 어떻게 잡는지 알려준다 — 브라우저는 클릭 없이 커서를 못 숨긴다.
-        /// </summary>
-        private void DrawCrosshair(float width, float height)
+        private static readonly string[] StatHints =
         {
-            if (player == null) return;
+            "0이 되면 그 자리에서 쓰러진다",
+            "30 이하 탈수 · 10 이하 열사병",
+            "100이면 강제 수면 — 그 칸의 일과를 놓친다",
+            "0이면 패닉. 화면이 떨린다",
+            "20 이하면 점호 조건 D가 깨진다",
+            "0이면 체력이 깎이기 시작한다",
+        };
 
-            if (!player.Looking)
-            {
-                var hint = new Rect(width * 0.5f - 150, height * 0.5f - 22, 300, 44);
-                _theme.DrawPanel(hint);
-                GUI.Label(hint, "화면을 클릭하면 시점 조작 · ESC로 해제", _theme.ChipText);
-                return;
-            }
+        private void DrawStatTip(Vector2 origin, SnapshotMembersItemStats stats, int index)
+        {
+            var (id, name) = Stats[index];
+            var value = Value(stats, id);
+            var danger = Danger(id, value);
 
-            var dot = new Rect(width * 0.5f - 2.5f, height * 0.5f - 2.5f, 5, 5);
-            _theme.DrawRounded(dot, 2.5f, new Color(1f, 1f, 1f, 0.75f));
+            var rect = new Rect(origin.x, origin.y - 74f, 300f, 66f);
+            _theme.Fill(rect, HudTheme.Paper, 0.96f);
+            _theme.Border(rect, danger ? HudTheme.Alert : HudTheme.Rule);
+            _theme.Spine(rect, danger ? HudTheme.Alert : HudTheme.Accent, 3f);
+
+            GUI.Label(new Rect(rect.x + 18f, rect.y + 8f, 200f, 24f), name,
+                _theme.At(_theme.Heading, 19, HudTheme.Ink));
+            GUI.Label(new Rect(rect.xMax - 90f, rect.y + 8f, 70f, 24f), $"{value:0}",
+                _theme.At(_theme.Display, 22, danger ? HudTheme.Alert : HudTheme.Accent,
+                    TextAnchor.MiddleRight));
+            GUI.Label(new Rect(rect.x + 18f, rect.y + 36f, rect.width - 36f, 22f), StatHints[index],
+                _theme.At(_theme.Small, 13, HudTheme.Ink2));
         }
 
-        /* -------------------------------------------------------- 프롬프트 */
-
-        /// <summary>
-        /// 눈앞의 것.
-        ///
-        /// 화면 가운데 아래에 뜬다 — 캐릭터가 거기 있고, 시선이 이미 가 있는 자리다.
-        /// 목록 어딘가를 다시 찾게 만들면 "걸어가서 한다"는 감각이 깨진다.
-        /// </summary>
-        private void DrawPrompt(float width, float height)
+        public static float Value(SnapshotMembersItemStats stats, string id) => id switch
         {
-            if (world != null && world.TravelRemaining > 0f)
-            {
-                var moving = new Rect(width * 0.5f - 130, height - 168, 260, 44);
-                _theme.DrawPanel(moving);
-                var style = _theme.ChipText;
-                var previous = style.normal.textColor;
-                style.normal.textColor = HudTheme.Warn;
-                GUI.Label(moving, $"이동 중  {world.TravelRemaining:0.0}초", style);
-                style.normal.textColor = previous;
-                return;
-            }
+            "stamina" => (float)stats.stamina,
+            "hydration" => (float)stats.hydration,
+            "fatigue" => (float)stats.fatigue,
+            "mental" => (float)stats.mental,
+            "hygiene" => (float)stats.hygiene,
+            _ => (float)stats.satiety,
+        };
 
-            var near = interactor != null ? interactor.Nearest : null;
+        /// <summary>§7.1.2 임계값 — 피로만 방향이 반대다</summary>
+        public static bool Danger(string id, float value) => id switch
+        {
+            "fatigue" => value >= 70f,
+            "hygiene" => value <= 20f,
+            _ => value <= 30f,
+        };
+
+        private static Color Tint(string id, bool danger) => id switch
+        {
+            "hydration" => danger ? HudTheme.Heat : HudTheme.Cold,
+            _ => danger ? HudTheme.Alert : HudTheme.Accent,
+        };
+
+        /* ─────────────────────────────────────── §7.1.5 상호작용 프롬프트 */
+
+        private void DrawPrompt(Snapshot snapshot)
+        {
+            if (_screens.BlocksMovement) return;
+
+            // 목업 실측: 480×88 @ (720, 880)
+            var rect = new Rect(720f, 880f, 480f, 88f);
+
+            // 판이 열려 있으면 프롬프트는 그리지 않는다. 판은 화면 가운데를
+            // 쓰고(`DrawMinigame`), 그 동안은 걷지도 못하므로 "다가서라"는
+            // 안내가 남아 있을 이유가 없다
+            if (play != null && play.QuestId != null) return;
+
+            var near = interactor?.Nearest;
             if (near == null) return;
 
-            if (near.kind == Interactable.Kind.Door) { DrawDoor(near, width, height); return; }
+            // 2행이 조건 미충족 사유다. 충족하면 accent로 바뀐다
+            var (reason, ok) = ReasonFor(near, snapshot);
 
-            var rect = new Rect(width * 0.5f - 170, height - 168, 340, 52);
-            _theme.DrawPanel(rect);
+            _theme.Fill(rect, HudTheme.Paper, 0.94f);
+            _theme.Border(rect, ok ? HudTheme.Accent : HudTheme.Alert, 2f);
 
-            _theme.DrawRounded(new Rect(rect.x + 14, rect.y + 14, 24, 24), 6f,
-                new Color(1f, 1f, 1f, 0.14f));
-            GUI.Label(new Rect(rect.x + 14, rect.y + 14, 24, 24), "E", _theme.ChipText);
+            _theme.KeyCap(new Rect(rect.x + 20f, rect.y + 18f, 34f, 30f), "E");
+            GUI.Label(new Rect(rect.x + 68f, rect.y + 16f, 400f, 34f), near.label,
+                _theme.At(_theme.Heading, 22, HudTheme.Ink));
 
-            GUI.Label(new Rect(rect.x + 48, rect.y + 8, rect.width - 60, 20),
-                near.active ? $"{near.label} 중단" : near.label, _theme.Body);
-            GUI.Label(new Rect(rect.x + 48, rect.y + 28, rect.width - 60, 16), near.detail, _theme.Meta);
+            GUI.Label(new Rect(rect.x + 20f, rect.y + 54f, 380f, 24f), reason,
+                _theme.At(_theme.Body, 17, ok ? HudTheme.Accent : HudTheme.Alert));
 
-            if (Event.current.type == EventType.KeyDown && Event.current.keyCode == KeyCode.E)
+            GUI.Label(new Rect(rect.xMax - 180f, rect.y + 54f, 160f, 24f), near.detail,
+                _theme.At(_theme.Label, 13, HudTheme.Ink2, TextAnchor.MiddleRight));
+
+            // 진척 — 서버가 세는 값을 표시만 한다
+            if (near.progress > 0f)
             {
-                client.Interact(near.questId, !near.active);
-                Event.current.Use();
+                _theme.Bar(new Rect(rect.x, rect.yMax - 4f, rect.width, 4f),
+                    near.progress, HudTheme.Accent);
             }
+
         }
 
         /// <summary>
-        /// 문 앞. 여기서만 구역 이동이 뜬다.
+        /// 열려 있는 일과 판 (`docs/game_spec.md` 원형 14종).
         ///
-        /// 어디서든 버튼으로 순간이동하면 6.1의 "동선이 멀다"가 사라진다 —
-        /// 공통 일과의 시간 비용 대부분이 이동인데, 그게 화면에서 공짜가 되면
-        /// 왜 시간이 모자란지가 읽히지 않는다.
+        /// 테두리·제목·남은 시간·결과는 `HudMinigame`이 그리고 본문은 원형이
+        /// 그린다. 여기서는 자리만 내어준다 — 판이 열려 있으면 화면 가운데를
+        /// 통째로 쓰고, 그 동안 플레이어는 걷지 못한다.
         /// </summary>
-        private void DrawDoor(Interactable door, float width, float height)
+        private void DrawMinigame()
         {
-            var rows = 4;
-            var rect = new Rect(width * 0.5f - 200, height - 96 - rows * 34 - 44, 400, rows * 34 + 40);
-            _theme.DrawPanel(rect);
-            GUI.Label(new Rect(rect.x + 20, rect.y + 12, 200, 16),
-                $"{door.detail} 출입문 · 어디로", _theme.Label);
+            if (play == null || play.QuestId == null || play.Board == null) return;
+            HudMinigame.Draw(_theme, play);
+        }
 
-            // 포인터 락 중에는 커서가 없다. 숫자키로도 고를 수 있어야 시점을
-            // 풀지 않고 이동할 수 있다 — 문 앞에서 매번 ESC를 누르게 하면
-            // 걸어다니는 감각이 끊긴다.
-            var index = 0;
-            var chipWidth = (rect.width - 40 - 8) / 2f;
-            foreach (var pair in ZoneNames.All)
+        /// <summary>
+        /// §7.1.5 "2행은 **왜 진행이 안 되는지를 항상 명시**한다."
+        ///
+        /// 기획서 §15.0이 명시한 요구사항이며, 협동 강제 구조에서 가장 중요한 UX다.
+        /// 여기서 하는 것은 판정이 아니라 **읽어주기**다 — 서버가 준 값(요구 인원,
+        /// 같은 구역 인원)을 그대로 문장으로 옮긴다.
+        /// </summary>
+        private (string, bool) ReasonFor(Interactable point, Snapshot snapshot)
+        {
+            if (point.minActors > 1)
             {
-                var here = pair.Key == MyZoneOrEmpty();
-                var chip = new Rect(
-                    rect.x + 20 + (index % 2) * (chipWidth + 8),
-                    rect.y + 34 + (index / 2) * 34,
-                    chipWidth, 28);
-
-                var picked = Chip(chip, $"{index + 1}  {pair.Value}", here);
-
-                if (Event.current.type == EventType.KeyDown &&
-                    Event.current.keyCode == KeyCode.Alpha1 + index)
+                var here = 0;
+                if (snapshot?.members != null)
                 {
-                    picked = true;
-                    Event.current.Use();
+                    foreach (var member in snapshot.members)
+                    {
+                        if (member != null && member.zone == visibility?.CurrentZone) here += 1;
+                    }
                 }
-
-                if (picked && !here) client.Move(pair.Key);
-                index += 1;
+                return here >= point.minActors
+                    ? ($"✓ {here}/{point.minActors} — 홀드", true)
+                    : ($"⚠ {point.minActors}인 필요 — 현재 {here}명", false);
             }
-        }
 
-        private string MyZoneOrEmpty()
-        {
-            var snapshot = client.Latest;
-            return snapshot != null ? MyZone(snapshot) : "";
-        }
-
-        /* -------------------------------------------------------- 퀵 커맨드 */
-
-        private void DrawCommandBar(Rect rect)
-        {
-            _theme.DrawPanel(rect);
-
-            var width = (rect.width - 32 - 7 * 6) / 8f;
-            for (var i = 0; i < Commands.Length; i += 1)
+            // **무슨 판인지 여기서 말한다.**
+            //
+            // 전에는 무엇이든 "[E] 홀드"라고 적어놨다. 화면이 늘 같은 말을 하니
+            // 붙잡고만 있으면 되는 줄 알 수밖에 없었다. 이름을 보고 유추하던
+            // 것도 걷어냈다 — 원형은 서버가 알려준다.
+            if (string.IsNullOrEmpty(point.minigameType))
             {
-                var chip = new Rect(rect.x + 16 + i * (width + 6), rect.y + 14, width, 30);
-                if (Chip(chip, Commands[i].label, false)) client.QuickCommand(Commands[i].id);
+                // 판이 없는 일과 — 회복 · 합동 · 훈련. 붙잡고 있으면 시간이 끝낸다
+                return point.progress > 0f
+                    ? ($"[E] 이어서 — {point.progress * 100f:0}%", true)
+                    : ("[E] 홀드", true);
             }
 
-            GUI.Label(new Rect(rect.x + 16, rect.yMax - 18, 200, 14), "퀵 커맨드", _theme.Label);
+            var board = Boards.Name(point.minigameType);
+            return point.progress > 0f
+                ? ($"[E] {board} — 이어서 {point.progress * 100f:0}%", true)
+                : ($"[E] {board}", true);
         }
 
-        /* ------------------------------------------------------------ 조각 */
+        /* ─────────────────────────── §4.3 상태 연동 오버라이드 (프레임) */
 
         /// <summary>
-        /// 칩 버튼.
+        /// 화면 프레임으로 표현하는 상태 이상.
         ///
-        /// Unity 기본 버튼 스타일을 쓰지 않는 이유는 그 베벨 테두리가 정확히
-        /// "옛스러움"의 정체이기 때문이다. 배경을 직접 그리고 라벨만 얹는다.
+        /// §9.2가 이것들을 풀스크린 셰이더(`SH_FrostFrame` · `SH_Vignette_Pulse`)로
+        /// 요구하지만, 셰이더 그래프 없이도 **화면 4변 그라디언트**로 같은 정보를
+        /// 준다 — 색과 덮는 범위가 곧 신호이고, 그건 UI 레이어에서 그릴 수 있다.
+        /// 열 왜곡(`SH_HeatDistort`)과 야시장비(`SH_NightVision`)는 UV를 건드려야
+        /// 하므로 여기서 대체할 수 없다.
+        ///
+        /// 전부 §15.0 접근성 개별 토글을 거친다 — `WeatherGrading`이 꺼두면 0이다.
         /// </summary>
-        private bool Chip(Rect rect, string label, bool highlighted)
+        private void DrawStateOverlays()
         {
-            var hover = rect.Contains(Event.current.mousePosition);
+            if (grading == null) return;
 
-            var background = highlighted
-                ? new Color(HudTheme.Accent.r, HudTheme.Accent.g, HudTheme.Accent.b, hover ? 0.34f : 0.24f)
-                : new Color(1f, 1f, 1f, hover ? 0.14f : 0.07f);
-            _theme.DrawRounded(rect, 10f, background);
+            var screen = new Rect(0f, 0f, HudTheme.DesignWidth, HudTheme.DesignHeight);
 
-            var style = _theme.ChipText;
-            var previous = style.normal.textColor;
-            style.normal.textColor = highlighted ? HudTheme.Accent : HudTheme.TextPrimary;
-            GUI.Label(rect, label, style);
-            style.normal.textColor = previous;
-
-            return GUI.Button(rect, GUIContent.none, GUIStyle.none);
-        }
-
-        private static float Measure(string text, GUIStyle style) =>
-            style.CalcSize(new GUIContent(text)).x;
-
-        private bool IsMine(SnapshotQuestsItem quest) =>
-            quest.ownerId == client.MemberId || string.IsNullOrEmpty(quest.ownerId);
-
-        private string MyZone(Snapshot snapshot)
-        {
-            foreach (var member in snapshot.members)
+            // 동상 — 화면 4변 결빙 프레임 페이드인(§4.3)
+            if (grading.FrostBite > 0f)
             {
-                if (member?.id == client.MemberId) return member.zone;
+                var depth = 60f + 90f * grading.FrostBite;
+                var alpha = 0.18f + 0.3f * grading.FrostBite;
+                Edge(screen, depth, HudTheme.Cold, alpha);
             }
-            return "";
+
+            // 열사병 2단계 — 화면 가장자리 붉은 펄스 (§4.3 주기 1.2s)
+            if (grading.HeatStress > 0f)
+            {
+                var pulse = 0.6f + 0.4f * Mathf.Sin(Time.unscaledTime * Mathf.PI * 2f / 1.2f);
+                Edge(screen, 140f, HudTheme.Alert, 0.35f * grading.HeatStress * pulse);
+            }
+
+            void Edge(Rect area, float depth, Color color, float alpha)
+            {
+                // 그라디언트 대신 층을 쌓는다. 4~5겹이면 32px 픽셀아트 위에서
+                // 단계가 보이지 않고, 텍스처를 만들 필요도 없다
+                const int layers = 5;
+                for (var i = 0; i < layers; i += 1)
+                {
+                    var t = (i + 1) / (float)layers;
+                    var thickness = depth * t;
+                    var a = alpha / layers;
+                    _theme.Fill(new Rect(area.x, area.y, area.width, thickness), color, a);
+                    _theme.Fill(new Rect(area.x, area.yMax - thickness, area.width, thickness), color, a);
+                    _theme.Fill(new Rect(area.x, area.y, thickness, area.height), color, a);
+                    _theme.Fill(new Rect(area.xMax - thickness, area.y, thickness, area.height), color, a);
+                }
+            }
         }
 
-        private static string ZoneLabel(string zone) => ZoneNames.Of(zone);
+        /* ─────────────────── §5.0 혹한 특수 규칙 — 보온 게이지 (목업 실측) */
+
+        private void DrawBodyHeat(Snapshot snapshot)
+        {
+            var me = HudScreens.FindMember(snapshot, client.MemberId);
+            if (me == null) return;
+
+            // 서버가 극혹한에서만 게이지를 흘린다(`warmth.ts`). 0이면 이 밴드가
+            // 아니거나 이미 동상이라, 게이지 UI를 띄울 일이 없다
+            var frostbitten = me.frostbitten;
+            if (me.warmthRemainingMs <= 0d && !frostbitten) return;
+
+            // 목업 실측: (1290, 900)
+            var origin = new Vector2(1290f, 900f);
+            GUI.Label(new Rect(origin.x, origin.y - 14f, 320f, 20f), "BODY HEAT — 열원 접촉까지",
+                _theme.At(_theme.Label, 11, HudTheme.Cold));
+
+            // 전체 길이(90초)는 서버 데이터 테이블에 있고 스냅샷은 **남은 시간만**
+            // 준다(ARCH-02). 비율을 그리려면 밴드 규칙을 알아야 하는데 그건
+            // 클라가 가질 것이 아니므로, 남은 시간을 그대로 게이지로 쓴다
+            var seconds = (float)me.warmthRemainingMs / 1000f;
+            var ratio = Mathf.Clamp01(seconds / WarmthFullSeconds);
+
+            _theme.Bar(new Rect(origin.x, origin.y + 10f, 300f, 16f), ratio,
+                frostbitten ? HudTheme.Alert : HudTheme.Cold);
+
+            GUI.Label(new Rect(origin.x + 160f, origin.y + 30f, 140f, 26f),
+                $"{Mathf.FloorToInt(seconds / 60f)}:{Mathf.FloorToInt(seconds % 60f):00}",
+                _theme.At(_theme.Mono, 20, frostbitten ? HudTheme.Alert : HudTheme.Cold,
+                    TextAnchor.MiddleRight));
+
+            if (frostbitten)
+            {
+                // §5.0 — 열원에 돌아가는 것만으로는 안 풀린다. 의무병을 찾아야 한다
+                GUI.Label(new Rect(origin.x, origin.y + 30f, 240f, 26f), "동상 — 의무병 필요",
+                    _theme.At(_theme.Body, 15, HudTheme.Alert));
+            }
+            else if (ratio < 0.35f)
+            {
+                GUI.Label(new Rect(origin.x, origin.y + 30f, 200f, 26f), "동상 위험",
+                    _theme.At(_theme.Body, 15, HudTheme.Alert));
+            }
+        }
+
+        /// <summary>
+        /// §5.0 보온 게이지의 전체 길이(초).
+        ///
+        /// 서버 데이터 테이블(`temperature.json`)의 값과 같아야 하지만 **판정에는
+        /// 쓰이지 않는다** — 게이지 막대의 비율을 그리기 위한 표시용 상수다.
+        /// 서버가 이 값을 바꾸면 막대가 덜 차거나 넘칠 뿐 규칙은 그대로다.
+        /// </summary>
+        private const float WarmthFullSeconds = 90f;
+
+        /* ─────────────────────────────── 월드 오버레이 — 이름표 · 말풍선 */
+
+        private void DrawWorldOverlay(Snapshot snapshot)
+        {
+            var camera = world?.camera != null ? world.camera.GetComponent<Camera>() : Camera.main;
+            if (camera == null || snapshot?.members == null) return;
+
+            var scale = Mathf.Min(Screen.width / HudTheme.DesignWidth,
+                                  Screen.height / HudTheme.DesignHeight);
+
+            // 내 캐릭터
+            if (world.player != null)
+            {
+                var me = HudScreens.FindMember(snapshot, client.MemberId);
+                if (me != null) Nameplate(camera, scale, world.player.transform, me, true);
+            }
+
+            // 보이는 분대원만 — §1.3-A. 안 보이는 사람에게 이름표를 띄우면
+            // 스프라이트를 감춘 의미가 사라진다
+            if (world.squad != null)
+            {
+                foreach (var pair in world.squad.Visible)
+                {
+                    var member = HudScreens.FindMember(snapshot, pair.Key);
+                    if (member != null) Nameplate(camera, scale, pair.Value, member, false);
+                }
+            }
+
+            DrawBubbles(camera, scale, snapshot);
+        }
+
+        private void Nameplate(Camera camera, float scale, Transform at,
+                               SnapshotMembersItem member, bool mine)
+        {
+            var screen = camera.WorldToScreenPoint(at.position + Vector3.up * 1.7f);
+            if (screen.z < 0f) return;
+
+            var x = screen.x / scale;
+            var y = (Screen.height - screen.y) / scale;
+
+            // 목업 실측은 86×20이지만 **글자 폭에 맞춘다** — 이름이 길면 잘려서
+            // "리 통신병 · CO"처럼 보이고, §5.3이 색각 이상 대응으로 못박은
+            // 보직 3글자가 화면에서 사라진다
+            var text = $"{member.name} · {HudTheme.RoleTag(member.role)}";
+            var width = Mathf.Max(86f, _theme.Measure(text, _theme.Label) + 20f);
+            var rect = new Rect(x - width * 0.5f, y - 10f, width, 20f);
+            _theme.Fill(rect, HudTheme.Paper, 0.85f);
+            GUI.Label(rect, text,
+                _theme.At(_theme.Label, 13, mine ? HudTheme.Ink : HudTheme.Ink2, TextAnchor.MiddleCenter));
+
+            // §5.4 분대장 롤 — 이름표 왼쪽에 올리브 마름모
+            if (client.Latest?.leaderId == member.id)
+            {
+                HudIcons.Dot(new Rect(rect.x - 14f, rect.y + 5f, 10f, 10f), HudTheme.Accent);
+            }
+        }
+
+        private void DrawBubbles(Camera camera, float scale, Snapshot snapshot)
+        {
+            for (var i = _bubbles.Count - 1; i >= 0; i -= 1)
+            {
+                // §7.8 말풍선 3초 유지
+                if (Time.unscaledTime - _bubbles[i].born > 3f) _bubbles.RemoveAt(i);
+            }
+
+            foreach (var bubble in _bubbles)
+            {
+                Transform at = null;
+                if (bubble.memberId == client.MemberId && world.player != null)
+                {
+                    at = world.player.transform;
+                }
+                else if (world.squad != null)
+                {
+                    foreach (var pair in world.squad.Visible)
+                    {
+                        if (pair.Key == bubble.memberId) { at = pair.Value; break; }
+                    }
+                }
+                if (at == null) continue;
+
+                var screen = camera.WorldToScreenPoint(at.position + Vector3.up * 2.4f);
+                if (screen.z < 0f) continue;
+
+                var x = screen.x / scale;
+                var y = (Screen.height - screen.y) / scale;
+
+                // 목업 실측: 말풍선 118×46
+                var rect = new Rect(x - 59f, y - 46f, 118f, 46f);
+                var color = HudIcons.CommandColor(bubble.command);
+                var label = Label(bubble.command);
+
+                _theme.Fill(rect, HudTheme.Paper, 0.95f);
+                _theme.Border(rect, color);
+                HudIcons.Command(bubble.command, new Rect(rect.x + 8f, rect.y + 9f, 28f, 28f), color);
+                GUI.Label(new Rect(rect.x + 42f, rect.y, 70f, rect.height), label,
+                    _theme.At(_theme.Heading, 17, color));
+            }
+
+            static string Label(string id)
+            {
+                foreach (var (key, name) in HudIcons.Commands)
+                {
+                    if (key == id) return name;
+                }
+                return id;
+            }
+        }
     }
 }

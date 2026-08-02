@@ -5,121 +5,149 @@ using UnityEngine;
 namespace SoldierADay.Net
 {
     /// <summary>
-    /// 스냅샷을 화면으로 옮기는 층.
+    /// 다른 분대원을 세운다 (SAD-ART-001 §1.3-A).
     ///
-    /// **아무것도 계산하지 않는다.** 서버가 말한 구역에 세우고, 서버가 말한
-    /// 이동 잔여 시간에 맞춰 걸어가게 할 뿐이다. 여기서 "이쯤이면 도착했겠지"를
-    /// 스스로 정하면 클라마다 다른 위치를 믿게 되고 ARCH-02가 무너진다.
+    /// **이 클래스가 통신병 시스템의 2D 대응 지점이다.** 서버는 분대원 전원의 구역을
+    /// 보내주지만, 다른 구역에 있는 사람은 **그리지 않는다** — 2D 탑다운에서 화면 안이
+    /// 전부 보이면 "무전이 끊겨서 정보가 안 온다"(§8.0)가 무의미해지기 때문이다.
+    /// 판정은 `ZoneVisibility`가 하고 여기서는 그 답을 따른다.
     ///
-    /// 보간은 표시의 몫이다(17.0 NET-01은 10Hz 스냅샷을 규정한다 — 그대로 찍으면
-    /// 초당 10번 순간이동한다). 보간이 판정에 영향을 주지 않는 이유는 명확하다:
-    /// 다음 스냅샷이 오면 **서버가 말한 자리로 무조건 수렴한다.**
+    /// 위치는 서버가 모르므로(좌표가 없다) 구역 안 정해진 자리에 세운다. 실제로
+    /// 걸어 다니는 것은 각자의 화면에서고, 남의 화면에서는 "그 구역에 있다"까지만
+    /// 참이다 — 그 이상을 지어내면 화면과 서버가 갈라진다.
     /// </summary>
     public sealed class SquadView : MonoBehaviour
     {
-        [Tooltip("스냅샷 사이를 잇는 속도. 높을수록 서버 값에 빨리 붙는다")]
-        public float followSpeed = 4f;
+        public GameClient client;
+        public SpriteLibrary library;
+        public ZoneVisibility visibility;
+        public ZoneWorld world;
 
-        [Tooltip("분대원 프리팹 — 없으면 캡슐로 대신한다")]
-        public GameObject soldierPrefab;
+        private sealed class Member
+        {
+            public GameObject go;
+            public CharacterRig rig;
+            public string zone;
+            public string role;
+            public string rank;
+            public Vector2 target;
+        }
 
-        public Material material;
+        private readonly Dictionary<string, Member> _members = new Dictionary<string, Member>();
+        private readonly List<string> _stale = new List<string>();
 
-        private readonly Dictionary<string, Transform> _bodies = new Dictionary<string, Transform>();
-        private readonly Dictionary<string, Vector3> _targets = new Dictionary<string, Vector3>();
-
-        /// <summary>마지막으로 반영한 스냅샷의 구역. 오버레이가 읽는다</summary>
-        public readonly Dictionary<string, string> ZoneOf = new Dictionary<string, string>();
+        /// <summary>HUD가 이름표를 그릴 때 쓴다 — 보이는 사람만 이름이 뜬다</summary>
+        public IEnumerable<KeyValuePair<string, Transform>> Visible
+        {
+            get
+            {
+                foreach (var pair in _members)
+                {
+                    if (pair.Value.go != null && pair.Value.go.activeSelf)
+                        yield return new KeyValuePair<string, Transform>(pair.Key, pair.Value.go.transform);
+                }
+            }
+        }
 
         public void Apply(Snapshot snapshot)
         {
-            if (snapshot?.members == null) return;
+            if (snapshot?.members == null || library == null) return;
 
-            // 같은 구역에 몇 명이 있는지 세어 자리를 나눈다. 겹쳐 서면
-            // 스냅샷이 제대로 오는지조차 눈으로 확인할 수 없다.
-            var crowd = new Dictionary<string, int>();
+            var seen = 0;
+            var total = CountOthers(snapshot);
+
             foreach (var member in snapshot.members)
             {
-                if (member?.zone == null) continue;
-                crowd.TryGetValue(member.zone, out var count);
-                crowd[member.zone] = count + 1;
-            }
+                if (member == null || member.id == client.MemberId) continue;
 
-            var seen = new Dictionary<string, int>();
-            foreach (var member in snapshot.members)
-            {
-                if (member?.id == null || member.zone == null) continue;
-
-                seen.TryGetValue(member.zone, out var index);
-                seen[member.zone] = index + 1;
-
-                ZoneOf[member.id] = member.zone;
-                _targets[member.id] = ZoneLayout.SlotIn(member.zone, index, crowd[member.zone]);
-
-                if (!_bodies.ContainsKey(member.id)) Spawn(member);
-            }
-        }
-
-        private void Spawn(SnapshotMembersItem member)
-        {
-            GameObject body;
-            if (soldierPrefab != null)
-            {
-                body = Instantiate(soldierPrefab, transform);
-            }
-            else
-            {
-                body = GameObject.CreatePrimitive(PrimitiveType.Capsule);
-                body.transform.SetParent(transform, false);
-                body.transform.localScale = new Vector3(0.5f, 0.9f, 0.5f);
-            }
-
-            // 프리팹에도 재질을 씌운다. 캡슐 대체 경로에만 씌웠더니 **분대원이
-            // 마젠타로** 떴다 — 블록아웃 프리팹은 재질을 갖고 있지 않고,
-            // 재질 없는 렌더러는 URP에서 마젠타다.
-            if (material != null)
-            {
-                foreach (var renderer in body.GetComponentsInChildren<Renderer>(true))
+                if (!_members.TryGetValue(member.id, out var view))
                 {
-                    renderer.sharedMaterial = material;
+                    view = Spawn(member);
+                    _members[member.id] = view;
                 }
+
+                // 보직·계급이 바뀌면(승급) 다시 입힌다. 매 스냅샷 갈아입히면
+                // 10Hz로 시트를 다시 찾게 되고, 그건 힙에 톱질을 한다
+                if (view.role != member.role || view.rank != member.rank)
+                {
+                    view.role = member.role;
+                    view.rank = member.rank;
+                    view.rig.SetLook(member.role, member.rank);
+                }
+
+                var canSee = visibility == null || visibility.CanSee(member.zone);
+                view.go.SetActive(canSee);
+                if (!canSee) continue;
+
+                if (view.zone != member.zone)
+                {
+                    view.zone = member.zone;
+                    view.target = world != null
+                        ? world.StandPoint(member.zone, seen, total)
+                        : view.target;
+                    view.go.transform.position = view.target;
+                }
+
+                seen += 1;
+                // §5.5 19~20 — 분대원도 떨고 헐떡인다. 동상 판정은 서버가 내리고
+                // (`warmth.ts`), 그게 보여야 "의무병이 가서 풀어줘야 한다"를
+                // 말로 듣지 않고 눈으로 안다
+                view.rig.SetDistress(
+                    member.frostbitten,
+                    member.stats != null &&
+                    (member.stats.fatigue >= 90d || member.stats.hydration <= 30d));
+                view.rig.Step(Vector2.zero);
             }
 
-            body.name = $"{member.role}:{member.name}";
-            body.transform.position = _targets[member.id];
-            _bodies[member.id] = body.transform;
+            Sweep(snapshot);
         }
 
-        private void Update()
+        private static int CountOthers(Snapshot snapshot)
         {
-            foreach (var pair in _targets)
+            var n = 0;
+            foreach (var member in snapshot.members)
             {
-                if (!_bodies.TryGetValue(pair.Key, out var body)) continue;
-
-                // 지수 감쇠. 프레임 레이트가 흔들려도 같은 시간에 같은 만큼 좁혀진다 —
-                // deltaTime 곱하기만 쓰면 저프레임에서 뒤처지고 그게 위치 차이로 보인다.
-                body.position = Vector3.Lerp(
-                    body.position, pair.Value, 1f - Mathf.Exp(-followSpeed * Time.deltaTime));
+                if (member != null) n += 1;
             }
+            return Mathf.Max(1, n - 1);
         }
 
-        public Transform BodyOf(string memberId) =>
-            _bodies.TryGetValue(memberId, out var body) ? body : null;
+        private Member Spawn(SnapshotMembersItem member)
+        {
+            var go = new GameObject($"분대원:{member.name}");
+            go.transform.SetParent(transform, false);
+
+            var rig = go.AddComponent<CharacterRig>();
+            rig.Bind(library);
+            rig.SetLook(member.role, member.rank);
+            rig.Play("idle");
+
+            return new Member { go = go, rig = rig, role = member.role, rank = member.rank };
+        }
 
         /// <summary>
-        /// 이 구역에 있는 분대원만 보인다.
+        /// 스냅샷에서 사라진 사람을 치운다.
         ///
-        /// 켜진 맵은 하나뿐이므로(ZoneWorld) 다른 구역의 분대원은 꺼진 맵 자리의
-        /// 허공에 뜬다. 그러면 누가 여기 있는지가 오히려 헷갈린다. 판정과 무관한
-        /// 표시 필터이며, 어디 있는지는 스냅샷이 이미 말해준다.
+        /// 매 스냅샷마다 전부 지우고 다시 만들지 않는다 — 10Hz로 오브젝트를 만들고
+        /// 부수면 힙이 톱질을 하고, M0에서 확인한 "누수 0"이 무의미해진다.
         /// </summary>
-        public void ShowOnly(string zone)
+        private void Sweep(Snapshot snapshot)
         {
-            foreach (var pair in _bodies)
+            _stale.Clear();
+            foreach (var pair in _members)
             {
-                if (pair.Value == null) continue;
-                var here = ZoneOf.TryGetValue(pair.Key, out var at) && at == zone;
-                if (pair.Value.gameObject.activeSelf != here) pair.Value.gameObject.SetActive(here);
+                var alive = false;
+                foreach (var member in snapshot.members)
+                {
+                    if (member != null && member.id == pair.Key) { alive = true; break; }
+                }
+                if (!alive) _stale.Add(pair.Key);
+            }
+
+            foreach (var id in _stale)
+            {
+                if (_members[id].go != null) Destroy(_members[id].go);
+                _members.Remove(id);
             }
         }
     }

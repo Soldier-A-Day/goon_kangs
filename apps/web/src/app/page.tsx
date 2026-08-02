@@ -29,7 +29,7 @@ export default function Home() {
 
       <div className="grid gap-px border border-rule bg-rule sm:grid-cols-4">
         {FACTS.map((fact) => (
-          <div key={fact.label} className="flex flex-col gap-1 bg-paper px-4 py-3">
+          <div key={fact.label} className="flex flex-col gap-1 bg-paper-3 px-4 py-3">
             <span className="label">{fact.label}</span>
             <b className="text-sm font-bold">{fact.value}</b>
           </div>
@@ -39,21 +39,31 @@ export default function Home() {
       <div className="flex flex-wrap gap-3">
         <Link
           href="/lobby"
-          className="border-2 border-ink bg-ink px-6 py-3 font-bold text-paper transition-opacity hover:opacity-80"
+          className="px-7 py-3 font-extrabold"
+          style={{ background: "var(--accent)", color: "var(--paper)" }}
         >
           분대 편성하기
         </Link>
         <Link
           href="/lobby?mode=join"
-          className="border-2 border-ink px-6 py-3 font-bold transition-colors hover:bg-paper-2"
+          className="border px-7 py-3 font-bold transition-colors hover:bg-paper-2"
+          style={{ borderColor: "var(--accent)", color: "var(--accent)" }}
         >
           초대 코드로 입장
         </Link>
         <Link
           href="/records"
-          className="border-2 border-rule px-6 py-3 font-bold text-ink-2 transition-colors hover:bg-paper-2"
+          className="border px-7 py-3 font-bold text-ink-2 transition-colors hover:bg-paper-2"
+          style={{ borderColor: "var(--rule)" }}
         >
           분대 기록
+        </Link>
+        <Link
+          href="/settings"
+          className="border px-7 py-3 font-bold text-ink-2 transition-colors hover:bg-paper-2"
+          style={{ borderColor: "var(--rule)" }}
+        >
+          설정 · 접근성
         </Link>
       </div>
     </main>

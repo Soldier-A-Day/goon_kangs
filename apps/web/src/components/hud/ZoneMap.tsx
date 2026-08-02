@@ -1,7 +1,7 @@
 "use client";
 
 import type { Intent, Snapshot } from "@sad/protocol";
-import { ZONE_LABELS, ZONE_ORDER, formatSeconds } from "@/lib/labels";
+import { ZONE_GROUPS, ZONE_LABELS, formatSeconds } from "@/lib/labels";
 
 type Quest = Snapshot["quests"][number];
 type Zone = Snapshot["members"][number]["zone"];
@@ -55,55 +55,66 @@ export function ZoneMap({
           )}
         </div>
 
-        <ul className="grid grid-cols-2 gap-px bg-rule sm:grid-cols-4">
-          {ZONE_ORDER.map((zone) => {
-            const occupants = presentAt(zone);
-            const current = me.zone === zone;
-            const pending = snapshot.quests.filter(
-              (q) =>
-                q.zone === zone &&
-                q.status !== "done" &&
-                q.status !== "locked" &&
-                (q.ownerId === memberId || q.ownerId === null),
-            ).length;
+        {/*
+          동 단위로 묶어 그린다. 구역이 8개일 때는 한 판에 늘어놓아도 읽혔지만,
+          방이 곧 구역이 된 뒤로는 26칸이라 어느 것이 한 건물인지 알 수 없다.
+        */}
+        {ZONE_GROUPS.map((group) => (
+          <div key={group.name} className="flex flex-col gap-1">
+            <span className="label" style={{ color: "var(--ink-2)" }}>
+              {group.name}
+            </span>
+            <ul className="grid grid-cols-2 gap-px bg-rule sm:grid-cols-4">
+              {group.zones.map((zone) => {
+                const occupants = presentAt(zone);
+                const current = me.zone === zone;
+                const pending = snapshot.quests.filter(
+                  (q) =>
+                    q.zone === zone &&
+                    q.status !== "done" &&
+                    q.status !== "locked" &&
+                    (q.ownerId === memberId || q.ownerId === null),
+                ).length;
 
-            return (
-              <li key={zone}>
-                <button
-                  type="button"
-                  disabled={current}
-                  onClick={() => {
-                    onToggleWork(null);
-                    onSend({ type: "move", to: zone });
-                  }}
-                  className={`flex h-full w-full flex-col gap-1 px-3 py-2 text-left ${
-                    current ? "bg-ink text-paper" : "bg-paper hover:bg-paper-2"
-                  }`}
-                >
-                  <span className="flex items-baseline justify-between gap-2">
-                    <b className="text-sm font-bold">{ZONE_LABELS[zone]}</b>
-                    {pending > 0 && (
-                      <span
-                        className="font-mono text-xs font-bold tabular-nums"
-                        style={{ color: current ? "var(--paper-2)" : "var(--accent)" }}
-                      >
-                        {pending}
+                return (
+                  <li key={zone}>
+                    <button
+                      type="button"
+                      disabled={current}
+                      onClick={() => {
+                        onToggleWork(null);
+                        onSend({ type: "move", to: zone });
+                      }}
+                      className={`flex h-full w-full flex-col gap-1 px-3 py-2 text-left ${
+                        current ? "bg-ink text-paper" : "bg-paper hover:bg-paper-2"
+                      }`}
+                    >
+                      <span className="flex items-baseline justify-between gap-2">
+                        <b className="text-sm font-bold">{ZONE_LABELS[zone]}</b>
+                        {pending > 0 && (
+                          <span
+                            className="font-mono text-xs font-bold tabular-nums"
+                            style={{ color: current ? "var(--paper-2)" : "var(--accent)" }}
+                          >
+                            {pending}
+                          </span>
+                        )}
                       </span>
-                    )}
-                  </span>
-                  <span
-                    className="truncate text-[0.6875rem]"
-                    style={{ color: current ? "var(--paper-2)" : "var(--ink-2)" }}
-                  >
-                    {occupants.length > 0
-                      ? occupants.map((m) => m.name).join(" · ")
-                      : " "}
-                  </span>
-                </button>
-              </li>
-            );
-          })}
-        </ul>
+                      <span
+                        className="truncate text-[0.6875rem]"
+                        style={{ color: current ? "var(--paper-2)" : "var(--ink-2)" }}
+                      >
+                        {occupants.length > 0
+                          ? occupants.map((m) => m.name).join(" · ")
+                          : " "}
+                      </span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        ))}
       </div>
 
       <div className="flex flex-col gap-2 border border-rule bg-paper-3 p-3">

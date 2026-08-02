@@ -107,7 +107,7 @@ function describe(
     }
     case "chat":
       return {
-        text: `${event.radio ? "[무전] " : ""}${nameOf(event.memberId)}: ${event.text}`,
+        text: `${event.viaRadio ? "[무전] " : ""}${nameOf(event.memberId)}: ${event.text}`,
       };
     case "runEnded":
       return {

@@ -5,26 +5,102 @@ type TempBand = Snapshot["weather"]["band"];
 type Rank = Snapshot["members"][number]["rank"];
 type QuestKind = Snapshot["quests"][number]["kind"];
 
+/**
+ * 구역 이름 — **방 하나가 곧 구역이다.**
+ *
+ * 정의는 `packages/sim/data/zones.json`이 소유한다. 여기 있는 것은 표시용
+ * 이름뿐이고, 빠뜨리면 타입 검사가 잡는다.
+ */
 export const ZONE_LABELS: Record<Zone, string> = {
-  barracks: "생활관",
-  drillGround: "연병장",
-  storage: "창고",
-  messHall: "식당",
-  guardPost: "초소",
-  trainingField: "훈련장",
-  infirmary: "의무실",
-  boilerRoom: "보일러실",
+  Z01: "생활관 (1분대)",
+  Z01b: "생활관 (2분대)",
+  Z01c: "생활관 (3분대)",
+  Z02: "생활관동 복도",
+  Z03: "공용 세면장 · 샤워장",
+  Z13: "세탁 · 건조실",
+  Z16: "사지방",
+  Z17: "체력단련장",
+  Z09: "무기고",
+  Z20: "급양동 복도",
+  Z07: "병사식당",
+  Z07b: "취사장",
+  Z21: "지원동 복도",
+  Z05: "의무실",
+  Z06: "통신실",
+  Z04: "행정반 · CP",
+  Z22: "보급 · 정비동 복도",
+  Z08: "보급 창고",
+  Z10: "정비고 · 차량",
+  Z11: "연병장",
+  Z12: "초소 1 (북서)",
+  Z12b: "초소 2 (남서)",
+  Z18: "정문 위병소",
+  Z19: "탄약고",
+  Z14: "보일러실",
+  Z50: "훈련장",
+  TR01: "사격장",
+  TR02: "화생방 제독소",
+  TR03: "행군로",
+  TR04: "숙영지",
+  TR05: "혹한기 훈련장",
+  TR06: "혹서기 급수 라인",
+  TR07: "유격장 (기초)",
+  TR08: "유격장 (종합)",
+  TR09: "대민지원 (마을)",
+  TR10: "합동 전술훈련장",
 };
 
+/** 익히는 순서 — 동 단위로 묶고 야외를 뒤에 둔다 */
 export const ZONE_ORDER: Zone[] = [
-  "barracks",
-  "messHall",
-  "infirmary",
-  "drillGround",
-  "storage",
-  "boilerRoom",
-  "guardPost",
-  "trainingField",
+  "Z01",
+  "Z01b",
+  "Z01c",
+  "Z02",
+  "Z03",
+  "Z13",
+  "Z16",
+  "Z17",
+  "Z09",
+  "Z20",
+  "Z07",
+  "Z07b",
+  "Z21",
+  "Z05",
+  "Z06",
+  "Z04",
+  "Z22",
+  "Z08",
+  "Z10",
+  "Z11",
+  "Z12",
+  "Z12b",
+  "Z18",
+  "Z19",
+  "Z14",
+  "Z50",
+  "TR01",
+  "TR02",
+  "TR03",
+  "TR04",
+  "TR05",
+  "TR06",
+  "TR07",
+  "TR08",
+  "TR09",
+  "TR10",
+];
+
+/**
+ * 동 단위 묶음 — 방이 26개라 낱개로 늘어놓으면 어느 것이 한 건물인지 읽히지 않는다.
+ *
+ * 순서는 `ZONE_ORDER`와 같고, 나누는 기준은 `zones.json`의 `buildingName`이다.
+ */
+export const ZONE_GROUPS: readonly { name: string; zones: Zone[] }[] = [
+  { name: "생활관동", zones: ["Z01", "Z01b", "Z01c", "Z02", "Z03", "Z13", "Z16", "Z17", "Z09"] },
+  { name: "급양동", zones: ["Z20", "Z07", "Z07b"] },
+  { name: "지원동", zones: ["Z21", "Z05", "Z06", "Z04"] },
+  { name: "보급 · 정비동", zones: ["Z22", "Z08", "Z10"] },
+  { name: "야외", zones: ["Z11", "Z12", "Z12b", "Z18", "Z19", "Z14", "Z50"] },
 ];
 
 export const PHASE_LABELS: Record<Snapshot["phase"]["id"], string> = {

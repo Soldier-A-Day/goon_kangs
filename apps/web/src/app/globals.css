@@ -1,35 +1,34 @@
 @import "tailwindcss";
 
-/* 기획서(SAD-GDD-001)의 종이·잉크 팔레트를 그대로 쓴다 —
-   문서와 게임 화면이 같은 세계로 읽히게 하려는 의도다. */
+/* 목업 §11(MOCKUP_11)의 야간 군용 팔레트.
+ *
+ * **밝은 테마를 두지 않는다.** 이 사이트는 게임으로 들어가는 문이고, 그
+ * 게임은 어두운 화면에서 18일을 보낸다. 로비만 하얗다가 Unity가 뜨는 순간
+ * 눈이 한 번 적응을 다시 해야 하면 그 전환이 그대로 이물감이 된다.
+ *
+ * 값은 목업 SVG에서 그대로 뽑았다 — 디자인이 진실이고 코드가 따른다. */
 :root {
-  --paper: #e3e4dd;
-  --paper-2: #d8dad0;
-  --paper-3: #eeefe9;
-  --ink: #191c16;
-  --ink-2: #5a6053;
-  --rule: #b7baad;
-  --rule-2: #cbcdc2;
-  --accent: #5e6e42;
-  --cold: #3f6e90;
-  --heat: #b25e2c;
-  --alert: #9e3226;
-}
+  --paper: #12150f;
+  --paper-2: #1b1f17;
+  --paper-3: #191d14;
+  --ink: #dfe2d6;
+  --ink-2: #99a18d;
+  --rule: #333a2b;
+  --rule-2: #262c1f;
+  --accent: #9ab06f;
+  --cold: #7faecf;
+  --heat: #db8b55;
+  --alert: #d2594b;
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --paper: #12150f;
-    --paper-2: #1b1f17;
-    --paper-3: #191d14;
-    --ink: #dfe2d6;
-    --ink-2: #99a18d;
-    --rule: #333a2b;
-    --rule-2: #262c1f;
-    --accent: #9ab06f;
-    --cold: #7faecf;
-    --heat: #db8b55;
-    --alert: #d2594b;
-  }
+  /* 목업이 쓰는 보조 색 — 카드 안쪽·눌린 상태 */
+  --sunk: #21281a;
+  --void: #0b0d08;
+  --alert-bg: #2a1614;
+  /* 보직 머리띠 — §3.0 보직 4종. 색이 곧 보직 식별이다 */
+  --role-rifle: #6e7a50;
+  --role-comms: #3f6e90;
+  --role-medic: #eef1e8;
+  --role-admin: #b08a2c;
 }
 
 @theme inline {
@@ -44,6 +43,9 @@
   --color-cold: var(--cold);
   --color-heat: var(--heat);
   --color-alert: var(--alert);
+  --color-sunk: var(--sunk);
+  --color-void: var(--void);
+  --color-alert-bg: var(--alert-bg);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
@@ -62,4 +64,9 @@ body {
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--ink-2);
+}
+
+/* 목업의 좌측 5px 색띠 — 경고·보증 블록이 공유하는 형태 */
+.rail {
+  border-left: 5px solid currentColor;
 }

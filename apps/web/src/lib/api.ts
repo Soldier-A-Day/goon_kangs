@@ -13,11 +13,33 @@ export const WS_BASE = process.env.NEXT_PUBLIC_GAME_WS_URL ?? "ws://localhost:80
 
 export type Role = "rifle" | "comms" | "medic" | "admin";
 
-export const ROLE_LABELS: Record<Role, { name: string; code: string; duty: string }> = {
-  rifle: { name: "소총수", code: "RIFLE", duty: "전투 · 경계 · 기동" },
-  comms: { name: "통신병", code: "COMMS", duty: "정보 전달" },
-  medic: { name: "의무병", code: "MEDIC", duty: "컨디션 전반" },
-  admin: { name: "행정병", code: "ADMIN", duty: "정보 관리 · 정비" },
+/**
+ * 보직 4종 (§3.0).
+ *
+ * `fail`은 **그 보직이 비었을 때 분대가 무엇을 잃는가**다. 목업 §11이 이걸
+ * 카드마다 붉게 적어둔 이유는, 보직을 고르는 순간이 "뭘 하고 싶은가"가 아니라
+ * "누가 빠지면 안 되는가"를 정하는 순간이기 때문이다.
+ */
+export const ROLE_LABELS: Record<
+  Role,
+  { name: string; code: string; duty: string; fail: string; tint: string }
+> = {
+  rifle: {
+    name: "소총수", code: "RFL", duty: "전투 · 경계 · 기동",
+    fail: "실패 시 기습 이벤트 2배", tint: "var(--role-rifle)",
+  },
+  comms: {
+    name: "통신병", code: "COM", duty: "정보 전달",
+    fail: "실패 시 미니맵 마커 소멸", tint: "var(--role-comms)",
+  },
+  medic: {
+    name: "의무병", code: "MED", duty: "컨디션 전반 ← 취사 흡수",
+    fail: "실패 시 전원 수분 소모 2배", tint: "var(--role-medic)",
+  },
+  admin: {
+    name: "행정병", code: "ADM", duty: "정보 관리 · 정비 ← 정비 흡수",
+    fail: "실패 시 혹한 보온 −50%", tint: "var(--role-admin)",
+  },
 };
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {

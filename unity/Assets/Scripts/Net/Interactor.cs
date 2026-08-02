@@ -6,16 +6,25 @@ namespace SoldierADay.Net
     /// <summary>가까이 가면 무언가 할 수 있는 지점</summary>
     public sealed class Interactable : MonoBehaviour
     {
-        public enum Kind { Quest, Door }
-
-        public Kind kind;
         public string questId;
         public string label;
         public string detail;
         public bool active;
-        public float radius = 2.6f;
+        public float radius = 2.2f;
+
+        /// <summary>§7.1.5 프롬프트 2행이 왜 진행이 안 되는지를 말하려면 이 셋이 필요하다</summary>
+        public bool required;
+        /// <summary>요구 인원. 2 이상이면 §8.0 강제 협동 장치다</summary>
+        public int minActors = 1;
+        /// <summary>0~1. 서버가 세는 진척 — 클라는 표시만 한다</summary>
+        public float progress;
+        /// <summary>이 일과의 총 소요(초) — 곧 판의 제한 시간이다</summary>
+        public float workSeconds = 20f;
+        /// <summary>원형 이름(`SCRUB` · `PLACE` …). 판이 없는 일과면 null</summary>
+        public string minigameType;
 
         private Transform _marker;
+        private float _bobSeed;
 
         /// <summary>
         /// 눈에 보이는 표식.
@@ -25,35 +34,41 @@ namespace SoldierADay.Net
         /// 설계에서 그건 **찾기 놀이**가 된다 — 6.1이 말한 시간 비용은 동선이지
         /// 수색이 아니다.
         /// </summary>
-        public void RaiseMarker(Material material, Color color, float height, float width)
+        public void RaiseMarker(Sprite sprite, Color color)
         {
-            var marker = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            marker.name = "표식";
-            marker.transform.SetParent(transform, false);
-            marker.transform.localPosition = new Vector3(0f, height * 0.5f, 0f);
-            marker.transform.localScale = new Vector3(width, height, width);
+            var go = new GameObject("표식");
+            go.transform.SetParent(transform, false);
 
-            // 표식에 부딪히면 안 된다. 지나가려는 자리에 세우는 것이라서.
-            Destroy(marker.GetComponent<BoxCollider>());
+            var renderer = go.AddComponent<SpriteRenderer>();
+            renderer.sprite = sprite;
+            renderer.color = color;
+            // 항상 모든 것 위에 뜬다. 물건 옆에 세우는 표식이 그 물건에 가려지면
+            // 없는 것과 같다. sortingOrder는 16비트라 32767을 넘기면 래핑된다
+            renderer.sortingOrder = 30000;
 
-            var renderer = marker.GetComponent<MeshRenderer>();
-            renderer.sharedMaterial = material;
-            renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-
-            // 재질을 복제하지 않고 인스턴스 색만 바꾼다 — 복제하면 표식 수만큼
-            // 재질이 늘고, 재질 수가 곧 드로우콜이다(§2).
-            var block = new MaterialPropertyBlock();
-            block.SetColor("_BaseColor", color);
-            renderer.SetPropertyBlock(block);
-
-            _marker = marker.transform;
+            _marker = go.transform;
+            _bobSeed = (GetInstanceID() & 0xFF) * 0.13f;
         }
+
+        /// <summary>플레이어가 이 안에 들어오면 마커를 숨긴다</summary>
+        public Transform watcher;
 
         private void Update()
         {
             if (_marker == null) return;
-            // 천천히 돈다. 정지한 흰 기둥은 블록아웃 지오메트리와 구분되지 않는다.
-            _marker.localRotation = Quaternion.Euler(0f, Time.time * 45f, 0f);
+
+            // 코앞에서는 감춘다. 상호작용 프롬프트가 이미 같은 말을 하고 있는데
+            // 마커까지 머리 위에 겹치면 캐릭터가 안 보인다
+            if (watcher != null)
+            {
+                var near = Vector2.Distance(watcher.position, transform.position) < radius * 0.6f;
+                if (_marker.gameObject.activeSelf == near) _marker.gameObject.SetActive(!near);
+                if (near) return;
+            }
+
+            // 위아래로 살랑인다. 정지한 그림은 맵 모듈과 구분되지 않는다
+            var bob = Mathf.Sin(Time.time * 3f + _bobSeed) * 0.12f;
+            _marker.localPosition = new Vector3(0f, 0.9f + bob, 0f);
         }
     }
 
@@ -98,12 +113,7 @@ namespace SoldierADay.Net
                 if (point == null) { Registry.RemoveAt(i); continue; }
                 if (!point.gameObject.activeInHierarchy) continue;
 
-                // 높이는 무시한다. 캐릭터는 바닥에 있고 앵커는 물건 높이에 있어서,
-                // 3D 거리로 재면 키 큰 물건 앞에 서도 멀다고 나온다.
-                var delta = point.transform.position - origin.position;
-                delta.y = 0f;
-
-                var distance = delta.magnitude;
+                var distance = Vector2.Distance(point.transform.position, origin.position);
                 if (distance > point.radius || distance >= bestDistance) continue;
 
                 best = point;
