@@ -286,6 +286,60 @@ namespace SoldierADay.Net
             }
         }
 
+        /* ═════════════════════════════════════ §7.1.3+§7.9 사람 마커 — 보직 형태 */
+
+        /// <summary>
+        /// 미니맵·부대 지도의 분대원 점 — 보직별 형태 (H-4 색각 이상 대응).
+        ///
+        /// 지금까지 보직 구분은 `HudTheme.RoleColor` 색 하나뿐이었다. 적록색각에서는
+        /// 소총(연두)과 의무(흰색 근처)가 명도로 거의 겹쳐 보일 수 있다 — 온도 밴드
+        /// 6종이 이미 지키는 원칙("색을 빼도 서로 달라야 한다", `Band` 참고)을 사람
+        /// 마커에도 그대로 적용한다.
+        ///
+        /// 소총=원 · 통신=사각 · 의무=십자 · 행정=삼각. 같은 구역/타 구역 구분은
+        /// 더 이상 이 형태가 아니라 호출자가 넘기는 색의 **알파**로 갈린다 —
+        /// 형태 축을 보직에 내주면서 옮긴 것이다(Hud.cs "5. 사람" 참고).
+        /// </summary>
+        public static void RoleShape(string role, Rect r, Color c)
+        {
+            switch (role)
+            {
+                case "comms":   // 사각
+                    Box(r.x, r.y, r.width, r.height, c);
+                    break;
+
+                case "medic":   // 십자 — Stat("stamina")와 같은 형태 언어
+                {
+                    var bar = r.width * 0.34f;
+                    Box(r.center.x - bar * 0.5f, r.y, bar, r.height, c);
+                    Box(r.x, r.center.y - bar * 0.5f, r.width, bar, c);
+                    break;
+                }
+
+                case "admin":   // 삼각
+                    Triangle(r, c);
+                    break;
+
+                default:        // 소총 — 원
+                    Dot(r, c);
+                    break;
+            }
+        }
+
+        /// <summary>위로 뾰족한 채운 삼각형. `Band`의 "warm" 반원과 같은 방식으로
+        /// 가로 막대를 쌓아 곡선 없이 근사한다 — IMGUI에는 다각형이 없다</summary>
+        private static void Triangle(Rect r, Color c)
+        {
+            const int rows = 12;
+            var rowH = r.height / rows;
+            for (var i = 0; i < rows; i += 1)
+            {
+                var t = (i + 1f) / rows;
+                var w = r.width * t;
+                Box(r.center.x - w * 0.5f, r.y + r.height - (i + 1) * rowH, w, rowH + 0.6f, c);
+            }
+        }
+
         /* ══════════════════════════════════════ §7.8 퀵 커맨드 8종 */
 
         /// <summary>

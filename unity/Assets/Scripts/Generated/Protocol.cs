@@ -270,6 +270,7 @@ namespace SoldierADay.Protocol
         public const string ChoreDelegated = "choreDelegated";
         public const string ChoreVetoed = "choreVetoed";
         public const string ChoreReassigned = "choreReassigned";
+        public const string DelegationRefused = "delegationRefused";
         public const string HiddenUnlocked = "hiddenUnlocked";
         public const string RunEnded = "runEnded";
         public const string QuickCommand = "quickCommand";
@@ -332,6 +333,20 @@ namespace SoldierADay.Protocol
         public const string Pfc = "pfc";
         public const string Corporal = "corporal";
         public const string Sergeant = "sergeant";
+    }
+
+    /// <summary>ServerEventReason 이 가질 수 있는 값. 서버가 값을 추가해도 깨지지 않도록 enum이 아니라 상수로 둔다.</summary>
+    public static class ServerEventReasonValues
+    {
+        public const string Locked = "locked";
+        public const string NotDelegationWindow = "notDelegationWindow";
+        public const string NotChore = "notChore";
+        public const string NotOwner = "notOwner";
+        public const string RankTooLow = "rankTooLow";
+        public const string GiverLimit = "giverLimit";
+        public const string ReceiverLimit = "receiverLimit";
+        public const string AlreadyDelegated = "alreadyDelegated";
+        public const string UnknownMember = "unknownMember";
     }
 
     /// <summary>ServerEventCommand 이 가질 수 있는 값. 서버가 값을 추가해도 깨지지 않도록 enum이 아니라 상수로 둔다.</summary>
@@ -667,6 +682,7 @@ namespace SoldierADay.Protocol
         public const string ChoreDelegated = "choreDelegated";
         public const string ChoreVetoed = "choreVetoed";
         public const string ChoreReassigned = "choreReassigned";
+        public const string DelegationRefused = "delegationRefused";
         public const string HiddenUnlocked = "hiddenUnlocked";
         public const string RunEnded = "runEnded";
         public const string QuickCommand = "quickCommand";
@@ -729,6 +745,20 @@ namespace SoldierADay.Protocol
         public const string Pfc = "pfc";
         public const string Corporal = "corporal";
         public const string Sergeant = "sergeant";
+    }
+
+    /// <summary>ServerMessageItemsItemReason 이 가질 수 있는 값. 서버가 값을 추가해도 깨지지 않도록 enum이 아니라 상수로 둔다.</summary>
+    public static class ServerMessageItemsItemReasonValues
+    {
+        public const string Locked = "locked";
+        public const string NotDelegationWindow = "notDelegationWindow";
+        public const string NotChore = "notChore";
+        public const string NotOwner = "notOwner";
+        public const string RankTooLow = "rankTooLow";
+        public const string GiverLimit = "giverLimit";
+        public const string ReceiverLimit = "receiverLimit";
+        public const string AlreadyDelegated = "alreadyDelegated";
+        public const string UnknownMember = "unknownMember";
     }
 
     /// <summary>ServerMessageItemsItemCommand 이 가질 수 있는 값. 서버가 값을 추가해도 깨지지 않도록 enum이 아니라 상수로 둔다.</summary>
@@ -1149,6 +1179,8 @@ namespace SoldierADay.Protocol
         // 선택적 — variant에 따라 없을 수 있다
         public string toId;
         // 선택적 — variant에 따라 없을 수 있다
+        public string reason;
+        // 선택적 — variant에 따라 없을 수 있다
         public string id;
         // 선택적 — variant에 따라 없을 수 있다
         public string status;
@@ -1488,6 +1520,8 @@ namespace SoldierADay.Protocol
         public string fromId;
         // 선택적 — variant에 따라 없을 수 있다
         public string toId;
+        // 선택적 — variant에 따라 없을 수 있다
+        public string reason;
         // 선택적 — variant에 따라 없을 수 있다
         public string id;
         // 선택적 — variant에 따라 없을 수 있다

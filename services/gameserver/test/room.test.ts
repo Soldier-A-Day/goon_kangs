@@ -384,13 +384,16 @@ describe("승급 심사 투영", () => {
     });
   });
 
-  it("클라이언트가 알 필요 없는 내부 신호는 흘리지 않는다", () => {
+  it("conditionCritical은 아직 이 발주 범위 밖이라 계속 흘리지 않는다", () => {
     expect(
       projectEffect({ type: "conditionCritical", memberId: "p1", stat: "stamina" }),
     ).toBeNull();
+  });
+
+  it("하달 거부 사유는 더 이상 버리지 않는다 — 화면이 왜 안 됐는지 말해야 한다", () => {
     expect(
       projectEffect({ type: "delegationRefused", reason: "rankTooLow", questId: "c1" }),
-    ).toBeNull();
+    ).toEqual({ type: "delegationRefused", reason: "rankTooLow", questId: "c1" });
   });
 });
 
