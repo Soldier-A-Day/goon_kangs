@@ -44,6 +44,15 @@ namespace SoldierADay.Net
         public override string Status =>
             $"{_placed}/{_pieces?.Length ?? 0} 배치" + (Mistakes > 0 ? $"  ·  어긋남 {Mistakes}" : "");
 
+        /// <summary>
+        /// 자리만 맞추면 되는 자유 배치(`snapDeg` 0)만 시간초과로 통과한다.
+        ///
+        /// 각·극성 변형(90°·180°)은 다르다 — 각을 놓치거나 극성을 반대로
+        /// 꽂는 판단이 이 변형의 본질이라 시간이 압박으로 남아야 한다. 하드를
+        /// 그대로 유지한다.
+        /// </summary>
+        protected override bool GradesOnTimeout => _snap <= 0f;
+
         protected override void Setup()
         {
             var count = Mathf.Clamp(ParamInt("pieces", 6), 2, 12);

@@ -126,6 +126,29 @@ namespace SoldierADay.Net
 
             GUI.Label(new Rect(panel.xMax - 74f, panel.y + 16f, 56f, 24f), "[ESC]",
                 theme.At(theme.Label, 12, HudTheme.Ink3, TextAnchor.MiddleRight));
+
+            DrawStreak(theme, panel);
+        }
+
+        /// <summary>
+        /// 연속 A 배지 — 스택이 있을 때만 뜬다.
+        ///
+        /// 조여진 판이라는 것이 화면에 안 읽히면 다음 판이 빡빡해진 게 배신처럼
+        /// 느껴진다. 난이도 점 옆, 판 머리에서 바로 눈에 들어오는 자리에 얹는다.
+        /// </summary>
+        private static void DrawStreak(HudTheme theme, Rect panel)
+        {
+            if (GradeStreak.Stack <= 0) return;
+
+            var percent = Mathf.RoundToInt((1f - GradeStreak.LimitScale) * 100f);
+            var text = $"연속 A ×{GradeStreak.Stack} — 시간 −{percent}%";
+            var style = theme.At(theme.Label, 12, HudTheme.Heat, TextAnchor.MiddleCenter);
+            var width = theme.Measure(text, style) + 20f;
+            var badge = new Rect(panel.xMax - 224f - width, panel.y + 15f, width, 26f);
+
+            theme.Fill(badge, HudTheme.Heat, 0.16f);
+            theme.Border(badge, HudTheme.Heat);
+            GUI.Label(badge, text, style);
         }
 
         /// <summary>
@@ -227,7 +250,11 @@ namespace SoldierADay.Net
 
             if (cleared)
             {
-                GUI.Label(new Rect(box.x, box.y + 16f, box.width, 34f), "통과",
+                // **시간초과 통과는 일반 통과와 문구가 갈린다.** 다 끝낸 것과 같은
+                // 말로 축하하면 시간이 다 돼서 넘어간 것이 완주처럼 읽힌다 —
+                // 여기서는 "인정"이라고만 말한다(`Board.GradesOnTimeout`).
+                GUI.Label(new Rect(box.x, box.y + 16f, box.width, 34f),
+                    board.TimedOut ? "시간 종료 — 한 만큼 인정" : "통과",
                     theme.At(theme.Heading, 22, HudTheme.Accent, TextAnchor.MiddleCenter));
                 GUI.Label(new Rect(box.x, box.y + 48f, box.width, 56f), board.Grade(),
                     theme.At(theme.Display, 52, HudTheme.Ink, TextAnchor.MiddleCenter));
@@ -241,7 +268,10 @@ namespace SoldierADay.Net
             GUI.Label(new Rect(box.x, box.y + 18f, box.width, 32f), "못 끝냈다",
                 theme.At(theme.Heading, 22, HudTheme.Alert, TextAnchor.MiddleCenter));
             GUI.Label(new Rect(box.x, box.y + 50f, box.width, 24f),
-                "다시 할 수 있다 — 잃은 것은 시간이다",
+                // 시간초과인데 Fill이 절반도 안 됐으면 사유를 짚어준다 — 안 그러면
+                // "왜 시간이 남았는데도 졌지"로 읽힌다(§과업1, Fill < 0.5)
+                board.TimedOut ? "절반은 채워야 인정된다 — 잃은 것은 시간이다"
+                               : "다시 할 수 있다 — 잃은 것은 시간이다",
                 theme.At(theme.Body, 17, HudTheme.Ink, TextAnchor.MiddleCenter));
 
             // **버튼은 마우스로 받는다.**
