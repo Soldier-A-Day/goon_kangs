@@ -630,11 +630,29 @@ namespace SoldierADay.Net
 
             GUI.Label(new Rect(card.x + 20f, card.y + 12f, 200f, 30f), quest.label,
                 theme.At(theme.Title, 21, HudTheme.Ink));
-            theme.Chip(new Rect(card.x + 190f, card.y + 16f, 110f, 24f),
-                ZoneNames.ShortOf(quest.zone), HudTheme.AccentW, HudTheme.Accent);
-            GUI.Label(new Rect(card.xMax - 144f, card.y + 14f, 120f, 24f),
-                HudTheme.PhaseLabel(quest.phase),
-                theme.At(theme.Small, 14, HudTheme.Ink2, TextAnchor.MiddleRight));
+
+            // H-3 선제 수리 — 구역 칩·시간대 라벨 둘 다 110~120px 고정폭이었다.
+            // 한글은 그 안에 들어갔지만 영어화하면 "Wake-up & Inspection"(21자) 같은
+            // 시간대 이름이 나온다 — Measure()가 있는데 여기서 안 쓴 게 문제였다.
+            // 폭을 실측값으로 늘리되, 지금 한글 값보다 좁아지지는 않게 원래 폭을
+            // 하한으로 둔다(레이아웃이 갑자기 좁아져 보이지 않도록).
+            //
+            // 스타일은 공유물이다 — `Measure`에 넘기기 전에 `At`으로 크기를 먼저
+            // 맞추고, 그 반환값으로 재야 렌더와 같은 폭이 나온다(이 파일 아래
+            // `Tally` 헬퍼와 같은 규칙. 먼저 재고 나중에 크기를 바꾸면 폭이 어긋나
+            // 글자가 겹친다).
+            var zoneText = ZoneNames.ShortOf(quest.zone);
+            var zoneMeasureStyle = theme.At(theme.Label, 13, HudTheme.Accent);
+            var zoneChipWidth = Mathf.Max(110f, theme.Measure(zoneText, zoneMeasureStyle) + 24f);
+            theme.Chip(new Rect(card.x + 190f, card.y + 16f, zoneChipWidth, 24f),
+                zoneText, HudTheme.AccentW, HudTheme.Accent);
+
+            // 오른쪽 정렬이라 폭이 늘어도 카드 우측 여백(24px)에 맞춰 왼쪽으로만 자란다
+            var phaseText = HudTheme.PhaseLabel(quest.phase);
+            var phaseStyle = theme.At(theme.Small, 14, HudTheme.Ink2, TextAnchor.MiddleRight);
+            var phaseWidth = Mathf.Max(120f, theme.Measure(phaseText, phaseStyle) + 16f);
+            GUI.Label(new Rect(card.xMax - 24f - phaseWidth, card.y + 14f, phaseWidth, 24f),
+                phaseText, phaseStyle);
 
             // 누가 거기 있는가 — 이름을 하나씩 세운다
             var need = (int)quest.minActors;
