@@ -46,7 +46,9 @@ namespace SoldierADay.Net
         private float _revealDuration;
 
         public override string Instruction =>
-            _reveal > 0f ? "외워라" : "본 순서대로 눌러라";
+            _reveal > 0f ? "외워라"
+            : _keys == null ? "본 순서대로 눌러라"
+            : "본 순서대로 눌러라 — 숫자키 1~" + _keys.Length + "도 된다";
 
         public override string Status =>
             _stages > 1 ? $"{_stage + 1}/{_stages}단계  ·  {_sequence?.Length ?? 0}자리"
@@ -175,7 +177,16 @@ namespace SoldierADay.Net
             _stages <= 0 ? 0f
             : Mathf.Clamp01((_stage + (float)_at / Mathf.Max(1, _sequence.Length)) / _stages);
 
-        /// <summary>어느 칸을 눌렀는가. 숫자는 키보드로도 받는다</summary>
+        /// <summary>
+        /// 어느 칸을 눌렀는가. 숫자는 키보드로도 받는다.
+        ///
+        /// H-4 — 암호 코드(`_keys == null`)는 자릿값 자체가 숫자라 0~9키가
+        /// 자연스럽다. 응급처치·정시 교신처럼 글자 버튼(`_keys != null`)인
+        /// 변형은 숫자로 셀 것이 없었는데, 마우스로 그 칸을 클릭하는 것 말고는
+        /// 조작이 없었다 — 그래서 화면에 매겨진 순서(1번째 버튼 = 1, …)를
+        /// 그대로 1~9키에 물린다. 버튼 수가 9(현재 최대 8, `Procedure`)를
+        /// 넘는 변형이 생기면 그 이상은 마우스로만 닿을 수 있다.
+        /// </summary>
         private int Pressed(BoardInput input)
         {
             if (_keys == null)
@@ -183,6 +194,13 @@ namespace SoldierADay.Net
                 for (var n = 0; n <= 9; n += 1)
                 {
                     if (Input.GetKeyDown(KeyCode.Alpha0 + n)) return n;
+                }
+            }
+            else
+            {
+                for (var n = 0; n < _keys.Length && n < 9; n += 1)
+                {
+                    if (Input.GetKeyDown(KeyCode.Alpha1 + n)) return n;
                 }
             }
 
@@ -253,6 +271,15 @@ namespace SoldierADay.Net
                 GUI.Label(key, Label(i),
                     theme.At(_keys == null ? theme.Mono : theme.Body, 17, HudTheme.Ink,
                         TextAnchor.MiddleCenter));
+
+                // H-4 — 글자 버튼(`_keys != null`)은 숫자로 셀 것이 없던 자리라
+                // 1~9키가 이 칸을 고른다는 것이 화면에서 안 보이면 못 찾는다.
+                // 암호 코드(`_keys == null`)는 라벨 자체가 이미 숫자라 안 그린다
+                if (_keys != null && i < 9)
+                {
+                    GUI.Label(new Rect(key.x + 4f, key.y + 2f, 18f, 16f), (i + 1).ToString(),
+                        theme.At(theme.Label, 11, HudTheme.Ink3));
+                }
             }
 
             theme.Border(body, HudTheme.Rule);

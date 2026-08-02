@@ -27,6 +27,9 @@ namespace SoldierADay.Net
         private float _ping;
         private Rect _area;
 
+        /// <summary>H-4 — 훑는 자리를 마우스 대신 가상 커서에서 읽는다(Board.cs §VirtualCursor)</summary>
+        private readonly VirtualCursor _cursor = new VirtualCursor();
+
         /// <summary>대상마다 배정된 발견 카드 문구. `Setup`에서 시드 고정 `Rng`로 하나씩 뽑는다</summary>
         private string[] _cardText;
         /// <summary>화면 위에 뜬 발견 카드가 남은 표시 시간(초). 0이면 안 보인다</summary>
@@ -57,7 +60,7 @@ namespace SoldierADay.Net
             _ => SeepCards,
         };
 
-        public override string Instruction => "훑다가 신호가 세지면 눌러라";
+        public override string Instruction => "훑다가 신호가 세지면 눌러라 — 화살표+Space도 된다";
 
         public override string Status
         {
@@ -117,10 +120,12 @@ namespace SoldierADay.Net
             _ping = Mathf.Max(0f, _ping - dt * 2f);
             _cardT = Mathf.Max(0f, _cardT - dt);
             if (_area.width <= 0f) return;
-            if (!_area.Contains(input.Mouse)) { _strength = 0f; return; }
 
-            var norm = new Vector2((input.Mouse.x - _area.x) / _area.width,
-                                   (input.Mouse.y - _area.y) / _area.height);
+            // H-4 — 커서 자리를 가상 커서에서 읽는다. 마우스로 훑을 때는 매
+            // 프레임 마우스 좌표로 스냅되니 예전과 같고, 화살표+WASD로도 같은
+            // `norm`(0~1)을 만들어낸다(Board.cs §VirtualCursor)
+            _cursor.Tick(dt, input, _area);
+            var norm = _cursor.Norm;
 
             // 훑은 자리는 남는다. 어디를 이미 봤는지가 보여야 순서가 실력이 된다
             var cx = Mathf.Clamp(Mathf.FloorToInt(norm.x * _cols), 0, _cols - 1);
@@ -140,7 +145,8 @@ namespace SoldierADay.Net
                 nearest = i;
             }
 
-            if (!input.Pressed) return;
+            // 클릭 대신 Space·Enter도 받는다(`Confirm` — Board.cs §BoardInput)
+            if (!input.Confirm) return;
 
             // 신호가 충분히 센 자리에서만 잡힌다. 난이도가 오르면 더 가까이 가야 한다
             var need = Mathf.Lerp(0.45f, 0.66f, (Difficulty - 1f) * 0.5f);
@@ -212,12 +218,13 @@ namespace SoldierADay.Net
                 }
             }
 
-            // 신호 — 커서에 붙어 세기를 말한다
-            var mouse = BoardInput.Read().Mouse;
-            if (body.Contains(mouse))
+            // 신호 — 커서에 붙어 세기를 말한다. 가상 커서 자리라 마우스든
+            // 화살표+WASD든 같은 원이 따라온다
+            var cursorPos = _cursor.Screen(body);
+            if (body.Contains(cursorPos))
             {
                 var r = Mathf.Lerp(46f, 20f, _strength);
-                theme.Border(new Rect(mouse.x - r, mouse.y - r, r * 2f, r * 2f),
+                theme.Border(new Rect(cursorPos.x - r, cursorPos.y - r, r * 2f, r * 2f),
                     _strength > 0.6f ? HudTheme.Accent
                     : _strength > 0.25f ? HudTheme.Heat
                     : HudTheme.Rule, 2f);

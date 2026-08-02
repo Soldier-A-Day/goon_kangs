@@ -50,7 +50,10 @@ namespace SoldierADay.Net
         /// <summary>터짐 연출이 지속되는 시간(초) — 한두 프레임 느낌만 나면 된다</summary>
         private const float BurstDuration = 0.18f;
 
-        public override string Instruction => "뜨는 풍선을 눌러 터트려라";
+        /// <summary>H-4 — 커서 자리를 마우스 대신 가상 커서에서 읽는다(Board.cs §VirtualCursor)</summary>
+        private readonly VirtualCursor _cursor = new VirtualCursor();
+
+        public override string Instruction => "뜨는 풍선을 눌러 터트려라 — 화살표+Space도 된다";
 
         public override string Status
         {
@@ -116,6 +119,10 @@ namespace SoldierADay.Net
             // Draw가 한 번도 안 돌아 판 좌표계를 아직 모른다
             if (_area.width <= 0f) return;
 
+            // 클릭 여부와 무관하게 매 프레임 커서를 굴린다 — Draw의 크로스헤어가
+            // 이걸로 따라오므로 클릭 안 한 프레임에도 갱신돼야 한다
+            _cursor.Tick(dt, input, _area);
+
             if (_age >= Life)
             {
                 // 수명이 다했다 — 못 터트렸다. 벌점만 받고 바로 다음 풍선으로 넘어간다.
@@ -126,11 +133,12 @@ namespace SoldierADay.Net
                 return;
             }
 
-            if (!input.Pressed) return;
+            // 클릭 대신 Space·Enter도 받는다(`Confirm` — Board.cs §BoardInput)
+            if (!input.Confirm) return;
 
             var center = new Vector2(_area.x + _pos.x * _area.width, _area.y + _pos.y * _area.height);
             var radius = CurrentRadius();
-            if (Vector2.Distance(input.Mouse, center) > radius)
+            if (Vector2.Distance(_cursor.Screen(_area), center) > radius)
             {
                 // 풍선 밖을 짚었다 — 벌점 없다. 잃는 것은 시간뿐이다
                 return;
@@ -179,12 +187,12 @@ namespace SoldierADay.Net
                 theme.Fill(ring, HudTheme.Accent, _burstT * 0.55f);
             }
 
-            // 커서
-            var mouse = BoardInput.Read().Mouse;
-            if (body.Contains(mouse))
+            // 커서 — 가상 커서 자리라 마우스든 화살표+Space든 같은 십자선이 따라온다
+            var cursorPos = _cursor.Screen(body);
+            if (body.Contains(cursorPos))
             {
-                theme.Fill(new Rect(mouse.x - 10f, mouse.y - 1f, 20f, 2f), HudTheme.Ink);
-                theme.Fill(new Rect(mouse.x - 1f, mouse.y - 10f, 2f, 20f), HudTheme.Ink);
+                theme.Fill(new Rect(cursorPos.x - 10f, cursorPos.y - 1f, 20f, 2f), HudTheme.Ink);
+                theme.Fill(new Rect(cursorPos.x - 1f, cursorPos.y - 10f, 2f, 20f), HudTheme.Ink);
             }
 
             // 격파율 — Fill = 터트린 수 / 목표
