@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { step, type Quest, type RunState } from "../src/index.js";
+import { jointRoles, step, type Quest, type RunState } from "../src/index.js";
 import { SECOND, beginDay, fullSquad, toPhase } from "./helpers.js";
 
 /**
@@ -127,5 +127,50 @@ describe("합동 판", () => {
       questId: joint.id,
     }).state;
     expect(find(after, joint.id).jointDone).toBe(0);
+  });
+});
+
+/**
+ * B-1 정보 비대칭 — 한 명은 정답만, 다른 한 명은 조작만 보이게.
+ *
+ * 배정 자체(sim의 몫)만 여기서 잰다. "정답 화면·조작 화면이 실제로 갈리는가"는
+ * `JointBoard.cs`(클라)의 몫이라 여기서는 볼 수 없다.
+ */
+describe("합동 판 — B-1 정보 비대칭 역할 배정", () => {
+  it("SEQ·TRACE 합동은 실사람이 2명 이상이면 역할이 갈린다", () => {
+    // D-3 "사격 제원 전달 통신 → 소총"은 SEQ, quests.json에서 asymmetric: true
+    const state = beginDay(Object.assign(squad(4), { day: 3 }));
+    const joint = state.quests.find((q) => q.kind === "joint")!;
+    expect(joint.jointAsymmetric).toBe(true);
+
+    const roles = jointRoles(state);
+    expect(roles.size).toBe(4);
+    const values = new Set(roles.values());
+    // 전원이 같은 쪽으로 몰리면 부를 상대가 없다 — 최소 한 명씩은 반대쪽이어야 한다
+    expect(values.has("watch")).toBe(true);
+    expect(values.has("operate")).toBe(true);
+  });
+
+  it("SEQ·TRACE가 아닌 합동은 비대칭이 꺼진다", () => {
+    // D-1 "내무실 정돈"은 PLACE — quests.json에 asymmetric이 없다
+    const state = beginDay(Object.assign(squad(4), { day: 1 }));
+    const joint = state.quests.find((q) => q.kind === "joint")!;
+    expect(joint.jointAsymmetric).toBe(false);
+    expect(jointRoles(state).size).toBe(0);
+  });
+
+  it("혼자 있는 방이면 SEQ·TRACE라도 비대칭을 끈다 — 부를 상대가 없다", () => {
+    const state = beginDay(Object.assign(squad(1), { day: 3 }));
+    const joint = state.quests.find((q) => q.kind === "joint")!;
+    expect(joint.jointAsymmetric).toBe(true);
+    // 나머지 셋은 npcVacant다. 화면을 반으로 가르면 이 방은 영영 못 깬다
+    expect(jointRoles(state).size).toBe(0);
+  });
+
+  it("결정론 — 같은 상태를 다시 물어도 같은 배정이 나온다", () => {
+    const state = beginDay(Object.assign(squad(4), { day: 7 }));
+    const first = jointRoles(state);
+    const second = jointRoles(state);
+    expect([...second.entries()]).toEqual([...first.entries()]);
   });
 });

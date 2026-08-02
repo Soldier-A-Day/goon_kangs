@@ -30,6 +30,7 @@ import { isAdjacent, travelMs } from "./zones.js";
 import type {
   Effect,
   Grade,
+  JointRole,
   Member,
   PhaseId,
   Quest,
@@ -487,6 +488,38 @@ function tickJointProxies(state: RunState, elapsedMs: number): void {
       quest.status = "done";
     }
   }
+}
+
+/**
+ * B-1 정보 비대칭 — 오늘의 합동판에서 누가 정답을 보고 누가 조작을 하는가.
+ *
+ * **결정론이다.** 같은 방·같은 조각이면 같은 배정이 나와야 새로고침 한 번에
+ * 배정이 흔들리지 않는다 — 그래서 난수를 쓰지 않고 `state.members`의 고정
+ * 순서(`createRun`이 `ROLES` 순으로 정렬해 둔다)에서 짝수/홀수로 가른다.
+ *
+ * 두 가지 조건에서 비운다(=비대칭 끔).
+ *
+ *   1. 이 합동판이 SEQ·TRACE가 아니다 (`quest.jointAsymmetric`가 false) —
+ *      다른 원형은 정답이라는 개념이 화면에 따로 없어 가를 것이 없다.
+ *   2. 방에 실사람(`presence === "player"`)이 2명 미만이다 — **혼자 있는
+ *      방이면 부를 상대가 없다.** 화면을 반으로 가르면 싱글이 영영 못 깨는
+ *      판이 된다(WORKORDER.md B-1 중단 기준).
+ *
+ * 인원이 홀수여도 문제없다 — 짝이 안 맞는 마지막 한 명은 둘 중 하나로
+ * 떨어질 뿐, 최소 한 명씩은 반대쪽에 있다는 사실만 지키면 된다.
+ */
+export function jointRoles(state: RunState): ReadonlyMap<string, JointRole> {
+  const roles = new Map<string, JointRole>();
+  const joint = state.quests.find((q) => q.kind === "joint");
+  if (!joint || !joint.jointAsymmetric) return roles;
+
+  const players = state.members.filter((m) => m.presence === "player");
+  if (players.length < 2) return roles;
+
+  players.forEach((member, index) => {
+    roles.set(member.id, index % 2 === 0 ? "operate" : "watch");
+  });
+  return roles;
 }
 
 function complete(

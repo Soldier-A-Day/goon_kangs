@@ -101,6 +101,15 @@ export type RadioState = "ok" | "weak" | "down";
  */
 export type QuestKind = "role" | "chore" | "joint" | "surprise" | "hidden" | "care";
 
+/**
+ * B-1 정보 비대칭 — 합동 조각을 채우는 두 역할.
+ *
+ * `watch`는 정답 화면만 보고 조작하지 않는다. `operate`는 입력 화면만 보고
+ * 정답을 보지 않는다. 화면을 서로 불러줘야 조각이 오른다 — 대화가 강제로
+ * 발생하게 만드는 것이 이 역할 배정의 목적이다(JOINT.md "아직 아닌 것" 3번).
+ */
+export type JointRole = "watch" | "operate";
+
 export type QuestStatus =
   | "pending"
   | "active"
@@ -288,6 +297,15 @@ export interface Quest {
   readonly jointTotal: number;
   /** 지금까지 분대가 채운 조각 */
   jointDone: number;
+  /**
+   * B-1 정보 비대칭 판인가.
+   *
+   * `quests.json`의 `joint.boards[].asymmetric`에서 온다 — SEQ·TRACE 원형에만
+   * 켜져 있다(JOINT.md). 켜져 있어도 방에 실사람이 2명 미만이면 `jointRoles`
+   * (step.ts)가 빈 채로 나가 실제로는 꺼진 것처럼 동작한다 — 부를 상대가 없는
+   * 방에서 화면을 반으로 가르면 영영 못 깨는 판이 된다.
+   */
+  readonly jointAsymmetric: boolean;
 }
 
 /* ------------------------------------------------------------------ 판정 */
