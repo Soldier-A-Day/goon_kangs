@@ -3,7 +3,7 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { RoleCard } from "@/components/RoleCard";
-import { ROLE_LABELS, createRoom, joinRoom, type Role } from "@/lib/api";
+import { HTTP_BASE, ROLE_LABELS, createRoom, joinRoom, type Role } from "@/lib/api";
 import { saveSession } from "@/lib/session";
 
 const ROLES = Object.keys(ROLE_LABELS) as Role[];
@@ -33,6 +33,14 @@ function LobbyForm() {
   const [season, setSeason] = useState<"cold" | "hot" | "random">("random");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+
+  // Render 무료 플랜은 15분 놀면 잠든다 — 로비에 들어오는 순간 한 번 찔러
+  // 깨워두면, 편성을 마치고 "분대 만들기"를 누를 때는 이미 깨어나 있다.
+  // fire-and-forget이다: 응답도 실패도 화면에 영향을 주지 않는다. 실제 방
+  // 생성 요청(createRoom/joinRoom)이 여전히 최종 진실이고, 이건 그저 깨우기다.
+  useEffect(() => {
+    fetch(`${HTTP_BASE}/health`).catch(() => {});
+  }, []);
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();

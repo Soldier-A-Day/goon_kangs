@@ -87,6 +87,29 @@ namespace SoldierADay.Net
         public bool Connected { get; private set; }
         public int Snapshots { get; private set; }
 
+        /// <summary>
+        /// 지금 재접속 루프가 도는 중인가 — HUD가 "끊김·재접속 중" 배지를 그리는 데 쓴다.
+        /// 그리기는 여기서 하지 않는다. 프로퍼티만 정확히 유지한다.
+        /// </summary>
+        public bool Reconnecting { get; private set; }
+
+        /// <summary>지금 몇 번째 재접속 시도인가(1부터). 재접속 중이 아니면 0</summary>
+        public int ReconnectAttempt { get; private set; }
+
+        /// <summary>
+        /// 재접속 백오프 일정 — 1s → 2s → 4s → 8s.
+        ///
+        /// 합이 15초다. 각 시도에 <see cref="ReconnectAttemptTimeoutSec"/>(3초)까지 더해도
+        /// 최악의 경우 27초로, 서버 유예(room.ts DISCONNECT_GRACE_MS = 30초) 안에 4번을
+        /// 전부 시도하고도 여유가 남는다.
+        /// </summary>
+        private static readonly float[] ReconnectDelaysSec = { 1f, 2f, 4f, 8f };
+
+        /// <summary>한 번의 재접속 시도가 응답 없이 버틸 수 있는 최대 시간</summary>
+        private const float ReconnectAttemptTimeoutSec = 3f;
+
+        private Coroutine _reconnectRoutine;
+
 #if UNITY_WEBGL && !UNITY_EDITOR
         [DllImport("__Internal")] private static extern System.IntPtr M0GetQuery();
 #endif
@@ -133,6 +156,13 @@ namespace SoldierADay.Net
             {
                 client.SnapshotReceived += OnSnapshot;
                 client.LobbyReceived += OnLobby;
+
+                // **A-4 재접속.** GameSocket은 Closed/Failed를 선언만 하고 아무도
+                // 구독하지 않았다 — 순단·Render 재배포·슬립으로 WS가 끊기면 이벤트가
+                // 허공에 발사되고 화면은 조용히 멈췄다. 여기서 받아 지수 백오프로
+                // 다시 붙는다.
+                client.Socket.Closed += OnSocketDropped;
+                client.Socket.Failed += OnSocketDropped;
             }
 
             // **로비가 이미 방을 잡아줬으면 그대로 붙는다.**
@@ -195,5 +225,128 @@ namespace SoldierADay.Net
             world?.Apply(snapshot);
         }
 
+        /// <summary>
+        /// 소켓이 닫히거나 실패했다 — GameSocket.Closed/Failed 공용 핸들러.
+        ///
+        /// 재접속 루프가 이미 도는 중이면 여기서 또 시작하지 않는다. 그 루프가 스스로
+        /// 건 client.Socket.Closed/Failed 구독이 "이번 시도 실패"를 감지하므로, 이
+        /// 핸들러(영구 구독)까지 두 번째 루프를 띄우면 소켓이 겹쳐 붙는다.
+        /// </summary>
+        private void OnSocketDropped(string reason)
+        {
+            Connected = false;
+
+            if (Reconnecting) return;
+
+            // 서버가 토큰 자체를 거절했다(index.ts invalidToken → error 메시지 후 close).
+            // 같은 토큰으로 다시 붙어봐야 똑같이 거절된다 — HudEnding이 Rejected를 보고
+            // 이미 "연결 끊김" 화면을 그린다.
+            if (!string.IsNullOrEmpty(client?.Rejected)) return;
+
+            // 세션 토큰이 아예 없으면(로비 핸드오프 이전, 방 생성 실패 등) 진짜 연결이
+            // 있었던 적이 없다 — 재접속할 대상이 없다.
+            if (client == null || string.IsNullOrEmpty(client.token)) return;
+
+            _reconnectRoutine = StartCoroutine(ReconnectRoutine(reason));
+        }
+
+        /// <summary>
+        /// 지수 백오프 재접속: 1s → 2s → 4s → 8s, 최대 4회.
+        ///
+        /// 성공은 `client.Connect()`를 타는 것으로 정의한다 — 그 안에서 `_lastSeq`가
+        /// -1로 리셋되고(GameClient.Connect) 새 소켓이 열린다. 서버 쪽 `Room.reconnect()`가
+        /// 곧바로 최신 스냅샷을 쏘아 주므로, 재구독은 새 연결이 여는 순간 자연히 일어난다 —
+        /// 여기서 스냅샷 핸들러를 다시 걸 필요가 없다(Awake에서 한 번만 걸리고 그대로 유효).
+        /// </summary>
+        private IEnumerator ReconnectRoutine(string firstReason)
+        {
+            Reconnecting = true;
+            var lastReason = firstReason;
+
+            for (var attempt = 0; attempt < ReconnectDelaysSec.Length; attempt++)
+            {
+                // 대기하는 동안 다른 경로(예: 지연 도착한 error 메시지)로 Rejected가
+                // 채워졌으면 더 시도해봐야 소용없다 — 그만둔다.
+                if (!string.IsNullOrEmpty(client.Rejected)) break;
+
+                ReconnectAttempt = attempt + 1;
+                var delay = ReconnectDelaysSec[attempt];
+
+                Status = "연결 끊김";
+                Detail = $"{delay:0}s 후 재접속 ({ReconnectAttempt}/{ReconnectDelaysSec.Length}차 · {lastReason})";
+                yield return new WaitForSeconds(delay);
+
+                if (!string.IsNullOrEmpty(client.Rejected)) break;
+
+                Status = "재접속 시도 중";
+                Detail = $"{ReconnectAttempt}/{ReconnectDelaysSec.Length}차";
+
+                var opened = false;
+                var failed = false;
+                string failReason = null;
+
+                void OnOpened() => opened = true;
+                void OnDropped(string r) { failed = true; failReason = r; }
+
+                client.Socket.Opened += OnOpened;
+                client.Socket.Closed += OnDropped;
+                client.Socket.Failed += OnDropped;
+
+                // **여기가 핵심.** GameClient.Connect()를 타야 `_lastSeq = -1` 리셋이
+                // 일어난다 — 그렇지 않으면 서버가 새 연결의 seq를 0부터 다시 셀 때
+                // (room.ts resume, 또는 Render 재기동) 이전 연결에서 쌓인 큰 _lastSeq에
+                // 막혀 스냅샷이 전부 조용히 폐기된다.
+                client.Connect();
+
+                var waited = 0f;
+                while (!opened && !failed && waited < ReconnectAttemptTimeoutSec)
+                {
+                    waited += Time.deltaTime;
+                    yield return null;
+                }
+
+                client.Socket.Opened -= OnOpened;
+                client.Socket.Closed -= OnDropped;
+                client.Socket.Failed -= OnDropped;
+
+                if (opened)
+                {
+                    Reconnecting = false;
+                    ReconnectAttempt = 0;
+                    Status = "재접속됨";
+                    Detail = "스냅샷 대기 중";
+                    _reconnectRoutine = null;
+                    yield break;
+                }
+
+                lastReason = failed ? failReason : "응답 없음";
+                if (!failed)
+                {
+                    // 시간 안에 열림도 닫힘도 안 왔다 — 이 시도를 포기하고 소켓을
+                    // 정리한 뒤 다음 백오프로 넘어간다. 안 하면 늦게 도착하는 콜백이
+                    // 다음 시도와 뒤섞인다.
+                    client.Socket.Disconnect();
+                }
+            }
+
+            Reconnecting = false;
+            ReconnectAttempt = 0;
+            _reconnectRoutine = null;
+
+            if (string.IsNullOrEmpty(client.Rejected))
+            {
+                Status = "연결 끊김";
+                Detail = $"재접속 실패 — {lastReason}";
+            }
+        }
+
+        private void OnDestroy()
+        {
+            if (client?.Socket != null)
+            {
+                client.Socket.Closed -= OnSocketDropped;
+                client.Socket.Failed -= OnSocketDropped;
+            }
+        }
     }
 }
