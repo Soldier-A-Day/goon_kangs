@@ -92,7 +92,7 @@ namespace SoldierADay.Net
             var color = over > 0.75f ? HudTheme.Alert : over > 0.45f ? HudTheme.Heat : HudTheme.Accent;
 
             var matrix = GUI.matrix;
-            GUIUtility.RotateAroundPivot(_tilt * 34f, pivot);
+            HudTheme.RotateAt(_tilt * 34f, pivot);
             theme.Fill(beam, HudTheme.Paper2);
             theme.Border(beam, color, 2f);
             // 짐덩이 — 막대 위에 얹혀 있다

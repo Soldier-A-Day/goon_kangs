@@ -191,7 +191,9 @@ namespace SoldierADay.Net
                 {
                     // 각을 실제로 돌려 그린다 — 숫자로 말하면 각이 안 읽힌다
                     var matrix = GUI.matrix;
-                    GUIUtility.RotateAroundPivot(piece.Angle, box.center);
+                    // 배율 걸린 GUI.matrix 아래서 피벗이 밀리면 끌던 물건이
+                    // 커서에서 떨어져 나가 "드래그가 안 된다"로 보인다(HudTheme.RotateAt)
+                    HudTheme.RotateAt(piece.Angle, box.center);
                     theme.Fill(box, HudTheme.Paper2);
                     theme.Border(box, color, 2f);
                     // 위쪽을 표시하는 눈금. 이게 없으면 90° 회전이 안 보인다

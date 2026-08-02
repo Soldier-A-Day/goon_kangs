@@ -249,7 +249,9 @@ namespace SoldierADay.Net
                 var angle = Mathf.Lerp(-90f, 0f, eased);
 
                 var matrix = GUI.matrix;
-                GUIUtility.RotateAroundPivot(angle, cell.center);
+                // `GUIUtility.RotateAroundPivot`은 배율 걸린 GUI.matrix 아래서
+                // 피벗이 밀린다 — 관이 제자리가 아니라 궤도를 돈다(HudTheme.RotateAt)
+                HudTheme.RotateAt(angle, cell.center);
 
                 theme.Fill(cell, lit ? HudTheme.AccentW : HudTheme.Paper);
                 theme.Border(cell, lit ? HudTheme.Accent : HudTheme.Rule2);

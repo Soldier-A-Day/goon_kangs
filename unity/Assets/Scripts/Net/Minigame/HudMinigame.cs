@@ -243,7 +243,7 @@ namespace SoldierADay.Net
             var popT = Mathf.Clamp01(board.ResultAge / PopDuration);
             var eased = 1f - (1f - popT) * (1f - popT) * (1f - popT);
             var scale = Mathf.Lerp(1.15f, 1f, eased);
-            GUIUtility.ScaleAroundPivot(new Vector2(scale, scale), box.center);
+            HudTheme.ScaleAt(scale, box.center);
 
             theme.Fill(box, cleared ? HudTheme.AccentW : HudTheme.AlertW, 0.96f);
             theme.Border(box, cleared ? HudTheme.Accent : HudTheme.Alert, 2f);

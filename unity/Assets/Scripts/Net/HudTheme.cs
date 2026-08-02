@@ -355,6 +355,34 @@ namespace SoldierADay.Net
         /// <summary>1Hz·1.5Hz 점멸. 목업이 잔여 20% 이하와 위험 링에 요구한다</summary>
         public static bool Pulse(float hz) => Mathf.Repeat(Time.unscaledTime * hz, 1f) < 0.5f;
 
+        /// <summary>
+        /// 논리 좌표 피벗 기준 회전.
+        ///
+        /// `GUIUtility.RotateAroundPivot`은 피벗을 **화면 좌표**로 취급한다.
+        /// 그런데 이 HUD는 `Fit`이 `GUI.matrix`에 배율을 걸어 두고 전부 논리
+        /// 좌표(1920×1080)로 그리므로, 창이 정확히 1920×1080이 아니면 회전축이
+        /// 배율 오차만큼 밀린다 — 관이 제자리에서 도는 게 아니라 화면 밖에서
+        /// 궤도를 그리며 날아들고, 끌던 물건이 커서에서 떨어져 나간다.
+        /// 여기서는 기존 행렬의 **오른쪽에** 합성해 논리 공간에서 돌린다.
+        /// 부르기 전에 `GUI.matrix`를 받아 두고, 그리고 나면 복원하라.
+        /// </summary>
+        public static void RotateAt(float angle, Vector2 pivot)
+        {
+            var p = new Vector3(pivot.x, pivot.y, 0f);
+            GUI.matrix = GUI.matrix
+                * Matrix4x4.TRS(p, Quaternion.Euler(0f, 0f, angle), Vector3.one)
+                * Matrix4x4.Translate(-p);
+        }
+
+        /// <summary>논리 좌표 피벗 기준 확대 — `RotateAt`과 같은 이유로 존재한다</summary>
+        public static void ScaleAt(float scale, Vector2 pivot)
+        {
+            var p = new Vector3(pivot.x, pivot.y, 0f);
+            GUI.matrix = GUI.matrix
+                * Matrix4x4.TRS(p, Quaternion.identity, new Vector3(scale, scale, 1f))
+                * Matrix4x4.Translate(-p);
+        }
+
         /* ──────────────────────────────────────────────── 밴드 · 보직 색 */
 
         /// <summary>§4.3 온도 밴드 6종의 강조색</summary>
