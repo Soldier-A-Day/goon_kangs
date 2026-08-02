@@ -1,6 +1,7 @@
 import temperatureTable from "../data/temperature.json";
 import type { ClimateRule } from "./curriculum.js";
 import { planFor } from "./curriculum.js";
+import { rollWeeklyModifier, weatherTempOffset } from "./modifier.js";
 import { createRngState, nextInt, roll } from "./rng.js";
 import type { RunState, TempBand, WeatherState } from "./types.js";
 
@@ -149,6 +150,12 @@ export function weatherFor(seed: number, day: number, season: Season): WeatherSt
   // 화면만 젖고 체감온도가 그대로면 비는 그냥 배경 애니메이션이 된다.
   // 한여름 폭우가 폭염 밴드를 깨뜨리는 것이 이 갈래의 값어치다
   if (storm) airTemp = profile.baseTemp - variation * 2;
+
+  // C-3 한파 주간 — 계절과 무관하게 얹는다. `rollWeeklyModifier`는 시드에서만
+  // 파생되는 순수 함수라 여기서 다시 불러도 이 함수의 rng 소비 순서는 그대로다
+  // (일차 스트림과도, 계절 롤과도 안 겹치는 완전히 별도의 계산이다).
+  airTemp += weatherTempOffset(rollWeeklyModifier(seed).id);
+
   return makeWeather(airTemp, storm ? 95 : profile.humidity, wind, limit, storm);
 }
 

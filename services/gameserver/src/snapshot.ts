@@ -4,6 +4,7 @@ import {
   isSupplyDay,
   missingGear,
   phaseAt,
+  weeklyModifierById,
   type Effect,
   type RunState,
 } from "@sad/sim";
@@ -47,6 +48,9 @@ export function projectSnapshot(
       feelsLike: state.weather.feelsLike,
       rain: state.weather.rain,
     },
+    // C-3 — 화면이 "이번 주 상황"을 알아야 한다. 노출 UI는 후속 발주고,
+    // 여기서는 스냅샷에 싣기만 한다.
+    weeklyModifier: weeklyModifierById(state.weeklyModifier),
     discipline: {
       value: Math.round(state.discipline),
       band: disciplineBand(state.discipline).id,

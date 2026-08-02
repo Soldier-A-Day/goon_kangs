@@ -1,3 +1,4 @@
+import { rollWeeklyModifier } from "./modifier.js";
 import { createRngState, roll } from "./rng.js";
 import { STARTING_KIT, SUPPLY_START } from "./supply.js";
 import { ROLES, type Member, type Role, type RunConfig, type RunState, type Stats } from "./types.js";
@@ -64,6 +65,9 @@ export function createRun(options: CreateRunOptions): RunState {
   // 계절은 런 시작 시 한 번 확정한다 (5.0). 랜덤이면 여기서 뽑고 이후로는 바뀌지 않는다.
   const [isCold, rngAfterSeason] = roll(createRngState(options.seed), 0.5);
   const season = config.season === "random" ? (isCold ? "cold" : "hot") : config.season;
+  // C-3 주간 변조 — 계절 롤과 별도 스트림에서 시드로 확정한다(modifier.ts).
+  // 여기서 메인 RNG를 소비하면 계절 확률이 밀리므로 rngAfterSeason에는 손대지 않는다.
+  const weeklyModifier = rollWeeklyModifier(options.seed).id;
 
   return {
     runId: options.runId,
@@ -71,6 +75,7 @@ export function createRun(options: CreateRunOptions): RunState {
     rngState: rngAfterSeason,
     config,
     season,
+    weeklyModifier,
     status: "running",
 
     day: 1,

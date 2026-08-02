@@ -1,6 +1,7 @@
 import questTable from "../data/quests.json";
 import { UNLOCK, planFor, unlocked, type DayPlan } from "./curriculum.js";
 import { disciplineBand } from "./discipline.js";
+import { surpriseChanceMultiplier, trainingWorkMultiplier } from "./modifier.js";
 import { nextInt, sample, type RngState } from "./rng.js";
 import { trainingName, trainingPlace } from "./training.js";
 import type {
@@ -129,6 +130,8 @@ export function generateDayQuests(state: RunState): readonly [Quest[], RngState]
     // 그러면 사격도 화생방도 행군도 같은 자리에서 끝난다 — 훈련 맵 10종(§6.4)이
     // 있어도 갈 이유가 없다. 장소가 다르면 그날의 동선이 달라진다(§6.1)
     const place = trainingPlace(plan.training, state.day, state.weather.band);
+    // C-3 훈련 강화 주간 — 체크포인트 소요가 +10%다
+    const checkpointWorkMs = Math.round(20_000 * trainingWorkMultiplier(state.weeklyModifier));
 
     for (let i = 0; i < plan.required.trainingCheckpoints; i += 1) {
       quests.push({
@@ -141,7 +144,7 @@ export function generateDayQuests(state: RunState): readonly [Quest[], RngState]
         phase: i < 2 ? "morning" : "afternoon",
         zone: place?.zone ?? "Z50",
         spot: null,
-        workMs: 20_000,
+        workMs: checkpointWorkMs,
         workedMs: 0,
         minActors: 1,
         status: "pending",
@@ -322,7 +325,11 @@ export function rollSurprise(
   // 그건 압박이 아니라 사고다
   if (!unlocked(state.day, UNLOCK.surprise, state.elapsedRealMs)) return [null, state.rngState];
 
-  const chance = surpriseChance(state.discipline);
+  // C-3 검열 주간 — 돌발 확률이 +10%다 (예: 기본 18% → 19.8%)
+  const chance = Math.min(
+    1,
+    surpriseChance(state.discipline) * surpriseChanceMultiplier(state.weeklyModifier),
+  );
   const [value, afterRoll] = nextInt(state.rngState, 0, 9999);
   let rng = afterRoll;
   if (value / 10000 >= chance) return [null, rng];
