@@ -27,6 +27,36 @@ namespace SoldierADay.Net
         private float _ping;
         private Rect _area;
 
+        /// <summary>대상마다 배정된 발견 카드 문구. `Setup`에서 시드 고정 `Rng`로 하나씩 뽑는다</summary>
+        private string[] _cardText;
+        /// <summary>화면 위에 뜬 발견 카드가 남은 표시 시간(초). 0이면 안 보인다</summary>
+        private float _cardT;
+        private string _cardLabel;
+
+        /// <summary>실패 리플레이가 깜빡이는 창(초) — 결과 화면이 뜬 처음 이만큼만 보여준다</summary>
+        private const float RevealWindow = 1.4f;
+
+        /// <summary>
+        /// 변형별 발견 카드 문구 — 무엇을 찾았는지 한 명사구로.
+        ///
+        /// "운이 나빴다"가 아니라 "저기 있었구나"를 남기려면 찾는 순간 그게
+        /// 무엇인지 말해줘야 한다. 톤은 내무반 인수인계 수첩처럼 건조하게 —
+        /// 감상을 붙이지 않는다.
+        /// </summary>
+        private static readonly string[] SeepCards = { "배관 이음새 누수" };
+        private static readonly string[] BunkCards = { "관물대 밑 편지", "열이 오른 관자놀이" };
+        private static readonly string[] WirecutCards = { "절단된 철조망 2겹" };
+        private static readonly string[] GridCards = { "모래에 반쯤 묻힌 수통" };
+
+        private static string[] CardPool(string variant) => variant switch
+        {
+            "seep" => SeepCards,
+            "bunk" => BunkCards,
+            "wirecut" => WirecutCards,
+            "grid" => GridCards,
+            _ => SeepCards,
+        };
+
         public override string Instruction => "훑다가 신호가 세지면 눌러라";
 
         public override string Status
@@ -40,11 +70,29 @@ namespace SoldierADay.Net
             }
         }
 
+        /// <summary>
+        /// **시간초과 통과 계약(S1 발주 · `Board.GradesOnTimeout`).**
+        ///
+        /// 수색은 헛짚어도 실수로만 셀 뿐 실패가 아니다(클래스 요약 참고) — 그런데
+        /// 시간이 다 되면 베이스가 무조건 실패로 닫아버려서, 절반 넘게 찾아 놓고도
+        /// "못 했다"가 뜨는 건 이상하다. 이 스위치를 켜면 베이스가 시간초과
+        /// 시점의 `Fill`이 0.5 이상이면 통과로 쳐준다 — 판정 자체는 `Board.Tick`이
+        /// 한다. 여기서는 자격만 연다.
+        ///
+        /// 이 워크트리에는 아직 베이스에 `GradesOnTimeout`/`TimedOut`이 없다 —
+        /// 병렬로 도는 S1이 `Board.cs`에 추가하는 중이라 그렇다. 병합 전까지
+        /// 컴파일이 안 맞는 게 정상이고, 병합되면 맞물린다.
+        /// </summary>
+        protected override bool GradesOnTimeout => true;
+
         protected override void Setup()
         {
             var count = Mathf.Clamp(ParamInt("hidden", 3), 1, 6);
             _hidden = new Vector2[count];
             _found = new bool[count];
+            _cardText = new string[count];
+            _cardT = 0f;
+            _cardLabel = "";
             _count = 0;
             _signal = Param("signal", 0.2f);
 
@@ -53,16 +101,21 @@ namespace SoldierADay.Net
             _rows = Mathf.Max(3, Mathf.CeilToInt((float)cells / _cols));
             _swept = new bool[_cols * _rows];
 
+            // 변형별 발견 카드 문구를 대상마다 하나씩 배정한다. 시드 고정 Rng라
+            // 같은 questId면 매번 같은 대상이 같은 문구를 낸다.
+            var cards = CardPool(Spec?.variant);
             for (var i = 0; i < count; i += 1)
             {
                 // 가장자리에 붙이지 않는다 — 구석부터 찍는 것이 최적해가 되면 안 된다
                 _hidden[i] = new Vector2(RandRange(0.12f, 0.88f), RandRange(0.14f, 0.86f));
+                _cardText[i] = cards[Rng.Next(cards.Length)];
             }
         }
 
         protected override void Advance(float dt, BoardInput input)
         {
             _ping = Mathf.Max(0f, _ping - dt * 2f);
+            _cardT = Mathf.Max(0f, _cardT - dt);
             if (_area.width <= 0f) return;
             if (!_area.Contains(input.Mouse)) { _strength = 0f; return; }
 
@@ -96,6 +149,9 @@ namespace SoldierADay.Net
                 _found[nearest] = true;
                 _count += 1;
                 _ping = 1f;
+                // 발견 카드 — 무엇을 찾았는지 1초쯤 화면 위에 뜬다
+                _cardLabel = _cardText[nearest];
+                _cardT = 1f;
                 Fill = (float)_count / _hidden.Length;
                 if (_count >= _hidden.Length) Clear();
                 return;
@@ -133,6 +189,29 @@ namespace SoldierADay.Net
                 theme.Border(mark, HudTheme.Accent, 2f);
             }
 
+            // **실패 리플레이.** 판이 끝났는데(통과든 실패든) 못 찾은 대상이 남아
+            // 있으면, 결과 화면이 뜬 처음 `RevealWindow`초 동안 그 자리가 깜빡이며
+            // 드러난다. "운이 나빴다"가 아니라 "저기 있었구나"를 남기는 장치라
+            // 통과·실패 양쪽에서 다 그린다 — 시간초과 통과(`GradesOnTimeout`)에도
+            // 미발견분은 남을 수 있다. `HudMinigame`이 판이 멈춘 뒤에도 `Draw`를
+            // 계속 부르므로 `ResultAge` 기준으로 여기서 직접 시간을 잰다.
+            if (State != BoardState.Running && _count < _hidden.Length && ResultAge < RevealWindow)
+            {
+                var blink = Mathf.Repeat(ResultAge * 5f, 1f) < 0.5f;
+                if (blink)
+                {
+                    for (var i = 0; i < _hidden.Length; i += 1)
+                    {
+                        if (_found[i]) continue;
+                        var p = new Vector2(body.x + _hidden[i].x * body.width,
+                                            body.y + _hidden[i].y * body.height);
+                        var mark = new Rect(p.x - 15f, p.y - 15f, 30f, 30f);
+                        theme.Fill(mark, HudTheme.AlertW);
+                        theme.Border(mark, HudTheme.Alert, 2f);
+                    }
+                }
+            }
+
             // 신호 — 커서에 붙어 세기를 말한다
             var mouse = BoardInput.Read().Mouse;
             if (body.Contains(mouse))
@@ -150,6 +229,24 @@ namespace SoldierADay.Net
             GUI.Label(new Rect(meter.xMax + 12f, meter.y - 3f, 200f, 22f),
                 _ping > 0f ? "찾았다" : _strength > 0.6f ? "가깝다" : _strength > 0.25f ? "무언가 있다" : "신호 없음",
                 theme.At(theme.Small, 14, _ping > 0f ? HudTheme.Accent : HudTheme.Ink3));
+
+            // **발견 카드.** 찾는 순간 무엇을 찾았는지가 위쪽에 1초쯤 뜬다 — 몇
+            // 번째 발견인지가 아니라 "무엇을" 찾았는지가 남아야 다음 판에서
+            // 이 자리를 기억하는 데 쓸모가 있다. 남은 표시 시간(`_cardT`)의
+            // 마지막 0.25초를 알파로 접어 사라진다.
+            if (_cardT > 0f)
+            {
+                var alpha = Mathf.Clamp01(_cardT / 0.25f);
+                var prev = GUI.color;
+                GUI.color = new Color(1f, 1f, 1f, alpha);
+                const float w = 300f;
+                var card = new Rect(body.center.x - w * 0.5f, body.y + 12f, w, 32f);
+                theme.Fill(card, HudTheme.AccentW);
+                theme.Border(card, HudTheme.Accent, 2f);
+                GUI.Label(card, _cardLabel,
+                    theme.At(theme.Body, 15, HudTheme.Accent, TextAnchor.MiddleCenter));
+                GUI.color = prev;
+            }
 
             theme.Border(body, HudTheme.Rule);
         }
