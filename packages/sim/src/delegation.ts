@@ -1,4 +1,5 @@
 import { adjustDiscipline } from "./discipline.js";
+import { UNLOCK, unlocked } from "./curriculum.js";
 import { award, penalize } from "./ranks.js";
 import { phaseAt } from "./phases.js";
 import { RANK_ORDER, type Effect, type Member, type Quest, type RunState } from "./types.js";
@@ -32,6 +33,8 @@ export interface DelegationRecord {
 }
 
 export type DelegationRefusal =
+  /** 표 14-1이 정한 해금 전 — 하달은 D-3부터다 */
+  | "locked"
   | "notDelegationWindow"
   | "notChore"
   | "notOwner"
@@ -60,7 +63,39 @@ export function isDelegationWindow(state: RunState): boolean {
   return state.delegationWindowMsLeft > 0;
 }
 
+/**
+ * 하달할 수 있는 사람이 하나라도 있는가.
+ *
+ * 6.2 — "**전원이 이병인 D-01~03 구간에는 시스템이 잠겨 있고**, D-03 1차 승급
+ * 심사가 해금 트리거다." 하달은 계급이 1단계 이상 높은 사람만 할 수 있으므로,
+ * 계급이 다 같으면 창을 열어도 아무 일도 일어나지 않는다.
+ *
+ * 그런데도 창이 열리면 시간대 타이머를 20초 세워두고 아무것도 못 하게 만든다 —
+ * 하루에 두 번, 아무 선택지도 없는 화면이 40초를 먹는다.
+ */
+export function anyoneCanDelegate(state: RunState): boolean {
+  let lowest = Number.MAX_SAFE_INTEGER;
+  let highest = -1;
+
+  for (const member of state.members) {
+    if (member.presence === "evacuated") continue;
+    const rank = rankIndex(member);
+    if (rank < lowest) lowest = rank;
+    if (rank > highest) highest = rank;
+  }
+
+  return highest - lowest >= 1;
+}
+
 export function openDelegationWindow(state: RunState): void {
+  // 하달할 수 있는 사람이 없으면 창을 열지 않는다 — 아무 선택지 없는 창에
+  // 시간대 타이머를 멈춰 세울 이유가 없다
+  if (!anyoneCanDelegate(state)) {
+    state.delegationWindowMsLeft = 0;
+    state.leaderOverridePhase = -1;
+    return;
+  }
+
   const phase = phaseAt(state.phaseIndex);
   state.delegationWindowMsLeft = (phase.delegationWindowSeconds ?? 0) * 1000;
   state.leaderOverridePhase = -1;
@@ -75,6 +110,9 @@ export function canDelegate(
   toId: string,
   questId: string,
 ): { ok: true } | { ok: false; reason: DelegationRefusal } {
+  // 하달은 D-3부터 열린다 (표 14-1). 계급으로도 막히지만(`rankTooLow`) 그건
+  // 우연히 시기가 맞는 것이라, 규칙은 커리큘럼이 소유한다
+  if (!unlocked(state.day, UNLOCK.delegation)) return { ok: false, reason: "locked" };
   if (!isDelegationWindow(state)) return { ok: false, reason: "notDelegationWindow" };
 
   const from = find(state, fromId);

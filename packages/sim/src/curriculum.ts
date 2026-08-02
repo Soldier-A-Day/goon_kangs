@@ -40,6 +40,34 @@ export const TOTAL_REQUIRED_PER_MEMBER = CURRICULUM.reduce(
   0,
 );
 
+/**
+ * 그 일차에 이 기능이 열려 있는가 (표 14-1 `unlocks`).
+ *
+ * **누적이다.** D-2에 열린 공통 일과는 D-18까지 열려 있다.
+ *
+ * 예전에는 이 표가 문서였고 아무도 읽지 않았다 — 커리큘럼은 "공통 일과는
+ * D-2부터"라고 적어놨는데 배정기는 D-1부터 냈다. 표에 적힌 난이도 곡선이
+ * 실제로는 존재하지 않았다는 뜻이고, 첫날이 3일차와 같은 밀도로 시작했다.
+ *
+ * **모든 항목이 게이트는 아니다.** `보직 퀘스트`(D-2)처럼 D-1의 필수와
+ * 모순되는 것이 있다 — D-1은 보직 2건을 필수로 요구한다. 그런 항목은 화면이
+ * 그 기능을 처음 소개하는 시점이지 존재 여부가 아니다. 규칙으로 쓰는 것만
+ * 여기로 물어본다.
+ */
+export function unlocked(day: number, key: string): boolean {
+  for (let i = 0; i < day && i < CURRICULUM.length; i += 1) {
+    if (CURRICULUM[i]?.unlocks.includes(key)) return true;
+  }
+  return false;
+}
+
+/** 해금 열쇠 — 문자열을 여기저기 흩어 쓰면 오타 하나가 조용히 게이트를 연다 */
+export const UNLOCK = {
+  chores: "공통 일과",
+  surprise: "돌발 퀘스트",
+  delegation: "하달",
+} as const;
+
 export function planFor(day: number): DayPlan {
   const plan = CURRICULUM[day - 1];
   if (!plan) {

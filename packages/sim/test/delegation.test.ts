@@ -6,6 +6,7 @@ import {
   delegationAllowance,
   delegationLedgerSummary,
   isDelegationWindow,
+  openDelegationWindow,
   mentalRecoveryMultiplier,
   step,
   type Quest,
@@ -13,9 +14,23 @@ import {
 } from "../src/index.js";
 import { SECOND, beginDay, fullSquad } from "./helpers.js";
 
-/** 오전 일과(하달 창이 열리는 칸)까지 진행시킨다 */
-function atMorning(): RunState {
-  let state = beginDay(fullSquad());
+/**
+ * 오전 일과(하달 창이 열리는 칸)까지 진행시킨다.
+ *
+ * 6.2가 "전원이 이병이면 시스템이 잠긴다"고 못박아서 **계급차가 없으면 창
+ * 자체가 안 열린다.** 하달 테스트는 거의 다 창이 필요하므로 한 명을 상병으로
+ * 올린 채로 시작하고, 잠금을 확인하는 테스트만 `promoted: false`를 준다.
+ */
+function atMorning(promoted = true): RunState {
+  // **D-3부터 열린다** (표 14-1 `unlocks`). 예전에는 이 표가 문서였고 배정기가
+  // 첫날부터 전부 냈는데, 지금은 규칙이라 D-1에서는 `locked`로 거절된다
+  const squad = fullSquad();
+  squad.day = 3;
+  let state = beginDay(squad);
+  if (promoted) {
+    const first = state.members[0];
+    if (first) first.rank = "corporal";
+  }
   state = step(state, { type: "skipPhase" }).state;
   return state;
 }
@@ -29,12 +44,17 @@ function chore(state: RunState, ownerId: string, id = "c1"): Quest {
     ownerId,
     required: true,
     phase: "morning",
-    zone: "barracks",
+    zone: "Z01",
+    spot: null,
+    jointTotal: 0,
+    jointDone: 0,
     workMs: 15 * SECOND,
     workedMs: 0,
     minActors: 1,
     status: "pending",
     delegatedFrom: null,
+    minigame: null,
+    grade: null,
   };
   state.quests.push(quest);
   return quest;
@@ -70,10 +90,11 @@ describe("QST-04 하달 창", () => {
 });
 
 describe("QST-04 하달 규칙", () => {
-  it("이병은 하달할 수 없다 — 전원 이병인 D-01~03은 시스템이 잠겨 있다", () => {
+  it("이병은 하달할 수 없다", () => {
+    // 창이 열려 있어도(누군가는 계급이 높다) 이병끼리는 못 넘긴다
     const state = atMorning();
-    chore(state, "p1");
-    expect(canDelegate(state, "p1", "p2", "c1")).toEqual({
+    chore(state, "p2");
+    expect(canDelegate(state, "p2", "p3", "c1")).toEqual({
       ok: false,
       reason: "rankTooLow",
     });
@@ -201,7 +222,9 @@ describe("QST-04 하달 규칙", () => {
   });
 
   it("하달 창 밖에서는 넘길 수 없다", () => {
-    const state = beginDay(fullSquad());
+    const squad = fullSquad();
+    squad.day = 3;
+    const state = beginDay(squad);
     promote(state, "p1", "corporal");
     chore(state, "p1");
     expect(canDelegate(state, "p1", "p2", "c1")).toEqual({
@@ -379,5 +402,28 @@ describe("남용 억제와 장부", () => {
     const summary = delegationLedgerSummary(state);
     expect(summary.find((s) => s.memberId === "p1")?.given).toBe(2);
     expect(summary.find((s) => s.memberId === "p2")?.received).toBe(2);
+  });
+});
+
+describe("하달 창 개폐", () => {
+  it("전원이 같은 계급이면 창이 열리지 않는다 — 6.2 D-01~03 잠금", () => {
+    // 6.2가 "전원이 이병인 D-01~03 구간에는 시스템이 잠겨 있다"고 못박았다.
+    // 열어봐야 하달할 수 있는 사람이 없고, 시간대 타이머만 20초 멈춘다 —
+    // 하루 두 번이면 아무 선택지 없는 화면이 40초를 먹는다.
+    const state = atMorning(false);
+    for (const member of state.members) member.rank = "private";
+
+    openDelegationWindow(state);
+    expect(isDelegationWindow(state)).toBe(false);
+  });
+
+  it("한 명이라도 계급이 높으면 열린다", () => {
+    const state = atMorning(false);
+    for (const member of state.members) member.rank = "private";
+    const first = state.members[0];
+    if (first) first.rank = "corporal";
+
+    openDelegationWindow(state);
+    expect(isDelegationWindow(state)).toBe(true);
   });
 });
