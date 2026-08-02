@@ -4,6 +4,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { RoleCard } from "@/components/RoleCard";
 import { HTTP_BASE, ROLE_LABELS, createRoom, joinRoom, type Role } from "@/lib/api";
+import { loadName, saveName } from "@/lib/name";
 import { saveSession } from "@/lib/session";
 
 const ROLES = Object.keys(ROLE_LABELS) as Role[];
@@ -34,6 +35,11 @@ function LobbyForm() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
+  // 재방문이면 이름을 다시 안 쳐도 되게 — H-1의 "이름 로컬 저장"
+  useEffect(() => {
+    setName((current) => current || loadName());
+  }, []);
+
   // Render 무료 플랜은 15분 놀면 잠든다 — 로비에 들어오는 순간 한 번 찔러
   // 깨워두면, 편성을 마치고 "분대 만들기"를 누를 때는 이미 깨어나 있다.
   // fire-and-forget이다: 응답도 실패도 화면에 영향을 주지 않는다. 실제 방
@@ -51,6 +57,7 @@ function LobbyForm() {
         mode === "create"
           ? await createRoom({ name, role, difficulty, season })
           : await joinRoom(code, { name, role });
+      saveName(name);
       saveSession(session);
       router.push(`/room/${session.code}`);
     } catch (cause) {
