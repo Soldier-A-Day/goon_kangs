@@ -574,14 +574,21 @@ namespace SoldierADay.Net
                     // 늘어난 것"이었다. 그러면 별도 슬롯이지 돌발이 아니다 —
                     // 판이 열려 있으면 그 판을 여기서 끊는다. 진척은 서버가 들고
                     // 있으므로 잃는 것은 판에 쓴 시간이고, 그게 돌발의 대가다.
-                    if (play != null && play.QuestId != null)
+                    //
+                    // C-1b — 태그를 퀘스트 이름으로, 본문을 상황 도입 문장으로
+                    // 바꿨다. 예전엔 태그가 "돌발" 하나뿐이라 무슨 일이 왔는지
+                    // 본문(퀘스트 라벨)까지 읽어야 알 수 있었다.
                     {
-                        play.Close();
-                        Notify("돌발", $"{item.label} — 하던 일이 끊겼다", HudTheme.Alert);
+                        var intro = HudDialogue.SurpriseIntro(item.questId, CurrentDay());
+                        if (play != null && play.QuestId != null)
+                        {
+                            play.Close();
+                            Notify(item.label, $"{intro} — 하던 일이 끊겼다", HudTheme.Alert, 6.2f);
+                            return;
+                        }
+                        Notify(item.label, intro, HudTheme.Heat, 6.2f);
                         return;
                     }
-                    Notify("돌발", item.label, HudTheme.Heat);
-                    return;
 
                 case ServerEventTypeValues.DisciplineChanged:
                     Notify("군기", $"{item.to:0} · {item.band}", HudTheme.Alert);
@@ -613,10 +620,11 @@ namespace SoldierADay.Net
                 case ServerEventTypeValues.MemberEvacuated:
                 {
                     // C-1b 후송 문장 — 혼자 조용히 실려 나가던 것을 남은 사람들에게 알린다.
-                    // 5초(기본 4.6초보다 길게) — "그 몫까지 채운다"는 부담을 방금 이해할
-                    // 시간이 필요하다
+                    // 5.6초(기본 4.6초보다 길게) — "그 몫까지 채운다"는 부담을 방금
+                    // 이해할 시간이 필요하다. 인원 수는 뭉뚱그리지 않고 실제로 센다 —
+                    // "남은 사람이"보다 "남은 셋이"가 그 부담의 크기를 정확히 말한다.
                     var name = NameOf(item.memberId);
-                    Notify("후송", $"{name}{HudTheme.Josa(name, "이", "가")} 실려 나갔다. 남은 사람이 그 몫까지 채운다.",
+                    Notify("후송", HudDialogue.EvacuationLine(name, RemainingCount(item.memberId), CurrentDay()),
                         HudTheme.Alert, 5.6f);
                     return;
                 }
@@ -649,6 +657,18 @@ namespace SoldierADay.Net
                 case ServerEventTypeValues.FrostbiteRelieved:
                     Notify("동상 해제", $"{NameOf(item.memberId)} — 의무병 {NameOf(item.byId)}", HudTheme.Accent);
                     return;
+
+                case ServerEventTypeValues.RadioChanged:
+                {
+                    // C-1b 무전 상태 역할별 문장 — `RadioLabelForMe`(우상단 상시 라벨)와는
+                    // 다른 자리다. 저건 "지금 상태가 뭔가"를 계속 보여주고, 이건 "방금
+                    // 뭐가 바뀌었나"를 한 번 토스트로 알린다. 통신병만 그 전환이 자기
+                    // 손에서 시작됐다는 걸 안다 — 규칙은 그대로, 문장만 보직에 따라 갈린다.
+                    var isComms = client != null && RoleOf(client.MemberId) == SnapshotMembersItemRoleValues.Comms;
+                    var (tag, text, color) = HudDialogue.RadioChangeLine(item.radioState, isComms, CurrentDay());
+                    Notify(tag, text, color);
+                    return;
+                }
 
                 case ServerEventTypeValues.DelegationRefused:
                     // C-1b — snapshot.ts가 명시적으로 버리던 것을 되살렸다. 하달 창이
@@ -820,6 +840,27 @@ namespace SoldierADay.Net
                 if (quest?.id == questId) return quest.label;
             }
             return "일과";
+        }
+
+        /// <summary>C-1b — 대사 결정론 시드용. 스냅샷이 아직 없을 때(연결 직후)는
+        /// 0으로 떨어지는데, 그 시점엔 애초에 이 문구들을 낼 이벤트도 안 온다</summary>
+        private int CurrentDay() => (int)(client.Latest?.day ?? 0d);
+
+        /// <summary>C-1b 후송 문장 — 방금 실려 나간 사람을 뺀 나머지 인원 수를 센다.
+        /// 이미 후송된 사람(`Evacuated`)도 뺀다 — "남은 인원"은 지금 뛰고 있는
+        /// 사람 수지, 편성표에 이름만 남은 사람 수가 아니다</summary>
+        private int RemainingCount(string evacuatedId)
+        {
+            var snapshot = client.Latest;
+            if (snapshot?.members == null) return 0;
+            var count = 0;
+            foreach (var member in snapshot.members)
+            {
+                if (member == null || member.id == evacuatedId) continue;
+                if (member.presence == SnapshotMembersItemPresenceValues.Evacuated) continue;
+                count += 1;
+            }
+            return count;
         }
 
         /// <summary>

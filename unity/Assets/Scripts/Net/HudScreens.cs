@@ -1416,14 +1416,19 @@ namespace SoldierADay.Net
             {
                 var (key, label, value) = conditions[i];
                 var isReliefRow = i == 0 && !failed && reliefsUsed > 0d;
+                var isFail = failed && failedAt == key;
+                // C-1b — 실패한 줄 아래 소대장 대사 한 줄. 조건마다 문구가 다른
+                // 이유는 "뭘 잘못했는지"가 조건마다 다르기 때문이다 — 필수 미달과
+                // 군기 미달을 같은 문장으로 때우면 다음 판에 뭘 고쳐야 하는지
+                // 화면만 보고는 못 배운다(WORKORDER C-1b 완료 판정).
+                var failureLine = isFail ? HudDialogue.RollCallFailureLine(key, (int)_judgement.day) : null;
                 var reliefTone = reliefExhausted ? HudTheme.Alert : HudTheme.Heat;
                 var baseHeight = i == 2 && failedAt == "C" ? 76f : 70f;
-                var noteHeight = isReliefRow ? 24f : 0f;
+                var noteHeight = isReliefRow || failureLine != null ? 24f : 0f;
                 var row = new Rect(panel.x + 32f, y, 1136f, baseHeight + noteHeight);
                 var mainRect = new Rect(row.x, row.y, row.width, baseHeight);
 
                 var shown = t >= Reveal[i];
-                var isFail = failed && failedAt == key;
                 // §7.5 "하나라도 실패 → 그 줄에서 정지, 나머지 줄은 회색 처리"
                 var skipped = stopped;
 
@@ -1459,6 +1464,16 @@ namespace SoldierADay.Net
                                 ? $"구제권 {reliefsUsed:0}장 사용 — 구제 소진, 다음 미달은 즉시 퇴소"
                                 : $"구제권 {reliefsUsed:0}장 사용 (남은 구제 {reliefsRemaining:0})",
                             theme.At(theme.Small, 14, reliefTone));
+                    }
+                    else if (failureLine != null)
+                    {
+                        // 결과 패널의 "조건 X 미달 — 퇴소"는 4초 뒤에야 뜬다(§7.5 4초
+                        // 연출). 이 줄은 그 줄이 실패로 정지하는 그 자리에서 바로
+                        // 소대장의 반응을 붙인다 — 판정 숫자와 사람의 말을 같은
+                        // 눈길에 담는다.
+                        GUI.Label(new Rect(row.x + 72f, row.y + baseHeight, 1040f, noteHeight),
+                            $"\"{failureLine}\"",
+                            theme.At(theme.Small, 14, HudTheme.Alert));
                     }
                 }
                 else if (skipped)
