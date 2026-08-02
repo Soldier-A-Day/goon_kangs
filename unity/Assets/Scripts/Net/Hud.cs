@@ -115,6 +115,10 @@ namespace SoldierADay.Net
                                  (Screen.height - Input.mousePosition.y) / scale);
             _hovered = -1;
 
+            // A-1 준비 — 미니게임 실험대(BoardLab.cs). F9로 열고 닫는다. QuestPlay를
+            // 거치지 않으므로 서버 연결·스냅샷과 무관하게 동작한다
+            BoardLab.Draw(_theme);
+
             var snapshot = client.Latest;
 
             // **런이 끝났거나 붙지 못했으면 여기서 끝난다.**
