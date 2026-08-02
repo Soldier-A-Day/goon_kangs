@@ -16,6 +16,9 @@ describe("완주율 밸런스", () => {
     expect(report.clearRate).toBeLessThan(0.2);
   });
 
+  // 한 번에 2000회 × 3배치 = 18일 시뮬 6000회다. 기본 5초 제한에 아슬아슬하게
+  // 걸쳐 있어서 무엇을 건드리든 시간 초과로 터졌다 — 재는 것이 밸런스이지
+  // 속도가 아니므로 제한을 넉넉히 준다
   it("정확도가 오르면 완주율도 오른다", () => {
     const low = runBatch(RUNS, { accuracy: 0.98 }).clearRate;
     const mid = runBatch(RUNS, { accuracy: 0.985 }).clearRate;
@@ -24,7 +27,7 @@ describe("완주율 밸런스", () => {
     expect(high).toBeGreaterThan(mid);
     expect(mid).toBeGreaterThan(0.27);
     expect(mid).toBeLessThan(0.42);
-  });
+  }, 30_000);
 
   it("구제권을 늘리면 완주율이 급격히 오른다 — 3회는 되돌릴 수 없는 손잡이다", () => {
     const three = runBatch(RUNS, { accuracy: 0.98 }).clearRate;

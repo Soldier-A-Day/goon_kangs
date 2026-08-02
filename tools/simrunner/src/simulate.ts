@@ -3,7 +3,9 @@ import {
   createRun,
   roll,
   step,
+  type Grade,
   type JudgementCondition,
+  type RngState,
   type RunConfig,
   type RunStatus,
 } from "@sad/sim";
@@ -15,9 +17,18 @@ const TICK_MS = 30 * 1000;
  *
  * `accuracy`는 10.0 완주율 표의 "개인 정확도"다 — 필수 퀘스트 1건을 제시간에 끝낼 확률.
  * 98%는 런당 실수 6회를 허용한다는 뜻이며, 이 값에서 완주율 15%가 나와야 한다.
+ *
+ * `gradeA` · `gradeC`는 **끝낸 일과를 얼마나 깨끗하게 했는가**의 분포다. 완주와는
+ * 다른 축이다 — 못 통과하면 완료가 아니라 재시도이므로 정확도가 완주를 정하고,
+ * 등급은 통과한 판의 여유만 가른다. 승급 요구치(18 · 70 · 150)가 이 분포에서
+ * 성립하는지가 밸런싱 질문이다.
  */
 export interface BotPolicy {
   readonly accuracy: number;
+  /** A등급 확률. 기본은 "웬만큼 하는 사람" */
+  readonly gradeA?: number;
+  /** C등급 확률. 나머지가 B다 */
+  readonly gradeC?: number;
 }
 
 export interface RunOutcome {
@@ -75,6 +86,12 @@ export function simulateRun(
       if (succeeded) {
         quest.workedMs = quest.workMs;
         quest.status = "done";
+        // 판이 없는 일과는 등급도 없다 — 회복 · 합동 · 훈련 체크포인트가 그렇다
+        if (quest.minigame !== null) {
+          const [grade, afterGrade] = rollGrade(rng, policy);
+          rng = afterGrade;
+          quest.grade = grade;
+        }
       }
     }
 
@@ -94,6 +111,17 @@ export function simulateRun(
     failedAt: last?.failedAt ?? null,
     reliefsUsed: state.judgements.reduce((sum, j) => sum + j.reliefsUsed, 0),
   };
+}
+
+/** 기본 분포 — 대부분 B, 셋 중 하나쯤 A, 가끔 C */
+const DEFAULT_GRADE_A = 0.3;
+const DEFAULT_GRADE_C = 0.15;
+
+function rollGrade(rng: RngState, policy: BotPolicy): readonly [Grade, RngState] {
+  const [isA, afterA] = roll(rng, policy.gradeA ?? DEFAULT_GRADE_A);
+  if (isA) return ["A", afterA];
+  const [isC, afterC] = roll(afterA, policy.gradeC ?? DEFAULT_GRADE_C);
+  return [isC ? "C" : "B", afterC];
 }
 
 export interface BatchReport {

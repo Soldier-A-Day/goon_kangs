@@ -145,8 +145,9 @@ describe("표 13-1 복무 점수", () => {
         quest.workedMs = quest.workMs;
       }
     }
+    // 회복 행동(밥·물·세면)은 선택이 아니다 — 점수를 주지 않는다(7.0)
     const optional = state.quests.filter(
-      (q) => q.ownerId === "p1" && !q.required && q.kind !== "joint",
+      (q) => q.ownerId === "p1" && !q.required && q.kind !== "joint" && q.kind !== "care",
     ).length;
 
     applyDailyServiceScore(state);

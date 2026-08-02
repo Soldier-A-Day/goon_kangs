@@ -1,5 +1,12 @@
 import rankTable from "../data/ranks.json";
-import { RANK_ORDER, type Effect, type Member, type Rank, type RunState } from "./types.js";
+import {
+  RANK_ORDER,
+  type Effect,
+  type Grade,
+  type Member,
+  type Rank,
+  type RunState,
+} from "./types.js";
 
 const GAINS = rankTable.gains;
 const PENALTIES = rankTable.penalties;
@@ -36,6 +43,19 @@ export function award(member: Member, amount: number): void {
 }
 
 /**
+ * 선택 퀘스트 한 건의 몫.
+ *
+ * 등급이 없으면 B로 친다 — 판이 붙지 않은 일과(합동 · 훈련 체크포인트)와 NPC
+ * 대리가 끝낸 일과가 여기 해당한다. 0으로 두면 판을 아직 안 만든 원형이 승급을
+ * 막게 되고, A로 두면 대리에게 맡기는 편이 이득이 된다.
+ */
+export function gradeGain(grade: Grade | null): number {
+  return GRADE_GAINS[grade ?? "B"];
+}
+
+const GRADE_GAINS = rankTable.gains.optionalRoleQuestByGrade as Record<Grade, number>;
+
+/**
  * 감점은 계급 배율을 태워서 물린다.
  * 배율이 소수라 그대로 더하면 부동소수 오차가 쌓이므로 정수로 맞춘다.
  */
@@ -46,8 +66,13 @@ export function penalize(member: Member, amount: number): void {
 /**
  * 표 13-1 하루치 복무 점수 적립. 점호 판정 **직전**에 돈다.
  *
- * 전부 "안 해도 되는데 한 것"만 센다 — 필수 완수는 살아있는 플레이어가 예외 없이 100%라
- * 변별력이 0이므로 승급에 쓸 수 없다.
+ * 원래는 "안 해도 되는데 한 것"만 셌다 — 필수 완수는 살아있는 플레이어가 예외 없이
+ * 100%라 변별력이 0이었기 때문이다. **등급이 그 문제를 푼다**: A로 한 필수와 C로 한
+ * 필수는 같지 않다. 그래서 필수도 A일 때만 조금 얹는다.
+ *
+ * 다만 **새 점수원을 만들지는 않았다.** 퀘스트마다 등급 점수를 얹으면 1인당 하루
+ * 6~8건이라 획득이 기존 경제의 2~3배가 되고, 심사 요구치(18 · 70 · 150)가 통째로
+ * 무의미해진다. 선택 퀘스트의 2점을 A3·B2·C1로 갈아끼운 것이 전부다.
  */
 export function applyDailyServiceScore(state: RunState): void {
   const jointFlawless = state.quests.some(
@@ -66,15 +91,24 @@ export function applyDailyServiceScore(state: RunState): void {
   for (const member of state.members) {
     if (member.presence !== "player") continue;
 
-    // 선택 보직 퀘스트 — 가장 기본적인 "안 해도 되는 일"
-    const optional = state.quests.filter(
+    const mine = state.quests.filter(
       (q) =>
         q.ownerId === member.id &&
-        !q.required &&
+        // 밥을 먹었다고 승급하지는 않는다
+        q.kind !== "care" &&
         q.status === "done" &&
         q.delegatedFrom === null,
-    ).length;
-    award(member, optional * GAINS.optionalRoleQuest);
+    );
+
+    for (const quest of mine) {
+      // 선택 보직 퀘스트 — 가장 기본적인 "안 해도 되는 일"
+      if (!quest.required) {
+        award(member, gradeGain(quest.grade));
+        continue;
+      }
+      // 필수는 해도 본전이다. 다만 깨끗하게 했으면 그만큼만 얹는다
+      if (quest.grade === "A") award(member, GAINS.requiredQuestGradeA);
+    }
 
     if (jointFlawless) award(member, GAINS.jointFlawless);
 
