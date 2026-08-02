@@ -51,6 +51,13 @@ export function projectSnapshot(
       value: Math.round(state.discipline),
       band: disciplineBand(state.discipline).id,
     },
+    // 12.0 간부 신뢰도 3트랙 — 승급 점수의 절반이라 스냅샷에 실어야 승급 화면이
+    // "복무점수+신뢰보너스"로 분해할 수 있다(WORKORDER.md E-2, 감사 목록 3)
+    trust: {
+      platoonLeader: Math.round(state.trust.platoonLeader),
+      assistant: Math.round(state.trust.assistant),
+      sergeantMajor: Math.round(state.trust.sergeantMajor),
+    },
     // 8.0 — 분대 공통 값이라 멤버가 아니라 스냅샷 최상위에 있다
     radio: state.radio,
     supply: {
@@ -204,6 +211,9 @@ export function projectEffect(effect: Effect): ServerEvent | null {
           to: outcome.to,
           score: outcome.score,
           require: outcome.require,
+          // 승급 점수의 절반 — 예전에는 여기서 잘려 화면이 "복무점수"만 보여줬다
+          // (WORKORDER.md E-2, 감사 목록 3). sim이 이미 계산해 실어 보내므로 그대로 흘린다.
+          trustBonus: outcome.trustBonus,
         })),
       };
     case "sleepSettled":
@@ -238,9 +248,18 @@ export function projectEffect(effect: Effect): ServerEvent | null {
         reason: effect.reason as Extract<ServerEvent, { type: "delegationRefused" }>["reason"],
         questId: effect.questId,
       };
-    // conditionCritical은 이 발주 범위 밖이다(WORKORDER.md E-2) — 계속 버린다
     case "conditionCritical":
-      return null;
+      // 예전에는 여기서 버렸다 — 스태미나 0·탈수 2단계·강제취침 임계가 후송/강제취침
+      // 직전 신호인데 화면은 결과만 보여주고 예고가 없었다(WORKORDER.md E-2, 감사
+      // 목록 1). sim의 `Effect["conditionCritical"]`은 stat을 `keyof Stats`로 넓게
+      // 선언하지만(packages/sim/src/types.ts) 실제 값은 `raiseCriticals`
+      // (packages/sim/src/condition.ts)가 언제나 stamina·hydration·fatigue 중
+      // 하나만 낸다 — sim은 이 발주 소유가 아니라(ARCH-02) 타입을 여기서 좁혀 받는다.
+      return {
+        type: "conditionCritical",
+        memberId: effect.memberId,
+        stat: effect.stat as Extract<ServerEvent, { type: "conditionCritical" }>["stat"],
+      };
     default:
       return null;
   }

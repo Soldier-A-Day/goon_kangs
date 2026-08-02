@@ -271,6 +271,7 @@ namespace SoldierADay.Protocol
         public const string ChoreVetoed = "choreVetoed";
         public const string ChoreReassigned = "choreReassigned";
         public const string DelegationRefused = "delegationRefused";
+        public const string ConditionCritical = "conditionCritical";
         public const string HiddenUnlocked = "hiddenUnlocked";
         public const string RunEnded = "runEnded";
         public const string QuickCommand = "quickCommand";
@@ -347,6 +348,14 @@ namespace SoldierADay.Protocol
         public const string ReceiverLimit = "receiverLimit";
         public const string AlreadyDelegated = "alreadyDelegated";
         public const string UnknownMember = "unknownMember";
+    }
+
+    /// <summary>ServerEventStat 이 가질 수 있는 값. 서버가 값을 추가해도 깨지지 않도록 enum이 아니라 상수로 둔다.</summary>
+    public static class ServerEventStatValues
+    {
+        public const string Stamina = "stamina";
+        public const string Hydration = "hydration";
+        public const string Fatigue = "fatigue";
     }
 
     /// <summary>ServerEventCommand 이 가질 수 있는 값. 서버가 값을 추가해도 깨지지 않도록 enum이 아니라 상수로 둔다.</summary>
@@ -683,6 +692,7 @@ namespace SoldierADay.Protocol
         public const string ChoreVetoed = "choreVetoed";
         public const string ChoreReassigned = "choreReassigned";
         public const string DelegationRefused = "delegationRefused";
+        public const string ConditionCritical = "conditionCritical";
         public const string HiddenUnlocked = "hiddenUnlocked";
         public const string RunEnded = "runEnded";
         public const string QuickCommand = "quickCommand";
@@ -759,6 +769,14 @@ namespace SoldierADay.Protocol
         public const string ReceiverLimit = "receiverLimit";
         public const string AlreadyDelegated = "alreadyDelegated";
         public const string UnknownMember = "unknownMember";
+    }
+
+    /// <summary>ServerMessageItemsItemStat 이 가질 수 있는 값. 서버가 값을 추가해도 깨지지 않도록 enum이 아니라 상수로 둔다.</summary>
+    public static class ServerMessageItemsItemStatValues
+    {
+        public const string Stamina = "stamina";
+        public const string Hydration = "hydration";
+        public const string Fatigue = "fatigue";
     }
 
     /// <summary>ServerMessageItemsItemCommand 이 가질 수 있는 값. 서버가 값을 추가해도 깨지지 않도록 enum이 아니라 상수로 둔다.</summary>
@@ -918,6 +936,7 @@ namespace SoldierADay.Protocol
         public SnapshotPhase phase;
         public SnapshotWeather weather;
         public SnapshotDiscipline discipline;
+        public SnapshotTrust trust;
         public string radio;
         public SnapshotSupply supply;
         public double reliefsRemaining;
@@ -953,6 +972,14 @@ namespace SoldierADay.Protocol
     {
         public double value;
         public string band;
+    }
+
+    [Serializable]
+    public class SnapshotTrust
+    {
+        public double platoonLeader;
+        public double assistant;
+        public double sergeantMajor;
     }
 
     [Serializable]
@@ -1181,6 +1208,8 @@ namespace SoldierADay.Protocol
         // 선택적 — variant에 따라 없을 수 있다
         public string reason;
         // 선택적 — variant에 따라 없을 수 있다
+        public string stat;
+        // 선택적 — variant에 따라 없을 수 있다
         public string id;
         // 선택적 — variant에 따라 없을 수 있다
         public string status;
@@ -1205,6 +1234,7 @@ namespace SoldierADay.Protocol
         public string to;
         public double score;
         public double require;
+        public double trustBonus;
     }
 
     [Serializable]
@@ -1240,6 +1270,8 @@ namespace SoldierADay.Protocol
         public ServerMessageWeather weather;
         // 선택적 — variant에 따라 없을 수 있다
         public ServerMessageDiscipline discipline;
+        // 선택적 — variant에 따라 없을 수 있다
+        public ServerMessageTrust trust;
         // 선택적 — variant에 따라 없을 수 있다
         public string radio;
         // 선택적 — variant에 따라 없을 수 있다
@@ -1295,6 +1327,14 @@ namespace SoldierADay.Protocol
     {
         public double value;
         public string band;
+    }
+
+    [Serializable]
+    public class ServerMessageTrust
+    {
+        public double platoonLeader;
+        public double assistant;
+        public double sergeantMajor;
     }
 
     [Serializable]
@@ -1523,6 +1563,8 @@ namespace SoldierADay.Protocol
         // 선택적 — variant에 따라 없을 수 있다
         public string reason;
         // 선택적 — variant에 따라 없을 수 있다
+        public string stat;
+        // 선택적 — variant에 따라 없을 수 있다
         public string id;
         // 선택적 — variant에 따라 없을 수 있다
         public string status;
@@ -1547,6 +1589,7 @@ namespace SoldierADay.Protocol
         public string to;
         public double score;
         public double require;
+        public double trustBonus;
     }
 
     [Serializable]

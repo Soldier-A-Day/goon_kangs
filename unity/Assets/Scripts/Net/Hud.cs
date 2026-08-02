@@ -40,6 +40,13 @@ namespace SoldierADay.Net
         private readonly List<Toast> _toasts = new List<Toast>();
         private readonly List<Bubble> _bubbles = new List<Bubble>();
 
+        /// <summary>E-2 — conditionCritical 중복 억제. sim은 시간대마다 임계 조건이
+        /// 유지되는 한 계속 이 이펙트를 낸다(`condition.ts` raiseCriticals). 그대로
+        /// 다 띄우면 같은 사람·같은 스탯 토스트가 시간대마다 스팸이 된다 — 다른
+        /// 침묵 판정 토스트엔 이런 반복 신호가 없어 선례가 없으므로 여기서 새로
+        /// 정한다. 키는 "memberId|stat", 값은 마지막으로 띄운 시각(unscaledTime)</summary>
+        private readonly Dictionary<string, float> _criticalShownAt = new Dictionary<string, float>();
+
         /// <summary>§7.1.6 알림 카드 — 최대 4개 스택, 기본 4초 후 페이드.
         /// `life`는 총 표시 시간(페이드 0.6초 포함) — 후송처럼 더 오래 읽혀야
         /// 하는 문장은 개별로 늘린다(C-1b)</summary>
@@ -651,6 +658,25 @@ namespace SoldierADay.Net
                         HudTheme.Alert);
                     break;
 
+                case ServerEventTypeValues.ConditionCritical:
+                {
+                    // E-2 — snapshot.ts가 "이 발주 범위 밖"이라며 명시적으로 버리던 것을
+                    // 되살렸다. 스태미나 0·탈수 2단계·강제취침 임계는 후송/강제취침
+                    // 직전 신호인데, 예전엔 결과(후송·강제취침 토스트)만 보이고 예고가
+                    // 없었다(감사 목록 1). 같은 시간대 동안 임계가 유지되면 sim이 매
+                    // 정산마다 다시 낸다(`condition.ts` raiseCriticals) — 30초 억제로
+                    // 같은 사람·같은 스탯이 도배되지 않게 한다
+                    var key = item.memberId + "|" + item.stat;
+                    if (_criticalShownAt.TryGetValue(key, out var last) &&
+                        Time.unscaledTime - last < 30f)
+                    {
+                        return;
+                    }
+                    _criticalShownAt[key] = Time.unscaledTime;
+                    Notify("위험", ConditionCriticalText(item.stat, NameOf(item.memberId)), HudTheme.Alert);
+                    return;
+                }
+
                 case ServerEventTypeValues.WeatherRolled:
                     Notify("기온", item.label, HudTheme.BandColor(item.band));
                     return;
@@ -701,6 +727,17 @@ namespace SoldierADay.Net
             var pool = gap >= 2 ? AcceptFormalLines : AcceptCasualLines;
             return pool[UnityEngine.Random.Range(0, pool.Length)];
         }
+
+        /// <summary>E-2 — 컨디션 붕괴 임계 3종(`packages/sim/src/condition.ts` raiseCriticals)을
+        /// 문구로. 기존 침묵 토스트 12종의 건조한 톤·길이를 맞춘다 — "무슨 일이
+        /// 벌어지는지"와 "그대로 두면 어떻게 되는지"를 한 줄에 담는다</summary>
+        private static string ConditionCriticalText(string stat, string name) => stat switch
+        {
+            "stamina" => $"{name} 탈진 직전 — 그대로 두면 실려 나간다",
+            "hydration" => $"{name} 탈수 직전 — 그대로 두면 실려 나간다",
+            "fatigue" => $"{name} 피로 한계 — 그대로 두면 강제로 재운다",
+            _ => $"{name} 컨디션 위험",
+        };
 
         /// <summary>E-1 — SupplyClaimed의 품목 배열을 "품목 요약" 문장으로. 항목이
         /// 많으면 앞 4개만 이름으로 적고 나머지는 건수로 뭉친다</summary>

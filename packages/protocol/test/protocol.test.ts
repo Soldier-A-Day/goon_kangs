@@ -67,6 +67,7 @@ describe("스냅샷 스키마", () => {
     },
     weather: { band: "normal" as const, label: "평시", feelsLike: 12, rain: false },
     discipline: { value: 60, band: "normal" },
+    trust: { platoonLeader: 60, assistant: 60, sergeantMajor: 60 },
     radio: "ok" as const,
     supply: { points: 12, isSupplyDay: false, pendingClaim: [] },
     reliefsRemaining: 3,
