@@ -1,0 +1,636 @@
+{
+  "_source": "SAD-ART-002 PLAN 01~04 · 도면의 방 배치를 규칙으로 승격한 것",
+  "_note": "구역 정의는 **sim이 소유한다.** 예전에는 서버가 8개(barracks·drillGround…)만 알고 아트가 방 25개를 따로 들고 있었는데, 그러면 같은 사실이 두 곳에 살면서 반드시 어긋난다 — 실제로 퀘스트 17건의 zone과 room이 어긋나 있었다. 방이 곧 구역이면 그 문제가 사라지고, \"이 방 하나가 곧 구역\"이라는 PLAN 02의 설계와도 맞는다.\n맵(tools/sprites/basemap.py)은 이 파일을 읽어 배치가 인접 관계를 지키는지 검증한다.\nshort는 **지도에 넣을 짧은 이름**이다. 좁은 방에 긴 이름을 넣으면 잘리고, 잘린 이름은 없는 이름과 같다 — 부대에서 실제로 부르는 말을 쓴다.",
+  "_msPerStep": "격자 한 칸당 이동 소요(ms). 걸어서 옮기면 0이고, NPC 대리와 헤드리스 시뮬에만 쓰인다",
+  "msPerStep": 2200,
+  "zones": [
+    {
+      "id": "Z01",
+      "name": "생활관 (1분대)",
+      "building": "B1",
+      "buildingName": "생활관동",
+      "indoor": true,
+      "heat": true,
+      "x": 2,
+      "y": 1,
+      "adjacent": [
+        "Z02"
+      ],
+      "short": "1분대"
+    },
+    {
+      "id": "Z01b",
+      "name": "생활관 (2분대)",
+      "building": "B1",
+      "buildingName": "생활관동",
+      "indoor": true,
+      "heat": true,
+      "x": 4,
+      "y": 1,
+      "adjacent": [
+        "Z02"
+      ],
+      "short": "2분대"
+    },
+    {
+      "id": "Z01c",
+      "name": "생활관 (3분대)",
+      "building": "B1",
+      "buildingName": "생활관동",
+      "indoor": true,
+      "heat": true,
+      "x": 6,
+      "y": 1,
+      "adjacent": [
+        "Z02"
+      ],
+      "short": "3분대"
+    },
+    {
+      "id": "Z02",
+      "name": "생활관동 복도",
+      "building": "B1",
+      "buildingName": "생활관동",
+      "indoor": true,
+      "heat": true,
+      "x": 4,
+      "y": 2,
+      "adjacent": [
+        "Z01",
+        "Z01b",
+        "Z01c",
+        "Z03",
+        "Z13",
+        "Z16",
+        "Z17",
+        "Z09",
+        "Z20",
+        "Z21",
+        "Z22",
+        "Z11",
+        "Z12",
+        "Z12b",
+        "Z18",
+        "Z19",
+        "Z14",
+        "Z50"
+      ],
+      "short": "복도"
+    },
+    {
+      "id": "Z03",
+      "name": "공용 세면장 · 샤워장",
+      "building": "B1",
+      "buildingName": "생활관동",
+      "indoor": true,
+      "heat": true,
+      "x": 2,
+      "y": 3,
+      "adjacent": [
+        "Z02"
+      ],
+      "short": "세면장"
+    },
+    {
+      "id": "Z13",
+      "name": "세탁 · 건조실",
+      "building": "B1",
+      "buildingName": "생활관동",
+      "indoor": true,
+      "heat": true,
+      "x": 4,
+      "y": 3,
+      "adjacent": [
+        "Z02"
+      ],
+      "short": "세탁실"
+    },
+    {
+      "id": "Z16",
+      "name": "사지방",
+      "building": "B1",
+      "buildingName": "생활관동",
+      "indoor": true,
+      "heat": true,
+      "x": 5,
+      "y": 3,
+      "adjacent": [
+        "Z02"
+      ],
+      "short": "사지방"
+    },
+    {
+      "id": "Z17",
+      "name": "체력단련장",
+      "building": "B1",
+      "buildingName": "생활관동",
+      "indoor": true,
+      "heat": true,
+      "x": 6,
+      "y": 3,
+      "adjacent": [
+        "Z02"
+      ],
+      "short": "체단장"
+    },
+    {
+      "id": "Z09",
+      "name": "무기고",
+      "building": "B1",
+      "buildingName": "생활관동",
+      "indoor": true,
+      "heat": true,
+      "x": 7,
+      "y": 3,
+      "adjacent": [
+        "Z02"
+      ],
+      "short": "무기고"
+    },
+    {
+      "id": "Z20",
+      "name": "급양동 복도",
+      "building": "B2",
+      "buildingName": "급양동",
+      "indoor": true,
+      "heat": true,
+      "x": 9,
+      "y": 2,
+      "adjacent": [
+        "Z02",
+        "Z07",
+        "Z07b",
+        "Z21",
+        "Z22",
+        "Z11",
+        "Z12",
+        "Z12b",
+        "Z18",
+        "Z19",
+        "Z14",
+        "Z50"
+      ],
+      "short": "복도"
+    },
+    {
+      "id": "Z07",
+      "name": "병사식당",
+      "building": "B2",
+      "buildingName": "급양동",
+      "indoor": true,
+      "heat": true,
+      "x": 9,
+      "y": 1,
+      "adjacent": [
+        "Z20"
+      ],
+      "short": "식당"
+    },
+    {
+      "id": "Z07b",
+      "name": "취사장",
+      "building": "B2",
+      "buildingName": "급양동",
+      "indoor": true,
+      "heat": true,
+      "x": 9,
+      "y": 3,
+      "adjacent": [
+        "Z20"
+      ],
+      "short": "취사장"
+    },
+    {
+      "id": "Z21",
+      "name": "지원동 복도",
+      "building": "B3",
+      "buildingName": "지원동",
+      "indoor": true,
+      "heat": true,
+      "x": 9,
+      "y": 6,
+      "adjacent": [
+        "Z02",
+        "Z20",
+        "Z05",
+        "Z06",
+        "Z04",
+        "Z22",
+        "Z11",
+        "Z12",
+        "Z12b",
+        "Z18",
+        "Z19",
+        "Z14",
+        "Z50"
+      ],
+      "short": "복도"
+    },
+    {
+      "id": "Z05",
+      "name": "의무실",
+      "building": "B3",
+      "buildingName": "지원동",
+      "indoor": true,
+      "heat": true,
+      "x": 8,
+      "y": 5,
+      "adjacent": [
+        "Z21"
+      ],
+      "short": "의무실"
+    },
+    {
+      "id": "Z06",
+      "name": "통신실",
+      "building": "B3",
+      "buildingName": "지원동",
+      "indoor": true,
+      "heat": true,
+      "x": 10,
+      "y": 5,
+      "adjacent": [
+        "Z21"
+      ],
+      "short": "통신실"
+    },
+    {
+      "id": "Z04",
+      "name": "행정반 · CP",
+      "building": "B3",
+      "buildingName": "지원동",
+      "indoor": true,
+      "heat": true,
+      "x": 9,
+      "y": 7,
+      "adjacent": [
+        "Z21"
+      ],
+      "short": "행정반"
+    },
+    {
+      "id": "Z22",
+      "name": "보급 · 정비동 복도",
+      "building": "B4",
+      "buildingName": "보급 · 정비동",
+      "indoor": true,
+      "heat": true,
+      "x": 2,
+      "y": 6,
+      "adjacent": [
+        "Z02",
+        "Z20",
+        "Z21",
+        "Z08",
+        "Z10",
+        "Z11",
+        "Z12",
+        "Z12b",
+        "Z18",
+        "Z19",
+        "Z14",
+        "Z50"
+      ],
+      "short": "복도"
+    },
+    {
+      "id": "Z08",
+      "name": "보급 창고",
+      "building": "B4",
+      "buildingName": "보급 · 정비동",
+      "indoor": true,
+      "heat": true,
+      "x": 2,
+      "y": 5,
+      "adjacent": [
+        "Z22"
+      ],
+      "short": "창고"
+    },
+    {
+      "id": "Z10",
+      "name": "정비고 · 차량",
+      "building": "B4",
+      "buildingName": "보급 · 정비동",
+      "indoor": true,
+      "heat": true,
+      "x": 2,
+      "y": 7,
+      "adjacent": [
+        "Z22"
+      ],
+      "short": "정비고"
+    },
+    {
+      "id": "Z11",
+      "name": "연병장",
+      "building": null,
+      "buildingName": null,
+      "indoor": false,
+      "heat": false,
+      "x": 5,
+      "y": 6,
+      "adjacent": [
+        "Z02",
+        "Z20",
+        "Z21",
+        "Z22",
+        "Z12",
+        "Z12b",
+        "Z18",
+        "Z19",
+        "Z14",
+        "Z50"
+      ],
+      "short": "연병장"
+    },
+    {
+      "id": "Z12",
+      "name": "초소 1 (북서)",
+      "building": null,
+      "buildingName": null,
+      "indoor": false,
+      "heat": false,
+      "x": 1,
+      "y": 1,
+      "adjacent": [
+        "Z02",
+        "Z20",
+        "Z21",
+        "Z22",
+        "Z11",
+        "Z12b",
+        "Z18",
+        "Z19",
+        "Z14",
+        "Z50"
+      ],
+      "short": "초소 1"
+    },
+    {
+      "id": "Z12b",
+      "name": "초소 2 (남서)",
+      "building": null,
+      "buildingName": null,
+      "indoor": false,
+      "heat": false,
+      "x": 1,
+      "y": 8,
+      "adjacent": [
+        "Z02",
+        "Z20",
+        "Z21",
+        "Z22",
+        "Z11",
+        "Z12",
+        "Z18",
+        "Z19",
+        "Z14",
+        "Z50"
+      ],
+      "short": "초소 2"
+    },
+    {
+      "id": "Z18",
+      "name": "정문 위병소",
+      "building": null,
+      "buildingName": null,
+      "indoor": false,
+      "heat": false,
+      "x": 5,
+      "y": 8,
+      "adjacent": [
+        "Z02",
+        "Z20",
+        "Z21",
+        "Z22",
+        "Z11",
+        "Z12",
+        "Z12b",
+        "Z19",
+        "Z14",
+        "Z50",
+        "TR01",
+        "TR02",
+        "TR03",
+        "TR04",
+        "TR05",
+        "TR06",
+        "TR07",
+        "TR08",
+        "TR09",
+        "TR10"
+      ],
+      "short": "위병소"
+    },
+    {
+      "id": "Z19",
+      "name": "탄약고",
+      "building": null,
+      "buildingName": null,
+      "indoor": false,
+      "heat": false,
+      "x": 10,
+      "y": 8,
+      "adjacent": [
+        "Z02",
+        "Z20",
+        "Z21",
+        "Z22",
+        "Z11",
+        "Z12",
+        "Z12b",
+        "Z18",
+        "Z14",
+        "Z50"
+      ],
+      "short": "탄약고"
+    },
+    {
+      "id": "Z14",
+      "name": "보일러실",
+      "building": null,
+      "buildingName": null,
+      "indoor": true,
+      "heat": true,
+      "x": 1,
+      "y": 3,
+      "adjacent": [
+        "Z02",
+        "Z20",
+        "Z21",
+        "Z22",
+        "Z11",
+        "Z12",
+        "Z12b",
+        "Z18",
+        "Z19",
+        "Z50"
+      ],
+      "short": "보일러실"
+    },
+    {
+      "id": "Z50",
+      "name": "훈련장",
+      "building": null,
+      "buildingName": null,
+      "indoor": false,
+      "heat": false,
+      "x": 5,
+      "y": 4,
+      "adjacent": [
+        "Z02",
+        "Z20",
+        "Z21",
+        "Z22",
+        "Z11",
+        "Z12",
+        "Z12b",
+        "Z18",
+        "Z19",
+        "Z14"
+      ],
+      "short": "훈련장"
+    },
+    {
+      "id": "TR01",
+      "name": "사격장",
+      "building": null,
+      "buildingName": null,
+      "indoor": false,
+      "heat": false,
+      "x": 14,
+      "y": 9,
+      "adjacent": [
+        "Z18"
+      ],
+      "short": "사격장"
+    },
+    {
+      "id": "TR02",
+      "name": "화생방 제독소",
+      "building": null,
+      "buildingName": null,
+      "indoor": false,
+      "heat": false,
+      "x": 14,
+      "y": 10,
+      "adjacent": [
+        "Z18"
+      ],
+      "short": "제독소"
+    },
+    {
+      "id": "TR03",
+      "name": "행군로",
+      "building": null,
+      "buildingName": null,
+      "indoor": false,
+      "heat": false,
+      "x": 16,
+      "y": 11,
+      "adjacent": [
+        "Z18"
+      ],
+      "short": "행군로"
+    },
+    {
+      "id": "TR04",
+      "name": "숙영지",
+      "building": null,
+      "buildingName": null,
+      "indoor": false,
+      "heat": false,
+      "x": 14,
+      "y": 11,
+      "adjacent": [
+        "Z18"
+      ],
+      "short": "숙영지"
+    },
+    {
+      "id": "TR05",
+      "name": "혹한기 훈련장",
+      "building": null,
+      "buildingName": null,
+      "indoor": false,
+      "heat": false,
+      "x": 14,
+      "y": 12,
+      "adjacent": [
+        "Z18"
+      ],
+      "short": "혹한기"
+    },
+    {
+      "id": "TR06",
+      "name": "혹서기 급수 라인",
+      "building": null,
+      "buildingName": null,
+      "indoor": false,
+      "heat": false,
+      "x": 17,
+      "y": 9,
+      "adjacent": [
+        "Z18"
+      ],
+      "short": "급수라인"
+    },
+    {
+      "id": "TR07",
+      "name": "유격장 (기초)",
+      "building": null,
+      "buildingName": null,
+      "indoor": false,
+      "heat": false,
+      "x": 18,
+      "y": 11,
+      "adjacent": [
+        "Z18"
+      ],
+      "short": "유격 기초"
+    },
+    {
+      "id": "TR08",
+      "name": "유격장 (종합)",
+      "building": null,
+      "buildingName": null,
+      "indoor": false,
+      "heat": false,
+      "x": 19,
+      "y": 12,
+      "adjacent": [
+        "Z18"
+      ],
+      "short": "유격 종합"
+    },
+    {
+      "id": "TR09",
+      "name": "대민지원 (마을)",
+      "building": null,
+      "buildingName": null,
+      "indoor": false,
+      "heat": false,
+      "x": 17,
+      "y": 11,
+      "adjacent": [
+        "Z18"
+      ],
+      "short": "대민지원"
+    },
+    {
+      "id": "TR10",
+      "name": "합동 전술훈련장",
+      "building": null,
+      "buildingName": null,
+      "indoor": false,
+      "heat": false,
+      "x": 17,
+      "y": 12,
+      "adjacent": [
+        "Z18"
+      ],
+      "short": "합동훈련"
+    }
+  ]
+}
