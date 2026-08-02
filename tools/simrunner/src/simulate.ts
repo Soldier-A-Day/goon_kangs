@@ -1,14 +1,20 @@
 import {
+  bestOfficer,
   careRecovery,
   createRngState,
   createRun,
+  OFFICER_RELIEF_TRUST_THRESHOLD,
   phaseAt,
+  PHASES,
   planFor,
   roll,
   step,
+  useOfficerRelief,
+  useRelief,
   type Grade,
   type JudgementCondition,
   type Member,
+  type PhaseId,
   type Quest,
   type RngState,
   type RunConfig,
@@ -64,6 +70,11 @@ export function simulateRun(
     members: [...SQUAD],
     config,
   });
+  // B-4 이후 구제는 "누가 분대장인가"부터 필요하다(relief.ts canUseRelief) — 실제
+  // 게임은 투표(services/gameserver room.ts)로 정하지만, 이 헤드리스 봇에는 투표할
+  // 사람이 없으니 소총수를 고정 분대장으로 둔다. 누가 분대장이든 판정 결과는
+  // 동일하므로 밸런스에는 영향이 없다.
+  state.leaderId = SQUAD[0].id;
   state = step(state, { type: "beginDay" }).state;
 
   // 봇 판단용 난수는 런 시드에서 파생시킨다. sim 내부 RNG와 섞이지 않아야
@@ -111,6 +122,12 @@ export function simulateRun(
       }
     }
 
+    // B-4 — 구제는 자동 상쇄가 아니라 발동이다(relief.ts). 오늘 필수가 이미
+    // 결과까지 다 굴려졌으니(위 for 루프), 미달 여부는 시간대를 흘려보내기
+    // 전부터 확정돼 있다 — 그 정보로 오늘 저녁 간부 구제를 시도할지, 분대장이
+    // 지금 하나를 봐줘야 할지를 먼저 정한다.
+    const wantOfficerRelief = planRelief(state);
+
     // 일차가 바뀔 때까지 흘려보낸다. 매 틱 지금 칸의 회복 행동을 처리한다 —
     // 실제 플레이가 그 칸에 들어서서 먹고 씻는 것과 같은 타이밍이다.
     let guard = 0;
@@ -118,6 +135,16 @@ export function simulateRun(
       state = step(state, { type: "tick", elapsedMs: TICK_MS }).state;
       if (state.status === "running" && state.day === day) {
         applyDueCare(state);
+        // 간부 구제는 저녁 개인정비 시간에만 발동을 받아 준다(relief.ts
+        // canUseOfficerRelief) — 그 칸에 들어선 첫 틱에서 쏜다. 거부돼도
+        // 무해하다(신뢰도 미달·이미 발동 등 — 발동 시도 자체가 손해가 아니다).
+        if (
+          wantOfficerRelief &&
+          !state.officerReliefArmedToday &&
+          phaseAt(state.phaseIndex).id === "personal"
+        ) {
+          useOfficerRelief(state, state.leaderId ?? SQUAD[0].id, []);
+        }
       }
       if (guard++ > 200) throw new Error(`하루가 끝나지 않는다: D-${day}`);
     }
@@ -172,6 +199,97 @@ function applyCareQuest(state: RunState, quest: Quest): void {
 
   quest.workedMs = quest.workMs;
   quest.status = "done";
+}
+
+/**
+ * 봇의 구제 판단 — B-4 긴급 수리.
+ *
+ * B-4가 자동 상쇄를 발동형으로 바꾼 뒤(relief.ts) 봇이 구제를 한 번도 쏘지
+ * 않아 완주율이 목표 구간(98% 15~25%)에서 0.15%로 무너졌다. judge.ts는
+ * 더 이상 알아서 구제를 깎아 주지 않으므로, 봇도 사람 분대장처럼 "오늘 못
+ * 끝낼 것 같으면 직접 발동"해야 한다.
+ */
+
+/**
+ * 분대장 몫에는 날짜 문턱을 두지 않는다.
+ *
+ * 처음엔 "D-3 이후부터"로 초반 낭비를 막아 봤는데, 실측(deathsByDay)이 반대
+ * 결론을 냈다 — D-1·D-2 사망이 전체 사망의 3분의 1을 넘었다. 간부 신뢰도는
+ * 시작값 50에서 하루 최대 +3씩만 오르므로(discipline.json dailyDelta) 문턱
+ * 70에 닿으려면 최소 7일이 걸리고, 그 전까지 간부 구제는 구조적으로 불가능하다.
+ * 초반에 분대장 몫을 아껴 봐야 그 시점에 대신 써 줄 것이 없다 — "이르게
+ * 낭비"가 아니라 "아무도 못 쓸 몫을 붙들고 있다가 그대로 사망"이었다.
+ *
+ * `regular` 난이도는 어느 하루에 실패하든 런이 똑같이 끝난다(judge.ts
+ * `applyJudgement`) — 하루의 미달을 살리는 가치는 날짜와 무관하다. 그래서
+ * "미달이 실제로 났고, 간부 구제로 못 메우는 만큼만" 즉시 쓰는 탐욕적 판단이
+ * 곧 최선이다. `planRelief`가 이미 그 조건(shortfall > 0, officer가 못
+ * 메우는 gap)만 걸고 발동하므로 별도 날짜 게이트는 불필요하다.
+ */
+
+const PHASE_ORDER: readonly PhaseId[] = PHASES.map((p) => p.id);
+
+/** 시간대가 하루 안에서 얼마나 늦은지 — 강등 대상을 고를 때 "더 급한 쪽"을 가른다 */
+function phaseRank(phase: PhaseId): number {
+  return PHASE_ORDER.indexOf(phase);
+}
+
+/** 조건 A의 미달 — judge.ts `countShortfall`과 정확히 같은 조건이다 */
+function computeShortfall(state: RunState): number {
+  return state.quests.filter((q) => q.required && q.status !== "done").length;
+}
+
+/**
+ * 강등 대상 고르기 — "가장 가망 없는 필수 1개".
+ *
+ * 이 봇은 정확도 굴림을 하루 시작에 몰아 처리하므로(위 for 루프) "오후 칸
+ * 후반이라 이제 늦었다"를 실시간으로 느낄 수 없다 — 결과는 이미 나와 있다.
+ * 대신 더 늦은 시간대에 배정됐던 쪽을 우선으로 고른다 — 같은 정보 부재 속에서
+ * 그나마 "임박했던" 쪽에 가깝다. 하루에 둘 이상 미달이 겹치는 날은 드물지만
+ * (정확도 98%에서 하루 2건 확률은 0.2% 안팎), 그런 날에도 순서는 결정적이다.
+ */
+function pickWorstRequiredQuest(state: RunState): Quest | null {
+  const candidates = state.quests.filter((q) => q.required && q.status !== "done");
+  if (candidates.length === 0) return null;
+  candidates.sort((a, b) => phaseRank(b.phase) - phaseRank(a.phase));
+  return candidates[0] ?? null;
+}
+
+/**
+ * 하루 시작 시점의 구제 판단.
+ *
+ * 간부 구제는 사실상 공짜다 — 발동해도 그날 실제로 미달이 없었으면 총량이
+ * 안 깎인다(judge.ts `applyJudgement`: 판정이 실패로 끝나야만 소모되고, 통과한
+ * 판은 소모되지 않는다). 그래서 신뢰도 문턱(70)만 넘으면 아낄 이유가 없다.
+ *
+ * 분대장 몫은 반대로 발동하는 즉시 영구히 깎인다(런당 2회뿐). 오늘 간부 구제가
+ * 될지는 오늘 트러스트 값으로 이미 알 수 있으므로(트러스트는 전날 밤에 확정되고
+ * 하루 동안 안 바뀐다) 미리 내다보고, "간부 구제로도 못 메우는 나머지"에만
+ * 분대장 몫을 쓴다.
+ *
+ * 반환값은 "오늘 저녁 개인정비에 간부 구제 발동을 시도해야 하는가"다 — 실제
+ * 발동은 `useOfficerRelief`가 개인정비 시간대에만 받아 주므로 여기서 바로 쏘지
+ * 못하고 신호만 돌려준다.
+ */
+function planRelief(state: RunState): boolean {
+  const shortfall = computeShortfall(state);
+  if (shortfall <= 0) return false;
+
+  const officerCanCover =
+    state.officerReliefsRemaining > 0 &&
+    state.trust[bestOfficer(state)] >= OFFICER_RELIEF_TRUST_THRESHOLD;
+  const gap = shortfall - (officerCanCover ? 1 : 0);
+
+  if (gap > 0 && state.leaderId) {
+    const toUse = Math.min(gap, state.leaderReliefsRemaining);
+    for (let i = 0; i < toUse; i += 1) {
+      const target = pickWorstRequiredQuest(state);
+      if (!target) break;
+      useRelief(state, state.leaderId, target.id, []);
+    }
+  }
+
+  return officerCanCover;
 }
 
 /** 기본 분포 — 대부분 B, 셋 중 하나쯤 A, 가끔 C */
