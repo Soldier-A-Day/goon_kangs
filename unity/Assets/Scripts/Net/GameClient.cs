@@ -41,6 +41,12 @@ namespace SoldierADay.Net
         /// <summary>서버가 연결을 거절한 이유. 없으면 null — HUD가 읽어 그린다</summary>
         public string Rejected { get; private set; }
 
+        /// <summary>
+        /// 내부 소켓. NetBootstrap의 재접속 로직이 Opened/Closed/Failed를 구독하려면
+        /// 이 통로가 필요하다 — GameClient는 소켓을 감싸기만 할 뿐 끊김을 스스로 다루지 않는다.
+        /// </summary>
+        public GameSocket Socket => _socket;
+
         private GameSocket _socket;
         /// <summary>늦게 도착한 스냅샷은 버린다. 순번이 역행하면 화면이 되감긴다.</summary>
         private double _lastSeq = -1;
