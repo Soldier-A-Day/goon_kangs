@@ -76,10 +76,26 @@ namespace SoldierADay.Net
         /// </summary>
         private static int _lastFrame = -1;
 
+        /// <summary>
+        /// URL로도 연다 — `…/play/코드?lab=1`.
+        ///
+        /// F9는 일부 브라우저가 자기 단축키로 가로챈다. 키가 안 먹는 환경에서도
+        /// 실험실에 들어올 뒷문이 하나는 있어야 한다. WebGL에서만 의미가 있고,
+        /// 에디터에서는 absoluteURL이 비어 있어 조용히 넘어간다.
+        /// </summary>
+        private static bool _urlChecked;
+
         public static void Draw(HudTheme theme)
         {
             var freshFrame = Time.frameCount != _lastFrame;
             if (freshFrame) _lastFrame = Time.frameCount;
+
+            if (!_urlChecked)
+            {
+                _urlChecked = true;
+                var url = Application.absoluteURL;
+                if (!string.IsNullOrEmpty(url) && url.Contains("lab=1")) _open = true;
+            }
 
             if (freshFrame && Input.GetKeyDown(KeyCode.F9)) _open = !_open;
             if (!_open) return;
