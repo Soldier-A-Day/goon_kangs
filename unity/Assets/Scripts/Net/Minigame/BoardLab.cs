@@ -85,6 +85,9 @@ namespace SoldierADay.Net
         /// </summary>
         private static bool _urlChecked;
 
+        /// <summary>열려 있는 동안 Hud가 나머지 화면·입력을 통째로 물린다</summary>
+        public static bool IsOpen => _open;
+
         public static void Draw(HudTheme theme)
         {
             var freshFrame = Time.frameCount != _lastFrame;

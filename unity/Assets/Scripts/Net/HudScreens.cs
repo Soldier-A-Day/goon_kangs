@@ -63,6 +63,17 @@ namespace SoldierADay.Net
 
         public void Update()
         {
+            // **판이 열려 있으면 창 키를 통째로 물린다.**
+            //
+            // 판의 조작과 창 단축키가 같은 키보드를 쓴다 — 스페이스는 탭 입력이자
+            // 일과표 토글이라, 리듬 판을 치는 내내 등 뒤에서 일과표가 열렸다
+            // 닫혔다 했다. 판을 두드리는 동안 다른 창이 필요한 경우는 없다.
+            if (_hud.play != null && _hud.play.QuestId != null)
+            {
+                _radialOpen = false;
+                return;
+            }
+
             // §7.8 "표시 지연 0ms — 홀드 즉시 표시. 애니메이션 금지"
             _radialOpen = Input.GetKey(KeyCode.Q);
             if (_radialOpen)

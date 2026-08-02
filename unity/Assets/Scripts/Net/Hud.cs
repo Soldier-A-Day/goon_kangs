@@ -82,6 +82,15 @@ namespace SoldierADay.Net
 
         private void Update()
         {
+            // 실험실이 떠 있으면 게임 입력을 전부 물린다 — 창 토글도 이동도.
+            // 실험판의 조작(스페이스 탭·숫자·R)이 게임으로 새면 판을 재는 동안
+            // 등 뒤에서 일과표가 열리고 사람이 걸어 다닌다
+            if (BoardLab.IsOpen)
+            {
+                if (world?.player != null) world.player.Suspended = true;
+                return;
+            }
+
             _screens.Update();
 
             if (world?.player != null)
@@ -116,8 +125,17 @@ namespace SoldierADay.Net
             _hovered = -1;
 
             // A-1 준비 — 미니게임 실험대(BoardLab.cs). F9로 열고 닫는다. QuestPlay를
-            // 거치지 않으므로 서버 연결·스냅샷과 무관하게 동작한다
+            // 거치지 않으므로 서버 연결·스냅샷과 무관하게 동작한다.
+            //
+            // **열려 있는 동안은 실험실이 화면의 전부다.** 뒤에 HUD를 같이 그리면
+            // 판을 재는 화면 위에 미니맵·수첩이 얹혀 정신이 없고, 실험실의
+            // 1·2·3(난이도)이 게임 쪽 숫자 입력과 겹쳐 양쪽에 다 먹는다
             BoardLab.Draw(_theme);
+            if (BoardLab.IsOpen)
+            {
+                GUI.matrix = matrix;
+                return;
+            }
 
             var snapshot = client.Latest;
 
