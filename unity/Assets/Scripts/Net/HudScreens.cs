@@ -64,6 +64,17 @@ namespace SoldierADay.Net
 
         public HudScreens(Hud hud) => _hud = hud;
 
+        /// <summary>
+        /// ScreenLab(F10) 전용 인스턴스에서만 true — `Hud.LabScreens`가 생성 직후 켠다.
+        ///
+        /// `DrawDelegation`은 카드 클릭·확정 버튼에서 곧바로 `Client.Send`를 부른다.
+        /// 랩이 이 화면을 실물 그리기로 미리보기하는 동안 사람이 실수로(또는 실전
+        /// 화면과 같은 좌표라 겹쳐서) 그 자리를 클릭하면 서버로 진짜 하달·확정이
+        /// 나간다 — "랩은 텔레포트 move·voteSkip 외엔 서버로 아무것도 보내지
+        /// 않는다"는 T단계 검증 요구를 깨는 유일한 구멍이라 여기만 막는다.
+        /// </summary>
+        internal bool LabPreviewOnly;
+
         /// <summary>이 창들이 떠 있으면 이동·상호작용을 잠근다</summary>
         public bool BlocksMovement => _screen != Screen.None || _radialOpen;
 
@@ -238,6 +249,99 @@ namespace SoldierADay.Net
             var parts = message.Split('|');
             _tomorrowHint = parts.Length > 1 ? parts[1].Trim() : "";
             _tomorrowUnlocks = parts.Length > 2 ? parts[2].Trim() : "";
+        }
+
+        /// <summary>
+        /// ScreenLab(F10) 전용 — 승급/취침 정산 화면을 손으로 한 칸 넘긴다.
+        ///
+        /// 실전에서는 <see cref="UpdateDayEndAdvance"/>가 `Update()`를 타고 자동으로
+        /// 넘기지만, 랩은 `Update()`를 부르지 않는다 — 그 함수 맨 위가 Q 라디얼
+        /// 입력을 걸러 <see cref="Send"/>(실제 quickCommand 전송)로 새는 경로라,
+        /// 랩이 실전 서버로 값을 흘릴 위험을 만든다. 그래서 그 경로를 아예 타지
+        /// 않는 이 최소 통로만 새로 연다 — 큐 진행 로직 자체는 그대로다.
+        /// </summary>
+        public void DebugAdvanceDayEnd()
+        {
+            if (_screen is Screen.Rank or Screen.Sleep) AdvanceDayEnd();
+        }
+
+        /// <summary>
+        /// ScreenLab(F10) 전용 — 전체화면 8종을 가짜 데이터로 강제로 연다.
+        ///
+        /// 전부 실물 그리기(`DrawRollCall`·`DrawSleep`·`DrawRankReview`·`DrawDelegation`·
+        /// `DrawSchedule`)를 그대로 타도록 사설 필드(`_judgement` 등)만 갈아 끼운다 —
+        /// 서버 이벤트를 흉내 낸 `ServerEvent`/`Snapshot`을 여기로 밀어 넣으면 그
+        /// 다음은 실전과 같은 코드가 돈다. 큐(`_dayEndQueue`)는 항상 비워 둔다 —
+        /// 랩은 한 번에 화면 하나만 보여준다, 실전의 판정→승급→취침 연쇄를 보고
+        /// 싶으면 `DebugAdvanceDayEnd`로 손으로 넘긴다.
+        /// </summary>
+        public void DebugOpenRollCall(ServerEvent judgement)
+        {
+            _judgement = judgement;
+            _dayEndQueue.Clear();
+            _rollCallStart = Time.unscaledTime;
+            _screen = Screen.RollCall;
+        }
+
+        /// <summary>
+        /// ScreenLab(F10) 전용 — "하루 마감 큐"를 실제 큐(`_dayEndQueue`)로 재현한다.
+        ///
+        /// 판정(RollCall)이 6.4초 뒤 스스로 <see cref="AdvanceDayEnd"/>를 부르면
+        /// (`DrawRollCall`) 여기서 미리 쌓아 둔 승급·취침이 실전과 똑같은 순서로
+        /// 이어진다 — <see cref="DebugOpenRollCall"/>·<see cref="DebugOpenRank"/>·
+        /// <see cref="DebugOpenSleep"/>은 각 화면을 단독으로 보고 싶을 때 쓰고,
+        /// 이건 연쇄 자체(큐가 판정→승급→취침 순서를 지키는지)를 검증할 때 쓴다.
+        /// </summary>
+        public void DebugOpenDayEndChain(ServerEvent judgement, ServerEvent rankReview,
+                                         ServerEvent sleepSettle, Snapshot beforeSleep)
+        {
+            _judgement = judgement;
+            _rankReview = rankReview;
+            _sleepSettle = sleepSettle;
+            _beforeSleep = beforeSleep;
+            _dayEndQueue.Clear();
+            _rollCallStart = Time.unscaledTime;
+            _screen = Screen.RollCall;
+            if (rankReview != null) _dayEndQueue.Enqueue(Screen.Rank);
+            if (sleepSettle != null) _dayEndQueue.Enqueue(Screen.Sleep);
+        }
+
+        public void DebugOpenRank(ServerEvent rankReview)
+        {
+            _rankReview = rankReview;
+            _dayEndQueue.Clear();
+            _screen = Screen.Rank;
+            _dayEndScreenStart = Time.unscaledTime;
+        }
+
+        public void DebugOpenSleep(ServerEvent sleepSettle, Snapshot beforeSleep)
+        {
+            _sleepSettle = sleepSettle;
+            _beforeSleep = beforeSleep;
+            _dayEndQueue.Clear();
+            _screen = Screen.Sleep;
+            _dayEndScreenStart = Time.unscaledTime;
+        }
+
+        public void DebugOpenDelegation()
+        {
+            _dayEndQueue.Clear();
+            _screen = Screen.Delegation;
+            _pickedChore = 0;
+            _pickedTarget = 0;
+        }
+
+        public void DebugOpenSchedule()
+        {
+            _dayEndQueue.Clear();
+            _screen = Screen.Schedule;
+        }
+
+        /// <summary>ScreenLab이 화면을 고를 때마다 이걸로 먼저 접는다 — Esc 없이 닫는 통로</summary>
+        public void DebugClose()
+        {
+            _screen = Screen.None;
+            _dayEndQueue.Clear();
         }
 
         /// <summary>하루 마감 화면을 큐에 쌓는다. 지금 아무 화면도 안 떠 있으면(이론상
@@ -1039,8 +1143,14 @@ namespace SoldierADay.Net
                 // 전원이 이걸 보내야 서버가 남은 시간을 버리고 창을 닫는다
                 // (`packages/sim/src/delegation.ts` markDelegationDone) — 안 보내면
                 // 화면은 닫혀도 시계는 20초를 계속 정지해 있는다.
-                Client.Send(new Intent { type = IntentTypeValues.DelegationDone });
-                _delegationDone = snapshot.phase.id;
+                //
+                // ScreenLab 미리보기(`LabPreviewOnly`)에서는 이 전송만 건너뛴다 —
+                // 나머지(창 닫기)는 "미리보기 닫기"로 그대로 자연스럽다
+                if (!LabPreviewOnly)
+                {
+                    Client.Send(new Intent { type = IntentTypeValues.DelegationDone });
+                    _delegationDone = snapshot.phase.id;
+                }
                 _screen = Screen.None;
                 Event.current.Use();
             }
@@ -1079,6 +1189,7 @@ namespace SoldierADay.Net
         private void Delegate(List<SnapshotQuestsItem> chores, SnapshotMembersItem target)
         {
             if (_pickedChore >= chores.Count || target == null) return;
+            if (LabPreviewOnly) return;
             Client.Send(new Intent
             {
                 type = IntentTypeValues.DelegateChore,

@@ -172,6 +172,17 @@ namespace SoldierADay.Net
         }
 
         /// <summary>
+        /// TIME-01 시간대 스킵 투표. 정족수(생존 인원의 3/4, `room.ts` SKIP_QUORUM_RATIO)를
+        /// 서버가 세고, 채워지면 즉시 시간대를 넘긴다 — 여기서는 찬반만 보낼 뿐 정족수도
+        /// 스킵 실행도 계산하지 않는다(ARCH-02). 서버는 투표를 시간대가 바뀌어도 자동으로
+        /// 지우지 않으므로(재시작 때만 clear), 이 값은 다시 누를 때까지 유지되는 찬반이다.
+        /// </summary>
+        public void VoteSkip(bool value)
+        {
+            Send(new Intent { type = IntentTypeValues.VoteSkip, value = value });
+        }
+
+        /// <summary>
         /// B-3 정형 문구(quick-phrase) 발화. `phrase`는 `Hud.QuickPhrases`의 id 8종 중 하나다.
         ///
         /// 스팸 가드(같은 사람 2초 쿨다운)는 서버가 판정한다(`room.ts`) — 여기서는
