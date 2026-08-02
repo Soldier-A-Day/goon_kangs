@@ -517,8 +517,25 @@ namespace SoldierADay.Net
 
             var remain = Mathf.Max(0f, (duration - elapsed) / 1000f);
             var clock = $"{Mathf.FloorToInt(remain / 60f):00}:{Mathf.FloorToInt(remain % 60f):00}";
-            GUI.Label(new Rect(rect.xMax - 176f, rect.y + 18f, 152f, 40f), clock,
-                _theme.At(_theme.Display, 30, urgent ? HudTheme.Alert : HudTheme.Ink, TextAnchor.MiddleRight));
+
+            if (paused)
+            {
+                // 하달 창이 열려 있는 동안은 위 clock이 그대로 멈춰 있다 — 그건 설계다
+                // (`step.ts` applyTick, "하달 창이 열려 있는 동안은 시간대 타이머가
+                // 멈춰 있다"). 문제는 **멈춘 이유를 시간 표시 자리가 말하지 않는다는
+                // 것**이었다 — 하달 창을 이미 확정하고 닫은 사람 눈에는 화면이 멀쩡한데
+                // 시계만 서 있는, 설명 없는 정지로 보였다. 조기 종료가 들어가도 아직
+                // 확정 안 한 사람이 있으면 정지는 여전히 생기므로 이 표시는 그대로 둔다.
+                var pauseLeft = Mathf.CeilToInt((float)snapshot.phase.delegationWindowMsLeft / 1000f);
+                GUI.Label(new Rect(rect.xMax - 360f, rect.y + 18f, 336f, 40f),
+                    $"하달 대기 — 시간 정지 ({pauseLeft}초)",
+                    _theme.At(_theme.Heading, 18, HudTheme.Cold, TextAnchor.MiddleRight));
+            }
+            else
+            {
+                GUI.Label(new Rect(rect.xMax - 176f, rect.y + 18f, 152f, 40f), clock,
+                    _theme.At(_theme.Display, 30, urgent ? HudTheme.Alert : HudTheme.Ink, TextAnchor.MiddleRight));
+            }
         }
 
         /* ─────────────────────────────────────── §7.1.6 좌상단 알림 스택 */

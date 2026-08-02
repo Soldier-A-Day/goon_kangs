@@ -314,6 +314,14 @@ export class Room {
         this.apply({ type: "vetoChore", memberId, questId: intent.questId });
         break;
 
+      case "delegationDone":
+        // 조기 종료는 다음 10Hz 스냅샷을 기다리게 두지 않는다 — 신고한 순간
+        // 창이 닫힌 것을 화면이 바로 보여줘야 "시계가 멈춘 채 방치됐다"는
+        // 인상이 안 생긴다
+        this.apply({ type: "delegationDone", memberId });
+        this.broadcastSnapshot(true);
+        break;
+
       case "fileClaim":
         // 청구서는 행정병만 쓴다 — 자격 검증은 sim이 한다 (11.0)
         this.apply({ type: "fileClaim", memberId, items: intent.items });
@@ -375,6 +383,12 @@ export class Room {
     }
 
     this.graceLeft.set(memberId, DISCONNECT_GRACE_MS);
+    // 미접속은 하달 창 조기 종료 집계에서 세지 않는다. sim은 presence만
+    // 보고 접속 여부를 모르므로(ARCH-02 — 접속 상태는 방이 든다), 끊긴
+    // 사람은 여기서 신고를 대신 흘려 나머지 인원이 못 닫는 일이 없게 한다.
+    // 유예 안에 돌아와도 무해하다 — 재확정은 창이 열려 있는 한 다시 보낼 수 있다.
+    this.apply({ type: "delegationDone", memberId });
+    this.broadcastSnapshot(true);
   }
 
   reconnect(memberId: string): void {

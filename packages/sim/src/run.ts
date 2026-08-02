@@ -135,6 +135,7 @@ function makeMember(
     choresReceived: 0,
     vetoUsedToday: false,
     delegatedThisWindow: 0,
+    delegationDone: false,
     collapseTimerMs: 0,
     warmthRemainingMs: 0,
     frostbitten: false,

@@ -848,6 +848,12 @@ namespace SoldierADay.Net
 
             if (Event.current.type == EventType.MouseDown && confirm.Contains(Event.current.mousePosition))
             {
+                // 서버에 "이 창에서 더 볼 것이 없다"를 신고한다 — 하달을 했든
+                // 넘겼든 이 버튼 하나가 양쪽을 다 커버한다(위 주석). 사람 참석자
+                // 전원이 이걸 보내야 서버가 남은 시간을 버리고 창을 닫는다
+                // (`packages/sim/src/delegation.ts` markDelegationDone) — 안 보내면
+                // 화면은 닫혀도 시계는 20초를 계속 정지해 있는다.
+                Client.Send(new Intent { type = IntentTypeValues.DelegationDone });
                 _delegationDone = snapshot.phase.id;
                 _screen = Screen.None;
                 Event.current.Use();

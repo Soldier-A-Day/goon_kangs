@@ -191,6 +191,46 @@ describe("진행", () => {
   });
 });
 
+describe("하달 창 조기 종료", () => {
+  /** 계급차가 있어야 sim이 창을 연다(6.2) — 테스트 편의상 직접 연다 */
+  function openWindow(room: Room): void {
+    if (!room.run) throw new Error("런 없음");
+    const [first] = room.run.members;
+    if (first) first.rank = "corporal";
+    room.run.delegationWindowMsLeft = 20_000;
+    for (const member of room.run.members) member.delegationDone = false;
+  }
+
+  it("delegationDone 의도가 sim까지 전달된다 — 전원 확정 시 즉시 닫힌다", () => {
+    const h = harness();
+    const ids = fourPlayers(h.room);
+    h.room.start();
+    openWindow(h.room);
+
+    for (const id of ids.slice(0, 3)) {
+      h.room.handleIntent(id as string, { type: "delegationDone" });
+    }
+    expect(h.room.run?.delegationWindowMsLeft).toBe(20_000);
+
+    h.room.handleIntent(ids[3] as string, { type: "delegationDone" });
+    expect(h.room.run?.delegationWindowMsLeft).toBe(0);
+  });
+
+  it("접속이 끊긴 사람은 조기 종료 집계에서 세지 않는다", () => {
+    const h = harness();
+    const ids = fourPlayers(h.room);
+    h.room.start();
+    openWindow(h.room);
+
+    // 미접속 — 게임서버가 대신 신고를 흘려 나머지가 못 닫는 일이 없게 한다
+    h.room.disconnect(ids[0] as string);
+    for (const id of ids.slice(1)) {
+      h.room.handleIntent(id as string, { type: "delegationDone" });
+    }
+    expect(h.room.run?.delegationWindowMsLeft).toBe(0);
+  });
+});
+
 describe("채널", () => {
   it("근접 채팅은 같은 구역에만 간다", () => {
     const h = harness();

@@ -162,6 +162,14 @@ export interface Member {
   vetoUsedToday: boolean;
   /** 이번 하달 창에서 넘긴 건수 — 계급차 상한과 비교한다 */
   delegatedThisWindow: number;
+  /**
+   * 이번 하달 창을 내가 끝냈다고 신고했는가 (조기 종료용).
+   *
+   * 하달했든 넘겼든(그냥 대기만 했든) 상관없다 — 창을 더 볼 것이 없다는 신고일 뿐이다.
+   * 창이 열릴 때마다 초기화되고, 사람 참석자(`presence === "player"`) 전원이 이걸 세우면
+   * `delegationWindowMsLeft`가 즉시 0이 된다.
+   */
+  delegationDone: boolean;
   /** 열사병 2단계 진입 후 경과 — 60초를 버티면 쓰러진다 (5.0) */
   collapseTimerMs: number;
   /** 후송 횟수. 1회라도 있으면 모범 전역이 불가능해진다 (JDG-03) */
@@ -462,6 +470,13 @@ export type SimEvent =
     }
   /** QST-05 거부권 — 1일 1회 */
   | { readonly type: "vetoChore"; readonly memberId: string; readonly questId: string }
+  /**
+   * 하달 창 조기 종료 신고 — "이 창에서 더 볼 것이 없다."
+   *
+   * 하달을 했든, 넘겼든(대기만 했든) 상관없이 보낸다. 사람 참석자 전원이 이걸
+   * 보내면 남은 창 시간을 기다리지 않고 시간대 타이머가 다시 흐른다.
+   */
+  | { readonly type: "delegationDone"; readonly memberId: string }
   /** 분대장 개입 — 1회/시간대 */
   | {
       readonly type: "leaderReassign";

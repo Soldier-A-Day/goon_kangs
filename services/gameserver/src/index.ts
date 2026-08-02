@@ -208,7 +208,14 @@ setInterval(() => {
   lastTick = now;
 
   for (const room of store.active()) {
-    room.tick(elapsed);
+    // 방 하나가 던지면 setInterval 콜백 전체가 죽고, 그 순간 모든 방의 시간이
+    // 멈춘다 — 하달 창 문제와는 별개의 "시간이 멈추는" 경로다. 방 단위로 막아서
+    // 한 방의 예외가 나머지 방을 끌고 죽지 않게 한다.
+    try {
+      room.tick(elapsed);
+    } catch (err) {
+      console.error(`[gameserver] room ${room.code} tick 실패`, err);
+    }
   }
 }, TICK_MS);
 
