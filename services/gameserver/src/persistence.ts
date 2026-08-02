@@ -31,6 +31,44 @@ export interface RunSnapshotStore {
   drop(code: string): Promise<void>;
 }
 
+/* --------------------------------------------------- 영속 — 세션 토큰 */
+
+/** 로비가 발급한 핸드오프 토큰이 가리키는 자리 */
+export interface StoredSession {
+  readonly code: string;
+  readonly memberId: string;
+}
+
+/**
+ * 세션 토큰 저장소.
+ *
+ * **메모리에만 두면 서버가 재시작할 때 전부 죽는다.** 런은 스냅샷으로 살아
+ * 돌아오는데 토큰이 죽어 있으면 그 런에 다시 붙을 방법이 없다 — 화면은
+ * 스냅샷을 한 번도 못 받아 빈 맵이 되고, 플레이어는 왜 안 되는지 알 수 없다.
+ * 무료 호스팅이 15분마다 잠드는 환경에서는 이게 상시 발생한다.
+ */
+export interface SessionStore {
+  put(token: string, session: StoredSession): Promise<void>;
+  get(token: string): Promise<StoredSession | null>;
+  drop(token: string): Promise<void>;
+}
+
+export class MemorySessionStore implements SessionStore {
+  private readonly rows = new Map<string, StoredSession>();
+
+  async put(token: string, session: StoredSession): Promise<void> {
+    this.rows.set(token, session);
+  }
+
+  async get(token: string): Promise<StoredSession | null> {
+    return this.rows.get(token) ?? null;
+  }
+
+  async drop(token: string): Promise<void> {
+    this.rows.delete(token);
+  }
+}
+
 /* ----------------------------------------------------- 영속 — 기록 */
 
 export interface RecordQuery {
@@ -125,12 +163,14 @@ export class MemoryRecordStore implements RecordStore {
 export interface Storage {
   readonly snapshots: RunSnapshotStore;
   readonly records: RecordStore;
+  readonly sessions: SessionStore;
 }
 
 export function memoryStorage(now?: () => number): Storage {
   return {
     snapshots: new MemoryRunSnapshotStore(now),
     records: new MemoryRecordStore(),
+    sessions: new MemorySessionStore(),
   };
 }
 
@@ -151,10 +191,14 @@ export async function storageFromEnv(): Promise<Storage> {
     ? new UpstashRunSnapshotStore(redis)
     : new MemoryRunSnapshotStore();
   const records = supabase ? new SupabaseRecordStore(supabase) : new MemoryRecordStore();
+  // 세션은 런과 같은 수명을 가져야 한다 — 런이 살아 돌아오는데 토큰이 죽어 있으면
+  // 그 런에 붙을 방법이 없다
+  const { UpstashSessionStore } = await import("./stores/upstash.js");
+  const sessions = redis ? new UpstashSessionStore(redis) : new MemorySessionStore();
 
   console.log(
     `[storage] 스냅샷=${redis ? "upstash" : "메모리"} · 기록=${supabase ? "supabase" : "메모리"}`,
   );
 
-  return { snapshots, records };
+  return { snapshots, records, sessions };
 }

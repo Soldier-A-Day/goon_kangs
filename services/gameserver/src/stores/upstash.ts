@@ -1,6 +1,11 @@
 import { Redis } from "@upstash/redis";
 import { deserializeRun, serializeRun, type RunState } from "@sad/sim";
-import { RUN_TTL_MS, type RunSnapshotStore } from "../persistence.js";
+import {
+  RUN_TTL_MS,
+  type RunSnapshotStore,
+  type SessionStore,
+  type StoredSession,
+} from "../persistence.js";
 
 /**
  * 17.0 이어하기 — Upstash Redis 어댑터.
@@ -38,6 +43,39 @@ export class UpstashRunSnapshotStore implements RunSnapshotStore {
 
   async drop(code: string): Promise<void> {
     await this.redis.del(this.key(code));
+  }
+}
+
+/**
+ * 세션 토큰 — 런과 같은 TTL을 쓴다.
+ *
+ * 토큰이 런보다 먼저 죽으면 살아 있는 런에 못 붙고, 나중까지 살아 있으면
+ * 사라진 런을 가리킨다. 둘을 같이 두는 편이 어긋날 자리가 없다.
+ */
+export class UpstashSessionStore implements SessionStore {
+  private readonly ttlSeconds = Math.floor(RUN_TTL_MS / 1000);
+
+  constructor(private readonly redis: Redis) {}
+
+  private key(token: string): string {
+    return `sad:session:${token}`;
+  }
+
+  async put(token: string, session: StoredSession): Promise<void> {
+    await this.redis.set(this.key(token), JSON.stringify(session), {
+      ex: this.ttlSeconds,
+    });
+  }
+
+  async get(token: string): Promise<StoredSession | null> {
+    // 넣을 때 문자열이었어도 읽을 때 객체로 파싱되어 돌아온다(스냅샷 쪽과 같다)
+    const raw = await this.redis.get<unknown>(this.key(token));
+    if (raw === null || raw === undefined) return null;
+    return typeof raw === "string" ? (JSON.parse(raw) as StoredSession) : (raw as StoredSession);
+  }
+
+  async drop(token: string): Promise<void> {
+    await this.redis.del(this.key(token));
   }
 }
 

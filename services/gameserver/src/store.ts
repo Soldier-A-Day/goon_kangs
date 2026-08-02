@@ -74,20 +74,35 @@ export class RoomStore {
   issueToken(code: string, memberId: string): string {
     const token = randomBytes(24).toString("base64url");
     this.sessions.set(token, { code, memberId });
+    // 저장소에도 남긴다 — 메모리에만 두면 서버가 재시작할 때 전부 죽고,
+    // 살아 돌아온 런에 다시 붙을 방법이 없어진다
+    void this.storage.sessions.put(token, { code, memberId });
     return token;
   }
 
-  /** 로비에서 발급한 단기 토큰으로만 WS에 붙을 수 있다 (ARCH-02 핸드오프) */
-  resolve(token: string): { room: Room; session: Session } | null {
-    const session = this.sessions.get(token);
-    if (!session) return null;
-    const room = this.rooms.get(session.code);
+  /**
+   * 로비에서 발급한 단기 토큰으로만 WS에 붙을 수 있다 (ARCH-02 핸드오프).
+   *
+   * 메모리에 없으면 저장소를 본다. 서버가 잠들었다 깨어난 경우가 그렇고,
+   * 그때는 방도 메모리에 없으므로 스냅샷에서 되살린다(`resume`).
+   */
+  async resolve(token: string): Promise<{ room: Room; session: Session } | null> {
+    let session = this.sessions.get(token);
+    if (!session) {
+      const stored = await this.storage.sessions.get(token);
+      if (!stored) return null;
+      session = { code: stored.code, memberId: stored.memberId };
+      this.sessions.set(token, session);
+    }
+
+    const room = this.rooms.get(session.code) ?? (await this.resume(session.code));
     if (!room) return null;
     return { room, session };
   }
 
   revoke(token: string): void {
     this.sessions.delete(token);
+    void this.storage.sessions.drop(token);
   }
 
   /**

@@ -241,18 +241,19 @@ describe("토큰과 방 코드", () => {
     }
   });
 
-  it("발급한 토큰으로만 방을 찾을 수 있다", () => {
+  it("발급한 토큰으로만 방을 찾을 수 있다", async () => {
     const store = new RoomStore(() => {});
     const room = store.createRoom({});
     const joined = room.join("김", "rifle");
     if (!joined.ok) throw new Error("입장 실패");
 
     const token = store.issueToken(room.code, joined.memberId);
-    expect(store.resolve(token)?.session.memberId).toBe(joined.memberId);
-    expect(store.resolve("아무거나")).toBeNull();
+    // 저장소를 볼 수도 있어 비동기다 — 서버가 재시작해도 토큰이 살아 있어야 한다
+    expect((await store.resolve(token))?.session.memberId).toBe(joined.memberId);
+    expect(await store.resolve("아무거나")).toBeNull();
 
     store.revoke(token);
-    expect(store.resolve(token)).toBeNull();
+    expect(await store.resolve(token)).toBeNull();
   });
 
   it("시작하지 않은 빈 방은 청소된다", () => {

@@ -110,7 +110,7 @@ const server = createServer(async (req, res) => {
       if (!room) return end(res, 404, { error: "roomNotFound" });
 
       const token = url.searchParams.get("token") ?? "";
-      const resolved = store.resolve(token);
+      const resolved = await store.resolve(token);
       if (!resolved || resolved.room.code !== room.code) {
         return end(res, 401, { error: "invalidToken" });
       }
@@ -132,10 +132,11 @@ const server = createServer(async (req, res) => {
 
 const wss = new WebSocketServer({ server, path: "/ws" });
 
-wss.on("connection", (socket, request) => {
+wss.on("connection", async (socket, request) => {
   const url = new URL(request.url ?? "/", `http://${request.headers.host}`);
   const token = url.searchParams.get("token") ?? "";
-  const resolved = store.resolve(token);
+  // 저장소를 볼 수도 있어 비동기다 — 서버가 잠들었다 깨어나면 메모리에 없다
+  const resolved = await store.resolve(token);
 
   if (!resolved) {
     socket.send(

@@ -117,6 +117,15 @@ namespace SoldierADay.Net
 
             var snapshot = client.Latest;
 
+            // **런이 끝났거나 붙지 못했으면 여기서 끝난다.**
+            // 그 아래 HUD는 그릴 이유가 없고, 멈춘 화면을 그대로 두면
+            // 플레이어는 퇴소된 줄도 모른 채 얼어붙은 부대를 본다
+            if (HudEnding.Draw(_theme, client, GoLobby))
+            {
+                GUI.matrix = matrix;
+                return;
+            }
+
             // 월드 위에 겹치는 것부터 — 이름표·말풍선은 UI 패널보다 뒤여야 한다
             DrawWorldOverlay(snapshot);
 
@@ -140,6 +149,21 @@ namespace SoldierADay.Net
         }
 
         public HudTheme Theme => _theme;
+
+#if UNITY_WEBGL && !UNITY_EDITOR
+        [System.Runtime.InteropServices.DllImport("__Internal")]
+        private static extern void SadGoLobby();
+#endif
+
+        /// <summary>웹 셸의 로비로 돌아간다. 에디터에서는 로그만 남긴다</summary>
+        private static void GoLobby()
+        {
+#if UNITY_WEBGL && !UNITY_EDITOR
+            SadGoLobby();
+#else
+            Debug.Log("[hud] 로비로 (에디터에서는 이동하지 않는다)");
+#endif
+        }
 
         /* ───────────────────────────────── §9.0 사이드뷰 코스 (행군 · 유격) */
 

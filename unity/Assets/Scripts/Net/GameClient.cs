@@ -38,6 +38,9 @@ namespace SoldierADay.Net
 
         public Snapshot Latest { get; private set; }
 
+        /// <summary>서버가 연결을 거절한 이유. 없으면 null — HUD가 읽어 그린다</summary>
+        public string Rejected { get; private set; }
+
         private GameSocket _socket;
         /// <summary>늦게 도착한 스냅샷은 버린다. 순번이 역행하면 화면이 되감긴다.</summary>
         private double _lastSeq = -1;
@@ -171,6 +174,12 @@ namespace SoldierADay.Net
                 }
 
                 case "error":
+                    // **로그로만 남기면 화면은 아무 말도 안 한다.**
+                    // 토큰이 죽었을 때(서버 재시작·잠듦) 스냅샷이 한 번도 안 오고,
+                    // 플레이어는 빈 맵을 보며 왜 안 되는지 알 길이 없다
+                    Rejected = string.IsNullOrEmpty(envelope.message)
+                        ? "서버가 연결을 거절했다"
+                        : envelope.message;
                     Debug.LogError($"[GameClient] 서버 거절: {envelope.message}");
                     break;
             }

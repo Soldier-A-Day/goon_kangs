@@ -17,4 +17,12 @@ mergeInto(LibraryManager.library, {
     stringToUTF8(json, buffer, size);
     return buffer;
   },
+
+  // 런이 끝났을 때 웹 셸로 돌려보낸다.
+  //
+  // Unity 안에 로비를 다시 만들지 않는다 — 방 만들기·보직 고르기는 이미
+  // Next.js에 있고, IMGUI로 그린 폼은 브라우저 폼보다 언제나 나쁘다.
+  SadGoLobby: function () {
+    if (typeof window !== "undefined") window.location.href = "/lobby";
+  },
 });
