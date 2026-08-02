@@ -1,0 +1,25 @@
+# Vercel에 올릴 것은 웹 셸과 그것이 import 하는 워크스페이스뿐이다.
+#
+# 기본값은 저장소 전체를 올리는데, 그러면 파일이 33,000개가 되어
+# "files should NOT have more than 15000 items"로 배포가 거절된다.
+# 대부분이 Unity 프로젝트(스프라이트 32,576개)이고 웹 빌드는 그걸 안 쓴다 —
+# 게임 번들은 이미 `apps/web/public/game/`에 복사되어 있다.
+
+unity/
+# 루트의 것만 — 앵커를 안 붙이면 `apps/web/public/game/Build/`까지 삼킨다
+/build/
+mock-img/
+Meshy_AI_assets_*/
+
+# 게임 서버는 Render에 있다 (render.yaml). 다만 워크스페이스라
+# `npm ci`가 package.json을 찾으므로 폴더 자체를 지우지는 않는다
+services/gameserver/test/
+
+# 문서와 생성기
+docs/
+*.html
+tools/blockout/
+tools/sprites/
+tools/csharpgen/
+tools/simrunner/
+tools/m0serve/
