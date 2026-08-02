@@ -2,8 +2,16 @@ import { delegationLedgerSummary } from "./delegation.js";
 import { resolveEnding, type EndingResult } from "./hidden.js";
 import type { RunState } from "./types.js";
 
-/** 저장 포맷 버전. 구조가 바뀌면 올리고, 맞지 않는 스냅샷은 복구하지 않는다. */
-export const SAVE_VERSION = 1;
+/**
+ * 저장 포맷 버전. 구조가 바뀌면 올리고, 맞지 않는 스냅샷은 복구하지 않는다.
+ *
+ * 2 — F-1이 `RunState.elapsedRealMs`를 새 필수 필드로 추가했다. 옛 스냅샷에는
+ * 이 필드가 없어 복구하면 `undefined`로 들어오고, `applyTick`의 `+=`가 그걸
+ * 곧장 `NaN`으로 굳혀 해금이 영영 안 열리는 조용한 손상이 된다 — "반쯤 맞는
+ * 상태로 되살리는 것이 가장 나쁘다"는 원칙 그대로, 버전을 올려 옛 스냅샷은
+ * 복구하지 않고 새로 시작하게 한다.
+ */
+export const SAVE_VERSION = 2;
 
 export interface RunSave {
   readonly version: number;

@@ -17,6 +17,9 @@ function stateAt(day: number, band: TempBand = "normal", seed = 1): RunState {
   state.day = day;
   state.weather = { band, feelsLike: 12, airTemp: 12, humidity: 50, windSpeed: 0, rain: false };
   state.rngState = createRngState(seed * 31 + day);
+  // 이 파일은 일차·밴드·RNG 배정 로직을 시험한다 — F-1의 실시간 하한이 우연히
+  // 끼어들지 않도록 충분히 큰 값으로 채워 둔다. 하한 자체는 `unlock.test.ts`가 잰다.
+  state.elapsedRealMs = Number.MAX_SAFE_INTEGER;
   return state;
 }
 

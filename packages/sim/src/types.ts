@@ -345,6 +345,15 @@ export interface RunState {
   phaseDurationMs: number;
   /** 스킵 투표로 아낀 시간 — 다음 시간대로 이월된다 (TIME-01) */
   carryoverMs: number;
+  /**
+   * 런 시작부터 실제로 흐른 실시간(ms) 누적. `tick` 이벤트로만 늘어난다 (F-1).
+   *
+   * `day`·`phaseIndex`는 스킵 투표로 실제 시간 없이도 앞으로 간다 — 그래서 해금을
+   * 일차만으로 게이트하면 스킵을 반복해 몇 초 만에 여러 날을 밀어버릴 수 있다.
+   * 이 값은 `skipPhase`가 절대 건드리지 않으므로, 해금이 "진짜 몇 분이 지났는가"를
+   * 물을 수 있는 유일한 자리다.
+   */
+  elapsedRealMs: number;
 
   weather: WeatherState;
   /** 8.0 무전 상태. 통신병의 참여 상태와 유지 일과가 정한다 (`radio.ts`) */

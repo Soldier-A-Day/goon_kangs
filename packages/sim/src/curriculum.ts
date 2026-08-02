@@ -34,6 +34,14 @@ export interface DayPlan {
 
 export const CURRICULUM = curriculumTable.days as readonly DayPlan[];
 
+/**
+ * F-1 — 일차 게이트를 통과한 뒤 추가로 보는 실시간 하한(ms). `curriculum.json`의
+ * `realTimeFloorMs`가 소유한다. 여기 없는 키는 시간 하한이 없다(일차만 본다) —
+ * 지금은 실제로 소비되는 세 키(공통 일과·하달·돌발)만 값을 갖고 있다.
+ */
+export const REAL_TIME_FLOOR_MS: Readonly<Record<string, number>> =
+  (curriculumTable as { realTimeFloorMs?: Record<string, number> }).realTimeFloorMs ?? {};
+
 /** 런당 1인 필수 총량. 10.0 완주율 계산의 기준값이다. */
 export const TOTAL_REQUIRED_PER_MEMBER = CURRICULUM.reduce(
   (sum, day) => sum + day.required.total,
@@ -53,12 +61,33 @@ export const TOTAL_REQUIRED_PER_MEMBER = CURRICULUM.reduce(
  * 모순되는 것이 있다 — D-1은 보직 2건을 필수로 요구한다. 그런 항목은 화면이
  * 그 기능을 처음 소개하는 시점이지 존재 여부가 아니다. 규칙으로 쓰는 것만
  * 여기로 물어본다.
+ *
+ * **일차만으로는 스킵 투표를 못 막는다** (F-1). `room.ts`의 스킵 투표는 쿨다운이
+ * 없어서, 인원이 몰아붙이면 하루가 실시간 0초에 가깝게 끝날 수 있다 — 그러면
+ * 일차 게이트는 몇 초 만에 D-2·D-3을 다 열어준다. `elapsedRealMs`(생략 시
+ * 무한대 — 옛 2-인자 호출과 하위호환)를 함께 넘기면, 일차를 통과한 뒤에도
+ * `realTimeFloorMs`에 값이 있는 키는 그 실시간이 지나야 열린다. `skipPhase`는
+ * `elapsedRealMs`를 절대 건드리지 않으므로(`step.ts`), 이 하한은 스킵으로
+ * 우회되지 않는다.
  */
-export function unlocked(day: number, key: string): boolean {
+export function unlocked(
+  day: number,
+  key: string,
+  elapsedRealMs = Number.POSITIVE_INFINITY,
+): boolean {
+  let dayGateOpen = false;
   for (let i = 0; i < day && i < CURRICULUM.length; i += 1) {
-    if (CURRICULUM[i]?.unlocks.includes(key)) return true;
+    if (CURRICULUM[i]?.unlocks.includes(key)) {
+      dayGateOpen = true;
+      break;
+    }
   }
-  return false;
+  if (!dayGateOpen) return false;
+
+  const floor = REAL_TIME_FLOOR_MS[key];
+  if (floor !== undefined && elapsedRealMs < floor) return false;
+
+  return true;
 }
 
 /** 해금 열쇠 — 문자열을 여기저기 흩어 쓰면 오타 하나가 조용히 게이트를 연다 */

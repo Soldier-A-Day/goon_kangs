@@ -97,7 +97,7 @@ export function generateDayQuests(state: RunState): readonly [Quest[], RngState]
   );
   rng = afterSize;
 
-  const available = unlocked(state.day, UNLOCK.chores)
+  const available = unlocked(state.day, UNLOCK.chores, state.elapsedRealMs)
     ? choresFor(state.weather.band, plan)
     : [];
   const [chosen, afterChores] = sample(rng, available, poolSize);
@@ -311,7 +311,7 @@ export function rollSurprise(
   if (phase === "rollcall") return [null, state.rngState];
   // D-4부터 열린다 (표 14-1). 조작도 안 익은 첫 사흘에 일과를 끊고 들어오면
   // 그건 압박이 아니라 사고다
-  if (!unlocked(state.day, UNLOCK.surprise)) return [null, state.rngState];
+  if (!unlocked(state.day, UNLOCK.surprise, state.elapsedRealMs)) return [null, state.rngState];
 
   const chance = surpriseChance(state.discipline);
   const [value, afterRoll] = nextInt(state.rngState, 0, 9999);

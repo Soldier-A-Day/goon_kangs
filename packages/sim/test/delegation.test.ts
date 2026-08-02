@@ -26,6 +26,9 @@ function atMorning(promoted = true): RunState {
   // 첫날부터 전부 냈는데, 지금은 규칙이라 D-1에서는 `locked`로 거절된다
   const squad = fullSquad();
   squad.day = 3;
+  // 이 파일은 하달 창·거부권·재배정 로직을 시험한다 — F-1의 실시간 하한이
+  // 우연히 끼어들지 않도록 충분히 큰 값으로 채워 둔다. 하한 자체는 `unlock.test.ts`가 잰다.
+  squad.elapsedRealMs = Number.MAX_SAFE_INTEGER;
   let state = beginDay(squad);
   if (promoted) {
     const first = state.members[0];
@@ -224,6 +227,9 @@ describe("QST-04 하달 규칙", () => {
   it("하달 창 밖에서는 넘길 수 없다", () => {
     const squad = fullSquad();
     squad.day = 3;
+    // 이 시험은 시간대(창 안/밖)를 잰다 — F-1의 실시간 하한이 아니라. 하한 자체는
+    // `unlock.test.ts`가 잰다
+    squad.elapsedRealMs = Number.MAX_SAFE_INTEGER;
     const state = beginDay(squad);
     promote(state, "p1", "corporal");
     chore(state, "p1");

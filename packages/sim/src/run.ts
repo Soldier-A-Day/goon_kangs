@@ -78,6 +78,7 @@ export function createRun(options: CreateRunOptions): RunState {
     phaseElapsedMs: 0,
     phaseDurationMs: 0,
     carryoverMs: 0,
+    elapsedRealMs: 0,
 
     weather: {
       band: "normal",

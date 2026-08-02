@@ -155,6 +155,10 @@ function startPhase(state: RunState, effects: Effect[]): void {
 function applyTick(state: RunState, elapsedMs: number, effects: Effect[]): void {
   if (elapsedMs <= 0) return;
 
+  // F-1 — 해금이 물어보는 "실시간"의 유일한 소스. `skipPhase`는 이 값을 절대
+  // 건드리지 않으므로, 스킵을 몇 번을 눌러도 여기는 안 뛴다.
+  state.elapsedRealMs += elapsedMs;
+
   for (const member of state.members) {
     if (member.travelRemainingMs > 0) {
       member.travelRemainingMs = Math.max(0, member.travelRemainingMs - elapsedMs);
