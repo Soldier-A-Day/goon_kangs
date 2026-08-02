@@ -1,6 +1,7 @@
 import { THRESHOLDS } from "./condition.js";
 import { penalizeIncident } from "./discipline.js";
 import { penalizeEvacuation } from "./ranks.js";
+import { LEADER_RELIEF_LIMIT } from "./relief.js";
 import type { Effect, Member, RunState } from "./types.js";
 
 /**
@@ -187,10 +188,18 @@ export function proxyCount(state: RunState): number {
   ).length;
 }
 
-/** 모범 전역 조건 — 후송이 한 번이라도 있으면 깨진다 */
+/**
+ * 모범 전역 조건 — 후송이 한 번이라도 있으면 깨진다.
+ *
+ * B-4 — `judgement.reliefsUsed`는 이제 간부 몫만 센다. 분대장 몫(우선순위 지정)은
+ * 판정 전에 이미 소모돼 판정 기록에 안 남으므로, `leaderReliefsRemaining`이
+ * 시작값 그대로인지도 같이 봐야 "구제를 한 번도 안 썼다"는 뜻이 된다
+ * (`hidden.ts` resolveEnding과 같은 조건).
+ */
 export function isFlawless(state: RunState): boolean {
   return (
     state.members.every((m) => m.evacuations === 0) &&
+    state.leaderReliefsRemaining === LEADER_RELIEF_LIMIT &&
     state.judgements.every((j) => j.passed && j.reliefsUsed === 0)
   );
 }

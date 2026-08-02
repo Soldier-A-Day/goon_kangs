@@ -1,3 +1,4 @@
+import { LEADER_RELIEF_LIMIT, OFFICER_RELIEF_LIMIT } from "./relief.js";
 import { createRngState, roll } from "./rng.js";
 import { STARTING_KIT, SUPPLY_START } from "./supply.js";
 import { ROLES, type Member, type Role, type RunConfig, type RunState, type Stats } from "./types.js";
@@ -97,7 +98,11 @@ export function createRun(options: CreateRunOptions): RunState {
     trust: { platoonLeader: 50, assistant: 50, sergeantMajor: 50 },
 
     leaderId: null,
-    reliefsRemaining: 3,
+    // 10.0 구제 총량 3회 = 분대장 몫(LEADER_RELIEF_LIMIT) + 간부 몫(OFFICER_RELIEF_LIMIT)
+    reliefsRemaining: LEADER_RELIEF_LIMIT + OFFICER_RELIEF_LIMIT,
+    leaderReliefsRemaining: LEADER_RELIEF_LIMIT,
+    officerReliefsRemaining: OFFICER_RELIEF_LIMIT,
+    officerReliefArmedToday: false,
     warnings: 0,
     nextDayExtraRequired: 0,
     personalTimeRevoked: false,

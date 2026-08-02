@@ -18,4 +18,5 @@ export * from "./supply.js";
 export * from "./hidden.js";
 export * from "./warmth.js";
 export * from "./radio.js";
+export * from "./relief.js";
 export * from "./persist.js";

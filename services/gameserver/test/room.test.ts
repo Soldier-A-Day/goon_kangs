@@ -177,6 +177,30 @@ describe("진행", () => {
     expect(h.room.run?.leaderId).toBe(ids[0]);
   });
 
+  it("B-4 — 분대장만 우선순위 지정을 발동할 수 있고, 대상 퀘스트는 필수→선택으로 강등된다", () => {
+    const h = harness();
+    const ids = fourPlayers(h.room);
+    h.room.start();
+    if (!h.room.run) throw new Error("런 없음");
+
+    const [leaderId, otherId] = ids as [string, string];
+    h.room.handleIntent(leaderId, { type: "voteLeader", candidateId: leaderId });
+    h.room.handleIntent(otherId, { type: "voteLeader", candidateId: leaderId });
+    h.room.handleIntent(ids[2] as string, { type: "voteLeader", candidateId: leaderId });
+    expect(h.room.run.leaderId).toBe(leaderId);
+
+    const quest = h.room.run.quests.find((q) => q.required && q.status !== "done");
+    if (!quest) throw new Error("필수 퀘스트 없음");
+
+    // 분대장이 아니면 강등되지 않는다
+    h.room.handleIntent(otherId, { type: "useRelief", questId: quest.id });
+    expect(h.room.run.quests.find((q) => q.id === quest.id)?.required).toBe(true);
+
+    h.room.handleIntent(leaderId, { type: "useRelief", questId: quest.id });
+    expect(h.room.run.quests.find((q) => q.id === quest.id)?.required).toBe(false);
+    expect(h.lastSnapshot()?.leaderReliefsRemaining).toBe(1);
+  });
+
   it("유예를 넘긴 이탈만 대리로 전환되고, 재접속하면 복귀한다", () => {
     const h = harness();
     const ids = fourPlayers(h.room);

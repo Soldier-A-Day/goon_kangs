@@ -337,6 +337,21 @@ export class Room {
         });
         break;
 
+      case "useRelief":
+        // 자격 검증(분대장인지 · 몫이 남았는지 · 대상 퀘스트인지)은 sim이 한다
+        // (10.0 B-4 — relief.ts useRelief). 강등은 즉시 화면에 반영돼야 판정
+        // 전에 "봐줬다"는 결단이 곧바로 체감된다.
+        this.apply({ type: "useRelief", leaderId: memberId, questId: intent.questId });
+        this.broadcastSnapshot(true);
+        break;
+
+      case "useOfficerRelief":
+        // 자격 검증(개인정비 시간인지 · 최고 신뢰도 간부가 문턱 이상인지 · 몫이
+        // 남았는지)도 sim이 한다 (10.0 B-4 — relief.ts useOfficerRelief).
+        this.apply({ type: "useOfficerRelief", memberId });
+        this.broadcastSnapshot(true);
+        break;
+
       case "voteSkip":
         this.voteSkip(memberId, intent.value);
         break;

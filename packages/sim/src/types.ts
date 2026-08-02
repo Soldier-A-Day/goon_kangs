@@ -249,8 +249,14 @@ export interface Quest {
   readonly training: string | null;
   /** 개인 판정 대상이면 담당자 id, 합동이면 null */
   ownerId: string | null;
-  /** 필수 여부 — 필수 미완료는 조건 A를 깨고 분대 전원 게임오버 (JDG-01) */
-  readonly required: boolean;
+  /**
+   * 필수 여부 — 필수 미완료는 조건 A를 깨고 분대 전원 게임오버 (JDG-01).
+   *
+   * **더 이상 readonly가 아니다.** 분대장 우선순위 지정(`relief.ts` `useRelief`)이
+   * 판정 전에 이 값을 필수→선택으로 강등한다 — B-4에서 자동 상쇄를 걷어내며
+   * 생긴 유일한 예외다. 그 외에는 배정 시점 값 그대로 하루를 산다.
+   */
+  required: boolean;
   readonly phase: PhaseId;
   readonly zone: Zone;
   /**
@@ -303,7 +309,13 @@ export interface Judgement {
   readonly requiredDone: number;
   readonly jointPassed: boolean;
   readonly discipline: number;
-  /** 이 판정에서 구제권을 몇 건 썼는가 */
+  /**
+   * 이 판정에서 구제권을 몇 건 썼는가.
+   *
+   * B-4 이후로는 간부 구제(발동형)만 여기 잡힌다 — 분대장 우선순위 지정은 판정
+   * 이전에 이미 퀘스트를 필수→선택으로 강등해 shortfall 자체를 줄여 놓으므로,
+   * 판정 시각에 "쓴다"는 사건이 따로 없다 (`judge.ts` judgeDay 참고).
+   */
   readonly reliefsUsed: number;
 }
 
@@ -376,8 +388,35 @@ export interface RunState {
 
   /** 분대장 id (3.0 ROLE-02) */
   leaderId: string | null;
-  /** 10.0 구제 총량 3회 = 분대장 우선순위 지정 2 + 간부 구제권 1 */
+  /**
+   * 10.0 구제 총량 3회 = 분대장 우선순위 지정 2 + 간부 구제권 1.
+   *
+   * **B-4 이후로는 화면 표시용 합계다.** 실제 자격 판정은 `leaderReliefsRemaining`·
+   * `officerReliefsRemaining` 각각이 하고, 이 값은 둘의 합으로만 갱신된다
+   * (`relief.ts`·`judge.ts` `applyJudgement`) — 자동 상쇄가 있던 시절처럼
+   * 이 값 하나만 보고 차감하는 경로는 이제 없다.
+   */
   reliefsRemaining: number;
+  /**
+   * 10.0 구제 총량 중 분대장 몫 — 위기에 놓인 필수 퀘스트 1개를 필수→선택으로
+   * 강등한다(`relief.ts` `useRelief`). 런당 2회, 하루가 지나도 리셋되지 않는다.
+   */
+  leaderReliefsRemaining: number;
+  /**
+   * 10.0 구제 총량 중 간부 몫 — 신뢰도 최고 간부가 저녁 개인정비에 발동하면
+   * 그날 미달 1건을 상쇄한다(`relief.ts` `useOfficerRelief`). 런당 1회이며,
+   * 발동해도 그날 실제로 미달을 메우지 못했으면(예: 필수를 다 채웠다면) 소모되지
+   * 않는다 — "살리지 못한 구제는 쓰지 않은 것이다"라는 원래 원칙을 발동형으로 옮긴 것.
+   */
+  officerReliefsRemaining: number;
+  /**
+   * 오늘 저녁 개인정비 시간에 간부 구제가 발동됐는가.
+   *
+   * `judgeDay`는 이 값만 읽고 판정에 반영할 뿐 스스로 결정하지 않는다 — 발동이라는
+   * 행위 자체는 `useOfficerRelief`에서만 일어난다(E단계 원칙: 판정은 행동의 결과이지
+   * 행동 자체가 아니다). 하루가 끝나면 `step.ts` `endDay`가 다시 false로 되돌린다.
+   */
+  officerReliefArmedToday: boolean;
   /** 완화 난이도의 누적 경고 횟수 */
   warnings: number;
   /** 완화 난이도 1차 경고의 대가 — 다음 날 필수 퀘스트에 얹힌다 */
@@ -493,7 +532,21 @@ export type SimEvent =
       readonly type: "fileClaim";
       readonly memberId: string;
       readonly items: readonly string[];
-    };
+    }
+  /**
+   * 10.0 B-4 — 분대장 우선순위 지정. 위기에 놓인 필수 퀘스트 1개를 봐준다
+   * (필수→선택 강등). 판정 전에 명시적으로 발동해야 한다 — 자동 상쇄는 없다.
+   */
+  | {
+      readonly type: "useRelief";
+      readonly leaderId: string;
+      readonly questId: string;
+    }
+  /**
+   * 10.0 B-4 — 간부 구제. 저녁 개인정비 시간에만 발동할 수 있고, 신뢰도 최고
+   * 간부의 신뢰도가 문턱 이상이어야 한다. 발동하면 그날 미달 1건을 상쇄한다.
+   */
+  | { readonly type: "useOfficerRelief"; readonly memberId: string };
 
 export type Effect =
   | { readonly type: "weatherRolled"; readonly day: number; readonly weather: WeatherState }
@@ -582,7 +635,29 @@ export type Effect =
     }
   | { readonly type: "hiddenUnlocked"; readonly id: string; readonly label: string }
   | { readonly type: "runEnded"; readonly status: RunStatus }
-  | { readonly type: "log"; readonly message: string };
+  | { readonly type: "log"; readonly message: string }
+  /**
+   * 10.0 B-4 — 구제 발동 성공. `questId`는 분대장 구제일 때만 채워진다(간부 구제는
+   * 그날 전체에 걸리므로 대상 퀘스트가 없다). 잔여는 발동 직후 값을 그대로 실어
+   * 보낸다 — 간부 구제는 실제로 쓰이지 않으면(그날 미달이 없으면) 잔여가 그대로다.
+   */
+  | {
+      readonly type: "reliefGranted";
+      readonly by: "leader" | "officer";
+      readonly questId: string | null;
+      readonly leaderReliefsRemaining: number;
+      readonly officerReliefsRemaining: number;
+    }
+  /**
+   * 10.0 B-4 — 구제 발동 거부. 침묵 판정을 새로 만들지 않는다(E단계 원칙) — 자격
+   * 없음·한도·대상 아님 전부 사유를 달고 화면까지 흘러간다.
+   */
+  | {
+      readonly type: "reliefRefused";
+      readonly by: "leader" | "officer";
+      readonly reason: string;
+      readonly questId: string | null;
+    };
 
 export interface StepResult {
   readonly state: RunState;

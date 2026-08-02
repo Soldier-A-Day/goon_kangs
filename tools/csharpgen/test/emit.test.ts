@@ -17,12 +17,13 @@ describe("ARCH-02 — 단일 정의에서 C#을 생성한다", () => {
     }
   });
 
-  it("의도 15종의 판별자가 전부 상수로 남는다", () => {
-    // 하달 창 조기 종료 신고(delegationDone)가 15번째로 늘었다 — 시간이 멈추는
-    // 버그 수정의 일부다 (packages/protocol/src/index.ts intentSchema)
+  it("의도 17종의 판별자가 전부 상수로 남는다", () => {
+    // 하달 창 조기 종료 신고(delegationDone)가 15번째로 늘었고, 이제 구제권을
+    // 발동형으로 바꾸며(B-4) useRelief · useOfficerRelief가 16 · 17번째로 늘었다
+    // (packages/protocol/src/index.ts intentSchema)
     const intent = schemas.Intent;
     const variants = intent?.anyOf ?? intent?.oneOf ?? [];
-    expect(variants.length).toBe(15);
+    expect(variants.length).toBe(17);
 
     for (const variant of variants) {
       const literal = variant.properties?.type?.const;
@@ -32,8 +33,16 @@ describe("ARCH-02 — 단일 정의에서 C#을 생성한다", () => {
   });
 
   it("규칙은 넘어가지 않는다 — 데이터 모양만 있다", () => {
-    // sim의 판정·밸런스가 C#에 새어나가면 ARCH-02가 무너진다
-    for (const banned of ["judgeDay", "PARTIAL_SUCCESS", "DISCIPLINE_FLOOR", "reliefsUsed"]) {
+    // sim의 판정·밸런스가 C#에 새어나가면 ARCH-02가 무너진다.
+    //
+    // B-4 골든 갱신: `reliefsUsed`는 이 목록에서 빠졌다. 원래 `judgeDay` ·
+    // `PARTIAL_SUCCESS` · `DISCIPLINE_FLOOR`와 같은 줄에 있었던 것 자체가
+    // 착오였다 — 셋은 sim에만 있는 규칙 상수지만, `reliefsUsed`는
+    // `Judgement.reliefsUsed`(packages/sim/src/types.ts) · `dayJudged.reliefsUsed`
+    // (packages/protocol/src/index.ts)로 **프로토콜에도 정식으로 정의된 필드다**.
+    // 필드 이름이 C# 스냅샷에 나타나는 것은 로직 유출이 아니라 스키마가 제 일을
+    // 한 것이다 — 이 항목이 이 테스트에서 늘 빨강이었던 이유(WORKORDER.md B-4).
+    for (const banned of ["judgeDay", "PARTIAL_SUCCESS", "DISCIPLINE_FLOOR"]) {
       expect(source, banned).not.toContain(banned);
     }
     // 생성물에 로직이 없다는 것 — 메서드 본문이 없어야 한다

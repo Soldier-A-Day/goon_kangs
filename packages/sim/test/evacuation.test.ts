@@ -129,6 +129,16 @@ describe("후송의 대가", () => {
     collapse(state, "p1");
     expect(isFlawless(state)).toBe(false);
   });
+
+  it("B-4 — 분대장 우선순위 지정을 한 번이라도 쓰면 모범 전역이 불가능해진다", () => {
+    // 판정 시각에는 이 사용이 전혀 안 보인다(reliefsUsed는 간부 몫만 센다) —
+    // isFlawless가 leaderReliefsRemaining도 같이 보지 않으면 이 런이
+    // "구제를 한 번도 안 쓴 런"으로 잘못 인정된다
+    const state = withOnly(beginDay(fullSquad()), []);
+    expect(isFlawless(state)).toBe(true);
+    state.leaderReliefsRemaining -= 1;
+    expect(isFlawless(state)).toBe(false);
+  });
 });
 
 describe("복귀 신병", () => {

@@ -66,6 +66,11 @@ export function projectSnapshot(
       pendingClaim: [...state.pendingClaim],
     },
     reliefsRemaining: state.reliefsRemaining,
+    // 10.0 B-4 — 발동 자격은 각 몫을 따로 봐야 한다. leaderReliefsRemaining은
+    // "분대장에게 우선순위 지정 버튼을 보여줄지", officerReliefsRemaining은
+    // "저녁 개인정비에 간부 구제 버튼을 보여줄지"를 클라가 판단하는 근거다.
+    leaderReliefsRemaining: state.leaderReliefsRemaining,
+    officerReliefsRemaining: state.officerReliefsRemaining,
     leaderId: state.leaderId,
     members: state.members.map((member) => ({
       id: member.id,
@@ -259,6 +264,25 @@ export function projectEffect(effect: Effect): ServerEvent | null {
         type: "conditionCritical",
         memberId: effect.memberId,
         stat: effect.stat as Extract<ServerEvent, { type: "conditionCritical" }>["stat"],
+      };
+    case "reliefGranted":
+      return {
+        type: "reliefGranted",
+        by: effect.by,
+        questId: effect.questId,
+        leaderReliefsRemaining: effect.leaderReliefsRemaining,
+        officerReliefsRemaining: effect.officerReliefsRemaining,
+      };
+    case "reliefRefused":
+      // B-4 — 구제 발동 거부도 침묵 판정으로 남기지 않는다. sim의
+      // `Effect["reliefRefused"]`는 `reason`을 `string`으로만 선언하지만
+      // (packages/sim/src/types.ts) 실제 값은 언제나 `relief.ts`의 `ReliefRefusal`
+      // 7종 중 하나다 — sim은 이 발주의 소유가 아니라(ARCH-02) 타입을 여기서 좁혀 받는다.
+      return {
+        type: "reliefRefused",
+        by: effect.by,
+        reason: effect.reason as Extract<ServerEvent, { type: "reliefRefused" }>["reason"],
+        questId: effect.questId,
       };
     default:
       return null;

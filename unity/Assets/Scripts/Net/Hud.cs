@@ -650,6 +650,23 @@ namespace SoldierADay.Net
                     Notify("동상 해제", $"{NameOf(item.memberId)} — 의무병 {NameOf(item.byId)}", HudTheme.Accent);
                     return;
 
+                case ServerEventTypeValues.ReliefGranted:
+                    // B-4 — 발동은 결단이니 결과도 토스트로 못 박는다. questId가 있으면
+                    // 분대장 우선순위 지정(그 퀘스트가 필수→선택으로 봐준 것), 없으면
+                    // 간부 구제(그날 미달 1건을 상쇄하기로 예약한 것)다.
+                    if (item.by == "leader")
+                        Notify("구제 발동", $"분대장이 봐줬다 — {QuestLabel(item.questId)}", HudTheme.Heat);
+                    else
+                        Notify("간부 구제 발동", "오늘 저녁 발동 — 그날 미달 1건을 상쇄한다", HudTheme.Heat);
+                    return;
+
+                case ServerEventTypeValues.ReliefRefused:
+                    // 침묵 판정을 새로 만들지 않는다(E단계 원칙) — 발동 버튼을 눌렀는데
+                    // 아무 반응이 없으면 자동 상쇄 시절의 "썼는지도 몰랐다"와 본질이 같다.
+                    Notify(item.by == "leader" ? "구제 발동 거부" : "간부 구제 발동 거부",
+                        HudTheme.ReliefRefusalText(item.reason), HudTheme.Alert);
+                    return;
+
                 case ServerEventTypeValues.DelegationRefused:
                     // C-1b — snapshot.ts가 명시적으로 버리던 것을 되살렸다. 하달 창이
                     // 화면 전체를 암전시키므로(HudScreens.Backdrop) 여기 토스트는 창이

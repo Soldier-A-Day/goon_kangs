@@ -25,6 +25,7 @@ import {
 import { applyJudgement, checkDisband } from "./judge.js";
 import { PHASE_COUNT, phaseAt, phaseDurationMsFor } from "./phases.js";
 import { careRecovery, generateDayQuests, rollSurprise } from "./quests.js";
+import { useOfficerRelief, useRelief } from "./relief.js";
 import { weatherFor } from "./weather.js";
 import { isAdjacent, travelMs } from "./zones.js";
 import type {
@@ -97,6 +98,12 @@ export function step(state: RunState, event: SimEvent): StepResult {
       break;
     case "fileClaim":
       fileClaim(next, event.memberId, event.items);
+      break;
+    case "useRelief":
+      useRelief(next, event.leaderId, event.questId, effects);
+      break;
+    case "useOfficerRelief":
+      useOfficerRelief(next, event.memberId, effects);
       break;
   }
 
@@ -319,6 +326,8 @@ function endDay(state: RunState, effects: Effect[]): void {
     member.vetoUsedToday = false;
     member.choresReceived = 0;
   }
+  // 간부 구제 발동은 "오늘"에만 유효하다 — 판정이 이미 반영했으니 내일을 위해 비운다
+  state.officerReliefArmedToday = false;
   // 후송자는 다음 날 아침 "복귀 신병"으로 돌아온다 — 몸은 돌려주고 기록은 지운다
   returnEvacuees(state, effects);
   tickRehab(state);
