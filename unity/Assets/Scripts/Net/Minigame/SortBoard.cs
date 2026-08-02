@@ -43,6 +43,7 @@ namespace SoldierADay.Net
             "nametag" => "세탁물을 분대 통에 — 이름표가 지워졌으면 미확인",
             "expiry" => "2주 안이면 먼저 쓸 것 — 오늘 만료는 아직 유효하다",
             "idcheck" => "신분을 보고 통과·차단 — 훼손된 신분증은 차단",
+            "civilaid" => "구호품을 통에 — 라벨 없는 상자는 의약품으로",
             _ => "물건을 통에 — 오염된 재활용은 일반으로",
         };
 
@@ -60,6 +61,8 @@ namespace SoldierADay.Net
             new[] { "먼저 쓸 것", "나중 것", "폐기" },
             // idcheck — 정문 출입
             new[] { "통과", "차단" },
+            // civilaid — 대민지원 구호품
+            new[] { "식품", "의류", "의약품" },
         };
 
         private string[] _bin;
@@ -76,14 +79,13 @@ namespace SoldierADay.Net
                 "nametag" => Sets[1],
                 "expiry" => Sets[2],
                 "idcheck" => Sets[3],
+                "civilaid" => Sets[4],
                 _ => Sets[0],
             };
-            if (_bin.Length < _bins)
-            {
-                var grown = new string[_bins];
-                for (var i = 0; i < _bins; i += 1) grown[i] = i < _bin.Length ? _bin[i] : $"{i + 1}번";
-                _bin = grown;
-            }
+            // 통 수는 변형이 가진 답의 수를 넘지 못한다. 예전에는 모자라면
+            // "4번" 같은 이름 없는 통을 만들어 채웠는데, 그 통에는 정답이
+            // 영영 안 들어간다 — 누를 이유가 없는 통은 함정처럼 보일 뿐이다
+            _bins = Mathf.Min(_bins, _bin.Length);
 
             var count = Mathf.Clamp(ParamInt("items", 14), 4, 24);
             var ambiguous = Mathf.Clamp(ParamInt("ambiguous", 3), 0, count);
@@ -155,6 +157,17 @@ namespace SoldierADay.Net
                         Name = pass ? "정상 신분증" : "미등록 차량",
                         Bin = pass ? 0 : Cap(1),
                     };
+                }
+                case "civilaid":
+                {
+                    // 라벨 없는 상자는 의약품 통으로 — 오배송이 가장 위험한
+                    // 것부터 확인하는 것이 구호품 규정의 결이다
+                    if (ambiguous)
+                        return new Item { Name = "라벨 없는 상자", Bin = Cap(2), Ambiguous = true };
+                    var kind = Rng.Next(6);
+                    var goods = new[] { "생수", "컵라면", "모포", "방한복", "붕대", "해열제" };
+                    var slots = new[] { 0, 0, 1, 1, 2, 2 };
+                    return new Item { Name = goods[kind], Bin = Cap(slots[kind]) };
                 }
                 default:
                 {
