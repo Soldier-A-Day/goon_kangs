@@ -41,6 +41,15 @@ namespace SoldierADay.Protocol
         public const string ExtremeHot = "extremeHot";
     }
 
+    /// <summary>SnapshotWeeklyModifierId 이 가질 수 있는 값. 서버가 값을 추가해도 깨지지 않도록 enum이 아니라 상수로 둔다.</summary>
+    public static class SnapshotWeeklyModifierIdValues
+    {
+        public const string ColdSnap = "coldSnap";
+        public const string TightSupply = "tightSupply";
+        public const string Inspection = "inspection";
+        public const string TrainingPush = "trainingPush";
+    }
+
     /// <summary>SnapshotRadio 이 가질 수 있는 값. 서버가 값을 추가해도 깨지지 않도록 enum이 아니라 상수로 둔다.</summary>
     public static class SnapshotRadioValues
     {
@@ -262,6 +271,15 @@ namespace SoldierADay.Protocol
         public const string D = "D";
     }
 
+    /// <summary>SnapshotFirstFailureCondition 이 가질 수 있는 값. 서버가 값을 추가해도 깨지지 않도록 enum이 아니라 상수로 둔다.</summary>
+    public static class SnapshotFirstFailureConditionValues
+    {
+        public const string A = "A";
+        public const string B = "B";
+        public const string C = "C";
+        public const string D = "D";
+    }
+
     /// <summary>ServerEventType 이 가질 수 있는 값. 서버가 값을 추가해도 깨지지 않도록 enum이 아니라 상수로 둔다.</summary>
     public static class ServerEventTypeValues
     {
@@ -327,6 +345,17 @@ namespace SoldierADay.Protocol
         public const string B = "B";
         public const string C = "C";
         public const string D = "D";
+    }
+
+    /// <summary>ServerEventDeltasItemReason 이 가질 수 있는 값. 서버가 값을 추가해도 깨지지 않도록 enum이 아니라 상수로 둔다.</summary>
+    public static class ServerEventDeltasItemReasonValues
+    {
+        public const string OnTimeCompletion = "onTimeCompletion";
+        public const string JointFlawless = "jointFlawless";
+        public const string SurpriseSuccess = "surpriseSuccess";
+        public const string NoInjuryDay = "noInjuryDay";
+        public const string OptionalMissed = "optionalMissed";
+        public const string NpcProxy = "npcProxy";
     }
 
     /// <summary>ServerEventRadioState 이 가질 수 있는 값. 서버가 값을 추가해도 깨지지 않도록 enum이 아니라 상수로 둔다.</summary>
@@ -499,6 +528,15 @@ namespace SoldierADay.Protocol
         public const string Warm = "warm";
         public const string Hot = "hot";
         public const string ExtremeHot = "extremeHot";
+    }
+
+    /// <summary>ServerMessageWeeklyModifierId 이 가질 수 있는 값. 서버가 값을 추가해도 깨지지 않도록 enum이 아니라 상수로 둔다.</summary>
+    public static class ServerMessageWeeklyModifierIdValues
+    {
+        public const string ColdSnap = "coldSnap";
+        public const string TightSupply = "tightSupply";
+        public const string Inspection = "inspection";
+        public const string TrainingPush = "trainingPush";
     }
 
     /// <summary>ServerMessageRadio 이 가질 수 있는 값. 서버가 값을 추가해도 깨지지 않도록 enum이 아니라 상수로 둔다.</summary>
@@ -722,6 +760,15 @@ namespace SoldierADay.Protocol
         public const string D = "D";
     }
 
+    /// <summary>ServerMessageFirstFailureCondition 이 가질 수 있는 값. 서버가 값을 추가해도 깨지지 않도록 enum이 아니라 상수로 둔다.</summary>
+    public static class ServerMessageFirstFailureConditionValues
+    {
+        public const string A = "A";
+        public const string B = "B";
+        public const string C = "C";
+        public const string D = "D";
+    }
+
     /// <summary>ServerMessageItemsItemType 이 가질 수 있는 값. 서버가 값을 추가해도 깨지지 않도록 enum이 아니라 상수로 둔다.</summary>
     public static class ServerMessageItemsItemTypeValues
     {
@@ -787,6 +834,17 @@ namespace SoldierADay.Protocol
         public const string B = "B";
         public const string C = "C";
         public const string D = "D";
+    }
+
+    /// <summary>ServerMessageItemsItemDeltasItemReason 이 가질 수 있는 값. 서버가 값을 추가해도 깨지지 않도록 enum이 아니라 상수로 둔다.</summary>
+    public static class ServerMessageItemsItemDeltasItemReasonValues
+    {
+        public const string OnTimeCompletion = "onTimeCompletion";
+        public const string JointFlawless = "jointFlawless";
+        public const string SurpriseSuccess = "surpriseSuccess";
+        public const string NoInjuryDay = "noInjuryDay";
+        public const string OptionalMissed = "optionalMissed";
+        public const string NpcProxy = "npcProxy";
     }
 
     /// <summary>ServerMessageItemsItemRadioState 이 가질 수 있는 값. 서버가 값을 추가해도 깨지지 않도록 enum이 아니라 상수로 둔다.</summary>
@@ -1030,6 +1088,7 @@ namespace SoldierADay.Protocol
         public double totalDays;
         public SnapshotPhase phase;
         public SnapshotWeather weather;
+        public SnapshotWeeklyModifier weeklyModifier;
         public SnapshotDiscipline discipline;
         public SnapshotTrust trust;
         public string radio;
@@ -1041,6 +1100,8 @@ namespace SoldierADay.Protocol
         public SnapshotMembersItem[] members;
         public SnapshotQuestsItem[] quests;
         public SnapshotLastJudgement lastJudgement;
+        public SnapshotFirstFailure firstFailure;
+        public string headline;
     }
 
     [Serializable]
@@ -1062,6 +1123,13 @@ namespace SoldierADay.Protocol
         public string label;
         public double feelsLike;
         public bool rain;
+    }
+
+    [Serializable]
+    public class SnapshotWeeklyModifier
+    {
+        public string id;
+        public string name;
     }
 
     [Serializable]
@@ -1261,6 +1329,18 @@ namespace SoldierADay.Protocol
     }
 
     [Serializable]
+    public class SnapshotFirstFailure
+    {
+        public string condition;
+        public double day;
+        public double value;
+        public double threshold;
+        public string memberId;
+        public string memberName;
+        public string questLabel;
+    }
+
+    [Serializable]
     public class ServerEvent
     {
         // 선택적 — variant에 따라 없을 수 있다
@@ -1286,7 +1366,11 @@ namespace SoldierADay.Protocol
         // 선택적 — variant에 따라 없을 수 있다
         public double reliefsRemaining;
         // 선택적 — variant에 따라 없을 수 있다
+        public double from;
+        // 선택적 — variant에 따라 없을 수 있다
         public double to;
+        // 선택적 — variant에 따라 없을 수 있다
+        public ServerEventDeltasItem[] deltas;
         // 선택적 — variant에 따라 없을 수 있다
         public string memberId;
         // 선택적 — variant에 따라 없을 수 있다
@@ -1348,6 +1432,13 @@ namespace SoldierADay.Protocol
     }
 
     [Serializable]
+    public class ServerEventDeltasItem
+    {
+        public string reason;
+        public double value;
+    }
+
+    [Serializable]
     public class ServerEventOutcomesItem
     {
         public string memberId;
@@ -1391,6 +1482,8 @@ namespace SoldierADay.Protocol
         // 선택적 — variant에 따라 없을 수 있다
         public ServerMessageWeather weather;
         // 선택적 — variant에 따라 없을 수 있다
+        public ServerMessageWeeklyModifier weeklyModifier;
+        // 선택적 — variant에 따라 없을 수 있다
         public ServerMessageDiscipline discipline;
         // 선택적 — variant에 따라 없을 수 있다
         public ServerMessageTrust trust;
@@ -1412,6 +1505,10 @@ namespace SoldierADay.Protocol
         public ServerMessageQuestsItem[] quests;
         // 선택적 — variant에 따라 없을 수 있다
         public ServerMessageLastJudgement lastJudgement;
+        // 선택적 — variant에 따라 없을 수 있다
+        public ServerMessageFirstFailure firstFailure;
+        // 선택적 — variant에 따라 없을 수 있다
+        public string headline;
         // 선택적 — variant에 따라 없을 수 있다
         public ServerMessageItemsItem[] items;
         // 선택적 — variant에 따라 없을 수 있다
@@ -1446,6 +1543,13 @@ namespace SoldierADay.Protocol
         public string label;
         public double feelsLike;
         public bool rain;
+    }
+
+    [Serializable]
+    public class ServerMessageWeeklyModifier
+    {
+        public string id;
+        public string name;
     }
 
     [Serializable]
@@ -1645,6 +1749,18 @@ namespace SoldierADay.Protocol
     }
 
     [Serializable]
+    public class ServerMessageFirstFailure
+    {
+        public string condition;
+        public double day;
+        public double value;
+        public double threshold;
+        public string memberId;
+        public string memberName;
+        public string questLabel;
+    }
+
+    [Serializable]
     public class ServerMessageItemsItem
     {
         // 선택적 — variant에 따라 없을 수 있다
@@ -1670,7 +1786,11 @@ namespace SoldierADay.Protocol
         // 선택적 — variant에 따라 없을 수 있다
         public double reliefsRemaining;
         // 선택적 — variant에 따라 없을 수 있다
+        public double from;
+        // 선택적 — variant에 따라 없을 수 있다
         public double to;
+        // 선택적 — variant에 따라 없을 수 있다
+        public ServerMessageItemsItemDeltasItem[] deltas;
         // 선택적 — variant에 따라 없을 수 있다
         public string memberId;
         // 선택적 — variant에 따라 없을 수 있다
@@ -1729,6 +1849,13 @@ namespace SoldierADay.Protocol
         public double leaderReliefsRemaining;
         // 선택적 — variant에 따라 없을 수 있다
         public double officerReliefsRemaining;
+    }
+
+    [Serializable]
+    public class ServerMessageItemsItemDeltasItem
+    {
+        public string reason;
+        public double value;
     }
 
     [Serializable]
