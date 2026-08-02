@@ -52,6 +52,23 @@ namespace SoldierADay.Net
             }
         }
 
+        /// <summary>
+        /// id로 지금 그려진 트랜스폼을 찾는다. 안 보이면(다른 구역·아직 안 옴) null이다.
+        ///
+        /// B-2 위기 구조가 곁에 있는지 재는 데 쓴다 — 여기 없으면 서버가 어차피
+        /// `zone` 불일치로 구조를 거절하므로 결과는 같지만, 클라가 미리 "지금
+        /// 이 사람 곁이다"를 알아야 프롬프트를 낼 수 있다.
+        /// </summary>
+        public Transform Find(string memberId)
+        {
+            if (memberId != null && _members.TryGetValue(memberId, out var m) &&
+                m.go != null && m.go.activeSelf)
+            {
+                return m.go.transform;
+            }
+            return null;
+        }
+
         public void Apply(Snapshot snapshot)
         {
             if (snapshot?.members == null || library == null) return;

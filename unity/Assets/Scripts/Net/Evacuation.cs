@@ -27,6 +27,17 @@ namespace SoldierADay.Net
         /// <summary>지금 후송 상태인가 — HUD가 안내를 띄운다</summary>
         public bool Down { get; private set; }
 
+        /// <summary>
+        /// B-2 — 지금 위기 상태인가. 후송(`Down`)과는 다른 자리다: 아직 실려
+        /// 나가지 않았고, 시간 안에 동료가 구조하면 그 자리에서 살아난다.
+        ///
+        /// 화면 연출(`Fade`)은 공유하지 않는다 — `DrawEvacuation`(Hud.cs)이
+        /// `Fade`를 "EVA — 후송" 배너의 표시 조건으로 쓰는데, 위기는 아직
+        /// 후송이 아니므로 같은 문구를 띄우면 거짓말이 된다. 위기는 조작
+        /// 잠금(`LocalPlayer.Locked`)과 토스트(Hud.cs OnEvent)로만 말한다.
+        /// </summary>
+        public bool CrisisDown { get; private set; }
+
         /// <summary>0~1. 연출 진행. 다 차면 화면이 거의 검다</summary>
         public float Fade { get; private set; }
 
@@ -83,6 +94,9 @@ namespace SoldierADay.Net
                 if (!down) _burst = false;
             }
 
+            // B-2 — 위기는 후송이 아니다. 실려 나간 뒤에는 더 이상 위기가 아니므로
+            // `!down`을 같이 본다
+            CrisisDown = !down && !string.IsNullOrEmpty(me.crisisStat);
         }
 
         private void Update()
@@ -93,9 +107,9 @@ namespace SoldierADay.Net
 
             if (effects != null) effects.fadeOut = Fade;
 
-            // 후송 중에는 걷지 못한다. 서버가 이미 일과를 막고 있지만,
+            // 후송·위기 둘 다 걷지 못한다. 서버가 이미 일과를 막고 있지만,
             // 화면에서 움직일 수 있으면 "왜 아무것도 안 되지"가 된다
-            if (player != null) player.Locked = Down;
+            if (player != null) player.Locked = Down || CrisisDown;
         }
     }
 }

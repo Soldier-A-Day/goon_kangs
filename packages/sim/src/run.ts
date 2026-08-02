@@ -142,6 +142,9 @@ function makeMember(
     evacuations: 0,
     rehabDaysLeft: 0,
     inventory: [...STARTING_KIT],
+    crisisStat: null,
+    crisisMsLeft: 0,
+    rescueMs: 0,
   };
 }
 

@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
+  CRISIS_MS,
+  MEDIC_RESCUE_MULTIPLIER,
   PROXY_ABSORB_LIMIT,
+  RESCUE_REQUIRED_MS,
+  enterCrisis,
   evacuate,
   isFlawless,
   planFor,
@@ -209,7 +213,7 @@ describe("이탈과 재접속", () => {
 });
 
 describe("쓰러짐 감지", () => {
-  it("체력이 0이 되면 그 자리에서 후송된다 — 점호를 기다리지 않는다", () => {
+  it("체력이 0이 되면 그 자리에서 위기에 들어간다 — 점호를 기다리지 않는다 (B-2)", () => {
     let state = beginDay(fullSquad());
     state = completeRequired(state);
     const member = state.members.find((m) => m.id === "p1");
@@ -217,10 +221,13 @@ describe("쓰러짐 감지", () => {
     member.stats.stamina = 1;
 
     const result = step(state, { type: "tick", elapsedMs: 60 * SECOND });
-    expect(result.effects.some((e) => e.type === "memberEvacuated")).toBe(true);
+    // B-2 이전에는 여기서 바로 memberEvacuated였다 — 이제는 위기가 끼어든다
+    expect(result.effects.some((e) => e.type === "crisisStarted")).toBe(true);
+    expect(result.effects.some((e) => e.type === "memberEvacuated")).toBe(false);
+    expect(result.state.members.find((m) => m.id === "p1")?.presence).toBe("player");
   });
 
-  it("열사병 2단계는 한 칸을 버티면 쓰러진다", () => {
+  it("열사병 2단계는 한 칸을 버티면 위기에 들어간다 (B-2)", () => {
     let state = beginDay(fullSquad());
     state = completeRequired(state);
     const member = state.members.find((m) => m.id === "p1");
@@ -228,7 +235,8 @@ describe("쓰러짐 감지", () => {
     member.stats.hydration = 5;
 
     const result = step(state, { type: "tick", elapsedMs: 60 * SECOND });
-    expect(result.effects.some((e) => e.type === "memberEvacuated")).toBe(true);
+    expect(result.effects.some((e) => e.type === "crisisStarted")).toBe(true);
+    expect(result.effects.some((e) => e.type === "memberEvacuated")).toBe(false);
   });
 
   it("피로 100은 후송이 아니라 그 칸의 퀘스트 포기다", () => {
@@ -342,5 +350,152 @@ describe("대리와 합동 퀘스트", () => {
 
     state = step(state, { type: "tick", elapsedMs: 30 * SECOND }).state;
     expect(state.quests.find((q) => q.id === joint.id)?.workedMs).toBe(0);
+  });
+});
+
+describe("B-2 위기와 구조", () => {
+  /** p1을 위기에 빠뜨린다 (체력 0 → checkCollapses가 즉시 위기로 잡는다) */
+  function crashP1(): RunState {
+    let state = beginDay(fullSquad());
+    state = completeRequired(state);
+    const member = state.members.find((m) => m.id === "p1");
+    if (!member) throw new Error("분대원 없음");
+    member.stats.stamina = 1;
+    return step(state, { type: "tick", elapsedMs: 60 * SECOND }).state;
+  }
+
+  it("위기 중에는 이동도 상호작용도 막힌다 — 구조를 기다리는 것만 할 수 있다", () => {
+    const state = crashP1();
+    const before = state.members.find((m) => m.id === "p1")?.zone;
+
+    const moved = step(state, { type: "move", memberId: "p1", to: "Z02" }).state;
+    expect(moved.members.find((m) => m.id === "p1")?.zone).toBe(before);
+  });
+
+  it("곁에서 붙잡으면 구조 진척이 오르고, 다 채우면 구조 성공 — 위기가 풀리고 스탯이 일부 회복된다", () => {
+    let state = crashP1();
+    const target = state.members.find((m) => m.id === "p1");
+    if (!target) throw new Error("분대원 없음");
+    expect(target.crisisStat).toBe("stamina");
+
+    // p2(통신병 — 의무병이 아니다)를 같은 구역으로 보내 붙잡는다
+    state = step(state, { type: "move", memberId: "p2", to: target.zone }).state;
+
+    const result = step(state, {
+      type: "rescueWork",
+      rescuerId: "p2",
+      targetId: "p1",
+      deltaMs: RESCUE_REQUIRED_MS,
+    });
+
+    expect(result.effects.some((e) => e.type === "crisisRescued")).toBe(true);
+    const rescued = result.state.members.find((m) => m.id === "p1");
+    expect(rescued?.crisisStat).toBeNull();
+    expect(rescued?.presence).toBe("player");
+    expect(rescued?.stats.stamina).toBeGreaterThan(0);
+  });
+
+  it("의무병은 구조가 더 빠르다 — 같은 시간을 붙잡아도 진척이 더 오른다", () => {
+    let state = crashP1();
+    const target = state.members.find((m) => m.id === "p1");
+    if (!target) throw new Error("분대원 없음");
+
+    const half = RESCUE_REQUIRED_MS / MEDIC_RESCUE_MULTIPLIER / 2;
+
+    let withMedic = step(state, { type: "move", memberId: "p3", to: target.zone }).state;
+    withMedic = step(withMedic, {
+      type: "rescueWork",
+      rescuerId: "p3", // 박의무 — role: medic
+      targetId: "p1",
+      deltaMs: half,
+    }).state;
+
+    let withRifle = step(state, { type: "move", memberId: "p2", to: target.zone }).state;
+    withRifle = step(withRifle, {
+      type: "rescueWork",
+      rescuerId: "p2", // 이통신 — role: comms
+      targetId: "p1",
+      deltaMs: half,
+    }).state;
+
+    const medicProgress = withMedic.members.find((m) => m.id === "p1")?.rescueMs ?? 0;
+    const rifleProgress = withRifle.members.find((m) => m.id === "p1")?.rescueMs ?? 0;
+    expect(medicProgress).toBeGreaterThan(rifleProgress);
+  });
+
+  it("자기 자신은 구조할 수 없고, 다른 구역에서는 진척이 오르지 않는다", () => {
+    const state = crashP1();
+    const target = state.members.find((m) => m.id === "p1");
+    if (!target) throw new Error("분대원 없음");
+
+    const self = step(state, {
+      type: "rescueWork",
+      rescuerId: "p1",
+      targetId: "p1",
+      deltaMs: RESCUE_REQUIRED_MS,
+    }).state;
+    expect(self.members.find((m) => m.id === "p1")?.rescueMs).toBe(0);
+
+    // p2를 다른 구역으로 옮긴다 — 곁이 아니면 진척이 없다
+    const remoteState = beginDay(fullSquad());
+    const remoteTarget = remoteState.members.find((m) => m.id === "p1");
+    if (!remoteTarget) throw new Error("분대원 없음");
+    remoteTarget.stats.stamina = 1;
+    remoteTarget.crisisStat = "stamina";
+    remoteTarget.crisisMsLeft = CRISIS_MS;
+    const rescuer = remoteState.members.find((m) => m.id === "p2");
+    if (!rescuer) throw new Error("분대원 없음");
+    rescuer.zone = rescuer.zone === "Z01" ? "Z11" : "Z01";
+
+    const remote = step(remoteState, {
+      type: "rescueWork",
+      rescuerId: "p2",
+      targetId: "p1",
+      deltaMs: RESCUE_REQUIRED_MS,
+    }).state;
+    expect(remote.members.find((m) => m.id === "p1")?.rescueMs).toBe(0);
+  });
+
+  it("시간 안에 구조되지 못하면 기존 후송 규칙 그대로 실려 나간다 — 긴장을 물타기하지 않는다", () => {
+    let state = crashP1();
+    expect(state.members.find((m) => m.id === "p1")?.crisisStat).toBe("stamina");
+
+    // 아무도 구조하러 오지 않은 채 위기 시간을 전부 흘려보낸다
+    const result = step(state, { type: "tick", elapsedMs: CRISIS_MS + SECOND });
+
+    expect(result.effects.some((e) => e.type === "memberEvacuated")).toBe(true);
+    const failed = result.state.members.find((m) => m.id === "p1");
+    expect(failed?.presence).toBe("evacuated");
+    expect(failed?.crisisStat).toBeNull();
+  });
+
+  it("NPC 대리는 위기를 겪지 않는다 — 원래도 컨디션으로 후송되지 않았다 (봇 완주율 중립)", () => {
+    let state = beginDay(
+      fullSquad({ members: [{ id: "p1", name: "김소총", role: "rifle" }] }),
+    );
+    state = completeRequired(state);
+    const proxy = state.members.find((m) => m.presence === "npcVacant");
+    if (!proxy) throw new Error("대리 없음");
+    proxy.stats.stamina = 0;
+
+    const result = step(state, { type: "tick", elapsedMs: 60 * SECOND });
+    expect(result.effects.some((e) => e.type === "crisisStarted")).toBe(false);
+    expect(result.state.members.find((m) => m.id === proxy.id)?.crisisStat).toBeNull();
+  });
+
+  it("이미 위기 중이면 같은 트리거로 타이머가 리셋되지 않는다", () => {
+    const state = beginDay(fullSquad());
+    const member = state.members.find((m) => m.id === "p1");
+    if (!member) throw new Error("분대원 없음");
+
+    const effects: Effect[] = [];
+    enterCrisis(state, member, "stamina", effects);
+    // 시간이 좀 흐른 상태를 흉내낸다 — 가드가 없으면 다음 줄에서 45초로 되돌아간다
+    member.crisisMsLeft = 10_000;
+
+    enterCrisis(state, member, "stamina", effects);
+
+    expect(member.crisisMsLeft).toBe(10_000);
+    expect(effects.filter((e) => e.type === "crisisStarted")).toHaveLength(1);
   });
 });

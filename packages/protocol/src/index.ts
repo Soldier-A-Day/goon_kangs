@@ -135,6 +135,13 @@ export const delegationRefusalSchema = z.enum([
  */
 export const conditionCriticalStatSchema = z.enum(["stamina", "hydration", "fatigue"]);
 
+/**
+ * B-2 위기 스탯 — `conditionCriticalStatSchema` 3종 중 실제로 쓰러지는 둘뿐이다
+ * (`packages/sim/src/crisis.ts` `CrisisStat`). 피로 100은 강제취침이지 위기가
+ * 아니다(evacuation.ts).
+ */
+export const crisisStatSchema = z.enum(["stamina", "hydration"]);
+
 /** 8.0 퀵 커맨드 8슬롯 — 타임 프레셔 구간의 유일한 채널이므로 프로토콜에 고정한다 */
 export const quickCommandSchema = z.enum([
   "assemble",
@@ -282,6 +289,15 @@ export const intentSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("voteLeader"), candidateId: z.string() }),
   /** 11.0 청구서 작성 — 서버가 행정병인지 확인한다 */
   z.object({ type: z.literal("fileClaim"), items: z.array(z.string()).max(12) }),
+  /**
+   * B-2 위기 구조 — 쓰러진 동료 곁에서 E 홀드.
+   *
+   * `interact`와 같은 모양이지만 대상이 퀘스트가 아니라 사람이다. 새 미니게임을
+   * 만들지 않는다는 발주 경계 때문에 별도 채널로 둔다 — 판정은 전부 서버
+   * (`packages/sim/src/crisis.ts`)가 하고, 클라는 "지금 이 사람을 붙잡고 있다"는
+   * 신고만 보낸다.
+   */
+  z.object({ type: z.literal("rescue"), targetId: z.string(), active: z.boolean() }),
 ]);
 export type Intent = z.infer<typeof intentSchema>;
 
@@ -323,6 +339,15 @@ export const memberViewSchema = z.object({
   warmthRemainingMs: z.number(),
   /** 동상 디버프 — 이동 −30%, 작업 −20%. 의무병만 해제할 수 있다 */
   frostbitten: z.boolean(),
+  /**
+   * B-2 위기 — null이면 위기가 아니다. 값이 있으면 쓰러져 구조를 기다리는 중이고,
+   * 미니맵·HUD가 이 값으로 마커/프롬프트를 낼 수 있다.
+   */
+  crisisStat: crisisStatSchema.nullable(),
+  /** 위기 남은 ms — 0에 닿으면 기존 후송 규칙대로 실려 나간다 */
+  crisisMsLeft: z.number(),
+  /** 구조 진행 0~1 — 동료가 곁에서 E를 홀드한 누적 비율. 의무병이면 더 빨리 찬다 */
+  rescueProgress: z.number(),
   /**
    * 월드 좌표 — **표시 전용이다.**
    *
@@ -677,6 +702,27 @@ export const serverEventSchema = z.discriminatedUnion("type", [
   }),
   z.object({ type: z.literal("hiddenUnlocked"), id: z.string(), label: z.string() }),
   z.object({ type: z.literal("runEnded"), status: z.string() }),
+  /**
+   * B-2 위기 시작 — 화면이 결과보다 먼저 말한다: "OOO 쓰러졌다 — N초 안에 가라."
+   * 미니맵 마커는 스냅샷의 `crisisStat`/`crisisMsLeft`가 대신하고, 이 이벤트는
+   * 토스트 전용이다.
+   */
+  z.object({
+    type: z.literal("crisisStarted"),
+    memberId: z.string(),
+    stat: crisisStatSchema,
+    crisisMs: z.number(),
+  }),
+  /**
+   * B-2 구조 성공. 실패(시간 만료)는 새 이벤트를 만들지 않는다 — 기존
+   * `memberEvacuated`가 그 자리를 그대로 대신한다(긴장을 물타기하지 않는다).
+   */
+  z.object({
+    type: z.literal("crisisRescued"),
+    memberId: z.string(),
+    rescuerId: z.string(),
+    stat: crisisStatSchema,
+  }),
   z.object({
     type: z.literal("quickCommand"),
     memberId: z.string(),
