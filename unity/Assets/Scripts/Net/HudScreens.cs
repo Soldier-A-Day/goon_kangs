@@ -52,6 +52,12 @@ namespace SoldierADay.Net
         private int _pickedChore;
         private int _pickedTarget;
 
+        /// <summary>C-1b — 되살린 `delegationRefused`를 하달 창 안에 문구로.
+        /// 하달 창은 화면 전체를 암전시키므로(Backdrop) Hud.cs의 토스트는 창이 열려
+        /// 있는 동안 가려진다 — 그래서 이 창 자체가 사유를 말해야 한다.</summary>
+        private ServerEvent _lastRefusal;
+        private float _refusalAt = -10f;
+
         public HudScreens(Hud hud) => _hud = hud;
 
         /// <summary>이 창들이 떠 있으면 이동·상호작용을 잠근다</summary>
@@ -198,6 +204,13 @@ namespace SoldierADay.Net
                     if (_judgement != null && !_judgement.passed) break;
                     EnqueueDayEnd(Screen.Sleep);
                     break;
+
+                case ServerEventTypeValues.DelegationRefused:
+                    // C-1b — 하달 창이 열려 있는 동안은 Hud.cs의 토스트가 암전에
+                    // 가려지므로, 여기서 받아 DrawDelegation이 직접 그린다.
+                    _lastRefusal = item;
+                    _refusalAt = Time.unscaledTime;
+                    break;
             }
         }
 
@@ -328,9 +341,12 @@ namespace SoldierADay.Net
             var counts = CountQuests(snapshot, Client.MemberId);
             var left = counts.requiredTotal - counts.requiredDone;
 
+            // E-1 — 구제권 잔여를 수첩에도 한 줄. 점호 화면 6.4초 동안만 보이던 값이라
+            // "어디 있냐"는 질문이 실제로 나왔다 — 상시 화면 두 곳(일과표·수첩)에 심는다.
             Head(theme, panel, 88f, "NOTEBOOK  [TAB]", "수 첩",
                 snapshot == null ? "" :
-                $"D-{snapshot.day:00} · {HudTheme.PhaseLabel(snapshot.phase?.id)} · 잔여 {Remaining(snapshot)}");
+                $"D-{snapshot.day:00} · {HudTheme.PhaseLabel(snapshot.phase?.id)} · " +
+                $"잔여 {Remaining(snapshot)} · 구제권 {snapshot.reliefsRemaining:0}장");
 
             // §7.2 "남은 필수 카운터 — 헤더 우측, 72px 초대형 숫자"
             var counter = new Rect(panel.xMax - 164f, panel.y + 14f, 132f, 58f);
@@ -731,6 +747,23 @@ namespace SoldierADay.Net
                 theme.At(theme.Display, 56,
                     hot && !HudTheme.Pulse(1f) ? HudTheme.Ink2 : hot ? HudTheme.Alert : HudTheme.Ink,
                     TextAnchor.MiddleRight));
+
+            // C-1b — 되살린 delegationRefused를 3.5초간 문구로. 이 창은 화면 전체를
+            // 암전시켜(Backdrop) Hud.cs의 일반 토스트가 가려지므로 여기서 직접 그린다.
+            if (_lastRefusal != null && Time.unscaledTime - _refusalAt < 3.5f)
+            {
+                var note = new Rect(panel.x + 32f, panel.y + 94f, panel.width - 64f, 20f);
+                var questLabel = "일과";
+                if (snapshot.quests != null)
+                {
+                    foreach (var quest in snapshot.quests)
+                    {
+                        if (quest?.id == _lastRefusal.questId) { questLabel = quest.label; break; }
+                    }
+                }
+                GUI.Label(note, $"거부됨 — {questLabel} · {HudTheme.DelegationRefusalText(_lastRefusal.reason)}",
+                    theme.At(theme.Small, 14, HudTheme.Alert));
+            }
 
             // ── 좌측: 내 공통 일과 ──
             var chores = MyChores(snapshot);
@@ -1316,7 +1349,12 @@ namespace SoldierADay.Net
             if (band != "normal") parts.Add($"{HudTheme.BandLabel(band)} — 필수 장비가 밴드에 따라 바뀐다");
             if (snapshot.supply != null && snapshot.supply.isSupplyDay) parts.Add("보급일 — 오늘 청구할 수 있다");
             if (me != null && me.onGuardTonight) parts.Add("오늘 야간 경계 — 점호 뒤 초소");
-            if (snapshot.reliefsRemaining <= 0d) parts.Add("구제 소진 — 조건 하나만 깨져도 게임오버");
+            // E-1 — 사용자가 실제로 "구제권이 어디 뜨냐"고 물었다. 점호 화면 6.4초
+            // 동안만 보이던 것을 일과표 상시 문구로 옮긴다. 문턱을 0장(다 썼을 때)이
+            // 아니라 1장(마지막 한 장 남았을 때)부터 켜서 — 소진되고 나서 알아도
+            // 이미 늦다, 마지막 한 장일 때 알아야 행동을 바꿀 수 있다.
+            if (snapshot.reliefsRemaining <= 1d)
+                parts.Add($"구제권 {snapshot.reliefsRemaining:0}장 — 다음 필수 미달은 즉시 퇴소 위험");
             if (parts.Count == 0) parts.Add("특이사항 없음");
 
             return string.Join("  ·  ", parts);
@@ -1667,20 +1705,23 @@ namespace SoldierADay.Net
 
             var radio = _hud.visibility != null ? _hud.visibility.Radio : RadioState.Ok;
             var radioColor = _hud.visibility != null ? _hud.visibility.RadioColor : HudTheme.Accent;
+            // C-1b 무전 역할 분기 — 통신병 화면에서만 "네 안테나가 죽었다"(Hud.cs 참고)
             GUI.Label(new Rect(panel.xMax - 400f, panel.y + 24f, 368f, 26f),
-                _hud.visibility != null ? "● " + _hud.visibility.RadioLabel : "",
+                "● " + _hud.RadioLabelForMe(radio, _hud.visibility),
                 theme.At(theme.Body, 15, radioColor, TextAnchor.MiddleRight));
 
-            // 범례가 3줄이 됐다(사람 형태/색 분리 때문에) — 지도 area를 그만큼 줄여서 자리를 낸다.
-            // 아래 legend 쪽수와 짝을 맞춰서 바꿔야 한다.
+            // 범례가 4줄이 됐다(사람 형태/불투명도/색 분리 + 문 표시 때문에) —
+            // 지도 area를 그만큼 줄여서 자리를 낸다. 아래 legend 줄 수와 짝을 맞춰서 바꿔야 한다.
             var area = new Rect(panel.x + 36f, panel.y + 106f, panel.width - 72f, panel.height - 300f);
             _hud.DrawSectorPlan(area, snapshot, radio, detailed: true);
 
             // 범례 — §1.3-A가 무엇을 하고 있는지 화면에서 읽혀야 한다.
-            // 사람 마커는 두 축이 겹쳐 있다: 형태(속 찬 점/속 빈 원) = 같은 구역인지 아닌지,
-            // 색(HudTheme.RoleColor) = 보직. 예전 범례는 이 둘을 색 하나로 뭉쳐 설명해서
-            // 통신(Cold)·의무(White)가 아닌 보직은 범례와 다른 색으로 찍히는 거짓말이 됐다
-            // (Hud.cs "5. 사람" 참고). 형태 줄과 색 줄을 분리해서 적는다.
+            //
+            // **H-4 색각 이상 대응으로 두 축을 맞바꿨다.** 예전에는 형태(속 찬 점/속 빈
+            // 원)가 가시성을, 색(RoleColor) 하나가 보직을 전부 졌다 — 적록색각에서
+            // 소총(연두)·의무(흰색 근처)가 겹쳐 보이면 구분할 방법이 없었다. 이제
+            // **형태(HudIcons.RoleShape) = 보직, 불투명도 = 같은 구역인지 아닌지**다
+            // (Hud.cs "5. 사람" 참고).
             var legend = new Rect(panel.x + 36f, panel.yMax - 176f, panel.width - 72f, 140f);
             theme.Fill(new Rect(legend.x, legend.y, legend.width, 1f), HudTheme.Rule);
             GUI.Label(new Rect(legend.x, legend.y + 8f, 200f, 20f), "LEGEND",
@@ -1696,36 +1737,41 @@ namespace SoldierADay.Net
             GUI.Label(new Rect(legend.x + 330f, legend.y + 32f, 280f, 20f), "타 구역 — 스프라이트 미렌더",
                 theme.At(theme.Small, 14, HudTheme.Ink2));
 
-            // 형태 = 가시성. 색이 아니라 속 찬 점/속 빈 원으로 구분한다 — 실제로 그리는 것과 맞춘다
-            HudIcons.Dot(new Rect(legend.x + 640f, legend.y + 36f, 8f, 8f), HudTheme.Ink3);
-            GUI.Label(new Rect(legend.x + 656f, legend.y + 32f, 220f, 20f), "같은 구역 — 속 찬 점(실시간)",
+            // 불투명도 = 가시성. 형태(원)는 예시일 뿐이다 — 실제 형태는 보직마다 다르다(아래 줄)
+            HudIcons.RoleShape("rifle", new Rect(legend.x + 640f, legend.y + 30f, 12f, 12f), HudTheme.Ink3);
+            GUI.Label(new Rect(legend.x + 656f, legend.y + 32f, 220f, 20f), "같은 구역 — 선명한 마커",
                 theme.At(theme.Small, 14, HudTheme.Ink2));
 
-            HudIcons.Circle(new Rect(legend.x + 880f, legend.y + 36f, 8f, 8f), 2f, HudTheme.Ink3);
-            GUI.Label(new Rect(legend.x + 896f, legend.y + 32f, 200f, 20f), "타 구역 — 속 빈 원(무전)",
+            HudIcons.RoleShape("rifle", new Rect(legend.x + 880f, legend.y + 30f, 12f, 12f),
+                new Color(HudTheme.Ink3.r, HudTheme.Ink3.g, HudTheme.Ink3.b, 0.55f));
+            GUI.Label(new Rect(legend.x + 896f, legend.y + 32f, 200f, 20f), "타 구역 — 흐린 마커(무전)",
                 theme.At(theme.Small, 14, HudTheme.Ink2));
 
-            // 무전 두절이면 타 구역 마커는 파랗게 뜨는 게 아니라 아예 안 그려진다(Hud.cs §1.3-C).
+            // 무전 두절이면 타 구역 마커는 흐려지는 게 아니라 아예 안 그려진다(Hud.cs §1.3-C).
             // 이 문장이 없으면 "왜 아무도 안 보이지"를 고장으로 읽는다
             GUI.Label(new Rect(legend.x, legend.y + 58f, legend.width, 20f),
                 "무전 두절(Radio Down) 시 타 구역 인원 표시는 사라진다 — 고장이 아니다",
                 theme.At(theme.Small, 14, HudTheme.Ink2));
 
-            // 색 = 보직. 완장 색과 같은 값(RoleColor)이라 월드와 UI가 일치한다
+            // 형태 + 색 = 보직. 형태는 HudIcons.RoleShape(원·사각·십자·삼각), 색은
+            // 완장과 같은 값(RoleColor)이라 월드와 UI가 일치한다
             var roleY = legend.y + 84f;
             var roleX = legend.x;
             foreach (var role in new[] { "comms", "medic", "admin", "" })
             {
-                theme.Chip(new Rect(roleX, roleY, 44f, 22f),
+                HudIcons.RoleShape(role, new Rect(roleX, roleY + 3f, 14f, 14f), HudTheme.RoleColor(role));
+                theme.Chip(new Rect(roleX + 20f, roleY, 44f, 22f),
                     HudTheme.RoleTag(role), HudTheme.RoleColor(role), HudTheme.Paper);
-                roleX += 54f;
+                roleX += 74f;
             }
-            GUI.Label(new Rect(roleX + 10f, roleY, 170f, 22f), "— 마커 색 = 보직",
+            GUI.Label(new Rect(roleX + 6f, roleY, 200f, 22f), "— 마커 형태 · 색 = 보직",
                 theme.At(theme.Small, 14, HudTheme.Ink2));
 
-            // 지도의 주황선은 사람이 아니라 문(HudTheme.Heat) — 사람으로 오독하는 신고가 있었다
-            theme.Fill(new Rect(legend.x + 460f, roleY + 1f, 20f, 20f), HudTheme.Heat);
-            GUI.Label(new Rect(legend.x + 490f, roleY, 280f, 22f), "주황선 — 문(사람 아님)",
+            // 지도의 주황선은 사람이 아니라 문(HudTheme.Heat) — 사람으로 오독하는 신고가 있었다.
+            // 역할 행이 넓어져(형태 아이콘 추가) 같은 줄에 못 넣으므로 한 줄 내려 적는다
+            var doorY = roleY + 30f;
+            theme.Fill(new Rect(legend.x, doorY + 1f, 20f, 20f), HudTheme.Heat);
+            GUI.Label(new Rect(legend.x + 30f, doorY, 280f, 22f), "주황선 — 문(사람 아님)",
                 theme.At(theme.Small, 14, HudTheme.Ink2));
         }
 

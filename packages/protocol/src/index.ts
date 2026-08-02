@@ -104,6 +104,26 @@ export const presenceSchema = z.enum([
   "evacuated",
 ]);
 
+/**
+ * 6.2 하달 거부 사유 9종 (`packages/sim/src/delegation.ts` `DelegationRefusal`).
+ *
+ * **예전에는 이 값이 서버에서 아예 버려졌다**(`services/gameserver/src/snapshot.ts`
+ * `projectEffect` — "클라이언트가 알 필요 없는 신호는 흘리지 않는다"로 묶여 있었다).
+ * 하달 버튼을 눌러도 왜 안 됐는지 화면이 말하지 않는 원인이었다 — 감사 보고서
+ * 침묵 판정 1건(WORKORDER.md E단계). 이제는 흘려보내고 하달 창이 사유를 문구로 보여준다.
+ */
+export const delegationRefusalSchema = z.enum([
+  "locked",
+  "notDelegationWindow",
+  "notChore",
+  "notOwner",
+  "rankTooLow",
+  "giverLimit",
+  "receiverLimit",
+  "alreadyDelegated",
+  "unknownMember",
+]);
+
 /** 8.0 퀵 커맨드 8슬롯 — 타임 프레셔 구간의 유일한 채널이므로 프로토콜에 고정한다 */
 export const quickCommandSchema = z.enum([
   "assemble",
@@ -554,6 +574,12 @@ export const serverEventSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("choreDelegated"), fromId: z.string(), toId: z.string(), questId: z.string() }),
   z.object({ type: z.literal("choreVetoed"), memberId: z.string(), questId: z.string() }),
   z.object({ type: z.literal("choreReassigned"), toId: z.string(), questId: z.string() }),
+  /** 하달 거부 — 되살린 침묵 판정. reason은 `delegationRefusalSchema` 9종 */
+  z.object({
+    type: z.literal("delegationRefused"),
+    reason: delegationRefusalSchema,
+    questId: z.string(),
+  }),
   z.object({ type: z.literal("hiddenUnlocked"), id: z.string(), label: z.string() }),
   z.object({ type: z.literal("runEnded"), status: z.string() }),
   z.object({

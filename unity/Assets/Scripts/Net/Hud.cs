@@ -40,20 +40,26 @@ namespace SoldierADay.Net
         private readonly List<Toast> _toasts = new List<Toast>();
         private readonly List<Bubble> _bubbles = new List<Bubble>();
 
-        /// <summary>§7.1.6 알림 카드 — 최대 4개 스택, 각 4초 후 페이드</summary>
+        /// <summary>§7.1.6 알림 카드 — 최대 4개 스택, 기본 4초 후 페이드.
+        /// `life`는 총 표시 시간(페이드 0.6초 포함) — 후송처럼 더 오래 읽혀야
+        /// 하는 문장은 개별로 늘린다(C-1b)</summary>
         private sealed class Toast
         {
             public string tag;
             public string text;
             public Color color;
             public float born;
+            public float life = 4.6f;
         }
 
-        /// <summary>§7.8 발신 시 동시 출력 3종 중 하나 — 머리 위 말풍선 3초</summary>
+        /// <summary>§7.8 발신 시 동시 출력 3종 중 하나 — 머리 위 말풍선 3초.
+        /// `command`가 있으면 아이콘 말풍선(퀵 커맨드), 없고 `text`만 있으면
+        /// 문장 말풍선(하달 반응 — C-1b)</summary>
         private sealed class Bubble
         {
             public string memberId;
             public string command;
+            public string text;
             public float born;
         }
 
@@ -576,15 +582,74 @@ namespace SoldierADay.Net
 
                 case ServerEventTypeValues.ChoreDelegated:
                     Notify("하달", NameOf(item.fromId) + " → " + NameOf(item.toId), HudTheme.Heat);
+                    // C-1b 정서 텍스트 — 받는 사람 머리 위에 계급 조합별 반응 한 줄.
+                    // 하달 시스템의 짬때리기가 이미 코드로 완성돼 있는데(하달 군기 −2·
+                    // 3일 연속 시 정신력 회복 −30%) 화면엔 아이콘 하나뿐이었다.
+                    _bubbles.Add(new Bubble
+                    {
+                        memberId = item.toId,
+                        text = DelegationLine(RankOf(item.fromId), RankOf(item.toId)),
+                        born = Time.unscaledTime,
+                    });
                     return;
 
                 case ServerEventTypeValues.ChoreVetoed:
                     Notify("거부", NameOf(item.memberId), HudTheme.Ink2);
+                    _bubbles.Add(new Bubble
+                    {
+                        memberId = item.memberId,
+                        text = VetoLines[UnityEngine.Random.Range(0, VetoLines.Length)],
+                        born = Time.unscaledTime,
+                    });
                     return;
 
                 case ServerEventTypeValues.MemberEvacuated:
-                    Notify("후송", NameOf(item.memberId), HudTheme.Alert);
+                {
+                    // C-1b 후송 문장 — 혼자 조용히 실려 나가던 것을 남은 사람들에게 알린다.
+                    // 5초(기본 4.6초보다 길게) — "그 몫까지 채운다"는 부담을 방금 이해할
+                    // 시간이 필요하다
+                    var name = NameOf(item.memberId);
+                    Notify("후송", $"{name}{HudTheme.Josa(name, "이", "가")} 실려 나갔다. 남은 사람이 그 몫까지 채운다.",
+                        HudTheme.Alert, 5.6f);
                     return;
+                }
+
+                case ServerEventTypeValues.MemberReturned:
+                {
+                    // E-1 — 후송 복귀는 계급 리셋·재활 2일이 통보 없이 적용되던 항목이다
+                    // (감사 목록 4). asRecruit는 그중 가장 아픈 결과라 색·지속시간으로 강조한다.
+                    var name = NameOf(item.memberId);
+                    if (item.asRecruit)
+                        Notify("복귀", $"{name}, 이병으로 — 계급 초기화", HudTheme.Alert, 6.6f);
+                    else
+                        Notify("복귀", $"{name}, 원래 계급 그대로", HudTheme.Accent);
+                    return;
+                }
+
+                case ServerEventTypeValues.ChoreReassigned:
+                    // E-1 — Unity에 case 자체가 없어 분대장 개입이 화면에 안 보이던 항목
+                    Notify("재배정", $"분대장이 {NameOf(item.toId)}에게 — {QuestLabel(item.questId)}", HudTheme.Heat);
+                    return;
+
+                case ServerEventTypeValues.SupplyClaimed:
+                    Notify("보급 도착", SupplySummary(item.items), HudTheme.Accent);
+                    return;
+
+                case ServerEventTypeValues.ForcedSleep:
+                    Notify("강제 취침", $"{NameOf(item.memberId)}, 이 칸 일과 잠김", HudTheme.Heat);
+                    return;
+
+                case ServerEventTypeValues.FrostbiteRelieved:
+                    Notify("동상 해제", $"{NameOf(item.memberId)} — 의무병 {NameOf(item.byId)}", HudTheme.Accent);
+                    return;
+
+                case ServerEventTypeValues.DelegationRefused:
+                    // C-1b — snapshot.ts가 명시적으로 버리던 것을 되살렸다. 하달 창이
+                    // 화면 전체를 암전시키므로(HudScreens.Backdrop) 여기 토스트는 창이
+                    // 닫힌 뒤에만 보인다 — 열려 있는 동안의 표시는 DrawDelegation이 맡는다
+                    Notify("하달 거부", $"{QuestLabel(item.questId)} — {HudTheme.DelegationRefusalText(item.reason)}",
+                        HudTheme.Alert);
+                    break;
 
                 case ServerEventTypeValues.WeatherRolled:
                     Notify("기온", item.label, HudTheme.BandColor(item.band));
@@ -597,14 +662,60 @@ namespace SoldierADay.Net
                 case ServerEventTypeValues.PhaseEnded when item.lockedCount > 0d:
                     Notify("시간대 종료", $"미완료 {item.lockedCount:0}건 잠김", HudTheme.Alert);
                     return;
+
+                case ServerEventTypeValues.Log:
+                    // E-1 — 프로토콜엔 있는데 Unity가 참조 0건이던 case(감사 목록 5).
+                    // 다만 "delegationWindowClosed"는 화면 신호가 아니라 delegation.ts가
+                    // 내부적으로 쓰는 코드 문자열이다 — 그대로 띄우면 사람이 못 읽는
+                    // 영문 토큰이 뜬다. 이미 하달 창이 스스로 닫히는 것으로 같은 사실을
+                    // 말하므로(HudScreens 타이머) 그 값만 걸러낸다.
+                    if (item.message == "delegationWindowClosed") return;
+                    Notify("알림", item.message, HudTheme.Heat);
+                    return;
             }
 
             _screens.OnEvent(item);
         }
 
-        private void Notify(string tag, string text, Color color)
+        /// <summary>C-1b 하달 반응 — 계급 차 1단계는 편한 말투, 2단계 이상은 격식체.
+        /// 총 8~12개 풀 안에서 무작위로 골라 같은 사람이 매번 똑같은 대사를 반복하지
+        /// 않게 한다. 실존 부대 표현·혐오 은어는 쓰지 않는다(경계 — WORKORDER C-1b).</summary>
+        private static readonly string[] AcceptCasualLines =
         {
-            _toasts.Add(new Toast { tag = tag, text = text, color = color, born = Time.unscaledTime });
+            "또 나야?", "이번엔 진짜 마지막입니다", "예, 하겠습니다", "바로 하겠습니다",
+        };
+
+        private static readonly string[] AcceptFormalLines =
+        {
+            "예, 알겠습니다", "지시대로 하겠습니다", "……예.", "곧 처리하겠습니다.",
+        };
+
+        private static readonly string[] VetoLines =
+        {
+            "…알았다", "이번엔 넘어가마", "알겠다, 다음엔 없다", "그렇게 하지",
+        };
+
+        private static string DelegationLine(string fromRank, string toRank)
+        {
+            var gap = HudTheme.RankIndex(fromRank) - HudTheme.RankIndex(toRank);
+            var pool = gap >= 2 ? AcceptFormalLines : AcceptCasualLines;
+            return pool[UnityEngine.Random.Range(0, pool.Length)];
+        }
+
+        /// <summary>E-1 — SupplyClaimed의 품목 배열을 "품목 요약" 문장으로. 항목이
+        /// 많으면 앞 4개만 이름으로 적고 나머지는 건수로 뭉친다</summary>
+        private static string SupplySummary(string[] items)
+        {
+            if (items == null || items.Length == 0) return "품목 없음";
+            var shown = new List<string>();
+            for (var i = 0; i < items.Length && i < 4; i += 1) shown.Add(ItemNames.Of(items[i]));
+            var extra = items.Length > shown.Count ? $" 외 {items.Length - shown.Count}건" : "";
+            return string.Join(" · ", shown) + extra;
+        }
+
+        private void Notify(string tag, string text, Color color, float life = 4.6f)
+        {
+            _toasts.Add(new Toast { tag = tag, text = text, color = color, born = Time.unscaledTime, life = life });
             // §7.1.6 최대 4개 스택
             while (_toasts.Count > 4) _toasts.RemoveAt(0);
         }
@@ -613,7 +724,7 @@ namespace SoldierADay.Net
         {
             for (var i = _toasts.Count - 1; i >= 0; i -= 1)
             {
-                if (Time.unscaledTime - _toasts[i].born > 4.6f) _toasts.RemoveAt(i);
+                if (Time.unscaledTime - _toasts[i].born > _toasts[i].life) _toasts.RemoveAt(i);
             }
 
             // 목업 실측: 380×64 @ (48, 48), 간격 76
@@ -621,7 +732,8 @@ namespace SoldierADay.Net
             {
                 var toast = _toasts[i];
                 var age = Time.unscaledTime - toast.born;
-                var alpha = age > 4f ? Mathf.Clamp01(1f - (age - 4f) / 0.6f) : 1f;
+                var fadeStart = toast.life - 0.6f;
+                var alpha = age > fadeStart ? Mathf.Clamp01(1f - (age - fadeStart) / 0.6f) : 1f;
 
                 var rect = new Rect(48f, 132f + i * 76f, 380f, 64f);
                 var previous = GUI.color;
@@ -649,6 +761,56 @@ namespace SoldierADay.Net
             return "누군가";
         }
 
+        /// <summary>C-1b — 계급 조합별 하달 반응 문구를 고를 때 쓴다</summary>
+        private string RankOf(string memberId)
+        {
+            var snapshot = client.Latest;
+            if (snapshot?.members == null || string.IsNullOrEmpty(memberId)) return SnapshotMembersItemRankValues.Private;
+            foreach (var member in snapshot.members)
+            {
+                if (member?.id == memberId) return member.rank;
+            }
+            return SnapshotMembersItemRankValues.Private;
+        }
+
+        /// <summary>E-1 — 재배정·하달 거부 토스트에 일과 이름을 함께 적는다</summary>
+        private string QuestLabel(string questId)
+        {
+            var snapshot = client.Latest;
+            if (snapshot?.quests == null || string.IsNullOrEmpty(questId)) return "일과";
+            foreach (var quest in snapshot.quests)
+            {
+                if (quest?.id == questId) return quest.label;
+            }
+            return "일과";
+        }
+
+        /// <summary>
+        /// C-1b 무전 역할 분기 — 두절 문구를 통신병 화면에서만 다르게 읽힌다.
+        ///
+        /// **규칙은 그대로다.** 무전 상태(`ZoneVisibility.Radio`)는 서버가 소유한
+        /// 분대 공통 값이라 손대지 않는다 — 여기서 바뀌는 것은 그 값을 옮기는
+        /// 문자열뿐이다(클라 분기만). 통신병은 "본인이 그 두절의 당사자"라는 것을
+        /// 다른 보직과 같은 문장으로는 알 길이 없었다.
+        /// </summary>
+        public string RadioLabelForMe(RadioState radio, ZoneVisibility vis)
+        {
+            if (radio == RadioState.Down && client != null && RoleOf(client.MemberId) == SnapshotMembersItemRoleValues.Comms)
+                return "네 안테나가 죽었다";
+            return vis != null ? vis.RadioLabel : "무전 연결";
+        }
+
+        private string RoleOf(string memberId)
+        {
+            var snapshot = client.Latest;
+            if (snapshot?.members == null || string.IsNullOrEmpty(memberId)) return "";
+            foreach (var member in snapshot.members)
+            {
+                if (member?.id == memberId) return member.role;
+            }
+            return "";
+        }
+
         /* ─────────────────────────────────────── §7.1.3 우상단 미니맵 */
 
         private void DrawMinimap(Snapshot snapshot)
@@ -671,7 +833,7 @@ namespace SoldierADay.Net
 
             var radio = visibility != null ? visibility.Radio : RadioState.Ok;
             var radioColor = visibility != null ? visibility.RadioColor : HudTheme.Accent;
-            var label = visibility != null ? visibility.RadioLabel : "무전 연결";
+            var label = RadioLabelForMe(radio, visibility);
 
             // §7.1.3 두절이면 적색 라벨이 항상 떠 있어야 한다
             GUI.Label(new Rect(head.x + 100f, head.y, 96f, head.height), label,
@@ -1225,13 +1387,15 @@ namespace SoldierADay.Net
                 if (zone == null || RegionOf(zone.id) != region) continue;
 
                 var at = ToScreen(zone.area.center);
-                var dot = new Rect(at.x - 4f, at.y - 4f, 8f, 8f);
-                var color = HudTheme.RoleColor(member.role);
+                var dot = new Rect(at.x - 5f, at.y - 5f, 10f, 10f);
+                var roleColor = HudTheme.RoleColor(member.role);
 
-                // 형태 = 가시성(속 찬 점/속 빈 원), 색 = 보직(RoleColor) — 서로 다른 축이라 겹쳐 찍는다.
-                // §7.9 범례가 이 둘을 나눠서 설명한다(HudScreens.cs DrawBaseMap)
-                if (sameZone) HudIcons.Dot(dot, color);
-                else HudIcons.Circle(dot, 2f, color);
+                // H-4 색각 이상 대응 — 형태 = 보직(HudIcons.RoleShape), 알파 = 가시성.
+                // 예전에는 형태(속 찬 점/속 빈 원)가 가시성을 맡고 색 하나가 보직을
+                // 전부 졌다 — 적록색각에서 소총·의무 색이 겹쳐 보이면 구분할 방법이
+                // 없었다. §7.9 범례가 이 둘을 나눠서 설명한다(HudScreens.cs DrawBaseMap)
+                var color = sameZone ? roleColor : new Color(roleColor.r, roleColor.g, roleColor.b, 0.55f);
+                HudIcons.RoleShape(member.role, dot, color);
             }
         }
 
@@ -1718,16 +1882,29 @@ namespace SoldierADay.Net
                 var x = screen.x / scale;
                 var y = (Screen.height - screen.y) / scale;
 
-                // 목업 실측: 말풍선 118×46
-                var rect = new Rect(x - 59f, y - 46f, 118f, 46f);
-                var color = HudIcons.CommandColor(bubble.command);
-                var label = Label(bubble.command);
+                if (!string.IsNullOrEmpty(bubble.command))
+                {
+                    // 목업 실측: 말풍선 118×46
+                    var rect = new Rect(x - 59f, y - 46f, 118f, 46f);
+                    var color = HudIcons.CommandColor(bubble.command);
+                    var label = Label(bubble.command);
 
-                _theme.Fill(rect, HudTheme.Paper, 0.95f);
-                _theme.Border(rect, color);
-                HudIcons.Command(bubble.command, new Rect(rect.x + 8f, rect.y + 9f, 28f, 28f), color);
-                GUI.Label(new Rect(rect.x + 42f, rect.y, 70f, rect.height), label,
-                    _theme.At(_theme.Heading, 17, color));
+                    _theme.Fill(rect, HudTheme.Paper, 0.95f);
+                    _theme.Border(rect, color);
+                    HudIcons.Command(bubble.command, new Rect(rect.x + 8f, rect.y + 9f, 28f, 28f), color);
+                    GUI.Label(new Rect(rect.x + 42f, rect.y, 70f, rect.height), label,
+                        _theme.At(_theme.Heading, 17, color));
+                }
+                else if (!string.IsNullOrEmpty(bubble.text))
+                {
+                    // C-1b 문장 말풍선(하달 반응) — 아이콘이 없으니 글자 폭에 맞춰 넓힌다
+                    var width = Mathf.Clamp(_theme.Measure(bubble.text, _theme.Body) + 32f, 90f, 260f);
+                    var rect = new Rect(x - width * 0.5f, y - 40f, width, 36f);
+                    _theme.Fill(rect, HudTheme.Paper, 0.95f);
+                    _theme.Border(rect, HudTheme.Ink2);
+                    GUI.Label(rect, bubble.text,
+                        _theme.At(_theme.Body, 16, HudTheme.Ink, TextAnchor.MiddleCenter));
+                }
             }
 
             static string Label(string id)

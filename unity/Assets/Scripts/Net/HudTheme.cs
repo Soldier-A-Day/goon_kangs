@@ -131,10 +131,19 @@ namespace SoldierADay.Net
         /// <summary>화면 → 논리 좌표 배율. 짧은 축 기준이라 글자 크기가 일정하다</summary>
         public static float ViewScale { get; private set; } = 1f;
 
-        /// <summary>`OnGUI` 첫머리에서 한 번 부른다</summary>
+        /// <summary>
+        /// `OnGUI` 첫머리에서 한 번 부른다.
+        ///
+        /// **H-4 접근성 감사 — UI 배율이 저장만 되고 여기서 안 읽혔다.** 설정 화면이
+        /// "완주 가능성"이라 명시한 기능인데(`Accessibility.cs`) 곱해지는 자리가
+        /// 없었다. 값이 클수록 화면 위 글자·버튼이 커지고, 논리 좌표(`ViewWidth`
+        /// `ViewHeight`)는 그만큼 좁아져 화면에 담기는 것이 줄어든다 — 확대경을
+        /// 들이대는 것과 같은 방향이다.
+        /// </summary>
         public static float Fit()
         {
-            ViewScale = Mathf.Min(Screen.width / DesignWidth, Screen.height / DesignHeight);
+            ViewScale = Mathf.Min(Screen.width / DesignWidth, Screen.height / DesignHeight)
+                        * Accessibility.UiScale;
             if (ViewScale <= 0f) ViewScale = 1f;
             ViewWidth = Screen.width / ViewScale;
             ViewHeight = Screen.height / ViewScale;
@@ -400,6 +409,52 @@ namespace SoldierADay.Net
             "corporal" => "상병",
             "sergeant" => "병장",
             _ => "이병",
+        };
+
+        /// <summary>계급 서열 0(이병)~3(병장). sim의 `RANK_ORDER`와 같은 순서다</summary>
+        public static int RankIndex(string rank) => rank switch
+        {
+            "pfc" => 1,
+            "corporal" => 2,
+            "sergeant" => 3,
+            _ => 0,
+        };
+
+        /// <summary>
+        /// 받침 유무로 조사를 고른다("이/가"·"은/는"·"을/를" 등).
+        ///
+        /// 분대원 이름은 플레이어가 직접 짓는 자유 텍스트다(로비 입력, 최대 12자) —
+        /// 조사를 하나로 고정하면 이름 절반은 "민수가 실려 나갔다"가 "민수이 실려
+        /// 나갔다"처럼 문법이 깨진다. 한글 음절 블록(U+AC00~U+D7A3)의 마지막 글자를
+        /// 유니코드 산술로 분해해 받침 유무만 본다 — 완전한 형태소 분석은 아니지만
+        /// 이 정도 판단에는 그걸로 충분하다.
+        /// </summary>
+        public static string Josa(string word, string withBatchim, string withoutBatchim)
+        {
+            if (string.IsNullOrEmpty(word)) return withoutBatchim;
+            var ch = word[word.Length - 1];
+            if (ch < 0xAC00 || ch > 0xD7A3) return withoutBatchim; // 한글 음절이 아니면 무받침 취급
+            return (ch - 0xAC00) % 28 == 0 ? withoutBatchim : withBatchim;
+        }
+
+        /// <summary>
+        /// C-1b — 하달 거부 사유 9종을 문구로. `packages/sim/src/delegation.ts`의
+        /// `DelegationRefusal` enum과 순서·값을 맞춘다. 예전에는 `snapshot.ts`가
+        /// 이 이벤트를 통째로 버려서 하달 버튼을 눌러도 아무 반응이 없었다
+        /// (감사 보고서 침묵 판정 1건, WORKORDER.md E단계).
+        /// </summary>
+        public static string DelegationRefusalText(string reason) => reason switch
+        {
+            "locked" => "아직 하달을 할 수 없다",
+            "notDelegationWindow" => "하달 창이 닫혀 있다",
+            "notChore" => "그건 넘길 수 있는 일이 아니다",
+            "notOwner" => "내 일이 아니다",
+            "rankTooLow" => "계급 차가 부족하다",
+            "giverLimit" => "이번 창에서 더 못 넘긴다",
+            "receiverLimit" => "그 사람은 이미 여력이 없다",
+            "alreadyDelegated" => "이미 한 번 넘어간 일이다",
+            "unknownMember" => "대상을 찾을 수 없다",
+            _ => "하달이 거부됐다",
         };
 
         public static string PhaseLabel(string phase) => phase switch

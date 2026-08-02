@@ -34,12 +34,15 @@ namespace SoldierADay.Net
             theme.Fill(new Rect(0f, 0f, HudTheme.ViewWidth, HudTheme.ViewHeight),
                        HudTheme.Dim, 0.92f);
 
+            // C-1 — 실패 조건(A~D)과 소대장 대사를 한 줄 더 넣느라 패널을 키웠다
+            // (380→420). 다른 종료 화면(전역·해산·연결 끊김)은 그 줄이 비어 있을
+            // 뿐 레이아웃은 그대로다.
             var panel = new Rect(HudTheme.ViewWidth * 0.5f - 380f,
-                                 HudTheme.ViewHeight * 0.5f - 190f, 760f, 380f);
+                                 HudTheme.ViewHeight * 0.5f - 210f, 760f, 420f);
             theme.Fill(panel, HudTheme.Paper2);
             theme.Border(panel, rejected != null ? HudTheme.Alert : Accent(status), 2f);
 
-            var (title, line, hint) = Words(rejected, status);
+            var (title, line, quote, hint) = Words(rejected, status, client.Latest);
 
             GUI.Label(new Rect(panel.x, panel.y + 44f, panel.width, 40f),
                 rejected != null ? "연결 끊김" : "런 종료",
@@ -54,6 +57,14 @@ namespace SoldierADay.Net
 
             GUI.Label(new Rect(panel.x + 40f, panel.y + 192f, panel.width - 80f, 30f), hint,
                 theme.At(theme.Small, 14, HudTheme.Ink3, TextAnchor.MiddleCenter));
+
+            // C-1b — 조건별 소대장 대사. 실패 원인 위에 소대장이 한마디 얹는다
+            // ("할 일을 남겼다. 부대는 그걸 안 봐준다." 등 4종, 조건 A~D에 고정).
+            if (!string.IsNullOrEmpty(quote))
+            {
+                GUI.Label(new Rect(panel.x + 40f, panel.y + 228f, panel.width - 80f, 28f), quote,
+                    theme.At(theme.Body, 15, HudTheme.Ink2, TextAnchor.MiddleCenter));
+            }
 
             // **같은 방으로 다시 한다.**
             //
@@ -118,30 +129,102 @@ namespace SoldierADay.Net
         };
 
         /// <summary>
-        /// 무슨 일이 있었는지 한 줄로.
+        /// 무슨 일이 있었는지 한 줄로 + (퇴소라면) 소대장의 한마디.
         ///
         /// 판정이 왜 깨졌는지는 스냅샷의 `lastJudgement`가 들고 있지만, 런이
         /// 끝나면 그 스냅샷이 마지막이라 값이 그대로 남아 있다.
         /// </summary>
-        private static (string, string, string) Words(string rejected, string status)
+        private static (string, string, string, string) Words(string rejected, string status, Snapshot snapshot)
         {
             if (rejected != null)
             {
-                return ("붙지 못했다", rejected,
+                return ("붙지 못했다", rejected, "",
                     "서버가 잠들었다 깨어나면 발급했던 토큰이 죽는다 — 로비에서 다시 들어가야 한다");
+            }
+
+            if (status == SnapshotStatusValues.Discharged)
+            {
+                var (line, quote) = FailureDetail(snapshot);
+                return ("퇴소", line, quote,
+                    "같은 방에서 다시 하면 인원도 코드도 그대로다 — 일과표만 새로 뽑힌다");
             }
 
             return status switch
             {
                 SnapshotStatusValues.Cleared =>
-                    ("전역", "18일을 끝까지 버텼다", "기록은 전적에 남는다"),
+                    ("전역", "18일을 끝까지 버텼다", "", "기록은 전적에 남는다"),
                 SnapshotStatusValues.Disbanded =>
-                    ("분대 해산", "남은 인원으로는 하루를 끝낼 수 없다",
+                    ("분대 해산", "남은 인원으로는 하루를 끝낼 수 없다", "",
                      "1~3인 방은 대리가 필수를 메우지만 합동은 사람이 시작해야 한다"),
                 _ =>
-                    ("퇴소", "점호 판정을 통과하지 못했다",
+                    ("퇴소", "점호 판정을 통과하지 못했다", "",
                      "같은 방에서 다시 하면 인원도 코드도 그대로다 — 일과표만 새로 뽑힌다"),
             };
+        }
+
+        /// <summary>
+        /// C-1(실패의 언어화) — `judge.ts`의 `firstFailure`가 이미 계산해 둔
+        /// `lastJudgement.failedAt`을 조건별 수치·대사로 옮긴다.
+        ///
+        /// **스냅샷에 실려 오는 값만 쓴다.** A는 `requiredDone`/`requiredTotal`,
+        /// B는 합동 퀘스트의 `jointDone`/`jointTotal`(둘 다 이미 있는 퀘스트
+        /// 필드), C는 `discipline.value`·`band`, D는 각자의 `missingGear` 배열 —
+        /// 전부 스냅샷이 이미 들고 있다. 위생 판정 문턱(20)처럼 서버 규칙에만
+        /// 있고 프로토콜에 안 실린 수치는 여기서 지어내지 않는다(ARCH-02).
+        /// </summary>
+        private static (string, string) FailureDetail(Snapshot snapshot)
+        {
+            var j = snapshot?.lastJudgement;
+            if (j == null || string.IsNullOrEmpty(j.failedAt))
+                return ("점호 판정을 통과하지 못했다", "");
+
+            switch (j.failedAt)
+            {
+                case SnapshotLastJudgementFailedAtValues.A:
+                    return (
+                        $"A조건(필수 일과) 미달 — {j.requiredDone:0} / {j.requiredTotal:0}건 완료",
+                        "\"할 일을 남겼다. 부대는 그걸 안 봐준다.\"");
+
+                case SnapshotLastJudgementFailedAtValues.B:
+                {
+                    var joint = HudScreens.FindJoint(snapshot);
+                    var detail = joint != null ? $" — {joint.jointDone:0} / {joint.jointTotal:0}건" : "";
+                    return (
+                        $"B조건(합동 일과) 미달{detail}",
+                        "\"혼자 잘해서 되는 게 아니라고 했다.\"");
+                }
+
+                case SnapshotLastJudgementFailedAtValues.C:
+                {
+                    var disc = snapshot.discipline != null
+                        ? $"{snapshot.discipline.value:0} · {snapshot.discipline.band}"
+                        : "—";
+                    return (
+                        $"C조건(군기) 미달 — 군기 {disc}",
+                        "\"기본이 안 됐다.\"");
+                }
+
+                case SnapshotLastJudgementFailedAtValues.D:
+                {
+                    var bits = new System.Collections.Generic.List<string>();
+                    if (snapshot.members != null)
+                    {
+                        foreach (var m in snapshot.members)
+                        {
+                            if (m == null || m.presence != SnapshotMembersItemPresenceValues.Player) continue;
+                            if (m.missingGear != null && m.missingGear.Length > 0)
+                                bits.Add($"{m.name} 미보유 {m.missingGear.Length}건");
+                        }
+                    }
+                    var detail = bits.Count > 0 ? string.Join(" · ", bits) : "청결 또는 필수 장비 기준 미달";
+                    return (
+                        $"D조건(복장·위생) 미달 — {detail}",
+                        "\"왜 미리 말 안 했나.\"");
+                }
+
+                default:
+                    return ("점호 판정을 통과하지 못했다", "");
+            }
         }
     }
 }

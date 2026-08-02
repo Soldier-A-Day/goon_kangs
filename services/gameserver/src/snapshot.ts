@@ -225,9 +225,21 @@ export function projectEffect(effect: Effect): ServerEvent | null {
       return { type: "runEnded", status: effect.status };
     case "log":
       return { type: "log", message: effect.message };
-    // 클라이언트가 알 필요 없는 신호는 흘리지 않는다
-    case "conditionCritical":
     case "delegationRefused":
+      // 예전에는 여기서 버렸다 — 하달 버튼이 아무 신호 없이 씹혔다(WORKORDER.md E단계
+      // 침묵 판정). 사유를 흘려서 하달 창이 "왜 안 됐는지"를 말하게 한다.
+      //
+      // sim의 `Effect["delegationRefused"]`는 `reason`을 `string`으로만 선언한다
+      // (packages/sim/src/types.ts) — 실제 값은 언제나 `delegation.ts`의
+      // `DelegationRefusal` 9종 중 하나다(canDelegate가 그 타입만 반환한다). sim은
+      // 이 발주의 소유가 아니라(ARCH-02) 타입을 여기서 좁혀 받는다.
+      return {
+        type: "delegationRefused",
+        reason: effect.reason as Extract<ServerEvent, { type: "delegationRefused" }>["reason"],
+        questId: effect.questId,
+      };
+    // conditionCritical은 이 발주 범위 밖이다(WORKORDER.md E-2) — 계속 버린다
+    case "conditionCritical":
       return null;
     default:
       return null;
