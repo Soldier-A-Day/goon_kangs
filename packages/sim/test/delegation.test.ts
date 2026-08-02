@@ -51,6 +51,7 @@ function chore(state: RunState, ownerId: string, id = "c1"): Quest {
     spot: null,
     jointTotal: 0,
     jointDone: 0,
+    jointAsymmetric: false,
     workMs: 15 * SECOND,
     workedMs: 0,
     minActors: 1,

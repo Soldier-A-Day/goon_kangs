@@ -2,6 +2,7 @@ import {
   bandRule,
   disciplineBand,
   isSupplyDay,
+  jointRoles,
   missingGear,
   phaseAt,
   type Effect,
@@ -24,6 +25,12 @@ export function projectSnapshot(
 ): Snapshot {
   const phase = phaseAt(state.phaseIndex);
   const last = state.judgements[state.judgements.length - 1];
+  // B-1 정보 비대칭 — 합동판이 SEQ·TRACE가 아니거나 방에 실사람이 2명
+  // 미만이면 sim이 빈 맵을 낸다. 숨길 이유가 없는 값이라 전원에게 그대로 보낸다
+  const joint = [...jointRoles(state).entries()].map(([memberId, role]) => ({
+    memberId,
+    role,
+  }));
 
   return {
     type: "snapshot",
@@ -122,6 +129,8 @@ export function projectSnapshot(
       grade: quest.grade,
       jointTotal: quest.jointTotal,
       jointDone: quest.jointDone,
+      // 오늘의 합동은 최대 하나뿐이라(quests.ts) 이 배열은 그 하나에만 채워진다
+      jointRoles: quest.kind === "joint" ? joint : [],
     })),
     lastJudgement: last
       ? {

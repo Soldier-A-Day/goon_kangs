@@ -25,6 +25,7 @@ function required(state: RunState, ownerId: string, id: string): Quest {
     spot: null,
     jointTotal: 0,
     jointDone: 0,
+    jointAsymmetric: false,
     workMs: 10 * SECOND,
     workedMs: 0,
     minActors: 1,

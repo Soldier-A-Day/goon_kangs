@@ -431,6 +431,15 @@ export const minigameSchema = z.discriminatedUnion("type", [
 ]);
 export type Minigame = z.infer<typeof minigameSchema>;
 
+/**
+ * B-1 정보 비대칭 — 합동 조각을 채우는 두 역할(`packages/sim/src/step.ts` `jointRoles`).
+ *
+ * `watch`는 정답 화면만 보고 조작하지 않는다. `operate`는 입력 화면만 보고
+ * 정답을 보지 않는다 — 화면을 서로 불러줘야 조각이 오른다.
+ */
+export const jointRoleSchema = z.enum(["watch", "operate"]);
+export type JointRole = z.infer<typeof jointRoleSchema>;
+
 export const questViewSchema = z.object({
   id: z.string(),
   kind: questKindSchema,
@@ -477,6 +486,18 @@ export const questViewSchema = z.object({
   jointTotal: z.number(),
   /** 분대가 지금까지 채운 조각 — 남이 채운 것이 내 화면에도 보여야 협동이다 */
   jointDone: z.number(),
+  /**
+   * B-1 정보 비대칭 — 이 합동판에서 누가 어느 역할인지.
+   *
+   * 비어 있으면(`[]`) 비대칭이 꺼진 것이다 — SEQ·TRACE 원형이 아니거나
+   * (`quests.json` `joint.boards[].asymmetric`), 방에 실사람이 2명 미만이라
+   * 부를 상대가 없다는 뜻이다(`jointRoles`가 그때 빈 맵을 낸다). 비어 있을
+   * 때는 기존 합동판 그대로 — 조작도 되고 정답도 보인다.
+   *
+   * 숨길 이유가 없는 값이라 전원에게 그대로 보낸다 — 비대칭은 클라이언트
+   * 화면 분기가 만드는 것이지, 서버가 정보를 숨겨서 만드는 것이 아니다.
+   */
+  jointRoles: z.array(z.object({ memberId: z.string(), role: jointRoleSchema })),
 });
 
 export const snapshotSchema = z.object({

@@ -45,11 +45,18 @@ const JOINT = questTable.joint;
 const JOINT_BOARDS = (questTable.joint as { boards?: Record<string, Record<string, unknown>> })
   .boards ?? {};
 
-/** 합동 판 정의에서 `steps`를 떼어낸다 — 그건 조각 수지 원형 파라미터가 아니다 */
+/**
+ * 합동 판 정의에서 `steps`·`asymmetric`을 떼어낸다.
+ *
+ * 둘 다 원형 파라미터가 아니다 — `steps`는 조각 수(`jointTotal`)이고
+ * `asymmetric`은 B-1 역할 배정 여부(`Quest.jointAsymmetric`)다. 둘 다 이미
+ * `Quest`의 다른 필드로 옮겨 실리므로, 여기 남으면 클라로 나가는 `Minigame`에
+ * 원형이 모르는 키가 섞인다.
+ */
 function jointBoard(spec: Record<string, unknown>): Minigame {
   const out: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(spec)) {
-    if (key === "steps") continue;
+    if (key === "steps" || key === "asymmetric") continue;
     out[key] = value;
   }
   return out as unknown as Minigame;
@@ -151,6 +158,7 @@ export function generateDayQuests(state: RunState): readonly [Quest[], RngState]
         grade: null,
         jointTotal: 0,
         jointDone: 0,
+        jointAsymmetric: false,
       });
     }
 
@@ -243,6 +251,7 @@ export function generateDayQuests(state: RunState): readonly [Quest[], RngState]
         grade: null,
         jointTotal: 0,
         jointDone: 0,
+        jointAsymmetric: false,
       });
     }
   }
@@ -251,6 +260,9 @@ export function generateDayQuests(state: RunState): readonly [Quest[], RngState]
   if (plan.jointActors > 0 && plan.joint) {
     const spec = JOINT_BOARDS[plan.joint];
     const steps = spec ? Number(spec.steps ?? 0) : 0;
+    // B-1 정보 비대칭 — SEQ·TRACE 합동판에만 quests.json이 켜 둔다(JOINT.md
+    // 미구현 항목). 다른 원형은 지금도 전원이 같은 화면을 보는 것이 맞다
+    const asymmetric = spec ? Boolean(spec.asymmetric) : false;
     const board = spec ? jointBoard(spec) : null;
     quests.push({
       id: `d${state.day}-joint`,
@@ -274,6 +286,7 @@ export function generateDayQuests(state: RunState): readonly [Quest[], RngState]
       grade: null,
       jointTotal: board ? steps : 0,
       jointDone: 0,
+      jointAsymmetric: asymmetric,
     });
   }
 
@@ -466,6 +479,7 @@ function toQuest(
     grade: null,
     jointTotal: 0,
     jointDone: 0,
+    jointAsymmetric: false,
   };
 }
 

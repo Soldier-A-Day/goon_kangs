@@ -15,6 +15,7 @@ function upkeep(overrides: Partial<Quest> = {}): Quest {
     spot: null,
     jointTotal: 0,
     jointDone: 0,
+    jointAsymmetric: false,
     workMs: 10_000,
     workedMs: 0,
     minActors: 1,

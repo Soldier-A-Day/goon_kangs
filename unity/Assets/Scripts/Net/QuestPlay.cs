@@ -216,6 +216,10 @@ namespace SoldierADay.Net
         ///
         /// 혼자 통과하는 판이 아니라 **인원이 나눠 채우는 판**이라 겉을 한 겹
         /// 씌운다. 조각은 서버가 세고, 통과 선언도 서버가 한다.
+        ///
+        /// B-1 — `MyRole`은 `Begin`을 부르기 **전에** 넣어야 한다. `Begin`이
+        /// 곧바로 `Setup`을 불러 첫 라운드를 여는데, 그 안에서 역할별 시드·
+        /// 파라미터를 갈라야 첫 판부터 정답 역할과 조작 역할이 같은 문제를 본다.
         /// </summary>
         private Board Joint(SnapshotQuestsItem quest, string questId, float limitSeconds)
         {
@@ -224,10 +228,29 @@ namespace SoldierADay.Net
                 Total = Mathf.Max(1, (int)quest.jointTotal),
                 Done = (int)quest.jointDone,
                 NeedActors = Mathf.Max(1, (int)quest.minActors),
+                MyRole = MyJointRole(quest),
             };
             board.OnStep = () => client?.JointStep(questId);
             board.Begin(_spec, limitSeconds, questId);
             return board;
+        }
+
+        /// <summary>
+        /// B-1 — 스냅샷의 `jointRoles`에서 내 memberId를 찾는다.
+        ///
+        /// 못 찾으면(비대칭이 꺼졌거나 아직 스냅샷이 안 왔거나) 빈 문자열이고,
+        /// `JointBoard`는 그걸 "비대칭 없음"으로 읽어 예전 그대로 돈다.
+        /// </summary>
+        private string MyJointRole(SnapshotQuestsItem quest)
+        {
+            var myId = client != null ? client.MemberId : null;
+            if (string.IsNullOrEmpty(myId) || quest.jointRoles == null) return "";
+
+            foreach (var entry in quest.jointRoles)
+            {
+                if (entry != null && entry.memberId == myId) return entry.role;
+            }
+            return "";
         }
 
         private static Board Chore(float limitSeconds, string questId)
@@ -237,7 +260,10 @@ namespace SoldierADay.Net
             return board;
         }
 
-        /// <summary>합동 판에 서버 값을 넣어준다 — 남이 채운 조각과 지금 모인 인원</summary>
+        /// <summary>
+        /// 합동 판에 서버 값을 넣어준다 — 남이 채운 조각과 지금 모인 인원,
+        /// 그리고(B-1) 내가 이번 조각에서 정답 역할인지 조작 역할인지.
+        /// </summary>
         private void Feed(JointBoard board)
         {
             var quest = Find(QuestId);
@@ -246,6 +272,7 @@ namespace SoldierADay.Net
             board.Done = (int)quest.jointDone;
             board.Total = Mathf.Max(1, (int)quest.jointTotal);
             board.NeedActors = Mathf.Max(1, (int)quest.minActors);
+            board.MyRole = MyJointRole(quest);
 
             // 그 구역에 실제로 서 있는 인원. 이동 중은 세지 않는다 — 서버의
             // `actorsAt`과 같은 잣대여야 화면과 실제가 갈라지지 않는다
