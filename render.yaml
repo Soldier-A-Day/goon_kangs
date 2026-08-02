@@ -32,10 +32,13 @@ services:
       - key: CORS_ORIGIN
         sync: false
       # 저장소는 선택이다 — 없으면 인메모리로 떨어진다(`persistence.ts`).
-      # 붙이면 24시간 이어하기와 전적 기록이 살아난다
-      - key: UPSTASH_REDIS_REST_URL
+      # 붙이면 24시간 이어하기와 전적 기록이 살아난다.
+      #
+      # 이름이 `KV_`인 것은 Vercel KV가 그렇게 발급하기 때문이다. 코드는 이쪽을
+      # 먼저 보고, 없으면 `UPSTASH_REDIS_REST_*`로 떨어진다(`stores/upstash.ts`)
+      - key: KV_REST_API_URL
         sync: false
-      - key: UPSTASH_REDIS_REST_TOKEN
+      - key: KV_REST_API_TOKEN
         sync: false
       - key: SUPABASE_URL
         sync: false
