@@ -140,6 +140,62 @@ describe("DISC-01 하루 정산", () => {
     const changed = effects.find((e) => e.type === "disciplineChanged");
     expect(changed).toBeDefined();
   });
+
+  // WORKORDER.md E-2 잔여 — 최종값 한 줄이 아니라 "무엇으로 몇 점"이 실려야 한다
+  it("군기 변화가 항목별 델타로 분해된다", () => {
+    let state = beginDay(fullSquad());
+    state = completeRequired(state);
+    for (const quest of state.quests) {
+      quest.status = "done";
+      quest.workedMs = quest.workMs;
+    }
+    const { effects } = tally(state);
+    const changed = effects.find((e) => e.type === "disciplineChanged");
+    if (!changed || changed.type !== "disciplineChanged") throw new Error("이벤트 없음");
+
+    // 정시 완수 +5, 합동 무결 +12, 무부상 +6 — 선택까지 다 끝냈으니 감점은 없다
+    expect(changed.deltas).toEqual(
+      expect.arrayContaining([
+        { reason: "onTimeCompletion", value: 5 },
+        { reason: "jointFlawless", value: 12 },
+        { reason: "noInjuryDay", value: 6 },
+      ]),
+    );
+    expect(changed.deltas).toHaveLength(3);
+    // 항목 값의 합은 클램프가 없는 한 최종 증감과 같아야 한다
+    const sum = changed.deltas.reduce((total, d) => total + d.value, 0);
+    expect(changed.to - changed.from).toBe(sum);
+  });
+
+  it("같은 사유가 여러 건이면 하나로 합산된다 — 대리 2명은 -3이 아니라 -6 한 줄", () => {
+    let state = beginDay(fullSquad());
+    const [a, b] = state.members;
+    if (!a || !b) throw new Error("분대원 없음");
+    a.presence = "npcLeave";
+    b.presence = "npcEvac";
+
+    const { effects } = tally(state);
+    const changed = effects.find((e) => e.type === "disciplineChanged");
+    if (!changed || changed.type !== "disciplineChanged") throw new Error("이벤트 없음");
+
+    const proxyEntries = changed.deltas.filter((d) => d.reason === "npcProxy");
+    expect(proxyEntries).toEqual([{ reason: "npcProxy", value: -6 }]);
+  });
+
+  it("군기 델타는 사람이 읽는 정산 로그로도 남는다(Unity가 아직 deltas를 못 읽는 동안의 우회로)", () => {
+    let state = beginDay(fullSquad());
+    state = completeRequired(state);
+    for (const quest of state.quests) {
+      quest.status = "done";
+      quest.workedMs = quest.workMs;
+    }
+    const { effects } = tally(state);
+    const log = effects.find((e) => e.type === "log" && e.message.startsWith("군기 정산"));
+    expect(log).toBeDefined();
+    if (log?.type === "log") {
+      expect(log.message).toContain("정시완수 +5");
+    }
+  });
 });
 
 describe("판정과의 관계", () => {

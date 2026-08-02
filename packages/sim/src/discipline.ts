@@ -1,9 +1,38 @@
 import disciplineTable from "../data/discipline.json";
-import type { Effect, RunState } from "./types.js";
+import type { DisciplineDeltaEntry, DisciplineDeltaReason, Effect, RunState } from "./types.js";
 
 const GAINS = disciplineTable.gains;
 const LOSSES = disciplineTable.losses;
 const OFFICERS = disciplineTable.officers;
+
+/**
+ * 항목별 짧은 라벨 — 로그 문장("무엇으로 몇 점")에 쓴다.
+ *
+ * `disciplineChanged.deltas`는 사유 코드만 실어 보내지만, Unity `Generated/Protocol.cs`는
+ * 코드 생성이 이 발주 범위 밖이라(WORKORDER.md, "Generated/Protocol.cs 재생성·수정
+ * 금지") 새 필드를 아직 읽을 수 없다. 그래서 같은 정보를 이미 배선된 `log` 이펙트의
+ * `message`(judge.ts가 이미 쓰는 자유 텍스트 패턴)로도 흘려 오늘 빌드에서 바로 보이게
+ * 한다 — 코드 생성이 따라잡으면 `deltas` 쪽이 정석 경로가 된다.
+ */
+const DISCIPLINE_DELTA_LABELS: Record<DisciplineDeltaReason, string> = {
+  onTimeCompletion: "정시완수",
+  jointFlawless: "합동무결",
+  surpriseSuccess: "돌발성공",
+  noInjuryDay: "무부상",
+  optionalMissed: "선택미완",
+  npcProxy: "대리유지",
+};
+
+function formatDisciplineDeltaLog(
+  from: number,
+  to: number,
+  deltas: readonly DisciplineDeltaEntry[],
+): string {
+  const parts = deltas.map(
+    (d) => `${DISCIPLINE_DELTA_LABELS[d.reason]} ${d.value > 0 ? "+" : ""}${d.value}`,
+  );
+  return `군기 정산 ${from} → ${to}: ${parts.join(" · ")}`;
+}
 
 export interface DisciplineBand {
   readonly id: string;
@@ -57,18 +86,28 @@ function countProxies(state: RunState): number {
 export function applyDailyDiscipline(state: RunState, effects: Effect[]): void {
   const before = state.discipline;
 
+  // WORKORDER.md E-2 잔여 — 항목별로 몇 점인지를 여기서 같이 적어 둔다.
+  // 같은 사유가 하루에 여러 번 나오면(합동/돌발 다건) 사유별로 합산한다 —
+  // "잔치 -8이 세 번"이 아니라 "잔치 -24" 한 줄이 항목별 분해에 맞다.
+  const deltaTotals = new Map<DisciplineDeltaReason, number>();
+  const record = (reason: DisciplineDeltaReason, value: number): void => {
+    if (value === 0) return;
+    adjustDiscipline(state, value);
+    deltaTotals.set(reason, (deltaTotals.get(reason) ?? 0) + value);
+  };
+
   const required = state.quests.filter((q) => q.required);
   if (required.length > 0 && required.every((q) => q.status === "done")) {
-    adjustDiscipline(state, GAINS.onTimeCompletion.value);
+    record("onTimeCompletion", GAINS.onTimeCompletion.value);
   }
 
   for (const quest of state.quests) {
     if (quest.kind === "joint" && quest.status === "done") {
       // 부분 성공(70%)은 제외한다 — 무결 완수에만 보상한다
-      adjustDiscipline(state, GAINS.jointFlawless.value);
+      record("jointFlawless", GAINS.jointFlawless.value);
     }
     if (quest.kind === "surprise" && quest.status === "done") {
-      adjustDiscipline(state, GAINS.surpriseSuccess.value);
+      record("surpriseSuccess", GAINS.surpriseSuccess.value);
     }
   }
 
@@ -76,7 +115,7 @@ export function applyDailyDiscipline(state: RunState, effects: Effect[]): void {
     (m) => m.presence === "player" && m.stats.stamina <= 0,
   );
   if (!injured) {
-    adjustDiscipline(state, GAINS.noInjuryDay.value);
+    record("noInjuryDay", GAINS.noInjuryDay.value);
   }
 
   // 회복 행동은 안 했다고 군기가 깎이지 않는다 — 몸으로 갚는다(7.0)
@@ -84,25 +123,38 @@ export function applyDailyDiscipline(state: RunState, effects: Effect[]): void {
     (q) => !q.required && q.kind !== "joint" && q.kind !== "care" && q.status !== "done",
   );
   if (optionalMissed) {
-    adjustDiscipline(state, LOSSES.optionalMissed.value);
+    record("optionalMissed", LOSSES.optionalMissed.value);
   }
 
   // 대리 유지 비용. 처음부터 비어 있던 자리(npcVacant)는 면제된다 — 사고와 선택은 다른 사건이다
   const proxies = countProxies(state);
   if (proxies > 0) {
-    adjustDiscipline(state, LOSSES.npcProxy.value * proxies);
+    record("npcProxy", LOSSES.npcProxy.value * proxies);
   }
 
   applyBandConsequences(state);
   applyOfficerTrust(state);
 
   if (state.discipline !== before) {
+    const deltas: DisciplineDeltaEntry[] = [...deltaTotals].map(([reason, value]) => ({
+      reason,
+      value,
+    }));
     effects.push({
       type: "disciplineChanged",
       from: before,
       to: state.discipline,
       band: disciplineBand(state.discipline).id,
+      deltas,
     });
+    // Unity가 아직 `deltas`를 못 읽는 동안의 우회로 — 위 주석 참조.
+    // E-3(오늘의 기록)이 그대로 주워 담을 수 있게 사람이 읽는 문장으로도 남긴다.
+    if (deltas.length > 0) {
+      effects.push({
+        type: "log",
+        message: formatDisciplineDeltaLog(before, state.discipline, deltas),
+      });
+    }
   }
 }
 

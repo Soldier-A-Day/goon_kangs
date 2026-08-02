@@ -58,6 +58,10 @@ namespace SoldierADay.Net
         private ServerEvent _lastRefusal;
         private float _refusalAt = -10f;
 
+        /// <summary>E-3 — 수첩(Tab) 안의 페이지 선택. 기본은 기존 4분할 요약이고,
+        /// 눌러야 "오늘의 기록"으로 넘어간다 — 예전 화면을 대체하지 않고 옆에 얹는다</summary>
+        private bool _notebookJournal;
+
         public HudScreens(Hud hud) => _hud = hud;
 
         /// <summary>이 창들이 떠 있으면 이동·상호작용을 잠근다</summary>
@@ -376,11 +380,25 @@ namespace SoldierADay.Net
             GUI.Label(new Rect(counter.x - 100f, counter.y, 92f, 24f), "남은 필수",
                 theme.At(theme.Small, 13, HudTheme.Ink2, TextAnchor.MiddleRight));
 
+            // E-3 — 수첩 안에 페이지 탭 둘. 기존 4분할 요약을 지우거나 옮기지 않고
+            // "오늘의 기록" 페이지를 그 위에 얹는다(WORKORDER.md E-3). 탭 한 줄을
+            // 위해 4분할 시작선을 28px 내린다 — 아래 회복 칸의 여유(26px)를 거의
+            // 그대로 쓰는 값이라 패널 밖으로 넘치지 않는다.
+            var tabStrip = new Rect(panel.x + 32f, panel.y + 92f, 300f, 26f);
+            DrawNotebookTabs(theme, tabStrip);
+            if (_notebookJournal)
+            {
+                DrawJournal(theme, new Rect(panel.x, tabStrip.yMax + 6f, panel.width, panel.height - (tabStrip.yMax + 6f - panel.y)));
+                return;
+            }
+
             // 4분할 — 각 720×376 (목업 실측)
-            var top = panel.y + 88f;
+            var top = panel.y + 88f + 28f;
             var midX = panel.x + panel.width * 0.5f;
             var midY = top + 376f;
-            theme.Fill(new Rect(midX - 1f, top, 2f, panel.height - 88f), HudTheme.Rule);
+            // E-3 탭 한 줄만큼 위 `top`을 28px 내렸으므로 세로줄 길이도 그만큼 줄여
+            // 패널 밖으로 넘치지 않게 한다
+            theme.Fill(new Rect(midX - 1f, top, 2f, panel.height - 88f - 28f), HudTheme.Rule);
             theme.Fill(new Rect(panel.x, midY, panel.width, 2f), HudTheme.Rule);
 
             Quadrant(theme, new Rect(panel.x + 40f, top + 30f, 680f, 346f),
@@ -405,6 +423,76 @@ namespace SoldierADay.Net
             SquadProgress(theme, new Rect(handed.x - 8f, handed.yMax - 72f, handed.width, 72f), snapshot);
 
             bool IsMine(SnapshotQuestsItem q) => q.ownerId == Client.MemberId;
+        }
+
+        /// <summary>E-3 — 수첩 페이지 탭 두 개. 클릭으로 전환한다(마우스만 — Tab/M/Space는
+        /// 이미 다른 화면 전환에 예약돼 있어 새 단축키를 얹지 않는다)</summary>
+        private void DrawNotebookTabs(HudTheme theme, Rect strip)
+        {
+            var tabWidth = 144f;
+            var summary = new Rect(strip.x, strip.y, tabWidth, strip.height);
+            var journal = new Rect(strip.x + tabWidth + 8f, strip.y, tabWidth, strip.height);
+
+            DrawTab(theme, summary, "일과 요약", !_notebookJournal);
+            if (GUI.Button(summary, "", GUIStyle.none)) _notebookJournal = false;
+
+            DrawTab(theme, journal, "오늘의 기록", _notebookJournal);
+            if (GUI.Button(journal, "", GUIStyle.none)) _notebookJournal = true;
+
+            static void DrawTab(HudTheme t, Rect rect, string label, bool active)
+            {
+                t.Fill(rect, active ? HudTheme.AccentW : HudTheme.Paper3);
+                if (active) t.Spine(rect, HudTheme.Accent);
+                GUI.Label(rect, label,
+                    t.At(t.Small, 14, active ? HudTheme.Accent : HudTheme.Ink2, TextAnchor.MiddleCenter));
+            }
+        }
+
+        /// <summary>E-3 — "오늘의 기록" 스크롤 위치. 하루가 바뀌어 목록이 비워지면
+        /// 다음 프레임부터 자연히 맨 위(0,0)에서 다시 시작한다</summary>
+        private Vector2 _journalScroll;
+
+        /// <summary>
+        /// E-3 — "오늘의 기록" 페이지. 그날 이펙트를 시간순(최신 위)으로, 종류별
+        /// 색 점과 함께 늘어놓는다 — RimWorld식 일지(WORKORDER.md E-3).
+        ///
+        /// 목록은 `Hud.CollectJournal`이 채운다(세션 로컬, 서버 저장 아님 — 재접속하면
+        /// 유실되는 게 알려진 제한이다). 하루가 넘어가면 그쪽에서 통째로 비운다 —
+        /// 구분선 대신 리스트 자체를 갈아 끼우는 쪽을 골랐다. 오늘의 기록이지
+        /// 어제 것을 이어 보여줄 이유가 없어서다.
+        /// </summary>
+        private void DrawJournal(HudTheme theme, Rect area)
+        {
+            theme.Fill(new Rect(area.x, area.y, area.width, 1f), HudTheme.Rule);
+
+            var entries = _hud.Journal;
+            if (entries == null || entries.Count == 0)
+            {
+                GUI.Label(new Rect(area.x + 40f, area.y + 24f, area.width - 80f, 26f),
+                    "오늘은 아직 기록이 없다", theme.At(theme.Body, 16, HudTheme.Ink3));
+                return;
+            }
+
+            const float rowHeight = 34f;
+            var viewport = new Rect(area.x + 8f, area.y + 8f, area.width - 16f, area.height - 16f);
+            var content = new Rect(0f, 0f, viewport.width - 20f, rowHeight * entries.Count);
+            _journalScroll = GUI.BeginScrollView(viewport, _journalScroll, content);
+
+            var y = 0f;
+            for (var i = 0; i < entries.Count; i += 1)
+            {
+                var entry = entries[i];
+                HudIcons.Dot(new Rect(4f, y + 12f, 10f, 10f), entry.color);
+                GUI.Label(new Rect(24f, y, 96f, rowHeight), entry.clock,
+                    theme.At(theme.Mono, 14, HudTheme.Ink3));
+                GUI.Label(new Rect(120f, y, 100f, rowHeight), entry.tag,
+                    theme.At(theme.Label, 12, entry.color));
+                GUI.Label(new Rect(226f, y, content.width - 226f, rowHeight), entry.text,
+                    theme.At(theme.Body, 15, HudTheme.Ink));
+                y += rowHeight;
+            }
+
+            GUI.EndScrollView();
         }
 
         /// <summary>
@@ -1617,8 +1705,35 @@ namespace SoldierADay.Net
                 $"{snapshot.discipline?.value ?? 0d:0}",
                 theme.At(theme.Mono, 17, HudTheme.Ink, TextAnchor.MiddleRight));
 
+            // E-2 잔여 — "군기" 한 줄이 최종값만 보여줘 왜 그렇게 됐는지 안 보이던
+            // 자리다(WORKORDER.md E-2). `Hud.CollectJournal`이 같은 정산에서 받아 둔
+            // 항목별 델타 문장(discipline.ts formatDisciplineDeltaLog)을 그 아래
+            // 한 줄로 붙인다 — 오늘 아직 정산이 없었으면(첫 취침 전) 그냥 안 보인다.
+            var disciplineBreakdown = DisciplineBreakdownText();
+            if (!string.IsNullOrEmpty(disciplineBreakdown))
+            {
+                GUI.Label(new Rect(panel.x + 40f, y + 58f, panel.width - 80f, 40f), disciplineBreakdown,
+                    theme.At(theme.Small, 13, HudTheme.Ink2));
+            }
+
             GUI.Label(new Rect(panel.x, panel.yMax - 44f, panel.width, 24f), "SPACE — 닫기",
                 theme.At(theme.Label, 13, HudTheme.Ink3, TextAnchor.MiddleCenter));
+        }
+
+        /// <summary>E-2 잔여 — 오늘의 기록에서 가장 최근 "군기 정산 …" 문장을 찾는다.
+        /// `Hud.CollectJournal`은 disciplineChanged 자체(태그 "군기", 최종값만)와
+        /// 그 옆의 log 항목(같은 태그, 항목별 델타 문장) 둘 다 "군기"로 태그해 두므로
+        /// 태그가 아니라 문장 접두어(discipline.ts `formatDisciplineDeltaLog`가 쓰는
+        /// "군기 정산 ")로 정확히 골라낸다.</summary>
+        private string DisciplineBreakdownText()
+        {
+            var entries = _hud.Journal;
+            if (entries == null) return null;
+            foreach (var entry in entries)
+            {
+                if (entry.text != null && entry.text.StartsWith("군기 정산 ")) return entry.text;
+            }
+            return null;
         }
 
         /* ═══════════════════════════════════════════ §7.7 승급 심사 */
