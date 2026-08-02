@@ -1,0 +1,197 @@
+<svg viewBox="0 0 1400 1020" xmlns="http://www.w3.org/2000/svg" font-family="Pretendard, 'Apple SD Gothic Neo', 'Malgun Gothic', 'Noto Sans KR', sans-serif">
+<rect width="1400" height="1020" fill="#E3E4DD"/>
+<defs><marker id="a3" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="2" stroke-linecap="round"/></marker></defs>
+
+<text x="60" y="48" fill="#9E3226" font-size="12" letter-spacing="3" font-family="ui-monospace, Menlo, monospace">SAD-ART-002 · PLAN 03</text>
+<text x="60" y="88" fill="#191C16" font-size="34" font-weight="800" letter-spacing="-1">급양동 · 보급정비동</text>
+<text x="480" y="87" fill="#5E6E42" font-size="17" font-weight="700">배식 동선은 단방향 — 되돌아갈 수 없다</text>
+<text x="1340" y="88" fill="#5A6053" font-size="14" text-anchor="end">1타일 = 0.5m · 상세도 22px/타일</text>
+<rect x="60" y="104" width="1280" height="2" fill="#191C16"/>
+
+<text x="80" y="150" fill="#5E6E42" font-size="13" font-weight="700" letter-spacing="2" font-family="ui-monospace, Menlo, monospace">A.  병사식당 — 24 × 16 타일</text>
+<text x="80" y="176" fill="#5A6053" font-size="13">분대별로 집합해 인솔 입장 · 지정 자리 착석 · 식판은 스스로 닦아 반납</text>
+
+<g>
+  <rect x="80" y="200" width="528" height="352" fill="#EEEFE9"/>
+  <g stroke="#CBCDC2" stroke-width="0.5">
+    <path d="M124 200V552M168 200V552M212 200V552M256 200V552M300 200V552M344 200V552M388 200V552M432 200V552M476 200V552M520 200V552M564 200V552"/>
+    <path d="M80 244H608M80 288H608M80 332H608M80 376H608M80 420H608M80 464H608M80 508H608"/>
+  </g>
+  <rect x="80" y="200" width="528" height="352" fill="none" stroke="#191C16" stroke-width="4"/>
+
+  <rect x="80" y="200" width="264" height="66" fill="#D8DAD0" stroke="#807E76" stroke-width="1.5"/>
+  <text x="212" y="230" fill="#191C16" font-size="14" font-weight="800" text-anchor="middle">배식대</text>
+  <text x="212" y="250" fill="#5A6053" font-size="11" text-anchor="middle">식판 · 수저 · 3찬 · 국</text>
+  <g fill="#8E958F"><rect x="96" y="240" width="30" height="18"/><rect x="140" y="240" width="30" height="18"/><rect x="184" y="240" width="30" height="18"/><rect x="228" y="240" width="30" height="18"/><rect x="272" y="240" width="30" height="18"/></g>
+
+  <g fill="#A88254" stroke="#5F482C" stroke-width="1.5">
+    <rect x="112" y="310" width="180" height="34"/><rect x="112" y="386" width="180" height="34"/><rect x="112" y="462" width="180" height="34"/>
+    <rect x="330" y="310" width="180" height="34"/><rect x="330" y="386" width="180" height="34"/><rect x="330" y="462" width="180" height="34"/>
+  </g>
+  <g fill="#84643E">
+    <rect x="112" y="296" width="180" height="10"/><rect x="112" y="348" width="180" height="10"/>
+    <rect x="112" y="372" width="180" height="10"/><rect x="112" y="424" width="180" height="10"/>
+    <rect x="112" y="448" width="180" height="10"/><rect x="112" y="500" width="180" height="10"/>
+    <rect x="330" y="296" width="180" height="10"/><rect x="330" y="348" width="180" height="10"/>
+    <rect x="330" y="372" width="180" height="10"/><rect x="330" y="424" width="180" height="10"/>
+    <rect x="330" y="448" width="180" height="10"/><rect x="330" y="500" width="180" height="10"/>
+  </g>
+  <text x="202" y="332" fill="#3D2E1C" font-size="11" text-anchor="middle">1분대 지정석</text>
+  <text x="420" y="332" fill="#3D2E1C" font-size="11" text-anchor="middle">2분대</text>
+
+  <rect x="440" y="200" width="168" height="66" fill="#C9C7BC" stroke="#484D49" stroke-width="2"/>
+  <text x="524" y="228" fill="#191C16" font-size="13" font-weight="800" text-anchor="middle">퇴식구</text>
+  <text x="524" y="248" fill="#5A6053" font-size="11" text-anchor="middle">잔반통 · 식판 반납대</text>
+  <g fill="#5F5E5A"><circle cx="464" cy="238" r="12"/></g>
+
+  <rect x="180" y="548" width="60" height="8" fill="#E3E4DD" stroke="#191C16" stroke-width="2"/>
+  <text x="210" y="574" fill="#5A6053" font-size="12" text-anchor="middle">입장</text>
+  <rect x="470" y="548" width="60" height="8" fill="#E3E4DD" stroke="#191C16" stroke-width="2"/>
+  <text x="500" y="574" fill="#5A6053" font-size="12" text-anchor="middle">퇴장</text>
+
+  <g stroke="#5E6E42" stroke-width="3" fill="none" marker-end="url(#a3)" opacity="0.85">
+    <path d="M210 544V280"/>
+    <path d="M212 276H330"/>
+  </g>
+  <g stroke="#B25E2C" stroke-width="3" fill="none" marker-end="url(#a3)" opacity="0.85">
+    <path d="M420 300V270"/>
+    <path d="M500 268V540"/>
+  </g>
+
+  <g fill="#5E6E42">
+    <circle cx="212" cy="216" r="10"/><text x="212" y="221" fill="#EEEFE9" font-size="12" font-weight="800" text-anchor="middle">1</text>
+    <circle cx="524" cy="216" r="10" fill="#B25E2C"/><text x="524" y="221" fill="#EEEFE9" font-size="12" font-weight="800" text-anchor="middle">2</text>
+    <circle cx="420" cy="479" r="10"/><text x="420" y="484" fill="#EEEFE9" font-size="12" font-weight="800" text-anchor="middle">3</text>
+  </g>
+</g>
+
+<g transform="translate(640,200)">
+  <text x="0" y="-24" fill="#5E6E42" font-size="13" font-weight="700" letter-spacing="2" font-family="ui-monospace, Menlo, monospace">B.  취사장 — 16 × 16 타일</text>
+  <rect x="0" y="0" width="352" height="352" fill="#EEEFE9"/>
+  <g stroke="#CBCDC2" stroke-width="0.5">
+    <path d="M44 0V352M88 0V352M132 0V352M176 0V352M220 0V352M264 0V352M308 0V352"/>
+    <path d="M0 44H352M0 88H352M0 132H352M0 176H352M0 220H352M0 264H352M0 308H352"/>
+  </g>
+  <rect x="0" y="0" width="352" height="352" fill="none" stroke="#191C16" stroke-width="4"/>
+
+  <g fill="#8E958F" stroke="#484D49" stroke-width="1.5">
+    <rect x="16" y="16" width="150" height="60"/>
+  </g>
+  <g fill="#484D49"><circle cx="50" cy="46" r="14"/><circle cx="92" cy="46" r="14"/><circle cx="134" cy="46" r="14"/></g>
+  <text x="91" y="94" fill="#5A6053" font-size="12" text-anchor="middle">대형 조리솥 ×3</text>
+
+  <rect x="190" y="16" width="146" height="60" fill="#6A716C" stroke="#484D49" stroke-width="1.5"/>
+  <text x="263" y="52" fill="#EEEFE9" font-size="12" text-anchor="middle">취반기 · 증기</text>
+
+  <rect x="16" y="120" width="320" height="46" fill="#B4B2A9" stroke="#484D49" stroke-width="1.5"/>
+  <text x="176" y="149" fill="#191C16" font-size="13" font-weight="700" text-anchor="middle">조리대 · 배식 준비</text>
+
+  <rect x="16" y="196" width="150" height="60" fill="#8E958F" stroke="#484D49" stroke-width="1.5"/>
+  <text x="91" y="232" fill="#191C16" font-size="12" text-anchor="middle">식기세척기</text>
+
+  <rect x="190" y="196" width="146" height="60" fill="#5A8296" stroke="#2E4652" stroke-width="1.5" opacity="0.65"/>
+  <text x="263" y="226" fill="#2E4652" font-size="12" font-weight="700" text-anchor="middle">급수 · 정수</text>
+  <text x="263" y="244" fill="#2E4652" font-size="11" text-anchor="middle">식수 검수 지점</text>
+
+  <rect x="16" y="286" width="150" height="50" fill="#C9C7BC" stroke="#484D49" stroke-width="1.5"/>
+  <text x="91" y="316" fill="#191C16" font-size="12" text-anchor="middle">부식 저장고</text>
+  <rect x="190" y="286" width="146" height="50" fill="#5F5E5A" stroke="#2C2C2A" stroke-width="1.5"/>
+  <text x="263" y="316" fill="#EEEFE9" font-size="12" text-anchor="middle">잔반 처리장</text>
+
+  <circle cx="263" cy="226" r="10" fill="#5E6E42"/>
+  <text x="263" y="231" fill="#EEEFE9" font-size="12" font-weight="800" text-anchor="middle">4</text>
+  <circle cx="263" cy="311" r="10" fill="#B25E2C"/>
+  <text x="263" y="316" fill="#EEEFE9" font-size="12" font-weight="800" text-anchor="middle">5</text>
+</g>
+
+<g transform="translate(1030,180)">
+  <rect x="0" y="0" width="310" height="392" fill="#EEEFE9" stroke="#B7BAAD"/>
+  <rect x="0" y="0" width="6" height="392" fill="#5E6E42"/>
+  <text x="20" y="32" fill="#5E6E42" font-size="12" letter-spacing="2" font-family="ui-monospace, Menlo, monospace">상호작용 · 시스템 연동</text>
+
+  <circle cx="34" cy="64" r="10" fill="#5E6E42"/><text x="34" y="69" fill="#EEEFE9" font-size="12" font-weight="800" text-anchor="middle">1</text>
+  <text x="56" y="62" fill="#191C16" font-size="14" font-weight="700">배식 감독 — 의무병</text>
+  <text x="20" y="88" fill="#5A6053" font-size="13">성공 시 분대 전원 포만감 · 수분</text>
+  <text x="20" y="108" fill="#5A6053" font-size="13">회복량 +50%. 실패 시 소모 2배</text>
+
+  <circle cx="34" cy="146" r="10" fill="#B25E2C"/><text x="34" y="151" fill="#EEEFE9" font-size="12" font-weight="800" text-anchor="middle">2</text>
+  <text x="56" y="144" fill="#191C16" font-size="14" font-weight="700">퇴식구 — 식판 반납</text>
+  <text x="20" y="170" fill="#5A6053" font-size="13">스스로 닦아 반납. 검사에 걸리면</text>
+  <text x="20" y="190" fill="#5A6053" font-size="13">청결 감점</text>
+
+  <circle cx="34" cy="228" r="10" fill="#5E6E42"/><text x="34" y="233" fill="#EEEFE9" font-size="12" font-weight="800" text-anchor="middle">3</text>
+  <text x="56" y="226" fill="#191C16" font-size="14" font-weight="700">지정석 착석</text>
+  <text x="20" y="252" fill="#5A6053" font-size="13">분대 단위 고정. 여기 앉아야</text>
+  <text x="20" y="272" fill="#5A6053" font-size="13">정신력이 회복된다 (고립 해제)</text>
+
+  <circle cx="34" cy="310" r="10" fill="#5E6E42"/><text x="34" y="315" fill="#EEEFE9" font-size="12" font-weight="800" text-anchor="middle">4</text>
+  <text x="56" y="308" fill="#191C16" font-size="14" font-weight="700">식수 검수 — 의무병</text>
+  <text x="20" y="334" fill="#5A6053" font-size="13">극혹한 밴드에서 정수 작업 금지 —</text>
+  <text x="20" y="354" fill="#5A6053" font-size="13">동파 위험 (표 5-1)</text>
+  <text x="20" y="378" fill="#9E3226" font-size="12" font-weight="700">5 잔반 처리 = 공통 일과 · 하달 1순위</text>
+</g>
+
+<text x="80" y="640" fill="#5E6E42" font-size="13" font-weight="700" letter-spacing="2" font-family="ui-monospace, Menlo, monospace">C.  보급정비동</text>
+
+<g transform="translate(80,670)">
+  <rect x="0" y="0" width="420" height="250" fill="#EEEFE9" stroke="#191C16" stroke-width="3"/>
+  <rect x="0" y="0" width="420" height="30" fill="#D8DAD0"/>
+  <text x="14" y="21" fill="#191C16" font-size="15" font-weight="800">보급 창고 — 20 × 16 타일</text>
+  <g fill="#84643E" stroke="#5F482C" stroke-width="1.5">
+    <rect x="20" y="50" width="60" height="170"/><rect x="96" y="50" width="60" height="170"/><rect x="172" y="50" width="60" height="170"/>
+  </g>
+  <g stroke="#5F482C" stroke-width="1">
+    <path d="M20 90H80M20 130H80M20 170H80M96 90H156M96 130H156M96 170H156M172 90H232M172 130H232M172 170H232"/>
+  </g>
+  <text x="126" y="240" fill="#5A6053" font-size="12" text-anchor="middle">물자 선반 ×6</text>
+  <rect x="256" y="50" width="146" height="80" fill="#6A716C" stroke="#484D49" stroke-width="2"/>
+  <text x="329" y="84" fill="#EEEFE9" font-size="13" font-weight="700" text-anchor="middle">공용장비함</text>
+  <text x="329" y="104" fill="#D8DAD0" font-size="11" text-anchor="middle">텐트 · 난로 · 들것</text>
+  <text x="329" y="120" fill="#9AB06F" font-size="11" font-weight="700" text-anchor="middle">2인 필요</text>
+  <circle cx="329" cy="90" r="0" fill="none"/>
+  <rect x="256" y="150" width="146" height="70" fill="#C9C7BC" stroke="#484D49" stroke-width="1.5"/>
+  <text x="329" y="180" fill="#191C16" font-size="12" text-anchor="middle">피복 · 소모품</text>
+  <text x="329" y="200" fill="#5A6053" font-size="11" text-anchor="middle">보급일 수령 지점</text>
+  <rect x="180" y="246" width="60" height="8" fill="#E3E4DD" stroke="#191C16" stroke-width="2"/>
+</g>
+
+<g transform="translate(530,670)">
+  <rect x="0" y="0" width="420" height="250" fill="#EEEFE9" stroke="#191C16" stroke-width="3"/>
+  <rect x="0" y="0" width="420" height="30" fill="#D8DAD0"/>
+  <text x="14" y="21" fill="#191C16" font-size="15" font-weight="800">정비고 — 행정병 담당 (정비 흡수)</text>
+  <rect x="20" y="50" width="180" height="110" fill="#8E958F" stroke="#484D49" stroke-width="2"/>
+  <text x="110" y="100" fill="#191C16" font-size="13" font-weight="700" text-anchor="middle">차량 정비 베이</text>
+  <text x="110" y="120" fill="#5A6053" font-size="11" text-anchor="middle">D-11 합동 퀘스트</text>
+  <g fill="#5F5E5A"><circle cx="50" cy="145" r="10"/><circle cx="170" cy="145" r="10"/></g>
+  <rect x="220" y="50" width="90" height="60" fill="#B25E2C" stroke="#7A3A18" stroke-width="2"/>
+  <text x="265" y="78" fill="#EEEFE9" font-size="12" font-weight="700" text-anchor="middle">난로</text>
+  <text x="265" y="96" fill="#F5C4B3" font-size="11" text-anchor="middle">열원</text>
+  <circle cx="265" cy="80" r="42" fill="#B25E2C" opacity="0.12"/>
+  <rect x="326" y="50" width="76" height="60" fill="#6A716C" stroke="#484D49" stroke-width="2"/>
+  <text x="364" y="84" fill="#EEEFE9" font-size="12" text-anchor="middle">발전기</text>
+  <rect x="220" y="130" width="182" height="46" fill="#C9C7BC" stroke="#484D49" stroke-width="1.5"/>
+  <text x="311" y="158" fill="#191C16" font-size="12" text-anchor="middle">공구함 · 정비 부품</text>
+  <g fill="#8E958F" stroke="#484D49" stroke-width="1.5"><rect x="220" y="192" width="50" height="40"/><rect x="280" y="192" width="50" height="40"/><rect x="340" y="192" width="50" height="40"/></g>
+  <text x="305" y="216" fill="#191C16" font-size="11" text-anchor="middle">유류통</text>
+  <text x="20" y="200" fill="#9E3226" font-size="12" font-weight="700">행정병 실패 시</text>
+  <text x="20" y="220" fill="#5A6053" font-size="12">혹한 보온 −50% · 텐트 설치 3배</text>
+</g>
+
+<g transform="translate(980,670)">
+  <rect x="0" y="0" width="360" height="250" fill="#EEEFE9" stroke="#B7BAAD"/>
+  <rect x="0" y="0" width="6" height="250" fill="#9E3226"/>
+  <text x="20" y="32" fill="#9E3226" font-size="12" letter-spacing="2" font-family="ui-monospace, Menlo, monospace">고증에서 얻은 설계 힌트</text>
+  <text x="20" y="62" fill="#191C16" font-size="14" font-weight="700">배식 동선은 단방향이다</text>
+  <text x="20" y="86" fill="#5A6053" font-size="13">입장 → 배식대 → 지정석 → 퇴식구 → 퇴장.</text>
+  <text x="20" y="106" fill="#5A6053" font-size="13">되돌아가는 경로가 없다.</text>
+  <text x="20" y="134" fill="#5E6E42" font-size="13" font-weight="700">게임 파급 — 12:00 중식 칸이</text>
+  <text x="20" y="154" fill="#5E6E42" font-size="13" font-weight="700">자연스러운 강제 이동 구간이 된다</text>
+  <text x="20" y="182" fill="#5A6053" font-size="13">전원이 같은 구역에 모이므로 무전 없이도</text>
+  <text x="20" y="202" fill="#5A6053" font-size="13">대화가 되는 하루 두 번의 창구다.</text>
+  <text x="20" y="230" fill="#9E3226" font-size="13" font-weight="700">여기서 못 나눈 정보는 오후에 발로 뛴다</text>
+</g>
+
+<rect x="60" y="960" width="1280" height="1" fill="#B7BAAD"/>
+<text x="60" y="990" fill="#5A6053" font-size="12" font-family="ui-monospace, Menlo, monospace">SAD-ART-002 · PLAN 03 · 급양 · 보급</text>
+<text x="1340" y="990" fill="#5A6053" font-size="12" text-anchor="end">초록 화살표 = 배식 동선 · 주황 화살표 = 퇴식 동선</text>
+</svg>

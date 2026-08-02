@@ -1,0 +1,241 @@
+<svg viewBox="0 0 1400 1200" xmlns="http://www.w3.org/2000/svg" font-family="Pretendard, 'Apple SD Gothic Neo', 'Malgun Gothic', 'Noto Sans KR', sans-serif">
+<rect width="1400" height="1200" fill="#E3E4DD"/>
+
+<text x="60" y="46" fill="#9E3226" font-size="12" letter-spacing="3" font-family="ui-monospace, Menlo, monospace">SAD-ART-003 · FIELD 03</text>
+<text x="60" y="86" fill="#191C16" font-size="32" font-weight="800" letter-spacing="-1">지원 · 통제 시설 — 일과 수행 지점</text>
+<text x="740" y="85" fill="#5E6E42" font-size="16" font-weight="700">4구역 · 12건</text>
+<g font-size="12">
+  <circle cx="1000" cy="80" r="8" fill="#5A6053"/><text x="1014" y="85" fill="#5A6053">공통</text>
+  <circle cx="1080" cy="80" r="8" fill="#9E3226"/><text x="1094" y="85" fill="#5A6053">의무</text>
+  <circle cx="1160" cy="80" r="8" fill="#3F6E90"/><text x="1174" y="85" fill="#5A6053">통신</text>
+  <circle cx="1240" cy="80" r="8" fill="#B08A2C"/><text x="1254" y="85" fill="#5A6053">행정</text>
+  <circle cx="1310" cy="80" r="8" fill="#B25E2C"/><text x="1324" y="85" fill="#5A6053" text-anchor="end">돌발</text>
+</g>
+<rect x="60" y="104" width="1280" height="2" fill="#191C16"/>
+
+<!-- Z05 의무실 -->
+<text x="60" y="146" fill="#5E6E42" font-size="13" font-weight="700" letter-spacing="2" font-family="ui-monospace, Menlo, monospace">Z05 · 의무실</text>
+<g>
+  <rect x="60" y="164" width="620" height="310" fill="#EEEFE9"/>
+  <g stroke="#CBCDC2" stroke-width="0.5">
+    <path d="M100 164V474M140 164V474M180 164V474M220 164V474M260 164V474M300 164V474M340 164V474M380 164V474M420 164V474M460 164V474M500 164V474M540 164V474M580 164V474M620 164V474M660 164V474"/>
+    <path d="M60 204H680M60 244H680M60 284H680M60 324H680M60 364H680M60 404H680M60 444H680"/>
+  </g>
+  <rect x="60" y="164" width="620" height="310" fill="none" stroke="#191C16" stroke-width="4"/>
+
+  <g fill="#EEEFE9" stroke="#484D49" stroke-width="2">
+    <rect x="84" y="192" width="200" height="70"/><rect x="84" y="292" width="200" height="70"/>
+  </g>
+  <g fill="#C9C7BC"><rect x="92" y="200" width="34" height="54"/><rect x="92" y="300" width="34" height="54"/></g>
+  <text x="200" y="232" fill="#191C16" font-size="12" text-anchor="middle">침상 1</text>
+  <text x="200" y="332" fill="#191C16" font-size="12" text-anchor="middle">침상 2</text>
+
+  <rect x="320" y="192" width="200" height="90" fill="#C9C7BC" stroke="#484D49" stroke-width="1.5"/>
+  <g fill="#EEF1E8" stroke="#9E3226" stroke-width="1">
+    <rect x="334" y="206" width="34" height="28"/><rect x="376" y="206" width="34" height="28"/><rect x="418" y="206" width="34" height="28"/><rect x="460" y="206" width="34" height="28"/>
+    <rect x="334" y="242" width="34" height="28"/><rect x="376" y="242" width="34" height="28"/><rect x="418" y="242" width="34" height="28"/>
+  </g>
+  <text x="420" y="300" fill="#5A6053" font-size="11" text-anchor="middle">의약품장 — 유통기한 라벨</text>
+
+  <rect x="320" y="326" width="200" height="60" fill="#8E958F" stroke="#484D49" stroke-width="1.5"/>
+  <text x="420" y="352" fill="#191C16" font-size="12" font-weight="700" text-anchor="middle">위생 검수대</text>
+  <rect x="330" y="358" width="60" height="20" fill="#5F5E5A"/>
+  <text x="360" y="373" fill="#EEEFE9" font-size="9" text-anchor="middle">폐기함</text>
+
+  <rect x="556" y="192" width="100" height="190" fill="#EAEDDF" stroke="#5E6E42" stroke-width="2"/>
+  <g fill="#8E958F"><rect x="570" y="210" width="72" height="14"/><rect x="570" y="240" width="72" height="14"/></g>
+  <text x="606" y="290" fill="#5E6E42" font-size="12" font-weight="700" text-anchor="middle">들것 거치</text>
+  <text x="606" y="310" fill="#5A6053" font-size="10" text-anchor="middle">2인 1조</text>
+
+  <rect x="590" y="466" width="70" height="10" fill="#E3E4DD" stroke="#191C16" stroke-width="2"/>
+  <text x="625" y="440" fill="#9E3226" font-size="11" text-anchor="middle">계단 구간</text>
+  <path d="M600 400 h50 M600 414 h50 M600 428 h50" stroke="#9E3226" stroke-width="2"/>
+
+  <circle cx="200" cy="278" r="13" fill="#B25E2C"/><text x="200" y="283" fill="#EEEFE9" font-size="13" font-weight="800" text-anchor="middle">3</text>
+  <circle cx="420" cy="310" r="13" fill="#9E3226"/><text x="420" y="315" fill="#EEEFE9" font-size="13" font-weight="800" text-anchor="middle">2</text>
+  <circle cx="606" cy="342" r="13" fill="#9E3226"/><text x="606" y="347" fill="#EEEFE9" font-size="13" font-weight="800" text-anchor="middle">1</text>
+  <path d="M606 355 L625 400" stroke="#9E3226" stroke-width="2" stroke-dasharray="4 3"/>
+</g>
+<g transform="translate(60,490)" font-size="12">
+  <g><circle cx="10" cy="10" r="9" fill="#9E3226"/><text x="10" y="15" fill="#EEEFE9" font-size="11" font-weight="800" text-anchor="middle">1</text>
+     <text x="28" y="15" fill="#191C16" font-weight="700">환자 후송</text><text x="130" y="15" fill="#5A6053">들것 수평 유지 → 계단 구간에서 인터럽트</text>
+     <text x="620" y="15" fill="#5E6E42" text-anchor="end" font-family="ui-monospace, Menlo, monospace">BALANCE+REACT 24s</text></g>
+  <g transform="translate(0,24)"><circle cx="10" cy="10" r="9" fill="#9E3226"/><text x="10" y="15" fill="#EEEFE9" font-size="11" font-weight="800" text-anchor="middle">2</text>
+     <text x="28" y="15" fill="#191C16" font-weight="700">의약품 재고 정리</text><text x="170" y="15" fill="#5A6053">선입선출 · 폐기 판정 — 의약품장 앞</text>
+     <text x="620" y="15" fill="#5E6E42" text-anchor="end" font-family="ui-monospace, Menlo, monospace">SORT 18s</text></g>
+  <g transform="translate(0,48)"><circle cx="10" cy="10" r="9" fill="#B25E2C"/><text x="10" y="15" fill="#EEEFE9" font-size="11" font-weight="800" text-anchor="middle">3</text>
+     <text x="28" y="15" fill="#191C16" font-weight="700">환자 발생</text><text x="130" y="15" fill="#5A6053">의식 → 호흡 → 지혈 → 보고 — 침상 옆</text>
+     <text x="620" y="15" fill="#5E6E42" text-anchor="end" font-family="ui-monospace, Menlo, monospace">SEQ 20s</text></g>
+</g>
+
+<!-- Z06 통신실 -->
+<text x="730" y="146" fill="#5E6E42" font-size="13" font-weight="700" letter-spacing="2" font-family="ui-monospace, Menlo, monospace">Z06 · 통신실</text>
+<g>
+  <rect x="730" y="164" width="610" height="310" fill="#EEEFE9"/>
+  <g stroke="#CBCDC2" stroke-width="0.5">
+    <path d="M770 164V474M810 164V474M850 164V474M890 164V474M930 164V474M970 164V474M1010 164V474M1050 164V474M1090 164V474M1130 164V474M1170 164V474M1210 164V474M1250 164V474M1290 164V474"/>
+    <path d="M730 204H1340M730 244H1340M730 284H1340M730 324H1340M730 364H1340M730 404H1340M730 444H1340"/>
+  </g>
+  <rect x="730" y="164" width="610" height="310" fill="none" stroke="#191C16" stroke-width="4"/>
+
+  <rect x="754" y="188" width="260" height="120" fill="#484D49" stroke="#2C2C2A" stroke-width="2"/>
+  <g fill="#5A8296"><rect x="770" y="204" width="64" height="40"/><rect x="846" y="204" width="64" height="40"/><rect x="922" y="204" width="64" height="40"/></g>
+  <g fill="#7FAECF"><circle cx="784" cy="272" r="7"/><circle cx="810" cy="272" r="7"/><circle cx="836" cy="272" r="7"/><circle cx="862" cy="272" r="7"/></g>
+  <g fill="#B4B2A9"><rect x="900" y="262" width="100" height="20" rx="4"/></g>
+  <text x="884" y="332" fill="#191C16" font-size="13" font-weight="700" text-anchor="middle">무전 콘솔 — 암호 입력 키패드</text>
+
+  <rect x="1060" y="188" width="260" height="90" fill="#EAEDDF" stroke="#3F6E90" stroke-width="2"/>
+  <g stroke="#3F6E90" stroke-width="1" opacity="0.6">
+    <path d="M1074 210H1306M1074 228H1306M1074 246H1306M1074 264H1306"/>
+  </g>
+  <g fill="#9E3226" opacity="0.6"><rect x="1180" y="222" width="50" height="10"/><rect x="1120" y="258" width="60" height="10"/></g>
+  <text x="1190" y="298" fill="#3F6E90" font-size="12" font-weight="700" text-anchor="middle">교신 일지 — 누락 시각</text>
+
+  <rect x="1060" y="326" width="120" height="90" fill="#6A716C" stroke="#484D49" stroke-width="1.5"/>
+  <g fill="#B4B2A9"><rect x="1074" y="340" width="26" height="30"/><rect x="1106" y="340" width="26" height="30"/><rect x="1138" y="340" width="26" height="30"/><rect x="1074" y="376" width="26" height="30"/></g>
+  <text x="1120" y="436" fill="#5A6053" font-size="11" text-anchor="middle">배터리함</text>
+
+  <rect x="1210" y="326" width="110" height="90" fill="#E6F1FB" stroke="#3F6E90" stroke-width="2"/>
+  <text x="1265" y="360" fill="#185FA5" font-size="11" font-weight="700" text-anchor="middle">안테나</text>
+  <text x="1265" y="378" fill="#3F6E90" font-size="11" text-anchor="middle">접속부</text>
+  <path d="M1265 326V300" stroke="#3F6E90" stroke-width="2"/>
+
+  <circle cx="884" cy="352" r="13" fill="#3F6E90"/><text x="884" y="357" fill="#EEEFE9" font-size="13" font-weight="800" text-anchor="middle">1</text>
+  <path d="M884 339V314" stroke="#3F6E90" stroke-width="2" stroke-dasharray="3 3"/>
+  <circle cx="1190" cy="312" r="13" fill="#3F6E90"/><text x="1190" y="317" fill="#EEEFE9" font-size="13" font-weight="800" text-anchor="middle">2</text>
+</g>
+<g transform="translate(730,490)" font-size="12">
+  <g><circle cx="10" cy="10" r="9" fill="#3F6E90"/><text x="10" y="15" fill="#EEEFE9" font-size="11" font-weight="800" text-anchor="middle">1</text>
+     <text x="28" y="15" fill="#191C16" font-weight="700">암호 코드 갱신</text><text x="160" y="15" fill="#5A6053">자릿수 점증 6→8→10 — 콘솔 키패드</text>
+     <text x="610" y="15" fill="#5E6E42" text-anchor="end" font-family="ui-monospace, Menlo, monospace">SEQ 20s</text></g>
+  <g transform="translate(0,24)"><circle cx="10" cy="10" r="9" fill="#3F6E90"/><text x="10" y="15" fill="#EEEFE9" font-size="11" font-weight="800" text-anchor="middle">2</text>
+     <text x="28" y="15" fill="#191C16" font-weight="700">교신 일지 정리</text><text x="160" y="15" fill="#5A6053">시각 로그 누락분 적발 — 일지 보드</text>
+     <text x="610" y="15" fill="#5E6E42" text-anchor="end" font-family="ui-monospace, Menlo, monospace">AUDIT 15s</text></g>
+</g>
+
+<!-- Z04 행정반 -->
+<text x="60" y="606" fill="#5E6E42" font-size="13" font-weight="700" letter-spacing="2" font-family="ui-monospace, Menlo, monospace">Z04 · 행정반 · CP</text>
+<g>
+  <rect x="60" y="624" width="620" height="310" fill="#EEEFE9"/>
+  <g stroke="#CBCDC2" stroke-width="0.5">
+    <path d="M140 624V934M220 624V934M300 624V934M380 624V934M460 624V934M540 624V934M620 624V934"/>
+    <path d="M60 704H680M60 784H680M60 864H680"/>
+  </g>
+  <rect x="60" y="624" width="620" height="310" fill="none" stroke="#191C16" stroke-width="4"/>
+
+  <rect x="84" y="648" width="230" height="66" fill="#A88254" stroke="#5F482C" stroke-width="1.5"/>
+  <g fill="#8E958F"><rect x="104" y="634" width="44" height="16"/><rect x="250" y="634" width="44" height="16"/></g>
+  <g fill="#EEEFE9" stroke="#807E76"><rect x="170" y="664" width="70" height="40"/></g>
+  <text x="205" y="688" fill="#191C16" font-size="10" text-anchor="middle">인원 대장</text>
+  <text x="199" y="732" fill="#5A6053" font-size="11" text-anchor="middle">행정 책상 · 단말</text>
+
+  <rect x="360" y="648" width="296" height="180" fill="#EAEDDF" stroke="#B08A2C" stroke-width="2"/>
+  <text x="508" y="672" fill="#B08A2C" font-size="13" font-weight="800" text-anchor="middle">일과표 게시판</text>
+  <g fill="#D8DAD0" stroke="#B08A2C" stroke-width="1">
+    <rect x="376" y="686" width="42" height="60"/><rect x="424" y="686" width="42" height="60"/><rect x="472" y="686" width="42" height="60"/>
+    <rect x="520" y="686" width="42" height="60"/><rect x="568" y="686" width="42" height="60"/><rect x="616" y="686" width="30" height="60"/>
+  </g>
+  <g fill="#5E6E42" opacity="0.55"><rect x="378" y="700" width="38" height="20"/><rect x="474" y="712" width="38" height="24"/><rect x="570" y="694" width="38" height="30"/></g>
+  <text x="508" y="768" fill="#5A6053" font-size="11" text-anchor="middle">시간 블록 6칸 — 겹침 금지</text>
+  <g stroke="#B08A2C" stroke-width="1" opacity="0.5"><path d="M376 790H646M376 806H646"/></g>
+
+  <rect x="84" y="800" width="572" height="100" fill="#C9C7BC" stroke="#484D49" stroke-width="1.5"/>
+  <text x="370" y="828" fill="#191C16" font-size="13" font-weight="700" text-anchor="middle">지휘통제실 CP</text>
+  <text x="370" y="850" fill="#5A6053" font-size="11" text-anchor="middle">간부 3인 · 상황 브리핑</text>
+  <g fill="#84643E"><rect x="150" y="860" width="34" height="26"/><rect x="210" y="860" width="34" height="26"/><rect x="270" y="860" width="34" height="26"/></g>
+
+  <circle cx="205" cy="744" r="13" fill="#B08A2C"/><text x="205" y="749" fill="#EEEFE9" font-size="13" font-weight="800" text-anchor="middle">2</text>
+  <path d="M205 731V708" stroke="#B08A2C" stroke-width="2" stroke-dasharray="3 3"/>
+  <circle cx="508" cy="788" r="13" fill="#B08A2C"/><text x="508" y="793" fill="#EEEFE9" font-size="13" font-weight="800" text-anchor="middle">1</text>
+</g>
+<g transform="translate(60,950)" font-size="12">
+  <g><circle cx="10" cy="10" r="9" fill="#B08A2C"/><text x="10" y="15" fill="#EEEFE9" font-size="11" font-weight="800" text-anchor="middle">1</text>
+     <text x="28" y="15" fill="#191C16" font-weight="700">일과표 게시</text><text x="140" y="15" fill="#5A6053">시간 블록 배치 · 겹침 금지 — 게시판 앞</text>
+     <text x="620" y="15" fill="#5E6E42" text-anchor="end" font-family="ui-monospace, Menlo, monospace">PLACE 15s</text></g>
+  <g transform="translate(0,24)"><circle cx="10" cy="10" r="9" fill="#B08A2C"/><text x="10" y="15" fill="#EEEFE9" font-size="11" font-weight="800" text-anchor="middle">2</text>
+     <text x="28" y="15" fill="#191C16" font-weight="700">인원 보고</text><text x="130" y="15" fill="#5A6053">총원 − 열외 = 현재원 검산 — 행정 책상</text>
+     <text x="620" y="15" fill="#5E6E42" text-anchor="end" font-family="ui-monospace, Menlo, monospace">AUDIT 16s</text></g>
+</g>
+
+<!-- Z14 보일러실 -->
+<text x="730" y="606" fill="#5E6E42" font-size="13" font-weight="700" letter-spacing="2" font-family="ui-monospace, Menlo, monospace">Z14 · 보일러실</text>
+<g>
+  <rect x="730" y="624" width="610" height="310" fill="#EEEFE9"/>
+  <g stroke="#CBCDC2" stroke-width="0.5">
+    <path d="M810 624V934M890 624V934M970 624V934M1050 624V934M1130 624V934M1210 624V934M1290 624V934"/>
+    <path d="M730 704H1340M730 784H1340M730 864H1340"/>
+  </g>
+  <rect x="730" y="624" width="610" height="310" fill="none" stroke="#191C16" stroke-width="4"/>
+
+  <rect x="754" y="648" width="170" height="150" fill="#6A716C" stroke="#484D49" stroke-width="2"/>
+  <text x="839" y="678" fill="#EEEFE9" font-size="13" font-weight="700" text-anchor="middle">보일러</text>
+  <circle cx="800" cy="716" r="24" fill="#EEEFE9" stroke="#484D49" stroke-width="2"/>
+  <path d="M800 716 l14 -12" stroke="#9E3226" stroke-width="2.5"/>
+  <path d="M782 706 A24 24 0 0 1 818 706" fill="none" stroke="#5E6E42" stroke-width="3"/>
+  <text x="800" y="754" fill="#D8DAD0" font-size="10" text-anchor="middle">압력계</text>
+  <rect x="838" y="700" width="70" height="34" fill="#B25E2C" stroke="#7A3A18"/>
+  <text x="873" y="722" fill="#EEEFE9" font-size="10" text-anchor="middle">연소구</text>
+  <circle cx="839" cy="723" r="66" fill="#B25E2C" opacity="0.1"/>
+  <text x="839" y="782" fill="#B25E2C" font-size="10" text-anchor="middle">열원 반경</text>
+
+  <rect x="960" y="648" width="130" height="90" fill="#6A716C" stroke="#484D49" stroke-width="2"/>
+  <text x="1025" y="678" fill="#EEEFE9" font-size="12" font-weight="700" text-anchor="middle">비상 발전기</text>
+  <rect x="978" y="690" width="46" height="24" fill="#B4B2A9"/>
+  <text x="1001" y="707" fill="#191C16" font-size="9" text-anchor="middle">주유구</text>
+  <circle cx="1062" cy="702" r="13" fill="#EEEFE9" stroke="#484D49" stroke-width="2"/>
+  <path d="M1062 702 l7 -7" stroke="#9E3226" stroke-width="2"/>
+
+  <g fill="#B25E2C" stroke="#7A3A18" stroke-width="1.5">
+    <rect x="960" y="760" width="38" height="52" rx="4"/><rect x="1006" y="760" width="38" height="52" rx="4"/>
+  </g>
+  <text x="1002" y="830" fill="#5A6053" font-size="10" text-anchor="middle">유류통</text>
+
+  <g stroke="#5A8296" stroke-width="7" fill="none">
+    <path d="M1130 660V900"/><path d="M1130 700H1300"/><path d="M1130 780H1300"/><path d="M1130 860H1260"/>
+  </g>
+  <g fill="#EEEFE9" stroke="#2E4652" stroke-width="1.5">
+    <rect x="1216" y="692" width="18" height="16"/><rect x="1258" y="772" width="18" height="16"/><rect x="1180" y="852" width="18" height="16"/>
+  </g>
+  <text x="1240" y="668" fill="#2E4652" font-size="11" font-weight="700" text-anchor="middle">수도 배관 — 동파 점검</text>
+  <circle cx="1130" cy="740" r="12" fill="#9E3226"/>
+  <text x="1108" y="744" fill="#9E3226" font-size="10" text-anchor="end">차단 밸브</text>
+
+  <rect x="1250" y="850" width="70" height="60" fill="#484D49" stroke="#2C2C2A" stroke-width="2"/>
+  <g fill="#B4B2A9"><rect x="1260" y="862" width="14" height="18"/><rect x="1278" y="862" width="14" height="18"/><rect x="1296" y="862" width="14" height="18"/></g>
+  <text x="1285" y="900" fill="#EEEFE9" font-size="9" text-anchor="middle">차단기</text>
+
+  <circle cx="800" cy="770" r="13" fill="#B08A2C"/><text x="800" y="775" fill="#EEEFE9" font-size="13" font-weight="800" text-anchor="middle">2</text>
+  <circle cx="1001" cy="732" r="13" fill="#B08A2C"/><text x="1001" y="737" fill="#EEEFE9" font-size="13" font-weight="800" text-anchor="middle">1</text>
+  <circle cx="1240" cy="726" r="13" fill="#5A6053"/><text x="1240" y="731" fill="#EEEFE9" font-size="13" font-weight="800" text-anchor="middle">4</text>
+  <circle cx="900" cy="880" r="13" fill="#5A6053"/><text x="900" y="885" fill="#EEEFE9" font-size="13" font-weight="800" text-anchor="middle">3</text>
+  <path d="M913 880 H1240 M900 867 V800" stroke="#5A6053" stroke-width="1.5" stroke-dasharray="5 4" opacity="0.6"/>
+  <circle cx="1130" cy="768" r="13" fill="#B25E2C"/><text x="1130" y="773" fill="#EEEFE9" font-size="13" font-weight="800" text-anchor="middle">5</text>
+  <path d="M1143 768 L1250 862" stroke="#B25E2C" stroke-width="2" stroke-dasharray="4 3"/>
+</g>
+<g transform="translate(730,950)" font-size="12">
+  <g><circle cx="10" cy="10" r="9" fill="#B08A2C"/><text x="10" y="15" fill="#EEEFE9" font-size="11" font-weight="800" text-anchor="middle">1</text>
+     <text x="28" y="15" fill="#191C16" font-weight="700">발전기 급유</text><text x="140" y="15" fill="#5A6053">비상 발전기 — Z10 차량용과 구분 필요</text>
+     <text x="610" y="15" fill="#5E6E42" text-anchor="end" font-family="ui-monospace, Menlo, monospace">HOLD 20s</text></g>
+  <g transform="translate(0,24)"><circle cx="10" cy="10" r="9" fill="#B08A2C"/><text x="10" y="15" fill="#EEEFE9" font-size="11" font-weight="800" text-anchor="middle">2</text>
+     <text x="28" y="15" fill="#191C16" font-weight="700">난방기 점검</text><text x="140" y="15" fill="#5A6053">압력 유지 · 2페이즈로 범위 축소 — 압력계</text>
+     <text x="610" y="15" fill="#5E6E42" text-anchor="end" font-family="ui-monospace, Menlo, monospace">HOLD 24s</text></g>
+  <g transform="translate(0,48)"><circle cx="10" cy="10" r="9" fill="#5A6053"/><text x="10" y="15" fill="#EEEFE9" font-size="11" font-weight="800" text-anchor="middle">3</text>
+     <text x="28" y="15" fill="#191C16" font-weight="700">보일러실 순찰</text><text x="150" y="15" fill="#5A6053">누수 · 그을음 징후 — 실내 전역 스캔</text>
+     <text x="610" y="15" fill="#5E6E42" text-anchor="end" font-family="ui-monospace, Menlo, monospace">SEARCH 16s</text></g>
+  <g transform="translate(0,72)"><circle cx="10" cy="10" r="9" fill="#5A6053"/><text x="10" y="15" fill="#EEEFE9" font-size="11" font-weight="800" text-anchor="middle">4</text>
+     <text x="28" y="15" fill="#191C16" font-weight="700">수도 동파 점검</text><text x="150" y="15" fill="#5A6053">배관별 온도 판정 — 배관 분기점 3곳</text>
+     <text x="610" y="15" fill="#5E6E42" text-anchor="end" font-family="ui-monospace, Menlo, monospace">AUDIT 18s</text></g>
+  <g transform="translate(0,96)"><circle cx="10" cy="10" r="9" fill="#B25E2C"/><text x="10" y="15" fill="#EEEFE9" font-size="11" font-weight="800" text-anchor="middle">5</text>
+     <text x="28" y="15" fill="#191C16" font-weight="700">누수 · 정전</text><text x="140" y="15" fill="#5A6053">밸브 차단 → 차단기 복구 — 2지점 이동</text>
+     <text x="610" y="15" fill="#5E6E42" text-anchor="end" font-family="ui-monospace, Menlo, monospace">REACT+TRACE 22s</text></g>
+</g>
+
+<g transform="translate(60,1090)">
+  <rect x="0" y="0" width="1280" height="76" fill="#EEEFE9" stroke="#B7BAAD"/>
+  <rect x="0" y="0" width="6" height="76" fill="#9E3226"/>
+  <text x="24" y="30" fill="#191C16" font-size="14" font-weight="700">발전기가 두 곳에 있다 — Z10 차량용 · Z14 비상용</text>
+  <text x="24" y="56" fill="#5A6053" font-size="13">공간에 그려 놓고 보니 물건 자체가 다르다. 이름을 <tspan font-weight="700">차량 발전기 급유</tspan> / <tspan font-weight="700">비상 발전기 급유</tspan>로 갈라 두면 중복으로 읽히지 않는다.</text>
+</g>
+
+<rect x="60" y="1176" width="1280" height="1" fill="#B7BAAD"/>
+</svg>

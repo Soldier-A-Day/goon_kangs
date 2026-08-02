@@ -1,0 +1,134 @@
+<svg viewBox="0 0 1400 1080" xmlns="http://www.w3.org/2000/svg" font-family="Pretendard, 'Apple SD Gothic Neo', 'Malgun Gothic', 'Noto Sans KR', sans-serif">
+<rect width="1400" height="1080" fill="#E3E4DD"/>
+
+<text x="60" y="48" fill="#9E3226" font-size="12" letter-spacing="3" font-family="ui-monospace, Menlo, monospace">SAD-ART-002 · PLAN 01</text>
+<text x="60" y="88" fill="#191C16" font-size="34" font-weight="800" letter-spacing="-1">부대 전체 배치도</text>
+<text x="440" y="87" fill="#5E6E42" font-size="17" font-weight="700">110 × 85 타일 · 1타일 = 0.5m · 실척 55m × 42.5m</text>
+<text x="1340" y="48" fill="#5A6053" font-size="12" text-anchor="end" letter-spacing="2" font-family="ui-monospace, Menlo, monospace">2026-07-31</text>
+<text x="1340" y="88" fill="#5A6053" font-size="14" text-anchor="end">고증 반영 개정 · 위병소 · 탄약고 신설</text>
+<rect x="60" y="104" width="1280" height="2" fill="#191C16"/>
+
+<g stroke="#CBCDC2" stroke-width="0.5">
+  <path d="M100 120V970M200 120V970M300 120V970M400 120V970M500 120V970M600 120V970M700 120V970M800 120V970M900 120V970M1000 120V970M1100 120V970M1200 120V970"/>
+  <path d="M100 220H1200M100 320H1200M100 420H1200M100 520H1200M100 620H1200M100 720H1200M100 820H1200M100 920H1200"/>
+</g>
+
+<rect x="100" y="120" width="1100" height="850" fill="none" stroke="#5A6053" stroke-width="2" stroke-dasharray="12 6"/>
+<text x="110" y="140" fill="#5A6053" font-size="12" font-family="ui-monospace, Menlo, monospace">외곽 철조망 · 순찰로</text>
+
+<g fill="#B09A76" opacity="0.35"><rect x="400" y="560" width="500" height="300"/></g>
+<rect x="400" y="560" width="500" height="300" fill="none" stroke="#8E7A5B" stroke-width="2"/>
+<text x="650" y="700" fill="#6B5C45" font-size="26" font-weight="800" text-anchor="middle">연병장</text>
+<text x="650" y="726" fill="#8E7A5B" font-size="14" text-anchor="middle">50 × 30 타일 · 집합 · 제식 · 체력단련</text>
+<g stroke="#8E7A5B" stroke-width="1.5" opacity="0.6">
+  <path d="M420 600H880M420 820H880"/>
+  <circle cx="650" cy="710" r="40" fill="none"/>
+</g>
+<g fill="#5E6E42"><circle cx="430" cy="590" r="7"/></g>
+<text x="444" y="595" fill="#5E6E42" font-size="13" font-weight="700">집합 지점</text>
+<g fill="#5E6E42"><circle cx="860" cy="840" r="7"/></g>
+<text x="850" y="845" fill="#5E6E42" font-size="13" font-weight="700" text-anchor="end">국기게양대</text>
+
+<g>
+  <rect x="280" y="200" width="540" height="240" fill="#C9C7BC" stroke="#191C16" stroke-width="3"/>
+  <rect x="280" y="200" width="540" height="34" fill="#A5A399"/>
+  <text x="296" y="224" fill="#191C16" font-size="16" font-weight="800">생활관동 — 대대 병영생활관</text>
+  <text x="804" y="224" fill="#5A6053" font-size="12" text-anchor="end" font-family="ui-monospace, Menlo, monospace">54 × 24 타일</text>
+  <g stroke="#807E76" stroke-width="1.5">
+    <path d="M280 320H820"/><path d="M460 234V320"/><path d="M640 234V320"/><path d="M400 320V440"/><path d="M520 320V440"/><path d="M640 320V440"/><path d="M730 320V440"/>
+  </g>
+  <text x="370" y="280" fill="#191C16" font-size="15" font-weight="700" text-anchor="middle">생활관 ×4</text>
+  <text x="370" y="300" fill="#5A6053" font-size="12" text-anchor="middle">4인실 · 화장실 포함</text>
+  <text x="550" y="280" fill="#191C16" font-size="15" font-weight="700" text-anchor="middle">생활관 ×4</text>
+  <text x="730" y="280" fill="#191C16" font-size="15" font-weight="700" text-anchor="middle">복도 · 계단</text>
+  <text x="340" y="376" fill="#191C16" font-size="14" font-weight="700" text-anchor="middle">세면장</text>
+  <text x="340" y="394" fill="#5A6053" font-size="11" text-anchor="middle">공용 샤워</text>
+  <text x="460" y="376" fill="#191C16" font-size="14" font-weight="700" text-anchor="middle">세탁·건조</text>
+  <text x="580" y="376" fill="#191C16" font-size="14" font-weight="700" text-anchor="middle">사이버지식방</text>
+  <text x="685" y="376" fill="#191C16" font-size="14" font-weight="700" text-anchor="middle">체력단련장</text>
+  <text x="775" y="376" fill="#191C16" font-size="14" font-weight="700" text-anchor="middle">무기고</text>
+  <text x="775" y="394" fill="#9E3226" font-size="11" text-anchor="middle">통제구역</text>
+</g>
+<rect x="530" y="436" width="40" height="8" fill="#E3E4DD" stroke="#191C16" stroke-width="2"/>
+<text x="550" y="464" fill="#5A6053" font-size="12" text-anchor="middle">정문 출입구</text>
+
+<g>
+  <rect x="280" y="480" width="120" height="70" fill="#8E958F" stroke="#191C16" stroke-width="2"/>
+  <text x="340" y="512" fill="#191C16" font-size="14" font-weight="700" text-anchor="middle">보일러실</text>
+  <text x="340" y="532" fill="#5A6053" font-size="11" text-anchor="middle">난방 · 급탕</text>
+</g>
+
+<g>
+  <rect x="880" y="200" width="260" height="220" fill="#C9C7BC" stroke="#191C16" stroke-width="3"/>
+  <rect x="880" y="200" width="260" height="34" fill="#A5A399"/>
+  <text x="896" y="224" fill="#191C16" font-size="16" font-weight="800">급양동</text>
+  <g stroke="#807E76" stroke-width="1.5"><path d="M880 330H1140"/></g>
+  <text x="1010" y="278" fill="#191C16" font-size="15" font-weight="700" text-anchor="middle">병사식당</text>
+  <text x="1010" y="298" fill="#5A6053" font-size="12" text-anchor="middle">배식대 · 퇴식구</text>
+  <text x="1010" y="374" fill="#191C16" font-size="15" font-weight="700" text-anchor="middle">취사장</text>
+  <text x="1010" y="394" fill="#5A6053" font-size="12" text-anchor="middle">조리 · 식기세척</text>
+</g>
+
+<g>
+  <rect x="880" y="460" width="260" height="200" fill="#C9C7BC" stroke="#191C16" stroke-width="3"/>
+  <rect x="880" y="460" width="260" height="34" fill="#A5A399"/>
+  <text x="896" y="484" fill="#191C16" font-size="16" font-weight="800">지원동</text>
+  <g stroke="#807E76" stroke-width="1.5"><path d="M880 570H1140"/><path d="M1010 494V570"/></g>
+  <text x="945" y="530" fill="#191C16" font-size="14" font-weight="700" text-anchor="middle">의무실</text>
+  <text x="1075" y="530" fill="#191C16" font-size="14" font-weight="700" text-anchor="middle">통신실</text>
+  <text x="1010" y="612" fill="#191C16" font-size="14" font-weight="700" text-anchor="middle">행정반 · CP</text>
+  <text x="1010" y="632" fill="#5A6053" font-size="11" text-anchor="middle">지휘통제실</text>
+</g>
+
+<g>
+  <rect x="140" y="600" width="220" height="160" fill="#C9C7BC" stroke="#191C16" stroke-width="3"/>
+  <rect x="140" y="600" width="220" height="34" fill="#A5A399"/>
+  <text x="156" y="624" fill="#191C16" font-size="16" font-weight="800">보급·정비동</text>
+  <g stroke="#807E76" stroke-width="1.5"><path d="M140 690H360"/></g>
+  <text x="250" y="666" fill="#191C16" font-size="14" font-weight="700" text-anchor="middle">보급 창고</text>
+  <text x="250" y="726" fill="#191C16" font-size="14" font-weight="700" text-anchor="middle">정비고 · 차량</text>
+</g>
+
+<g>
+  <rect x="940" y="720" width="220" height="150" fill="none" stroke="#9E3226" stroke-width="2" stroke-dasharray="8 5"/>
+  <rect x="960" y="750" width="180" height="90" fill="#6A716C" stroke="#191C16" stroke-width="2"/>
+  <text x="1050" y="795" fill="#EEEFE9" font-size="16" font-weight="800" text-anchor="middle">탄약고</text>
+  <text x="1050" y="817" fill="#D8DAD0" font-size="11" text-anchor="middle">외곽 격리 · 경계 대상</text>
+  <text x="950" y="740" fill="#9E3226" font-size="12" font-weight="700">이중 철조망</text>
+</g>
+
+<g>
+  <rect x="560" y="900" width="140" height="60" fill="#C9C7BC" stroke="#191C16" stroke-width="3"/>
+  <text x="630" y="926" fill="#191C16" font-size="15" font-weight="800" text-anchor="middle">정문 위병소</text>
+  <text x="630" y="946" fill="#5A6053" font-size="11" text-anchor="middle">출입 통제 · 차단기</text>
+  <rect x="600" y="860" width="60" height="40" fill="#5A646E" opacity="0.5"/>
+  <path d="M560 890H700" stroke="#9E3226" stroke-width="3"/>
+</g>
+
+<g>
+  <rect x="160" y="220" width="80" height="60" fill="#C9C7BC" stroke="#191C16" stroke-width="2"/>
+  <text x="200" y="248" fill="#191C16" font-size="13" font-weight="700" text-anchor="middle">초소 1</text>
+  <text x="200" y="266" fill="#5A6053" font-size="11" text-anchor="middle">북서</text>
+</g>
+<g>
+  <rect x="160" y="840" width="80" height="60" fill="#C9C7BC" stroke="#191C16" stroke-width="2"/>
+  <text x="200" y="868" fill="#191C16" font-size="13" font-weight="700" text-anchor="middle">초소 2</text>
+  <text x="200" y="886" fill="#5A6053" font-size="11" text-anchor="middle">남서</text>
+</g>
+
+<g stroke="#5E6E42" stroke-width="2" stroke-dasharray="6 4" fill="none" opacity="0.75">
+  <path d="M550 444V560"/>
+  <path d="M820 320H880"/>
+  <path d="M900 440V460"/>
+  <path d="M360 660H400"/>
+  <path d="M900 720L940 780"/>
+  <path d="M630 860V900"/>
+</g>
+
+<rect x="60" y="1000" width="1280" height="1" fill="#B7BAAD"/>
+<text x="60" y="1030" fill="#5E6E42" font-size="12" letter-spacing="2" font-family="ui-monospace, Menlo, monospace">축척 규칙</text>
+<text x="180" y="1030" fill="#191C16" font-size="14">1타일 = 0.5m — 캐릭터 어깨너비 기준. 실제 대대 주둔지 대비 약 1/4 압축</text>
+<text x="180" y="1054" fill="#5A6053" font-size="13">압축 상한은 4.0의 시간 예산이 결정한다 — 최장 대각 110타일 ÷ 이동 10타일/초 ≈ 11초</text>
+<text x="1340" y="1030" fill="#9E3226" font-size="13" text-anchor="end" font-weight="700">초록 점선 = 구역 간 이동 동선</text>
+<text x="1340" y="1054" fill="#5A6053" font-size="13" text-anchor="end">굵은 선 = 구역 경계 (8.0 가시성 단위)</text>
+</svg>

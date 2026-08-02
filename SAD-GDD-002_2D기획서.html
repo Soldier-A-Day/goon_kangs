@@ -1,0 +1,2348 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SOLDIER : A DAY — 게임 기획서 (2D)</title>
+<meta name="description" content="SOLDIER : A DAY — 18일 생존형 병영 체험 협동 RPG 시스템 기획서 (SAD-GDD-002 v1.0 · 2D 전환판)">
+</head>
+<body>
+<style>
+  :root {
+    --paper:    #E3E4DD;
+    --paper-2:  #D8DAD0;
+    --paper-3:  #EEEFE9;
+    --ink:      #191C16;
+    --ink-2:    #5A6053;
+    --rule:     #B7BAAD;
+    --rule-2:   #CBCDC2;
+    --accent:   #5E6E42;
+    --accent-w: #EAEDDF;
+    --cold:     #3F6E90;
+    --heat:     #B25E2C;
+    --alert:    #9E3226;
+
+    --kr: "Apple SD Gothic Neo", "Pretendard Variable", Pretendard, "Malgun Gothic",
+          "Noto Sans KR", "Nanum Gothic", system-ui, sans-serif;
+    --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, "Cascadia Mono",
+            "D2Coding", Consolas, monospace;
+
+    --w: 68ch;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper:    #12150F; --paper-2:  #1B1F17; --paper-3:  #191D14;
+      --ink:      #DFE2D6; --ink-2:    #99A18D;
+      --rule:     #333A2B; --rule-2:   #262C1F;
+      --accent:   #9AB06F; --accent-w: #21281A;
+      --cold:     #7FAECF; --heat:     #DB8B55; --alert:    #D2594B;
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper:#12150F; --paper-2:#1B1F17; --paper-3:#191D14;
+    --ink:#DFE2D6; --ink-2:#99A18D; --rule:#333A2B; --rule-2:#262C1F;
+    --accent:#9AB06F; --accent-w:#21281A; --cold:#7FAECF; --heat:#DB8B55; --alert:#D2594B;
+  }
+  :root[data-theme="light"] {
+    --paper:#E3E4DD; --paper-2:#D8DAD0; --paper-3:#EEEFE9;
+    --ink:#191C16; --ink-2:#5A6053; --rule:#B7BAAD; --rule-2:#CBCDC2;
+    --accent:#5E6E42; --accent-w:#EAEDDF; --cold:#3F6E90; --heat:#B25E2C; --alert:#9E3226;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0; background: var(--paper); color: var(--ink);
+    font-family: var(--kr); font-size: 16px; line-height: 1.75;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .label {
+    font-family: var(--mono); font-size: 0.6875rem; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--ink-2);
+  }
+  .mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+  .accent { color: var(--accent); }
+
+  p { margin: 0; }
+  ul, ol { margin: 0; padding-left: 1.25em; }
+  li { margin: 0.2em 0; }
+  li::marker { color: var(--accent); }
+
+  a { color: var(--accent); text-underline-offset: 3px; }
+  s { color: var(--ink-2); text-decoration-thickness: 1px; }
+  code {
+    font-family: var(--mono); font-size: 0.875em; background: var(--paper-2);
+    border: 1px solid var(--rule-2); padding: 0.05em 0.3em; white-space: nowrap;
+  }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+
+  /* ---------- 표지 ---------- */
+  .cover {
+    border-bottom: 2px solid var(--ink); padding: 3.5rem 1.5rem 2rem;
+    background-image:
+      linear-gradient(to right, var(--rule-2) 1px, transparent 1px),
+      linear-gradient(to bottom, var(--rule-2) 1px, transparent 1px);
+    background-size: 28px 28px; background-position: center top;
+  }
+  .cover-inner { max-width: 1080px; margin: 0 auto; display: flex; flex-direction: column; gap: 1.75rem; }
+  .filing { display: flex; flex-wrap: wrap; gap: 0.5rem 1.75rem; align-items: center; }
+  .stamp {
+    font-family: var(--mono); font-size: 0.6875rem; letter-spacing: 0.18em;
+    color: var(--alert); border: 1.5px solid var(--alert); padding: 0.3rem 0.65rem;
+    transform: rotate(-1.5deg);
+  }
+  .stamp.ok { color: var(--accent); border-color: var(--accent); transform: rotate(1deg); }
+  .title {
+    font-size: clamp(2.5rem, 8vw, 5rem); font-weight: 800; letter-spacing: -0.045em;
+    line-height: 0.92; margin: 0; text-wrap: balance;
+  }
+  .title .sub {
+    display: block; font-size: clamp(1rem, 2.6vw, 1.5rem); font-weight: 700;
+    letter-spacing: -0.02em; color: var(--accent); margin-top: 0.6rem;
+  }
+  .thesis { max-width: 46ch; font-size: 1.0625rem; color: var(--ink-2); }
+  .facts {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1px; background: var(--rule); border: 1px solid var(--rule);
+  }
+  .fact { background: var(--paper); padding: 0.85rem 1rem; display: flex; flex-direction: column; gap: 0.15rem; }
+  .fact b { font-size: 0.9375rem; font-weight: 700; letter-spacing: -0.01em; }
+
+  /* ---------- 뼈대 ---------- */
+  .shell {
+    max-width: 1080px; margin: 0 auto; padding: 0 1.5rem 5rem;
+    display: grid; grid-template-columns: minmax(0, 1fr); gap: 2.5rem;
+  }
+  @media (min-width: 1000px) {
+    .shell { grid-template-columns: 200px minmax(0, 1fr); gap: 3.5rem; align-items: start; }
+    .toc { position: sticky; top: 1.5rem; }
+  }
+
+  .toc { padding-top: 2.75rem; font-size: 0.8125rem; line-height: 1.5; }
+  .toc ol {
+    list-style: none; padding: 0; margin: 0.75rem 0 0;
+    display: flex; flex-direction: column; gap: 0.05rem; border-top: 1px solid var(--rule);
+  }
+  .toc li { margin: 0; }
+  .toc a {
+    display: flex; gap: 0.55rem; padding: 0.3rem 0; text-decoration: none;
+    color: var(--ink-2); border-bottom: 1px solid var(--rule-2);
+  }
+  .toc a:hover { color: var(--ink); background: var(--paper-3); }
+  .toc li.grp {
+    font-family: var(--mono); font-size: 0.625rem; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--accent);
+    padding: 0.9rem 0 0.25rem; border-bottom: 1px solid var(--rule);
+  }
+  .toc li.grp:first-child { padding-top: 0.35rem; }
+  .toc a span {
+    font-family: var(--mono); font-size: 0.6875rem; color: var(--accent);
+    padding-top: 0.15rem; min-width: 2.2em;
+  }
+
+  .doc { display: flex; flex-direction: column; gap: 3.25rem; padding-top: 2.75rem; min-width: 0; }
+
+  /* ---------- 섹션 ---------- */
+  .sec { display: flex; flex-direction: column; gap: 1.25rem; scroll-margin-top: 1.5rem; }
+  .sec-head { display: flex; gap: 0.9rem; align-items: baseline; border-top: 2px solid var(--ink); padding-top: 0.75rem; flex-wrap: wrap; }
+  .sec-head .num { font-family: var(--mono); font-size: 0.875rem; font-weight: 700; color: var(--accent); letter-spacing: 0.02em; }
+  .sec-head h2 {
+    margin: 0; font-size: clamp(1.375rem, 3.4vw, 1.75rem); font-weight: 800;
+    letter-spacing: -0.035em; line-height: 1.2; text-wrap: balance;
+  }
+  .lede { max-width: var(--w); color: var(--ink-2); }
+  .sec > p, .sec > ul, .sec > ol { max-width: var(--w); }
+
+  h3 { margin: 0; font-size: 1.0625rem; font-weight: 700; letter-spacing: -0.02em; }
+  h4 { margin: 0; font-size: 0.9375rem; font-weight: 700; letter-spacing: -0.01em; }
+  .sec > h3 {
+    font-size: 1.1875rem; font-weight: 800; letter-spacing: -0.03em;
+    border-top: 1px solid var(--rule); padding-top: 0.9rem; margin-top: 0.5rem;
+  }
+
+  /* ---------- 변경 태그 ---------- */
+  .tag {
+    font-family: var(--mono); font-size: 0.625rem; letter-spacing: 0.12em;
+    text-transform: uppercase; padding: 0.15rem 0.45rem; border: 1px solid currentColor;
+    white-space: nowrap; line-height: 1.4;
+  }
+  .tag.keep { color: var(--ink-2); }
+  .tag.redo { color: var(--alert); }
+  .tag.gain { color: var(--accent); }
+  .tag.new  { color: var(--cold); }
+
+  /* ---------- 시스템 카드 ---------- */
+  .sys { border: 1px solid var(--rule); background: var(--paper-3); }
+  .sys-top {
+    display: flex; flex-wrap: wrap; gap: 0.5rem 0.85rem; align-items: baseline;
+    padding: 0.85rem 1.1rem; border-bottom: 1px solid var(--rule); background: var(--paper-2);
+  }
+  .code {
+    font-family: var(--mono); font-size: 0.6875rem; font-weight: 700; letter-spacing: 0.1em;
+    color: var(--accent); border: 1px solid var(--accent); padding: 0.1rem 0.4rem;
+  }
+  .anatomy { display: flex; flex-direction: column; }
+  .row {
+    display: grid; grid-template-columns: 5.5rem minmax(0, 1fr); gap: 0.9rem;
+    padding: 0.8rem 1.1rem; border-bottom: 1px solid var(--rule-2);
+  }
+  .row:last-child { border-bottom: 0; }
+  .row > .k {
+    font-family: var(--mono); font-size: 0.6875rem; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--ink-2); padding-top: 0.4rem;
+  }
+  .row > .v { min-width: 0; font-size: 0.9375rem; line-height: 1.7; }
+  @media (max-width: 560px) {
+    .row { grid-template-columns: minmax(0, 1fr); gap: 0.2rem; }
+    .row > .k { padding-top: 0; }
+  }
+
+  /* ---------- 표 ---------- */
+  .scroll { overflow-x: auto; border: 1px solid var(--rule); -webkit-overflow-scrolling: touch; }
+  table { border-collapse: collapse; width: 100%; min-width: 640px; font-size: 0.8125rem; font-variant-numeric: tabular-nums; }
+  caption {
+    text-align: left; padding: 0 0 0.5rem; font-family: var(--mono); font-size: 0.6875rem;
+    letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-2);
+  }
+  th, td { text-align: left; padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--rule-2); vertical-align: top; }
+  thead th {
+    background: var(--paper-2); font-size: 0.6875rem; font-family: var(--mono);
+    letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-2);
+    font-weight: 700; border-bottom: 1px solid var(--rule); white-space: nowrap;
+  }
+  tbody tr:nth-child(even) { background: var(--paper-3); }
+  tbody tr:last-child td { border-bottom: 0; }
+  td.d { font-family: var(--mono); font-weight: 700; white-space: nowrap; }
+
+  .t-cold { color: var(--cold); font-weight: 700; }
+  .t-heat { color: var(--heat); font-weight: 700; }
+  .t-fail { color: var(--alert); font-weight: 700; }
+  .t-ok { color: var(--accent); font-weight: 700; }
+
+  /* ---------- 타임라인 ---------- */
+  .timeline {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 1px; background: var(--rule); border: 1px solid var(--rule);
+  }
+  .slot { background: var(--paper-3); padding: 0.85rem 0.9rem; display: flex; flex-direction: column; gap: 0.3rem; }
+  .slot .hh { font-family: var(--mono); font-size: 0.75rem; font-weight: 700; color: var(--accent); }
+  .slot .nm { font-size: 0.9375rem; font-weight: 700; letter-spacing: -0.01em; }
+  .slot .ds { font-size: 0.8125rem; color: var(--ink-2); line-height: 1.55; }
+  .slot.judge { background: var(--accent-w); }
+
+  /* ---------- 보조 박스 ---------- */
+  .rule-box {
+    border-left: 3px solid var(--accent); background: var(--paper-3);
+    padding: 0.9rem 1.1rem; display: flex; flex-direction: column; gap: 0.4rem; max-width: var(--w);
+  }
+  .rule-box.fail { border-left-color: var(--alert); }
+  .rule-box.cold { border-left-color: var(--cold); }
+  .rule-box.heat { border-left-color: var(--heat); }
+  .rule-box h4 { font-size: 0.875rem; }
+  .rule-box p, .rule-box ul { font-size: 0.9375rem; }
+  .rule-box.wide { max-width: none; }
+
+  .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1rem; }
+  .card { border: 1px solid var(--rule); background: var(--paper-3); padding: 0.9rem 1rem; display: flex; flex-direction: column; gap: 0.4rem; }
+  .card .ds { font-size: 0.875rem; color: var(--ink-2); line-height: 1.65; }
+
+  .steps {
+    counter-reset: st; list-style: none; padding: 0; margin: 0;
+    display: flex; flex-direction: column; gap: 0.55rem; max-width: var(--w);
+  }
+  .steps li { counter-increment: st; position: relative; padding-left: 2.5rem; margin: 0; font-size: 0.9375rem; }
+  .steps li::before {
+    content: counter(st, decimal-leading-zero); position: absolute; left: 0; top: 0.15rem;
+    font-family: var(--mono); font-size: 0.75rem; font-weight: 700; color: var(--accent);
+  }
+
+  .kv { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+  .chip {
+    font-family: var(--mono); font-size: 0.6875rem; letter-spacing: 0.06em;
+    padding: 0.2rem 0.5rem; border: 1px solid var(--rule); background: var(--paper); color: var(--ink-2);
+  }
+
+  /* ---------- 개정 요약 배너 ---------- */
+  .revision { border: 2px solid var(--ink); background: var(--paper-3); }
+  .revision-top { padding: 1rem 1.25rem; border-bottom: 2px solid var(--ink); background: var(--paper-2); }
+  .revision-top h2 { margin: 0.2rem 0 0; font-size: 1.375rem; font-weight: 800; letter-spacing: -0.03em; }
+  .revision-body { padding: 1.25rem; display: flex; flex-direction: column; gap: 1.25rem; }
+  .ledger { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1px; background: var(--rule); border: 1px solid var(--rule); }
+  .ledger > div { background: var(--paper); padding: 0.9rem 1rem; display: flex; flex-direction: column; gap: 0.45rem; }
+  .ledger h4 { font-size: 0.8125rem; letter-spacing: 0.06em; text-transform: uppercase; font-family: var(--mono); }
+  .ledger ul { font-size: 0.875rem; line-height: 1.6; }
+
+  footer {
+    border-top: 2px solid var(--ink); margin-top: 1rem; padding-top: 1rem;
+    font-size: 0.8125rem; color: var(--ink-2);
+    display: flex; flex-wrap: wrap; gap: 0.4rem 1.5rem; justify-content: space-between;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .cover-inner > * { animation: rise 0.5s ease-out both; }
+    .cover-inner > *:nth-child(2) { animation-delay: 0.06s; }
+    .cover-inner > *:nth-child(3) { animation-delay: 0.12s; }
+    .cover-inner > *:nth-child(4) { animation-delay: 0.18s; }
+    @keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+  }
+</style>
+
+<header class="cover">
+  <div class="cover-inner">
+    <div class="filing">
+      <span class="stamp">기획 확정판 · 대외주의</span>
+      <span class="stamp ok">2D 전환 반영</span>
+      <span class="label">문서번호 SAD-GDD-002</span>
+      <span class="label">버전 1.0</span>
+      <span class="label">작성일 2026-07-31</span>
+    </div>
+
+    <h1 class="title">
+      SOLDIER<span class="accent"> : </span>A DAY
+      <span class="sub">18일 생존형 병영 체험 협동 RPG — 시스템 기획서 · 2D</span>
+    </h1>
+
+    <p class="thesis">
+      하루의 일과를 전부 끝내야 다음 날이 온다. 보직마다 할 일이 다르고,
+      혼자서는 끝낼 수 없는 일이 매일 하나 이상 섞여 있다.
+      기온은 매일 다시 뽑히고, 기온이 바뀌면 그날의 일과표 자체가 바뀐다.
+    </p>
+
+    <div class="facts">
+      <div class="fact"><span class="label">장르</span><b>협동 생존 RPG / 시뮬</b></div>
+      <div class="fact"><span class="label">플랫폼</span><b>데스크톱 웹 · Unity 2D WebGL2</b></div>
+      <div class="fact"><span class="label">시점 / 그래픽</span><b>탑다운 3/4 · 픽셀아트</b></div>
+      <div class="fact"><span class="label">인원</span><b>4인 (1개 분대)</b></div>
+      <div class="fact"><span class="label">1회 플레이</span><b>18일 · 100~130분</b></div>
+      <div class="fact"><span class="label">승리 조건</span><b>18일차 전역 심사 통과</b></div>
+    </div>
+  </div>
+</header>
+
+<div class="shell">
+  <nav class="toc" aria-label="문서 목차">
+    <span class="label">목차</span>
+    <ol>
+      <li class="grp">개정</li>
+      <li><a href="#s0"><span>0.0</span>3D → 2D 전환</a></li>
+      <li class="grp">기획 개요</li>
+      <li><a href="#s05"><span>0.5</span>구현 현황</a></li><li><a href="#s1"><span>1.0</span>설계 원칙</a></li>
+      <li><a href="#s2"><span>2.0</span>개요와 코어 루프</a></li>
+      <li class="grp">하루의 흐름</li>
+      <li><a href="#s3"><span>3.0</span>보직 시스템</a></li>
+      <li><a href="#s4"><span>4.0</span>시간대 · 일과</a></li>
+      <li><a href="#s5"><span>5.0</span>온도 · 기후</a></li>
+      <li><a href="#s6"><span>6.0</span>퀘스트 시스템</a></li>
+      <li><a href="#s7"><span>7.0</span>컨디션 스탯</a></li>
+      <li><a href="#s8"><span>8.0</span>가시성 · 소통</a></li>
+      <li><a href="#s9"><span>9.0</span>훈련 이벤트</a></li>
+      <li><a href="#s10"><span>10.0</span>점호 판정 · 게임오버</a></li>
+      <li class="grp">누적되는 시스템</li>
+      <li><a href="#s11"><span>11.0</span>보급 · 장비</a></li>
+      <li><a href="#s12"><span>12.0</span>군기 · 신뢰도</a></li>
+      <li><a href="#s13"><span>13.0</span>계급 · 성장 · 메타</a></li>
+      <li class="grp">18일 전체</li>
+      <li><a href="#s14"><span>14.0</span>18일 커리큘럼</a></li>
+      <li class="grp">구현</li>
+      <li><a href="#s15"><span>15.0</span>UI / HUD</a></li>
+      <li><a href="#s16"><span>16.0</span>아트 · 사운드</a></li>
+      <li><a href="#s17"><span>17.0</span>멀티플레이 구조</a></li>
+      <li><a href="#s18"><span>18.0</span>기술 스택</a></li>
+      <li><a href="#s19"><span>19.0</span>개발 로드맵</a></li>
+      <li><a href="#s20"><span>20.0</span>리스크 · 미결정</a></li>
+    </ol>
+  </nav>
+
+  <main class="doc">
+
+    <!-- 0.0 개정 -->
+    <section class="sec" id="s0">
+      <div class="revision">
+        <div class="revision-top">
+          <span class="label">개정 요약 · SAD-GDD-001 v0.9 → SAD-GDD-002 v1.0</span>
+          <h2>3D → 2D 전환</h2>
+        </div>
+        <div class="revision-body">
+          <p style="max-width:none">
+            이 문서는 <b>2D를 전제로 처음부터 다시 쓴 것</b>이다. 이전 판(v0.9)은 3D 3인칭 · 1인칭 전환을 가정했고,
+            일부 시스템이 <b>3차원 공간의 물리적 성질에 의존</b>하고 있었다. 그 의존을 걷어내고
+            2D에서 같은 긴장을 만드는 장치로 갈아끼웠다.
+          </p>
+
+          <div class="ledger">
+            <div>
+              <h4 class="accent">얻은 것</h4>
+              <ul>
+                <li><b>캐릭터 애니메이션 비용 1/5.</b> 이전 판이 Unity를 쓰는 1순위 근거로 든 항목이 스프라이트로 해결된다</li>
+                <li><b>완화 불가 항목 2개 소멸.</b> 4인 60fps와 100분 힙 안정성이 사실상 리스크에서 빠졌다 (18.0)</li>
+                <li><b>다운로드 ≤ 25MB 복귀.</b> v0.9의 120MB 예산을 되돌렸다</li>
+                <li><b>M0 성능 게이트 4주 → 2주.</b> 확보한 2주를 훈련 콘텐츠로 재배분 (19.0)</li>
+              </ul>
+            </div>
+            <div>
+              <h4 style="color:var(--alert)">깨진 것 — 재설계 필요</h4>
+              <ul>
+                <li><b>통신병의 존재 근거.</b> 3D는 벽이 시야를 가려 무전 두절이 압박이 됐다. 탑다운 2D는 화면 안이 다 보인다 → <b>구역 가시성 시스템</b>으로 대체 (8.0)</li>
+                <li><b>행군 20km.</b> 탑다운으로 걷게 하면 지루한 이동이 된다 → <b>사이드뷰 레인 미니게임</b> (9.0)</li>
+                <li><b>방독면 시야창 축소.</b> 2D에서 시야를 좁히면 그냥 안 보인다 → <b>컷인 QTE + 프레임 오버레이</b> (9.0)</li>
+                <li><b>1인칭 전환.</b> 대응물도 없고 필요한 시스템도 없다 → 삭제</li>
+              </ul>
+            </div>
+            <div>
+              <h4 style="color:var(--cold)">그대로 유지</h4>
+              <ul>
+                <li>하루 판정 구조, 온도 6밴드, 퀘스트 5종, 하달 시스템, 계급 · 승급, 18일 커리큘럼, 후송 파이프라인 — <b>게임의 규칙은 전부 뷰와 무관</b>하다</li>
+                <li>서버 권위 모델과 <code>packages/sim</code> 경계 규칙 (17.0 · 18.0)</li>
+                <li>완주율 목표 15~25%와 구제 총량 3회 (10.0)</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="rule-box fail wide">
+            <h4>리스크 1순위가 바뀌었다</h4>
+            <p>
+              v0.9의 최대 리스크는 <b>“WebGL에서 4인 100분이 버티느냐”</b>였다. 2D에서 그 질문은 거의 답이 나 있다.
+              대신 새로운 1순위가 생겼다 — <b>“구역 가시성이 무전 두절을 실제 압박으로 만드느냐.”</b>
+            </p>
+            <p>
+              이건 성능처럼 프로파일러로 잴 수 없고, <b>사람을 넣어봐야 안다.</b>
+              그래서 M1의 검증 질문에 못 박았다(19.0). M3까지 미루면 보직 하나를 통째로 재설계해야 하므로 되돌릴 수 없다.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 0.5 구현 현황 -->
+    <section class="sec" id="s05">
+      <div class="sec-head"><span class="num">0.5</span><h2>구현 현황</h2><span class="tag gain">M0 ~ M4 구현 완료</span></div>
+      <p class="lede">
+        이 절은 <b>기획이 아니라 실측</b>이다. 아래 표의 "됨"은 전부 실제로 돌려서 확인한 것이고,
+        WebGL 빌드를 브라우저에 띄워 서버에 붙인 상태에서 본 결과다.
+      </p>
+
+      <div class="scroll">
+        <table>
+          <caption>표 0-1 · 마일스톤 구현 상태</caption>
+          <thead><tr><th>단계</th><th>상태</th><th>실측</th></tr></thead>
+          <tbody>
+            <tr><td class="d">M0 코어</td><td class="t-ok"><b>됨</b></td>
+              <td>부대 본영 심리스 맵 · 시간대 엔진 · 점호 판정 · 로비 핸드오프</td></tr>
+            <tr><td class="d">M1 협동 · 가시성</td><td class="t-ok"><b>됨</b></td>
+              <td>구역 가시성(A+C) · 미니맵 3단계 · 퀵 커맨드 · 수첩 4분할 · 합동 퀘스트</td></tr>
+            <tr><td class="d">M2 환경</td><td class="t-ok"><b>됨</b></td>
+              <td>Volume Profile 8종 · 풀스크린 셰이더 6종 · 파티클 12종 · 눈 오버레이 + 제설 반영</td></tr>
+            <tr><td class="d">M3 콘텐츠</td><td class="t-ok"><b>됨</b></td>
+              <td>훈련 맵 10종 · 사이드뷰 코스 3종 · 방독면 컷인 3단계 QTE · 하달 창 · 일과표</td></tr>
+            <tr><td class="d">M4 완성도</td><td class="t-ok"><b>됨</b></td>
+              <td>피복 8레이어 × 보직·계급 16조합 · 승급 심사 · 후송 연출 · 하달 장부 · 접근성 옵션</td></tr>
+            <tr><td class="d">M5 밸런스 · 출시</td><td class="t-fail"><b>미착수</b></td>
+              <td>엔딩 리포트 3분기 · BGM 6 · Addressables 번들 분할 · 1000회 시뮬 밸런싱</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="rule-box">
+        <h4>실측 수치</h4>
+        <ul>
+          <li><b>WebGL 빌드 14MB</b> (브로틀리). §18.0 예산 25MB의 56% — 2D 전환이 되찾은 예산이 실제로 남았다</li>
+          <li><b>월드 244 × 224 타일</b> — 부대 본영 110 × 85 + 훈련 맵 7종 + 사이드뷰 코스 3종</li>
+          <li><b>구역 36개</b> — 부대 26 + 훈련장 10. 서버와 아트가 <b>같은 구역 표</b>를 쓴다</li>
+          <li><b>테스트 377건</b> 통과 · 타입 검사 통과</li>
+          <li><b>소품 105종 · 493개</b> — 배치는 구역 목업(SAD-ART-003 FIELD 01~05) 좌표를 따른다</li>
+          <li><b>일과 69건 전부 미니게임과 수행 지점을 갖는다</b> — 원형 14종 + 랜덤 소환</li>
+          <li>폰트 <b>Pretendard 서브셋 110KB</b> (한글 806자 + 기호) — 목업이 쓴 폰트와 같다</li>
+        </ul>
+      </div>
+
+      <div class="rule-box wide">
+        <h4>v1.1에서 더해진 것 <span class="tag gain">일과 미니게임 · 방별 인테리어 · 해금 게이트</span></h4>
+        <ul>
+          <li><b>일과 69건이 전부 미니게임을 갖는다</b>(QST-06). 원형 14종 + 랜덤 소환.
+              완료 조건이 <b>시간에서 통과로</b> 바뀌었고, 등급 A/B/C가 복무 점수를 가른다</li>
+          <li><b>합동도 판이 됐다</b>(QST-01). 판 하나를 인원이 나눠 채우고,
+              요구 인원이 모이지 않으면 한 조각도 오르지 않는다</li>
+          <li><b>방 인테리어를 구역 목업대로 다시 깔았다.</b> 소품 <b>105종 · 493개</b>.
+              배치를 둘레 산포에서 <b>목업 좌표 + 타일 간격 반복</b>으로 바꿨고,
+              일과 69건이 저마다 <b>어느 물건 앞에서 하는지</b>를 데이터로 든다</li>
+          <li><b>표 14-1의 해금이 규칙이 됐다.</b> 공통 일과 D-2 · 하달 D-3 · 돌발 D-4.
+              그전에는 필드만 있고 아무도 읽지 않았다</li>
+        </ul>
+      </div>
+
+      <div class="rule-box fail wide">
+        <h4>명세와 다르게 만든 것 셋</h4>
+        <p>전부 <b>같은 목적을 더 싸게 달성하는 쪽</b>으로 바꿨고, 그 이유를 여기 적어둔다.</p>
+        <ul>
+          <li>
+            <b>구역이 8개가 아니라 36개다.</b> 원안은 서버가 논리 구역 8개만 알고 아트가 방 25개를
+            따로 들었다. 같은 사실이 두 곳에 살면 반드시 어긋난다 — 실제로 퀘스트 17건에서
+            서버 구역과 방이 서로 다른 건물을 가리켰고, “세면장 청소”를 생활관에 선 채로 끝낼 수 있었다.
+            <b>방 하나가 곧 구역</b>으로 합쳤다.
+          </li>
+          <li>
+            <b>훈련 맵을 별도 씬 10개로 만들지 않았다.</b> 씬을 나눈 것은 3D 시절 메모리 예산 때문이고,
+            2D 타일맵에서 40×24짜리 맵은 씬을 가를 값어치가 없다. 탑다운 7종은 <b>부대 밖 땅에 이어 붙여</b>
+            정문으로 걸어 나가게 했고(§6.1 동선 비용이 그대로 산다), 사이드뷰 3종만 무대를 따로 뒀다.
+          </li>
+          <li>
+            <b>접근성 설정은 Unity가 아니라 웹 셸에 있다.</b> 멀미 나는 효과를 켜본 다음에 끄게 하면 이미 늦고,
+            IMGUI로 만든 설정 화면은 브라우저 폼보다 언제나 나쁘다. 로비에서 고른 값을
+            <code>window.__sadSettings</code>로 넘긴다.
+          </li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- 1.0 -->
+    <section class="sec" id="s1">
+      <div class="sec-head"><span class="num">1.0</span><h2>설계 원칙</h2><span class="tag keep">변경 없음</span></div>
+      <p class="lede">
+        이후 모든 시스템은 아래 다섯 가지에서 파생된다. 새 기능을 넣을지 말지는
+        “이 원칙 중 하나를 강화하는가”로만 판단한다. <b>뷰가 바뀌어도 원칙은 바뀌지 않는다.</b>
+      </p>
+      <ol class="steps">
+        <li><b>하루가 곧 한 판이다.</b> 세이브 · 리트라이의 단위는 하루다. 하루가 끝날 때마다 명확한 합격/불합격 판정이 나온다.</li>
+        <li><b>혼자서는 하루를 못 끝낸다.</b> 보직별 퀘스트는 개인이 끝내지만, 매일 최소 1개의 합동 퀘스트가 2명 이상의 동시 상호작용을 요구한다.</li>
+        <li><b>남의 실패가 내 난이도가 된다.</b> 의무병이 급수를 놓치면 전원 수분이 빨리 준다. 행정병이 난로를 못 고치면 혹한기 보온이 반토막 난다. 페널티는 개인이 아니라 분대에 떨어진다.</li>
+        <li><b>환경이 콘텐츠를 고른다.</b> 일과표는 고정 스크립트가 아니라 기온 롤의 결과다. 같은 8일차라도 혹서면 야간 행군, 혹한이면 제설 · 설상 기동이 된다.</li>
+        <li><b>고증은 분위기까지, 규칙은 게임으로.</b> 용어 · 동선 · 물건은 실제 병영을 참조하되, 처벌 · 위계 표현은 게이지와 추가 일과 같은 게임 장치로만 추상화한다. 가혹행위 묘사는 넣지 않는다.</li>
+      </ol>
+
+      <div class="rule-box">
+        <h4>2D 전환에서 이 원칙이 한 일</h4>
+        <p>
+          전환 판단의 기준도 이 다섯 개였다. <b>원칙 2와 3을 지키지 못하는 항목만 재설계 대상</b>으로 골랐다.
+        </p>
+        <ul>
+          <li>무전 두절 → 원칙 2·3을 직접 지탱하는 장치였으므로 <b>반드시 대체</b>가 필요했다 (8.0)</li>
+          <li>1인칭 전환 → 어떤 원칙도 지탱하지 않았다. <b>그래서 그냥 삭제</b>했다</li>
+          <li>행군 대열 → 원칙 2를 지탱하되 표현만 3D에 묶여 있었다. <b>표현만 갈아끼웠다</b> (9.0)</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- 2.0 -->
+    <section class="sec" id="s2">
+      <div class="sec-head"><span class="num">2.0</span><h2>게임 개요와 코어 루프</h2><span class="tag keep">변경 없음</span></div>
+      <p class="lede">
+        플레이어는 갓 입소한 신병이다. 1일차에 보직을 고르고, 18일차 전역 심사까지
+        하루도 일과를 놓치지 않아야 한다.
+      </p>
+
+      <div class="sys">
+        <div class="sys-top"><span class="code">CORE-01</span><h3>코어 루프</h3></div>
+        <div class="anatomy">
+          <div class="row"><span class="k">1일 루프</span><div class="v">
+            기상 · 점검 → <b>일과표 공개</b>(기온 롤 반영) → 보직 퀘스트 + 합동 퀘스트 배정 →
+            시간대별 수행 → 돌발 이벤트 대응 → <b>야간 점호 판정</b> → 취침 정산(스탯 회복 · 보급) → 다음 날
+          </div></div>
+          <div class="row"><span class="k">판정</span><div class="v">
+            그날의 <b>필수 퀘스트</b>를 점호 시각까지 전부 완료 → 생존, 다음 날로.
+            하나라도 미완료 → <span class="t-fail">게임오버(퇴소 엔딩)</span>.
+          </div></div>
+          <div class="row"><span class="k">세션 길이</span><div class="v">
+            1일 = 실시간 5~7분(시간대 6칸 × 50~70초). 훈련일은 8~12분까지 늘어난다. 총 100~130분.
+          </div></div>
+          <div class="row"><span class="k">중도 이탈</span><div class="v">
+            방장 아닌 플레이어가 나가면 해당 보직은 <b>장기 NPC 대리</b>로 전환된다. 대리는
+            <b>필수 퀘스트만</b> 완수하고 선택 · 돌발 · 히든은 수행하지 않는다.
+            대가는 군기 −3/일, 대리 <b>2개 이상</b>이면 군기 상한 60.
+            <br>후송(JDG-03)과 같은 파이프라인이지만 <b>인수 한도 2건이 적용되지 않는다</b> —
+            이탈은 게임을 못 하게 되는 것 자체가 최대 비용이므로 판정 회피에 악용될 수 없다.
+          </div></div>
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div class="card"><h4>승리 — 전역</h4><p class="ds">18일차 심사 통과. 계급 · 숙련도 · 분대 기록이 메타 진행에 영구 반영된다.</p></div>
+        <div class="card"><h4>패배 — 퇴소</h4><p class="ds">점호 판정 조건 미달. 분대 전체의 런이 종료된다. 개인의 컨디션 붕괴는 여기 해당하지 않는다 — 후송 처리(JDG-03)로 따로 다룬다.</p></div>
+        <div class="card"><h4>난이도 옵션</h4><p class="ds"><b>정규</b>: 1회 미달 즉시 종료(기본). <b>완화</b>: 3회 누적 시 종료, 대신 보상 60%.</p></div>
+      </div>
+    </section>
+
+    <!-- 3.0 -->
+    <section class="sec" id="s3">
+      <div class="sec-head"><span class="num">3.0</span><h2>보직 시스템</h2><span class="tag redo">통신병 근거 재작성</span></div>
+      <p class="lede">
+        1일차 입소 시 <b>4개 보직 중 하나</b>를 고른다. 분대 정원이 4명이므로 <b>보직당 정확히 1명</b>, 중복이 없다.
+        보직은 <b>능력 차이</b>가 아니라 <b>책임 범위 차이</b>다.
+        각 보직이 실패했을 때 다른 사람이 받는 피해가 곧 그 보직의 존재 이유다.
+      </p>
+
+      <div class="rule-box">
+        <h4>4보직 · 4인 편성 근거</h4>
+        <ul>
+          <li><b>공백이 원리적으로 없다.</b> 보직 1:1 대응이므로 “어느 보직을 버릴까”를 고르는 게임이 되지 않는다</li>
+          <li><b>모집이 현실적이다.</b> 100분 세션에 6명 이상은 사실상 불가능하다. 4명은 친구 그룹에서 성립하는 숫자다</li>
+          <li><b>보직 하나의 무게가 25%다.</b> 이 사실이 온도 시스템과 후송 시스템의 긴장을 동시에 끌어올린다</li>
+        </ul>
+        <p>
+          흡수 처리: <b>취사병 → 의무병</b>(둘 다 컨디션 담당), <b>정비병 → 행정병</b>(둘 다 후방 지원).
+          배식 · 식수 확보 같은 실무는 <b>공통 일과</b>로 내렸다(6.1).
+        </p>
+      </div>
+
+      <div class="scroll">
+        <table>
+          <caption>표 3-1 · 보직 정의와 실패 파급</caption>
+          <thead>
+            <tr><th>보직</th><th>담당 영역</th><th>고유 능력</th><th>전용 퀘스트 예시</th><th>이 보직이 실패하면</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="d">소총수<br><span class="label">RIFLE</span></td>
+              <td>전투 · 경계 · 기동</td>
+              <td>지구력 +20%, 행군 페이스 메이커(주변 아군 피로 −15%), 경계근무 효율 2배</td>
+              <td>총기 수입, 탄약 수령, 야간 경계근무, 사주경계</td>
+              <td>경계 공백 → 불시점호 · 기습 이벤트 발생 확률 2배</td>
+            </tr>
+            <tr>
+              <td class="d">통신병<br><span class="label">COMMS</span></td>
+              <td>정보 전달 · <b>가시성</b></td>
+              <td>무전 채널 개설 · 유지, <b>타 구역 아군 위치 가시화</b>, 미니맵 목표 핑 부여</td>
+              <td>안테나 설치, 무전기 배터리 교체, 암호 코드 갱신, 정시 교신</td>
+              <td><b>미니맵에서 분대원이 사라진다.</b> 타 구역 인원의 위치 · 상태를 알 수 없어 합동 인원 소집이 이동 시간으로 환산된다</td>
+            </tr>
+            <tr>
+              <td class="d">의무병<br><span class="label">MEDIC</span></td>
+              <td>컨디션 전반<br><span class="label">← 취사 흡수</span></td>
+              <td>응급처치로 체력 · 피로 회복, 열사병 · 동상 해제,
+                  <b>급식 · 급수 품질 관리로 분대 버프</b>(포만감 · 수분 회복량 +50%)</td>
+              <td>의약품 재고 정리, 환자 후송, 위생 점검, <b>식수 검수</b>, 배식 감독</td>
+              <td>온도 피해 회복 불가(혹서 · 혹한에서 사망 타이머) <b>+ 전원 포만감 · 수분 소모 2배</b></td>
+            </tr>
+            <tr>
+              <td class="d">행정병<br><span class="label">ADMIN</span></td>
+              <td>정보 관리 · 정비<br><span class="label">← 정비 흡수</span></td>
+              <td><b>다음 날 일과표 · 기온 예보 미리보기</b>, 퀘스트 1건 재배정권,
+                  <b>피복 보온치 유지 · 수리, 난로 · 텐트 설치 2배속</b></td>
+              <td>일과표 게시, 인원 보고, 보급 청구, <b>난방기 점검, 공구 정리, 발전기 급유</b></td>
+              <td>다음 날 정보 블라인드(준비 없이 훈련일을 맞음) <b>+ 혹한 보온 −50%, 텐트 설치 시간 3배</b></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="rule-box fail">
+        <h4>통신병 — 2D에서 존재 근거를 다시 세운 보직</h4>
+        <p>
+          v0.9에서 통신병의 실패 대가는 “무전 단절 → 근접 채팅 반경 안으로 모여야 정보 전달 가능”이었다.
+          이건 <b>3D에서 벽이 시야를 가리기 때문에</b> 성립한 규칙이었고, 탑다운 2D에 그대로 옮기면 아무 일도 일어나지 않는다.
+          화면 안이 다 보이면 무전이 끊겨도 눈으로 확인하면 되기 때문이다.
+        </p>
+        <p>
+          그래서 8.0에 <b>구역 가시성(COMM-00)</b>을 신설하고, 통신병의 고유 능력을 <b>“타 구역 아군 위치 가시화”</b>로
+          재정의했다. 이제 통신병이 죽으면 <b>분대원이 어디 있는지 알 수 없다</b> — 이것이 2D에서의 실질 대가다.
+        </p>
+        <ul>
+          <li>합동 퀘스트 인원 소집이 “부르면 온다”에서 <b>“찾으러 가야 한다”</b>로 바뀐다</li>
+          <li>후송자 발생 시 <b>어디서 쓰러졌는지 모른다</b> — 2인 1조 들것 운반이 수색부터 시작된다 (10.0 JDG-03의 잔여 필수 2건 한도와 직결)</li>
+          <li>시간대당 60초라는 예산에서, 위치를 모르는 채 이동하는 것은 그 자체로 치명적이다 (4.0)</li>
+        </ul>
+      </div>
+
+      <div class="rule-box heat">
+        <h4>행정병이 가장 무거운 보직이 된다 — 의도된 불균형</h4>
+        <p>정보(예보 · 재배정)와 정비(보온 · 설치)를 겸하므로 행정병의 부담이 가장 크다. 이를 시스템으로 흡수한다.</p>
+        <ul>
+          <li>행정병은 <b>하달(짬때리기) 대상 1순위</b>가 된다 — 계급이 낮으면 공통 일과가 그에게 몰린다(6.2). 분대가 이 부담을 어떻게 나눌지가 사회적 결정이 된다</li>
+          <li>반대로 행정병이 상급자면 하달로 부담을 덜 수 있다. <b>보직과 계급의 조합이 매 런마다 다른 압력을 만든다</b></li>
+          <li>혹한 밴드에서는 행정병 1명에게 분대 생존이 걸린다 — 보온 −50%는 사실상 사망 선고다(5.0)</li>
+        </ul>
+      </div>
+
+      <div class="sys">
+        <div class="sys-top"><span class="code">ROLE-02</span><h3>분대장 롤 (보직과 별도)</h3></div>
+        <div class="anatomy">
+          <div class="row"><span class="k">선출</span><div class="v">1일차에 투표로 4명 중 1명. 3일마다 재신임 투표 가능.</div></div>
+          <div class="row"><span class="k">권한</span><div class="v">
+            합동 퀘스트 인원 지정, 스킵 투표 즉시 발의, 하달 배정 강제 변경(1회/시간대),
+            위기 시 <b>“우선순위 지정”</b>(퀘스트 1개를 필수→선택으로 강등, <b>런당 2회</b>)
+          </div></div>
+          <div class="row"><span class="k">부담</span><div class="v">분대 실패 시 군기 페널티를 1.5배로 받는다. 보상도 1.5배.</div></div>
+          <div class="row"><span class="k">4인 특성</span><div class="v">
+            4명 중 1명이 분대장이므로 <b>4분의 1이 지휘권을 갖는다</b>. 재신임 투표에서 2:2 동수가 나올 수 있다 — <b>동수 시 현직 유지</b>.
+          </div></div>
+        </div>
+      </div>
+
+      <div class="sys">
+        <div class="sys-top"><span class="code">ROLE-03</span><h3>인원 미달 처리 (1~3인 방)</h3></div>
+        <div class="anatomy">
+          <div class="row"><span class="k">규칙</span><div class="v">
+            빈 보직은 <b>NPC 대리</b>가 채운다. 필수 퀘스트만 완수하고 선택 · 돌발 · 히든은 수행하지 않는다(10.0 JDG-03과 동일).
+          </div></div>
+          <div class="row"><span class="k">페널티 면제</span><div class="v">
+            <b>처음부터 비어 있는 보직에는 군기 −3/일을 부과하지 않는다.</b>
+            후송 · 이탈로 생긴 공백(사고)과 애초에 인원이 부족한 것(선택)은 다른 사건이다.
+          </div></div>
+          <div class="row"><span class="k">대신 부과</span><div class="v">
+            NPC가 선택 퀘스트를 하지 않으므로 <b>분대 복무 점수 · 보급 포인트가 자연 감소</b>한다.
+            그리고 <b>정보 비대칭 패턴을 수행할 수 없어</b> 일부 합동 퀘스트가 막힌다(8.0).
+            <br><b>통신병이 NPC면 구역 가시성이 상시 최저</b>가 되어 이동 비용이 크게 늘어난다 — 2D에서 가장 뼈아픈 공백이다.
+          </div></div>
+          <div class="row"><span class="k">권장</span><div class="v">
+            로비에서 <b>4인을 권장 인원으로 표시</b>하고, 미달 시 어느 보직이 NPC가 되는지 미리 보여준다.
+            1~2인 방은 튜토리얼 · 연습 용도이며 기록에 남지 않는다.
+          </div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4.0 -->
+    <section class="sec" id="s4">
+      <div class="sec-head"><span class="num">4.0</span><h2>시간대 · 일과 시스템</h2><span class="tag keep">변경 없음</span></div>
+      <p class="lede">
+        하루는 6개 시간대로 쪼개져 있다. 각 시간대는 실시간 타이머를 가지며, 타이머가 끝나면
+        그 시간대에 배정된 퀘스트는 <b>미완료로 확정된다</b>. 시간대를 넘겨서 만회하는 방법은 없다 — 이게 압박의 원천이다.
+      </p>
+
+      <div class="timeline">
+        <div class="slot"><span class="hh">06:00</span><span class="nm">기상 · 점검</span><span class="ds">모포 정리, 세면, 인원 보고. 미이행 시 군기 −5.</span></div>
+        <div class="slot"><span class="hh">08:00</span><span class="nm">오전 일과</span><span class="ds"><b>하달 창 20초</b> → 보직 퀘스트 2개 + 공통 일과. 훈련일이면 이 칸이 훈련으로 대체.</span></div>
+        <div class="slot"><span class="hh">12:00</span><span class="nm">중식 · 휴식</span><span class="ds">포만감 · 수분 회복. 의무병 배식 감독 창구.</span></div>
+        <div class="slot"><span class="hh">14:00</span><span class="nm">오후 일과</span><span class="ds"><b>하달 창 20초</b> → 합동 퀘스트 주 배치 구간. 기온 밴드가 내용을 결정.</span></div>
+        <div class="slot"><span class="hh">18:00</span><span class="nm">석식 · 개인정비</span><span class="ds">장비 손질, 샤워, 부상 치료, 간부 대화. 유일한 자유 배분 구간.</span></div>
+        <div class="slot judge"><span class="hh">22:00</span><span class="nm">점호 · 판정</span><span class="ds">필수 퀘스트 검사 → 생존/게임오버 결정. 이후 야간 경계 로테이션.</span></div>
+      </div>
+
+      <div class="sys">
+        <div class="sys-top"><span class="code">TIME-01</span><h3>시간대 엔진</h3></div>
+        <div class="anatomy">
+          <div class="row"><span class="k">기능</span><div class="v">
+            <ul>
+              <li>시간대별 실시간 타이머와 잔여 시간 HUD(막대 + 남은 초)</li>
+              <li>시간대 진입 시 방송 트리거(스피커 SFX + 자막 “오후 일과 시작”)</li>
+              <li>시간대 종료 시 미완료 퀘스트 잠금 및 실패 카운트 기록</li>
+              <li>가속 배속: 전원 준비 완료 시 남은 시간을 <b>스킵 투표</b>로 단축 → 잔여 시간은 다음 시간대 여유로 이월</li>
+            </ul>
+          </div></div>
+          <div class="row"><span class="k">진행</span><div class="v">
+            서버가 시간대 상태를 소유한다. 클라이언트는 표시만 한다. 지연 · 재접속 시 서버 시간으로 강제 동기화.
+          </div></div>
+          <div class="row"><span class="k">수치</span><div class="v">
+            기본 칸 60초. 훈련 칸 120~240초. 스킵 투표 성립은 <b>생존 인원 3/4 이상</b>.
+          </div></div>
+          <div class="row"><span class="k">시간 예산</span><div class="v">
+            <b>이동 포함 건당 약 37초.</b> 부대 맵 전체가 90×70타일이므로 최장 대각 이동이 약 12초다.
+            8.0의 구역 가시성이 이 예산에 직접 작용한다 — <b>어디로 갈지 모르면 12초가 24초가 된다.</b>
+          </div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 5.0 -->
+    <section class="sec" id="s5">
+      <div class="sec-head"><span class="num">5.0</span><h2>온도 · 기후 시스템</h2><span class="tag gain">연출 방식만 변경 + 폭우 갈래</span></div>
+      <div class="rule-box">
+        <h4>구현 — D-10의 셋째 갈래를 채웠다</h4>
+        <p>
+          14.0이 D-10을 “기상 악화(<b>폭우</b> / 한파 / 폭염)”라고 적었는데, 구현 전에는 온도 두 갈래뿐이라
+          폭우가 나올 자리가 없었다. 계절이 한파와 폭염을 갈랐으므로 D-10은 늘 “더 추운 날” 아니면 “더 더운 날”이었다.
+        </p>
+        <p>
+          폭우는 <b>더운 계절에만</b> 온다 — 영하에 쏟아지는 것은 비가 아니라 눈이고, 그건 한파 쪽이 이미 표현한다.
+          기온을 끌어내리고 습도를 95로 올려 <b>폭염 밴드를 깨뜨린다</b>. 그날의 어려움이 더위에서 젖는 쪽으로 옮겨간다.
+        </p>
+      </div>
+      <p class="lede">
+        이 게임의 콘텐츠 셀렉터. 매일 아침 서버가 기온을 뽑고, 체감온도가 어느 밴드에 떨어지는지에 따라
+        <b>강제 일과, 스탯 드레인, 필수 장비, 금지 일과</b>가 한꺼번에 바뀐다.
+      </p>
+
+      <div class="sys">
+        <div class="sys-top"><span class="code">TEMP-01</span><h3>기온 산출</h3></div>
+        <div class="anatomy">
+          <div class="row"><span class="k">공식</span><div class="v">
+            <p class="mono" style="font-size:0.875rem">체감온도 = 기온 + 습도보정 − (풍속 × 0.6) + 피복 보온치 + 지형보정</p>
+            <ul>
+              <li><b>기온</b> = 계절 기준값 + 일일 변동(−4 ~ +4) + 런 시드</li>
+              <li><b>습도보정</b> = 고온에서만 +(최대 +5), 저온에서는 0</li>
+              <li><b>피복 보온치</b> = 착용 피복 합산(전투복 +2, 방한 내피 +5, 방상외피 +9, 젖은 상태 −6)</li>
+              <li><b>지형보정</b> = 실내 +8, 산악 −4, 야간 −6, 그늘 +3(혹서 시)</li>
+            </ul>
+          </div></div>
+          <div class="row"><span class="k">계절 배정</span><div class="v">
+            런 시작 시 <b>혹서기 런</b> 또는 <b>혹한기 런</b>을 선택(또는 랜덤). 선택한 계절이 기준값을 결정하고,
+            반대편 밴드는 낮은 확률로만 등장한다.
+          </div></div>
+          <div class="row"><span class="k">예보</span><div class="v">
+            행정병만 다음 날 밴드를 정확히 본다. 나머지는 저녁에 “내일 추워질 것 같다” 수준의 텍스트 힌트만 받는다.
+          </div></div>
+          <div class="row"><span class="k">2D 연출</span><div class="v">
+            URP <b>2D Renderer도 Volume을 지원</b>하므로 Color Adjustments · Vignette · Bloom은 그대로 쓴다.
+            밴드마다 <b>Volume Profile 1개</b>를 두고 전환 시 3초 Lerp. 여기에
+            <b>Global Light 2D 색온도</b>와 <b>스프라이트 파티클</b>, <b>풀스크린 셰이더 6종</b>을 더한다 (16.0).
+            <br><span class="accent">3D 대비 손실 없음</span> — 열 왜곡만 직접 구현하면 되고, 나머지는 동일 파이프라인이다.
+          </div></div>
+        </div>
+      </div>
+
+      <div class="scroll">
+        <table>
+          <caption>표 5-1 · 온도 밴드별 규칙</caption>
+          <thead>
+            <tr><th>밴드</th><th>체감온도</th><th>강제 / 추가 일과</th><th>스탯 영향 (시간대당)</th><th>필수 장비</th><th>금지</th></tr>
+          </thead>
+          <tbody>
+            <tr><td class="d t-cold">극혹한</td><td class="mono">≤ −12°C</td>
+              <td>혹한기 적응훈련, 제설, 난방기 순찰, 동파 방지</td>
+              <td>체력 −6 · 피로 +8</td><td>방상외피, 방한화, 보온 수통</td><td>정수 작업, 야간 장거리 행군</td></tr>
+            <tr><td class="d t-cold">한랭</td><td class="mono">−11 ~ 0°C</td>
+              <td>제설, 동상 예방 교육, 설상 기동</td>
+              <td>피로 +5 · 수분 −2</td><td>방한 내피, 장갑</td><td>없음</td></tr>
+            <tr><td class="d">평시</td><td class="mono">1 ~ 24°C</td>
+              <td>표준 커리큘럼 그대로</td><td>표준 드레인</td><td>전투복, 전투화</td><td>없음</td></tr>
+            <tr><td class="d t-heat">온난</td><td class="mono">25 ~ 30°C</td>
+              <td>제초, 수분 섭취 점검</td><td>수분 −5</td><td>수통 1개</td><td>없음</td></tr>
+            <tr><td class="d t-heat">혹서</td><td class="mono">31 ~ 34°C</td>
+              <td>오후 야외 일과 → 실내 정신교육 · 장비 정비로 전환, 그늘 휴식 10초/시간대 강제</td>
+              <td>수분 −10 · 체력 −4</td><td>수통 2개, 냉각 타월</td><td>주간 행군, 유격</td></tr>
+            <tr><td class="d t-heat">극혹서</td><td class="mono">≥ 35°C</td>
+              <td>주간 야외 전면 취소 → <b>야간으로 이월</b>(야간 행군 · 야간 사격)</td>
+              <td>수분 −14 · 체력 −6</td><td>수통 2개, 얼음팩</td><td>모든 주간 야외 훈련</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="rule-box cold">
+        <h4>혹한 특수 규칙 — 보온 유지</h4>
+        <p>
+          극혹한 밴드에서는 체감온도 게이지가 별도로 표시되고, <b>90초마다 열원(난로 · 차량 히터 · 실내)에 접촉</b>해야
+          게이지가 리셋된다. 미접촉 시 동상 디버프(이동 속도 −30%, 상호작용 실패율 +20%) → 의무병만 해제 가능.
+        </p>
+        <p class="accent">
+          <b>2D 구현 이점</b>: 열원의 <b>Light 2D 반경 = 판정 반경</b>으로 일치시킨다.
+          “빛이 닿는 곳이 따뜻한 곳”이 되어, UI 없이 규칙이 학습된다.
+        </p>
+      </div>
+      <div class="rule-box heat">
+        <h4>혹서 특수 규칙 — 열사병 단계</h4>
+        <p>
+          수분 30 이하에서 <b>1단계 탈수</b>(화면 채도 −60, 스태미나 회복 정지) → 10 이하에서 <b>2단계 열사병</b>(왜곡 셰이더 맥동, 60초 후 쓰러짐).
+          쓰러진 플레이어는 2인 1조 들것 운반으로만 후송된다 → 다른 두 명의 시간을 빼앗는 것이 실질 페널티.
+        </p>
+        <p>
+          <b>2D에서 더 아프다</b> — 무전이 끊겨 있으면 쓰러진 위치를 모르므로, 후송 전에 <b>수색</b>이 붙는다 (3.0 · 8.0).
+        </p>
+      </div>
+
+      <div class="scroll">
+        <table>
+          <caption>표 5-2 · 밴드별 화면 연출 (Volume Profile 7종)</caption>
+          <thead><tr><th>밴드</th><th>Filter</th><th>채도</th><th>노출</th><th>파티클</th><th>Global Light 2D</th></tr></thead>
+          <tbody>
+            <tr><td class="d t-cold">극혹한</td><td class="mono">#A8C4DC</td><td class="mono">−35</td><td class="mono">−0.20</td><td>입김 · 눈보라 강 · 결빙 프레임</td><td class="mono">#B9CEE0 0.85</td></tr>
+            <tr><td class="d t-cold">한랭</td><td class="mono">#C6D6E2</td><td class="mono">−20</td><td class="mono">−0.10</td><td>입김 약 · 눈</td><td class="mono">#CFDDE8 0.95</td></tr>
+            <tr><td class="d">평시</td><td class="mono">#FFFFFF</td><td class="mono">0</td><td class="mono">0</td><td>없음</td><td class="mono">#FFF6E4 1.00</td></tr>
+            <tr><td class="d t-heat">온난</td><td class="mono">#FFE9C0</td><td class="mono">+8</td><td class="mono">+0.10</td><td>먼지</td><td class="mono">#FFEBC4 1.00</td></tr>
+            <tr><td class="d t-heat">혹서</td><td class="mono">#FFD79A</td><td class="mono">+18</td><td class="mono">+0.25</td><td>아지랑이 약</td><td class="mono">#FFDCA0 1.05</td></tr>
+            <tr><td class="d t-heat">극혹서</td><td class="mono">#FFC178</td><td class="mono">+25</td><td class="mono">+0.40</td><td>아지랑이 강</td><td class="mono">#FFCC85 1.10</td></tr>
+            <tr><td class="d">야간 <span class="label">중첩</span></td><td class="mono">#7E93C4</td><td class="mono">−40</td><td class="mono">−0.90</td><td>—</td><td class="mono">#6E82B4 0.35</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 6.0 -->
+    <section class="sec" id="s6">
+      <div class="sec-head"><span class="num">6.0</span><h2>퀘스트 시스템</h2><span class="tag keep">변경 없음</span></div>
+      <p class="lede">
+        퀘스트는 5종류다. 종류마다 판정 주체(개인/분대)와 실패 결과가 다르다.
+        HUD의 수첩에는 <b>내 것</b>과 <b>분대 것</b>이 분리되어 표시된다.
+      </p>
+
+      <div class="scroll">
+        <table>
+          <caption>표 6-1 · 퀘스트 5종</caption>
+          <thead><tr><th>종류</th><th>수량 / 일</th><th>판정</th><th>보직 제약</th><th>미완료 시</th></tr></thead>
+          <tbody>
+            <tr><td class="d">보직 퀘스트</td><td>3~5</td><td>개인</td><td><b>전용</b> — 해당 보직만</td><td>필수분은 <span class="t-fail">즉시 게임오버 대상</span>, 선택분은 군기 −8</td></tr>
+            <tr><td class="d">공통 일과</td><td>2~4 (분대 풀)</td><td>개인 (배정자)</td><td class="accent"><b>없음</b> — 누구나 가능</td><td>필수분은 <span class="t-fail">게임오버 대상</span>. 유일한 <b>하달 가능</b> 대상</td></tr>
+            <tr><td class="d">합동 퀘스트</td><td>1~2</td><td>분대 공동</td><td>요구 인원 게이트</td><td>분대 전원 실패 처리 + 다음 날 필수 퀘스트 +2</td></tr>
+            <tr><td class="d">돌발 퀘스트</td><td>0~3 (확률)</td><td>선착 개인</td><td>없음</td><td>페널티 없음. 성공 시 군기 +10, 보급 포인트 +</td></tr>
+            <tr><td class="d">히든 퀘스트</td><td>런당 2~4</td><td>조건 달성</td><td>일부 보직 한정</td><td>없음. 달성 시 특기 숙련도 · 엔딩 분기 해금</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="sys">
+        <div class="sys-top"><span class="code">QST-06</span><h3>일과 미니게임 — 원형 14종</h3><span class="tag gain">신규 v1.1</span></div>
+        <p>
+          <b>일과 69건이 전부 미니게임을 갖는다.</b> 예전에는 물건 앞에서 E를 누르고 있으면 서버가
+          시간을 셌고, 그래서 69종의 일과가 화면에서 <b>같은 한 가지 조작</b>이었다.
+          퀘스트마다 새 게임을 만들지도 않는다 — <b>원형 14종을 파라미터로 변주</b>한다.
+        </p>
+
+        <div class="scroll">
+          <table>
+            <caption>표 6-3 · 원형 14종 + 랜덤 소환</caption>
+            <thead><tr><th>코드</th><th>조작</th><th>목표</th><th>건수</th><th>보기</th></tr></thead>
+            <tbody>
+              <tr><td class="d">PLACE</td><td>드래그 + 스냅</td><td>실루엣에 정렬</td><td class="mono">10</td><td>관물대 정돈 · 섀도보드 · 배터리 극성</td></tr>
+              <tr><td class="d">AUDIT</td><td>클릭</td><td>대장과 실물의 불일치 적발</td><td class="mono">10</td><td>무기고 재물 조사 · 인원 보고</td></tr>
+              <tr><td class="d">SCRUB</td><td>드래그</td><td>오염 커버리지</td><td class="mono">8</td><td>바닥 청소 · 총열 수입 · 차량 세척</td></tr>
+              <tr><td class="d">TRACE</td><td>클릭 회전</td><td>시작→끝 연결</td><td class="mono">6</td><td>단선 추적 · 유선 가설 · 배수로</td></tr>
+              <tr><td class="d">BALANCE</td><td>좌우 보정</td><td>흔들림 억제하며 완주</td><td class="mono">5</td><td>탄통 · 적재 스택 · 들것</td></tr>
+              <tr><td class="d">HOLD</td><td>홀드</td><td>바늘을 안전 범위에</td><td class="mono">5</td><td>급유 · 급수 수위 · 난방 압력</td></tr>
+              <tr><td class="d">MASH</td><td>연타</td><td>새는 게이지를 채운다</td><td class="mono">4</td><td>제설 · 제초 · 하역 릴레이</td></tr>
+              <tr><td class="d">SORT</td><td>클릭 분류</td><td>오분류 최소화</td><td class="mono">4</td><td>분리 배출 · 선입선출 · 신분증</td></tr>
+              <tr><td class="d">SEARCH</td><td>커서 스캔</td><td>은닉 대상 발견</td><td class="mono">4</td><td>환자 발생 점검 · 분실 장비 수색</td></tr>
+              <tr><td class="d">TIMING</td><td>단발 정지</td><td>판정 구간 명중</td><td class="mono">3</td><td>시약 적정 · 팩 박기 · 장작</td></tr>
+              <tr><td class="d">SEQ</td><td>기억 후 재입력</td><td>절차 재현</td><td class="mono">3</td><td>응급처치 · 암호 갱신 · 정시 교신</td></tr>
+              <tr><td class="d">RHYTHM</td><td>박자 입력</td><td>콤보 유지</td><td class="mono">3</td><td>점호 번호 · 제식 · 국기 강하</td></tr>
+              <tr><td class="d">TRACK</td><td>커서 유지</td><td>표적 위 유지율</td><td class="mono">2</td><td>사주경계 · 경계근무</td></tr>
+              <tr><td class="d">REACT</td><td>단발 QTE</td><td>1~2초 내 입력</td><td class="mono">1</td><td>간부 순찰 — 유일한 단독 사용</td></tr>
+              <tr><td class="d">RANDOM</td><td>—</td><td>다른 구역 판을 무작위 소환</td><td class="mono">1</td><td>타 분대 지원 요청</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="rule-box">
+          <h4>통과해야 끝난다 — 실패는 재시도다</h4>
+          <p>
+            <b>완료 조건이 시간에서 통과로 바뀌었다.</b> 소요 시간이 곧 판의 제한 시간이고,
+            못 채우면 완료가 아니라 <b>재시도</b>다. 계속 실패하면 시간대 종료로 잠긴다 —
+            잃는 것은 시간이고, 그게 페널티의 전부다.
+          </p>
+          <p>
+            그래서 <b>등급에 “실패”가 없다.</b> 통과한 판을 얼마나 깨끗하게 했는가만 가른다.
+            잣대는 원형마다 다르지 않고 <b>둘뿐</b>이다 — 남은 시간과 실수 횟수.
+          </p>
+          <ul>
+            <li><b>A</b> — 실수 0 · 제한 시간의 20% 이상 남김</li>
+            <li><b>B</b> — 실수 1 이하</li>
+            <li><b>C</b> — 통과는 했다</li>
+          </ul>
+          <p>
+            등급은 <b>복무 점수만</b> 바꾼다(표 13-1). 보상 배율도 평판도 넣지 않았다 —
+            축이 늘면 승급 · 판정 · HUD가 같이 늘어난다. 하루 판정(조건 A)은 등급을 보지 않는다.
+            <b>C등급도 완료는 완료다.</b>
+          </p>
+        </div>
+
+        <div class="rule-box fail">
+          <h4>완료 시점을 클라만 아는 유일한 경로</h4>
+          <p>
+            서버는 커버리지도 오답 횟수도 볼 수 없다. 그래서 <code>questCleared</code> 의도 하나만
+            예외로 두되, <code>interact</code>가 통과하는 관문은 <b>전부 그대로</b> 통과시킨다 —
+            엉뚱한 구역 · 남의 일과 · 지난 시간대 · 이동 중이면 여기서도 막힌다.
+            여기에 <b>최소 진척</b>을 하나 더 건다: 소요의 절반도 안 지난 통과는 무시한다.
+          </p>
+          <p>
+            판을 일찍 끝내면 그 문턱까지 기다린다. 원안의 “일찍 끝내도 시간은 그대로 흐른다”가
+            <b>절반까지만</b> 남았고, 그 위로는 실력이 시간을 번다.
+          </p>
+        </div>
+
+        <div class="rule-box">
+          <h4>어느 물건 앞에서 하는가 — 수행 지점</h4>
+          <p>
+            일과 69건이 저마다 <b>벌어지는 물건</b>을 데이터로 들고 있다(구역 목업 SAD-ART-003).
+            예전에는 클라가 일과 <b>이름</b>에서 키워드를 뽑아 방 안의 물건을 골랐는데, 표가 예순
+            줄이었는데도 “정돈”·“점검” 같은 말이 여러 일과에 걸쳐 있어 <b>관물대 정돈과 복도 정돈이
+            같은 자리에서</b> 벌어졌다.
+          </p>
+          <p>
+            지목한 물건이 그 구역에 실제로 놓였는지는 <b>맵 생성기가 굽는 자리에서 검사</b>한다.
+            어긋나면 맵이 안 구워지므로 조용히 갈라질 수가 없다.
+          </p>
+        </div>
+      </div>
+
+      <div class="rule-box">
+        <h4>공통 일과는 필수 카운트를 늘리지 않는다</h4>
+        <p>
+          공통 일과 2~4건은 <b>분대 풀</b>에서 나와 1인당 0~1건으로 분배되며, 그중 절반이 필수다.
+          이 필수분은 표 14-1의 필수 퀘스트 수 <b>안에 포함</b>된다 — 개인 필수 4.2건 중 약 0.5건이 공통이다.
+          별도로 얹히지 않으므로 10.0의 판정 총량(하루 17건)과 완주율 계산이 그대로 유지된다.
+        </p>
+      </div>
+
+      <div class="sys">
+        <div class="sys-top"><span class="code">QST-01</span><h3>합동 퀘스트 — 강제 협동 장치</h3></div>
+        <div class="anatomy">
+          <div class="row"><span class="k">목적</span><div class="v">한 명이 잘해서 캐리하는 구조를 물리적으로 막는다.</div></div>
+          <div class="row"><span class="k">기능</span><div class="v">
+            <ul>
+              <li><b>동시 조작</b>: 2인 이상이 서로 다른 지점에서 같은 창을 열고 있어야 진행</li>
+              <li><b>역할 게이트</b>: 특정 보직만 열 수 있는 단계 포함(행정병만 난로 밸브 조작)</li>
+              <li><b>공동 부하</b>: 2인 1조 들것 · 유류통 · 텐트 폴. 이동 속도는 느린 쪽에 맞춰짐 — <b>2D에서 구현이 가장 쉬운 패턴</b></li>
+              <li><b>정보 비대칭</b>: 한 명에게만 정답(암구호 · 주파수)이 보이고, 입력은 다른 사람이 한다</li>
+            </ul>
+          </div></div>
+          <div class="row"><span class="k">진행</span><div class="v">
+            오후 일과 진입 시 분대 전체에 공통 목표 카드 표시 → 분대장이 인원 배정(미배정 시 자동) →
+            단계별 체크리스트 → 전 단계 완료로 성공 판정
+          </div></div>
+          <div class="row"><span class="k">수치</span><div class="v">
+            제한 시간 = 시간대 잔여 시간. 참여 인원이 요구치 미달이면 진행 게이지가 <b>차오르지 않는다</b>(경고 표시).
+          </div></div>
+          <div class="row"><span class="k">요구 인원</span><div class="v">
+            <b>기본 2인, 최대 3인.</b> 4인 전원 동원은 <b>훈련일에만</b> 쓴다(9.0).
+            항상 1~2명은 개인 일과를 돌릴 수 있어야 “합동과 개인을 어떻게 배분할까”라는 판단이 성립한다.
+          </div></div>
+        </div>
+
+        <div class="rule-box">
+          <h4>구현된 형태 — 판 하나를 인원이 나눠 채운다 <span class="tag gain">v1.1</span></h4>
+          <p>
+            합동 전용 원형을 새로 만들지 않았다. 창고 재물조사는 <code>AUDIT</code>이고 하역 릴레이는
+            <code>MASH</code>다 — 개인 일과와 <b>다른 것은 누가 채우는가뿐</b>이다.
+            목표가 <b>조각</b>으로 쪼개져 있고, 누가 채우든 같은 칸에 쌓인다.
+          </p>
+          <ul>
+            <li><b>조각 통이 하나다.</b> 남이 채운 조각이 내 화면에서도 찬다 — 이게 협동으로 읽히는 지점</li>
+            <li><b>인원 미달이면 한 조각도 안 오른다.</b> 서버가 <code>jointStep</code>을 아예 받지 않는다.
+                거절 메시지를 보내지 않는 이유는 게이지가 안 오르는 것 자체가 신호이기 때문이다</li>
+            <li><b>조각 수는 인원의 3~4배</b>(2인 8조각 · 4인 12조각). 인원과 같게 두면 한 사람이 다 채우고
+                나머지는 서 있기만 하는 대기가 된다</li>
+            <li><b>대리도 채운다.</b> 소요 시간을 꽉 채워야 한 사람 몫이라 사람보다 느리다 —
+                그래야 1~3인 방이 성립한다(ROLE-03)</li>
+            <li><b>제 몫을 다 돌면 새 판이 열린다.</b> 릴레이에서 다음 상자가 오는 것과 같다</li>
+            <li><b>등급이 없다.</b> 분대가 같이 채운 것을 개인 등급으로 가를 수 없다</li>
+          </ul>
+          <p>
+            서버가 아는 것은 <b>조각 수 하나뿐</b>이다. 한 조각이 무엇인지(불일치 1건 · 물건 1개 ·
+            구간 하나)는 원형이 알고, 서버로는 “하나 채웠다”만 올라온다 — 그래서 원형 14종을
+            서버에 다시 만들 필요가 없다.
+          </p>
+          <p class="t-fail">
+            위 네 장치 중 <b>지금 들어간 것은 “인원 미달 시 진행 정지” 하나</b>다.
+            역할 게이트 · 공동 부하 · 정보 비대칭은 사람마다 화면이 달라야 해서,
+            조각에 <code>role</code>이나 소유자를 붙이는 것이 다음 걸음이다.
+          </p>
+        </div>
+
+        <div class="anatomy">
+          <div class="row"><span class="k">2D 파급</span><div class="v">
+            <b>인원 소집 비용이 올라갔다.</b> 구역 가시성 때문에 “지금 누가 어디 있는지”가 무전 상태에 종속되므로,
+            요구 인원 3인짜리 합동은 무전이 끊긴 상태에서 사실상 시간대를 다 태운다.
+            <b>이것이 통신병 유지의 실질 인센티브</b>다 (8.0).
+          </div></div>
+        </div>
+      </div>
+
+      <div class="sys">
+        <div class="sys-top"><span class="code">QST-02</span><h3>돌발 퀘스트 풀</h3></div>
+        <div class="anatomy">
+          <div class="row"><span class="k">발생</span><div class="v">시간대 진입 시 확률 롤. 기본 18%, 군기가 낮으면 최대 40%까지 상승.</div></div>
+          <div class="row"><span class="k">예시</span><div class="v">
+            <div class="kv">
+              <span class="chip">불시 점호</span><span class="chip">환자 발생</span><span class="chip">보급 트럭 도착</span>
+              <span class="chip">정신교육 소집</span><span class="chip">누수 · 정전</span><span class="chip">분실 장비 수색</span>
+              <span class="chip">간부 순찰</span><span class="chip">타 분대 지원 요청</span><span class="chip">제초 · 제설 추가</span>
+            </div>
+          </div></div>
+          <div class="row"><span class="k">규칙</span><div class="v">
+            돌발은 <b>필수를 밀어내지 않는다</b>. 시간을 잡아먹는 것이 페널티 그 자체다. 무시해도 실패는 아니다.
+          </div></div>
+        </div>
+      </div>
+
+      <h3>6.1 공통 일과</h3>
+
+      <div class="sys">
+        <div class="sys-top"><span class="code">QST-03</span><h3>공통 일과 — 보직 무관 잡무</h3></div>
+        <div class="anatomy">
+          <div class="row"><span class="k">목적</span><div class="v">
+            ① 보직 전용 퀘스트만으로는 표현되지 않는 <b>병영 생활의 질감</b>(청소, 제초, 운반)을 채운다.
+            ② <b>하달(짬때리기)의 대상</b>이 되어 계급 시스템에 실질 권력을 부여한다.
+          </div></div>
+          <div class="row"><span class="k">기능</span><div class="v">
+            <ul>
+              <li>보직 제약이 없다 — 누구나 수행 가능하고, 따라서 <b>누구에게든 넘길 수 있다</b></li>
+              <li>하루 2~4건이 분대 풀에 생성되어 일과 시작 시 자동 분배(1인당 0~1건)</li>
+              <li>절반은 필수, 절반은 선택. 필수분은 표 14-1의 필수 수 안에 포함</li>
+              <li><b>온도 밴드가 풀을 갈아낀다</b> — 제설은 한랭 이하, 제초는 온난 이상에서만 등장</li>
+              <li>대체로 짧다(10~20초). 대신 <b>동선이 멀다</b> — 시간 비용의 대부분이 이동이다</li>
+            </ul>
+          </div></div>
+          <div class="row"><span class="k">2D 연출</span><div class="v">
+            제설 일과는 <b>눈 오버레이 타일을 실제로 지운다.</b> 작업 결과가 맵에 남으므로
+            “했다/안 했다”가 UI 없이 보인다 — 저비용 고효율 연출이며, 하달의 성패도 눈으로 확인된다.
+          </div></div>
+          <div class="row"><span class="k">설계 주의</span><div class="v">
+            공통 일과는 재미가 없는 것이 정상이다. <b>넘기고 싶게 만들기 위한 설계</b>다.
+            재미있으면 아무도 하달하지 않고 계급 시스템이 죽는다. 대신 개별 소요를 20초 이하로 묶는다.
+          </div></div>
+        </div>
+      </div>
+
+      <div class="scroll">
+        <table>
+          <caption>표 6-2 · 공통 일과 풀 (온도 밴드별)</caption>
+          <thead><tr><th>등장 조건</th><th>공통 일과</th><th>필수/선택</th></tr></thead>
+          <tbody>
+            <tr><td class="d">전 밴드</td>
+              <td>생활관 바닥 청소 · 화장실 청소 · 복도 정돈 · 쓰레기 분리 배출 · 잔반 처리 ·
+                  물자 운반(창고→부서) · 세탁물 수령 · 배분 · 식기 세척 보조 · 관물대 정돈 점검 ·
+                  태극기 게양 · 강하 · 초소 주변 정리</td><td>혼합</td></tr>
+            <tr><td class="d t-cold">한랭 이하</td>
+              <td>제설 · 결빙 구간 모래 살포 · 보일러실 순찰 · 수도 동파 점검 · 난로 유류통 운반</td><td>대부분 <b>필수</b></td></tr>
+            <tr><td class="d t-heat">온난 이상</td>
+              <td>제초 · 배수로 정비 · 그늘막 설치 보조 · 급수통 보충 · 방역 소독 보조</td><td>대부분 <b>필수</b></td></tr>
+            <tr><td class="d">숙영 중</td>
+              <td>땔감 수집 · 취사장 정리 · 텐트 주변 배수 · 야간 화기 감시 보조</td><td>혼합</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>6.2 일과 하달 — “짬때리기”</h3>
+
+      <div class="sys">
+        <div class="sys-top"><span class="code">QST-04</span><h3>하달 시스템</h3></div>
+        <div class="anatomy">
+          <div class="row"><span class="k">언제</span><div class="v">
+            <b>오전 일과(08:00)</b>와 <b>오후 일과(14:00)</b> 진입 직후, <b>20초 하달 창</b>이 열린다.
+            시간대 타이머는 하달 창 동안 정지한다.
+          </div></div>
+          <div class="row"><span class="k">누가</span><div class="v">
+            <b>계급이 1단계 이상 높은 사람만</b> 하달할 수 있다. 이병은 하달 불가(최하위).
+            전원이 이병인 D-01~03 구간에는 시스템이 잠겨 있고, <b>D-03 1차 승급 심사가 해금 트리거</b>다.
+          </div></div>
+          <div class="row"><span class="k">무엇을</span><div class="v">
+            <b>공통 일과만</b>. 보직 전용 · 합동 · 돌발은 대상이 아니다.
+          </div></div>
+          <div class="row"><span class="k">얼마나</span><div class="v">
+            계급차 1단계 = <b>1건</b>, 2단계 이상 = <b>2건</b>(상한). 받는 쪽 보유 상한도 <b>2건</b>.
+            4인 편성에서는 하달 대상이 최대 3명뿐이라 1명에게 몰릴 위험이 크다 — 수락 상한 2건이 여기서 결정적이다.
+            <b>재하달 금지.</b>
+          </div></div>
+          <div class="row"><span class="k">UI</span><div class="v">
+            좌측에 내 공통 일과 카드, 우측에 하급자 카드(각자 <b>수락 여력 n/2</b>). 드래그로 배정.
+            하단에 남은 하달 수와 <b>예상 군기 변동</b>이 실시간으로 뜬다. 20초 후 자동 확정.
+            <br><b>키보드 배정 경로 필수</b> — 드래그 없이도 조작 가능해야 한다 (15.0).
+          </div></div>
+        </div>
+      </div>
+
+      <div class="rule-box fail">
+        <h4>비용 구조 — 이게 없으면 시스템이 무너진다</h4>
+        <p>하달이 순수 이득이면 상급자는 항상 쓰고 하급자는 영구히 짬을 받는 계층으로 고정된다. 대가를 세 겹으로 붙인다.</p>
+        <ul>
+          <li><b>복무 점수는 수행자에게 간다</b> (+2). 하달자는 0. <b>시간을 사는 대가로 승급 점수를 판다</b>.</li>
+          <li><b>하달자는 군기 −2</b>. 남용하면 점호 조건 C(군기 ≥ 40)에 스스로 접근한다.</li>
+          <li><b>미완료 책임은 양쪽 모두</b>. 하달한 필수가 미완료면 조건 A가 깨져 <span class="t-fail">전원 게임오버</span>다.</li>
+        </ul>
+      </div>
+
+      <div class="rule-box">
+        <h4>역전 경로 1 — 대행 점수 누적으로 짬때리기가 사다리가 된다</h4>
+        <p>
+          점수가 수행자에게 가므로 <b>짬을 많이 받은 이병이 다음 심사에서 먼저 승급한다</b>.
+          하급자에게 하달은 손해가 아니라 <b>시간을 내주고 점수를 사는 거래</b>다.
+          상급자는 확보한 시간을 훈련 100% 완주(+8)나 돌발(+3)에 써야 이득이다 — 쓸 데가 없으면 하달은 그냥 손실이다.
+        </p>
+        <p>이 게임에서 위계는 처벌 장치가 아니라 <b>협상 테이블</b>이다.</p>
+      </div>
+
+      <div class="rule-box">
+        <h4>역전 경로 2 — 후송에 의한 즉시 강등</h4>
+        <p>
+          승급 점수 누적은 심사일까지 기다려야 하지만 이쪽은 <b>하루 만에 뒤집힌다</b>.
+          후송된 플레이어는 다음 날 <b>이병으로 복귀</b>한다 — 계급 리셋이 곧 <b>하달 권한 전면 상실</b>이다.
+        </p>
+        <ul>
+          <li><b>어제의 상급자가 오늘의 최하위가 된다.</b> 어제까지 그에게 짬을 받던 사람이 이제 그에게 하달할 수 있다</li>
+          <li>런 종료 시 공개되는 <b>하달 장부</b>가 이 반전을 기록으로 남긴다</li>
+          <li>복귀 후 2일간 필수 +1(재활)이 걸리므로, 강등된 본인은 <b>가장 바쁜 동시에 가장 아래</b>가 된다</li>
+        </ul>
+        <p>
+          위계가 <b>영구적이지 않다는 것</b>을 체감해야 짬때리기가 괴롭힘이 아니라 게임으로 읽힌다.
+          상급자에게는 “지금 무리하게 넘기면 내가 쓰러졌을 때 돌아온다”는 억제력으로 작동한다.
+        </p>
+      </div>
+
+      <div class="sys">
+        <div class="sys-top"><span class="code">QST-05</span><h3>거부권과 분대장 개입</h3></div>
+        <div class="anatomy">
+          <div class="row"><span class="k">거부권</span><div class="v">
+            수행자는 <b>1일 1회</b> 하달을 거부할 수 있다. 거부 시 일과는 하달자에게 반환되고 하달자 복무 점수 <b>−3</b>.
+            단 거부한 사람은 <b>간부 신뢰도 −5</b>.
+          </div></div>
+          <div class="row"><span class="k">분대장 개입</span><div class="v">
+            분대장은 <b>계급과 무관하게</b> 배정을 1회 강제 변경할 수 있다(1회/시간대).
+            이병 분대장이 병장의 하달을 되돌리는 장면이 성립한다.
+          </div></div>
+          <div class="row"><span class="k">남용 억제</span><div class="v">
+            같은 사람에게 <b>3일 연속</b> 하달하면 그 대상의 정신력 회복이 −30%.
+            분대 전체 정신력이 떨어지면 조작 입력 지연이 걸리므로(7.0) 결국 하달자에게 되돌아온다.
+          </div></div>
+          <div class="row"><span class="k">기록</span><div class="v">
+            런 종료 시 <b>하달 장부</b>가 공개된다. <span class="t-fail">진행 중에는 공개하지 않는다</span> —
+            집계가 실시간으로 보이면 아무도 하달하지 않게 되어 계급 시스템이 죽는다.
+          </div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 7.0 -->
+    <section class="sec" id="s7">
+      <div class="sec-head"><span class="num">7.0</span><h2>컨디션 스탯 시스템</h2><span class="tag keep">변경 없음</span></div>
+      <p class="lede">
+        6개 스탯. 퀘스트를 다 깨도 컨디션이 무너지면 후송되어 런이 끝난다.
+        “일과 완수”와 “몸 관리”를 같은 시간 예산으로 해결해야 하는 것이 핵심 긴장이다.
+      </p>
+
+      <div class="scroll">
+        <table>
+          <caption>표 7-1 · 스탯 정의</caption>
+          <thead><tr><th>스탯</th><th>초기</th><th>주 소모원</th><th>회복 수단</th><th>0 도달 시</th></tr></thead>
+          <tbody>
+            <tr><td class="d">체력</td><td class="mono">100</td><td>훈련, 온도 피해, 부상</td><td>취침, 의무병 처치</td><td class="t-fail">후송 → 축적 전손 (JDG-03)</td></tr>
+            <tr><td class="d">수분</td><td class="mono">100</td><td>고온, 행군, 방독면 착용</td><td>수통, 식사, 정수</td><td class="t-fail">열사병 → 60초 후 쓰러짐</td></tr>
+            <tr><td class="d">피로</td><td class="mono">0 → 100</td><td>모든 활동, 야간 경계</td><td>취침, 휴식 시간대, 배식 버프</td><td class="t-fail">100 도달 시 강제 수면(퀘스트 포기)</td></tr>
+            <tr><td class="d">정신력</td><td class="mono">100</td><td>실패 판정, 추가 일과, 고립</td><td>중식 · 석식, 근접 대화 · 무전 교신, 히든 이벤트</td><td>패닉: 조작 입력 지연 +0.3초</td></tr>
+            <tr><td class="d">청결</td><td class="mono">100</td><td>시간 경과, 야외 훈련, 숙영</td><td>세면, 샤워, 세탁</td><td>점호 감점, 피부 질환 이벤트</td></tr>
+            <tr><td class="d">포만감</td><td class="mono">100</td><td>시간 경과 (배식 실패 시 2배)</td><td>배식, 전투식량, 간식(히든)</td><td>체력 드레인 시작</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="rule-box">
+        <h4>“고립”이 2D에서 실제 상태가 됐다</h4>
+        <p>
+          정신력 소모원 중 <b>고립</b>은 v0.9에서 추상적이었다. 구역 가시성(8.0)이 들어오면서
+          <b>다른 구역에 혼자 있고 무전도 끊긴 상태</b>가 명시적으로 판정된다 — 시간대당 정신력 −4.
+          근접 채팅 반경 안에 아군이 들어오거나 무전이 복구되면 즉시 해제된다.
+        </p>
+      </div>
+
+      <div class="sys">
+        <div class="sys-top"><span class="code">COND-02</span><h3>취침 정산</h3></div>
+        <div class="anatomy">
+          <div class="row"><span class="k">진행</span><div class="v">점호 통과 → 야간 경계 로테이션 배정(1~2명) → 정산 화면</div></div>
+          <div class="row"><span class="k">회복량</span><div class="v">
+            기본 체력 +35, 피로 −60, 정신력 +20.
+            <b>경계 근무자</b>는 회복량 50%만 받는다 → 경계 순번은 실질적으로 “다음 날의 빚”이며,
+            분대가 이 빚을 어떻게 분배하는지가 사회적 결정이 된다.
+          </div></div>
+          <div class="row"><span class="k">표시</span><div class="v">일차 요약 카드: 완료/미완료 퀘스트, 스탯 변화, 군기 변화, 다음 날 예보(행정병만 상세)</div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 8.0 -->
+    <section class="sec" id="s8">
+      <div class="sec-head"><span class="num">8.0</span><h2>가시성 · 협동 · 소통</h2><span class="tag redo">전면 재작성</span></div>
+      <div class="rule-box">
+        <h4>구현 — 구역은 36개다</h4>
+        <p>
+          명세는 논리 구역 8개를 가정했지만, 구현에서는 <b>방 하나가 곧 구역</b>이다(부대 26 + 훈련장 10).
+          8구역으로 두면 생활관 · 복도 · 세면장이 전부 한 구역이라 <b>가시성이 벽을 통과한다</b> —
+          세면장에 있는 사람이 생활관에 있는 사람에게 그냥 보인다. 그러면 이 절이 만들려는 압박이 절반으로 준다.
+        </p>
+        <p>
+          구역 표는 <code>packages/sim/data/zones.json</code>이 소유하고, 맵 생성기가 매 실행마다
+          <b>배치가 그 표의 인접 관계를 실제로 실현하는지</b> 검사한다. 걸어갈 수 있는데 서버가 막거나
+          그 반대인 경우가 빌드 시점에 걸린다.
+        </p>
+      </div>
+      <p class="lede">
+        <b>이 절이 2D 전환에서 가장 크게 바뀐 부분이다.</b>
+        협동을 강제하려면 소통 채널 자체가 게임 자원이어야 하고, 소통이 자원이 되려면
+        <b>정보가 기본적으로 부족해야</b> 한다. 3D는 벽이 그 역할을 했다. 2D는 그 역할을 새로 만들어야 한다.
+      </p>
+
+      <div class="rule-box fail">
+        <h4>문제 정의</h4>
+        <p>
+          탑다운 2D는 카메라 안의 모든 것이 보인다. v0.9의 “무전 두절 → 모여야 정보 전달”을 그대로 옮기면
+          플레이어는 그냥 화면을 보고 상황을 파악한다. <b>통신병이라는 보직 하나가 통째로 장식이 된다.</b>
+        </p>
+        <p>
+          더 나쁜 것은 이게 통신병만의 문제가 아니라는 점이다. 원칙 2(혼자서는 하루를 못 끝낸다)와
+          원칙 3(남의 실패가 내 난이도가 된다)은 <b>“남이 뭘 하고 있는지 완벽히 알 수 없다”</b>는 전제 위에 서 있다.
+          정보가 공짜면 협동은 조율이 아니라 단순 작업 분담이 된다.
+        </p>
+      </div>
+
+      <div class="sys">
+        <div class="sys-top"><span class="code">COMM-00</span><h3>구역 가시성 — 2D의 벽</h3><span class="tag new">신설</span></div>
+        <div class="anatomy">
+          <div class="row"><span class="k">개념</span><div class="v">
+            부대를 <b>16개 논리 구역</b>으로 나눈다(6.0 맵 참조). 카메라는 플레이어가 속한 구역에 Confine되고,
+            <b>다른 구역의 플레이어 · NPC 스프라이트는 렌더하지 않는다.</b>
+            구역 경계는 건물 벽 · 출입문 · 지형으로 자연스럽게 표현한다.
+          </div></div>
+          <div class="row"><span class="k">가시 규칙</span><div class="v">
+            <ul>
+              <li><b>같은 구역</b> — 월드에 실시간 표시. 근접 채팅(반경 15m) 가능</li>
+              <li><b>다른 구역 · 무전 정상</b> — 월드에는 안 보이지만 <b>미니맵에 마커로 표시</b>. 위치 · 보직 · 이상 여부 확인 가능</li>
+              <li><b>다른 구역 · 무전 두절</b> — <b>완전 불가시.</b> 어디 있는지, 쓰러졌는지도 모른다</li>
+            </ul>
+          </div></div>
+          <div class="row"><span class="k">무전 3단계</span><div class="v">
+            <b>정상</b> 마커 + 핑 전부 표시 /
+            <b>약함</b> 마커 1.5초 주기 점멸 · 위치 갱신 3초 지연 /
+            <b>두절</b> 마커 · 핑 전면 소멸, 미니맵 회색화 + <span class="t-fail">● 무전 두절</span> 라벨
+          </div></div>
+          <div class="row"><span class="k">통신병 연동</span><div class="v">
+            무전 상태는 <b>안테나 설치 · 배터리 잔량 · 정시 교신</b> 3개 변수로 결정된다.
+            전부 통신병 전용 퀘스트다(3.0). 통신병이 일과를 놓치면 단계가 내려간다.
+          </div></div>
+          <div class="row"><span class="k">비용 환산</span><div class="v">
+            시간대당 60초 예산에서 부대 최장 대각 이동이 약 12초다(4.0).
+            <b>위치를 모른 채 찾아다니면 20~30초</b>가 든다 — 시간대의 절반이다.
+            이것이 “통신병 실패의 대가”가 초 단위로 환산된 값이다.
+          </div></div>
+          <div class="row"><span class="k">구현 이점</span><div class="v">
+            구역 밖 스프라이트를 렌더하지 않으므로 <b>드로우콜과 메모리에도 유리</b>하다.
+            게임 설계상 필요한 것이 성능상으로도 이득인 드문 경우다.
+          </div></div>
+        </div>
+      </div>
+
+      <div class="rule-box">
+        <h4>검토했으나 채택하지 않은 대안</h4>
+        <ul>
+          <li><b>소프트 안개</b> — 캐릭터 반경 밖을 Light2D 마스크로 어둡게. 분위기는 좋지만 실내에서 효과가 약하고,
+              “보일락 말락”이 오히려 답답함으로 읽힌다</li>
+          <li><b>미니맵 게이팅만</b> — 월드는 다 보이되 마커만 무전에 종속. 가장 저렴하지만
+              “눈으로 보면 되잖아”가 남아 근본 해결이 아니다</li>
+        </ul>
+        <p>
+          <b>채택안은 구역 차단(A) + 미니맵 게이팅(C)의 병용</b>이다. 구역 밖은 월드에서도 안 보이고,
+          무전이 없으면 미니맵으로도 안 보인다. 두 겹이라야 정보가 실제로 희소해진다.
+        </p>
+      </div>
+
+      <h3>8.1 소통 채널</h3>
+
+      <p class="lede">소통은 <b>전부 텍스트 기반</b>이다 — 음성 채팅은 넣지 않는다.</p>
+
+      <div class="rule-box fail">
+        <h4>보이스를 뺀 이유, 그리고 그것이 만드는 문제</h4>
+        <p>
+          근접 보이스(WebRTC)를 제거했다. Unity WebGL은 네이티브 소켓 · WebRTC를 직접 열 수 없어
+          브라우저 JS에서 WebRTC를 돌리고 <code>.jslib</code> 브릿지로 위치를 계속 넘기는 구조가 되는데,
+          거리 감쇠 · 구역 차폐까지 얹으면 배보다 배꼽이 커진다.
+        </p>
+        <p>
+          다만 텍스트로 바꾸면 <b>새 문제가 생긴다: 타이핑은 손을 쓴다.</b>
+          9초 방독면 착용, 20초 하달 창, 행군 대열 유지 같은 구간에서 채팅창을 여는 것은 불가능하다.
+          그래서 <b>퀵 커맨드를 주 소통 수단</b>으로 놓고, 자유 텍스트는 여유 구간 전용으로 격하한다.
+        </p>
+      </div>
+
+      <div class="grid2">
+        <div class="card"><h4>퀵 커맨드 — 주 소통 수단</h4><p class="ds">라디얼 8슬롯, 키 1회로 발신. “집합 / 대기 / 이상 없음 / 지원 요청 / 완료 / 못 함 / 여기 / 서둘러”. 발신 시 머리 위 말풍선 + 미니맵 핑(무전 시) + 전용 SFX가 동시에 나간다. <b>타임 프레셔 구간의 유일한 채널.</b> 표시 지연 0ms.</p></div>
+        <div class="card"><h4>근접 채팅</h4><p class="ds">반경 15m · <b>같은 구역 내에서만</b>. 말풍선으로 3초 표시되고 로그에 남는다. 여유 구간(개인정비 · 점호 후 · 하달 창)의 주 채널.</p></div>
+        <div class="card"><h4>무전 채널 — 통신병 자원</h4><p class="ds">통신병이 개설 · 유지. 구역 무제한. 상태가 나쁘면 <b>글자 일부가 ●●로 치환</b>된다 — 음성 노이즈의 텍스트 등가물. 끊기면 합동 퀘스트 지시 UI와 아군 마커가 함께 사라진다.</p></div>
+        <div class="card"><h4>공용 상황판</h4><p class="ds">행정병이 갱신하는 분대 공유 보드. 누가 어떤 퀘스트를 잡았는지, 남은 필수가 몇 개인지 한눈에. <b>무전과 독립</b>이며 생활관 · 행정반에 물리적으로 존재한다 — 무전이 끊겼을 때의 최후 수단.</p></div>
+      </div>
+
+      <div class="sys">
+        <div class="sys-top"><span class="code">COMM-01</span><h3>채널별 제약</h3></div>
+        <div class="anatomy">
+          <div class="row"><span class="k">방독면 착용</span><div class="v">
+            <b>퀵 커맨드만 가능, 자유 채팅 입력 차단.</b> 정당화는 시야창이 좁아 키보드를 볼 수 없다는 것.
+            2D에서는 화면 가장자리 20%를 덮는 <b>마스크 프레임 오버레이</b>로 이를 시각화한다(9.0).
+          </div></div>
+          <div class="row"><span class="k">무전 두절</span><div class="v">
+            원거리 텍스트가 막히고 <b>아군 마커도 사라진다</b>. 같은 구역에 있는 사람과만 대화 가능 —
+            <b>물리적으로 찾아가야</b> 정보가 전달된다.
+          </div></div>
+          <div class="row"><span class="k">NPC 대리</span><div class="v">
+            대리는 퀵 커맨드만 발신하고 자유 텍스트를 치지 못한다.
+            그래서 정보 비대칭 패턴(암구호 · 좌표 낭독)을 수행할 수 없다 — 10.0 JDG-03의 제약이 여기서 나온다.
+          </div></div>
+          <div class="row"><span class="k">필터링</span><div class="v">
+            공개 매칭에서는 욕설 필터와 신고 기능이 필수. 하달 시스템(6.2)과 결합해 괴롭힘 경로가 되지 않도록
+            <b>채팅 로그를 신고 시 첨부</b>할 수 있게 서버에 24시간 보관한다.
+          </div></div>
+        </div>
+      </div>
+
+      <div class="rule-box">
+        <h4>동시 상호작용 4패턴</h4>
+        <ul>
+          <li><b>동시 조작</b> — 두 지점의 밸브 · 스위치를 3초 내 동시에 → <b>퀵 커맨드로 해결 가능</b></li>
+          <li><b>순차 릴레이</b> — A 완료가 B의 시작 조건 → <b>퀵 커맨드로 해결 가능</b></li>
+          <li><b>공동 부하</b> — 2인 이상이 붙어야 움직이는 물체 → <b>커맨드 불필요.</b> 2D에서 구현이 가장 단순한 패턴이다</li>
+          <li><b>정보 전달</b> — 화면에 보이는 사람과 입력하는 사람이 분리 → <b>유일하게 자유 텍스트가 필요</b></li>
+        </ul>
+        <p>
+          정보 전달 패턴은 <b>제한 시간이 넉넉한 합동 퀘스트에만 배치</b>한다.
+          자유 채팅은 협동의 필수 조건이 아니라 심화 수단이며, <b>타이핑을 전혀 하지 않고도 18일 완주가 가능해야 한다</b>(15.0).
+        </p>
+      </div>
+    </section>
+
+    <!-- 9.0 -->
+    <section class="sec" id="s9">
+      <div class="sec-head"><span class="num">9.0</span><h2>훈련 이벤트 시스템</h2><span class="tag redo">뷰 전환 도입</span></div>
+      <div class="rule-box">
+        <h4>구현 — 훈련장은 부대 밖이고, 걸어서 간다</h4>
+        <p>
+          훈련 맵 10종은 <b>별도 씬이 아니라 같은 심리스 월드</b>에 있다. 탑다운 7종은 외곽 철조망 바깥에
+          이어 붙었고 <b>정문 위병소(Z18)를 지나야</b> 나갈 수 있다 — 사격장도 숙영지도 원래 위병소를 지나 간다.
+          씬을 가르지 않으니 카메라 · HUD · 파티클 · 가시성이 전부 그대로 돌고, 훈련일 아침에
+          부대를 비우는 <b>동선 비용(6.1)</b>이 규칙이 아니라 실제 걷기로 치러진다.
+        </p>
+        <p>
+          사이드뷰 3종(행군 · 유격 기초 · 유격 종합)만 무대를 따로 뒀다 — 중력 방향이 달라 같은 격자에 둘 수 없다.
+          명세가 직접 권한 대로 <b>무대 하나를 공유</b>하고 지형 높이 프로파일과 장애물 밀도만 갈아 끼운다.
+        </p>
+        <p>
+          그날의 훈련장은 <b>서버가 정한다</b>(<code>sim/training.ts</code>). D-15는 그날 밴드가 혹한기와
+          혹서기를 가르고, D-12 · 13은 기초와 종합이 다른 코스다.
+        </p>
+      </div>
+      <p class="lede">
+        훈련은 “긴 시간대를 통째로 잡아먹는 특수 스테이지”다. 평상 일과와 달리 전용 맵과 전용 규칙을 가지며,
+        온도 밴드에 의해 소환 여부가 결정된다.
+      </p>
+
+      <div class="sys">
+        <div class="sys-top"><span class="code">TRN-01</span><h3>뷰 전환 — 훈련마다 카메라가 달라진다</h3><span class="tag new">신설</span></div>
+        <div class="anatomy">
+          <div class="row"><span class="k">탑다운</span><div class="v">
+            <b>기본 뷰.</b> 부대 일과 전체와 대부분의 훈련. 평면 이동과 지점 상호작용에 최적.
+          </div></div>
+          <div class="row"><span class="k">사이드뷰</span><div class="v">
+            <b>행군 · 유격 전용.</b> 전용 씬으로 전환하며 좌→우 자동 전진. 3개 훈련이 <b>씬 1개를 공유</b>하고
+            배경 타일과 장애물 배치만 교체한다 — 맵 3개의 제작비가 1.4개 수준으로 줄어든다.
+            <br>이 씬만 뷰가 다른 것은 문제가 아니라 <b>훈련일의 이질감</b>이라는 연출이 된다.
+          </div></div>
+          <div class="row"><span class="k">오버레이</span><div class="v">
+            <b>사격 · 화생방.</b> 탑다운 월드 위에 전용 UI 레이어를 띄운다. 조준 미니게임, 방독면 착용 컷인 QTE.
+            뷰 전환이 아니라 <b>레이어 추가</b>이므로 로딩이 없다.
+          </div></div>
+          <div class="row"><span class="k">전환 비용</span><div class="v">
+            사이드뷰는 씬 로딩이 발생한다(Addressables 스트리밍). 로딩 중 브리핑 텍스트를 노출해 체감을 흡수한다.
+            <b>하루에 뷰 전환은 최대 1회</b>로 제한한다 — 그래야 전환 자체가 사건으로 읽힌다.
+          </div></div>
+        </div>
+      </div>
+
+      <div class="scroll">
+        <table>
+          <caption>표 9-1 · 훈련 카탈로그</caption>
+          <thead><tr><th>훈련</th><th>뷰</th><th>소요</th><th>필요 인원</th><th>핵심 규칙</th><th>온도 조건</th></tr></thead>
+          <tbody>
+            <tr><td class="d">사격</td><td>탑다운 + 오버레이</td><td class="mono">1칸</td><td>개인</td><td>호흡 게이지 안정 → 조준 → 격발. 통신병이 제원 낭독</td><td>전 밴드</td></tr>
+            <tr><td class="d">화생방</td><td>탑다운 + 컷인</td><td class="mono">1칸</td><td>전원</td><td>9초 내 방독면 착용 3단계 QTE, 착용 중 수분 소모 2배 · 프레임 오버레이</td><td>전 밴드</td></tr>
+            <tr><td class="d">행군</td><td class="t-cold">사이드뷰</td><td class="mono">2칸</td><td>전원</td><td>페이스 게이지 유지, 20km 구간 4개, 낙오자 좌우 2인 부축</td><td>혹서 · 극혹서는 야간 이월</td></tr>
+            <tr><td class="d">숙영</td><td>탑다운</td><td class="mono">2일</td><td>전원</td><td>텐트 설치(행정병) → 배식(의무병 감독) → 야간 경계 2교대. 청결 급감</td><td>전 밴드</td></tr>
+            <tr><td class="d t-cold">혹한기 훈련</td><td>탑다운</td><td class="mono">3칸</td><td>전원</td><td>보온 게이지 관리, 설상 기동, 동상자 후송, 난로 유지</td><td class="t-cold">한랭 이하</td></tr>
+            <tr><td class="d t-heat">혹서기 대비</td><td>탑다운</td><td class="mono">2칸</td><td>전원</td><td>급수 라인 구축, 그늘막 설치, 열사병 환자 응급처치 로테이션</td><td class="t-heat">혹서 이상</td></tr>
+            <tr><td class="d">유격</td><td class="t-cold">사이드뷰</td><td class="mono">3칸</td><td>전원</td><td>장애물 코스 릴레이 — 앞 사람이 통과해야 다음 사람 시작. 전원 통과가 조건</td><td>평시 · 온난 한정</td></tr>
+            <tr><td class="d">외부 지원</td><td>탑다운</td><td class="mono">2칸</td><td>3인 이상</td><td>대민지원 · 제설 등 별도 맵. 성공 시 보급 포인트 대량 획득</td><td>전 밴드</td></tr>
+            <tr><td class="d">합동 전술훈련</td><td>탑다운</td><td class="mono">4칸</td><td>전원</td><td>4개 보직 전원의 고유 능력을 순서대로 사용해야 클리어. 최종 시험</td><td>전 밴드</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="rule-box cold">
+        <h4>행군 재설계 — 사이드뷰 레인 미니게임</h4>
+        <p>
+          3D에서는 앞 사람과의 거리를 3인칭 시점으로 체감했다. 탑다운으로 20km를 걷게 하면 그냥 지루한 이동이 된다.
+        </p>
+        <ul>
+          <li>4명이 좌→우로 자동 전진. 각자 <b>페이스 게이지</b>를 유지 — 앞서면 체력 과소모, 뒤처지면 대열 이탈 판정</li>
+          <li>소총수의 <b>페이스 메이커</b> 능력이 여기서 발동한다(3.0) — 인접 아군의 게이지 허용 폭이 넓어진다</li>
+          <li>낙오자 발생 시 좌우 인접 2인이 접근해 <b>부축 상태</b>로 전환(공동 부하 패턴)</li>
+          <li>구간 4개 = 체크포인트 4개 = <b>필수 퀘스트 4건</b> (아래 카운트 규칙)</li>
+          <li>유격 코스도 같은 씬을 재활용한다 — 릴레이 규칙만 교체</li>
+        </ul>
+      </div>
+
+      <div class="rule-box heat">
+        <h4>방독면 재설계 — 컷인 QTE + 프레임 오버레이</h4>
+        <ul>
+          <li><b>착용</b>: 정면 클로즈업 컷인 오버레이로 3단계 QTE(마스크 끈 → 조임 → 밀폐 확인). 9초 제한</li>
+          <li><b>착용 후</b>: 고무 마스크 실루엣이 화면 가장자리 20%를 덮는 프레임 오버레이 + 호흡음 + 수분 소모 2배</li>
+          <li><b>소통 제약 유지</b>: 퀵 커맨드만 가능, 자유 채팅 차단 (8.0) — 2D에서도 완벽히 성립한다</li>
+          <li>QTE는 <b>단발 입력</b>으로 받는다 — 방독면 3단계는 눌러야 할 순간이 셋이지 연타가 아니다</li>
+        </ul>
+      </div>
+
+      <div class="sys">
+        <div class="sys-top"><span class="code">TRN-02</span><h3>훈련 진행 구조 (공통)</h3></div>
+        <div class="anatomy">
+          <div class="row"><span class="k">1 준비</span><div class="v">장비 점검 창 — 필수 장비 미착용자는 출발 불가. 행정병 · 의무병이 마지막으로 보정할 기회</div></div>
+          <div class="row"><span class="k">2 이동</span><div class="v">전용 맵으로 로딩. 스트리밍 로딩 중 브리핑 텍스트 노출</div></div>
+          <div class="row"><span class="k">3 수행</span><div class="v">구간 단위 체크포인트. 각 구간마다 개인 판정 + 분대 판정을 동시에 기록</div></div>
+          <div class="row"><span class="k">4 복귀</span><div class="v">장비 반납 · 손질 퀘스트가 자동 생성되어 다음 시간대에 추가된다 (훈련의 사후 비용)</div></div>
+          <div class="row"><span class="k">필수 카운트</span><div class="v">
+            <b>훈련의 구간 체크포인트는 각각 필수 퀘스트 1건으로 카운트된다.</b>
+            이 규칙 없이는 훈련일이 성립하지 않는다 — D-17은 합동 전술훈련이 6칸 중 4칸을 먹는데
+            필수가 7건이므로, 남은 1칸에 7건을 넣을 방법이 없다.
+            체크포인트를 필수로 세면 <b>7 = 훈련 체크포인트 5 + 잔여 칸 보직 퀘스트 2</b>로 정확히 채워진다.
+          </div></div>
+          <div class="row"><span class="k">실패 처리</span><div class="v">훈련은 <b>부분 성공</b>을 허용한다. 구간 통과율 70% 이상이면 필수 판정은 통과, 대신 군기 · 보상 감소.</div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 10.0 -->
+    <section class="sec" id="s10">
+      <div class="sec-head"><span class="num">10.0</span><h2>점호 판정 · 게임오버</h2><span class="tag keep">변경 없음</span></div>
+      <p class="lede">
+        매일 22:00, 한 화면에서 그날의 모든 것이 결산된다. 이 판정 규칙이 게임 전체의 룰북이다.
+      </p>
+
+      <div class="sys">
+        <div class="sys-top"><span class="code">JDG-01</span><h3>판정 조건 (AND — 하나라도 깨지면 실패)</h3></div>
+        <div class="anatomy">
+          <div class="row"><span class="k">조건 A</span><div class="v">
+            그날 배정된 <b>필수 퀘스트 100% 완료</b> — 판정 대상은 <b>점호 시각의 편성 인원</b>이다.
+            후송자의 몫은 NPC 대리가 이미 채워놓은 상태이므로 공백으로 남지 않는다 (JDG-03).
+          </div></div>
+          <div class="row"><span class="k">조건 B</span><div class="v">그날의 <b>합동 퀘스트 완료</b> (부분 성공 70% 이상 포함)</div></div>
+          <div class="row"><span class="k">조건 C</span><div class="v">분대 <b>군기 게이지 ≥ 40</b></div></div>
+          <div class="row"><span class="k">조건 D</span><div class="v">복장 · 장비 점검 통과 — 청결 20 이상, 필수 장비 소지</div></div>
+        </div>
+      </div>
+
+      <div class="rule-box">
+        <h4>구제 총량 3회 — 완주율 근거</h4>
+        <p>
+          조건 A~D가 AND이므로 <b>한 명의 실수 하나가 분대 전체의 런을 끝낸다</b>. 이 압력을 완충하는 것이
+          구제권이며, 총량은 완주율 목표(15~25%)에서 역산한다.
+        </p>
+        <p class="mono" style="font-size:0.8125rem">4인 × 필수 4.2건 × 18일 = <b>판정 대상 302건</b></p>
+        <div class="scroll" style="margin-top:0.5rem">
+          <table style="min-width:500px">
+            <thead><tr><th>개인 정확도</th><th>구제 2회</th><th>구제 3회</th><th>구제 4회</th></tr></thead>
+            <tbody>
+              <tr><td class="mono">98.0%</td><td class="mono">5%</td><td class="mono accent"><b>15%</b></td><td class="mono">28%</td></tr>
+              <tr><td class="mono">98.5%</td><td class="mono">17%</td><td class="mono">34%</td><td class="mono">55%</td></tr>
+              <tr><td class="mono">99.0%</td><td class="mono">42%</td><td class="mono">65%</td><td class="mono">83%</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p><b>구제 3회 = 분대장 우선순위 지정 2회 + 간부 구제권 1회.</b></p>
+        <p class="t-fail">
+          <b>2D 전환 시 재측정 필요.</b> 구역 가시성(8.0)이 이동 비용을 올리므로 개인 정확도가 98% 아래로 떨어질 수 있다.
+          M5 헤드리스 1000회 시뮬레이션에서 실측한 뒤 구제 총량을 재조정한다.
+        </p>
+      </div>
+
+      <div class="sys">
+        <div class="sys-top"><span class="code">JDG-03</span><h3>후송 처리 — 개인 게임오버가 개인에서 멈추게 하는 파이프라인</h3></div>
+        <div class="anatomy">
+          <div class="row"><span class="k">즉시 처리</span><div class="v">
+            컨디션 붕괴로 쓰러진 시점(점호까지 기다리지 않는다) →
+            2인 1조 들것 후송 → 해당 <b>보직이 NPC 대리로 전환</b> →
+            그 시점의 미완료 필수 퀘스트를 대리가 인수
+          </div></div>
+          <div class="row"><span class="k">대리의 능력</span><div class="v">
+            NPC 대리는 <b>필수 퀘스트만</b> 완수한다. 선택 · 돌발 · 히든은 일절 수행하지 않는다 —
+            <b>생존은 시켜주지만 성장은 시켜주지 않는다.</b>
+          </div></div>
+          <div class="row"><span class="k">인수 한도</span><div class="v">
+            후송 시점의 잔여 필수가 <b>2건 이하일 때만</b> 대리가 인수한다.
+            3건 이상 남아 있으면 인수 불가 — 그 몫이 미완료로 남아 조건 A가 깨지고 <span class="t-fail">전원 게임오버</span>다.
+            <br><b>대리는 구제 장치이지 면제 장치가 아니다.</b>
+          </div></div>
+          <div class="row"><span class="k">2D 파급</span><div class="v">
+            <b>후송 자체가 어려워졌다.</b> 무전이 끊겨 있으면 쓰러진 위치를 모르므로 수색 시간이 붙는다(8.0).
+            잔여 필수가 2건 이하여도 <b>제때 못 찾으면 대리 전환이 늦어지고</b> 그만큼 인수분이 줄어든다.
+            <br>결과적으로 <b>통신병 유지가 후송 생존율에 직결</b>된다 — 두 보직이 서로를 필요로 하는 구조다.
+          </div></div>
+          <div class="row"><span class="k">분대가 지는 대가</span><div class="v">
+            <ul>
+              <li>후송 발생 시 <b>즉시 군기 −15</b> (일회성, 계급 무관)</li>
+              <li>대리 유지 1개당 <b>군기 −3 / 일</b> (누적)</li>
+              <li>그 보직의 선택 퀘스트 0 → 분대 복무 점수 성장 둔화, 보급 포인트 감소</li>
+              <li>합동 퀘스트의 <b>정보 비대칭 패턴 수행 불가</b> (8.0)</li>
+              <li>대리 <b>2개 이상</b>: 군기 <b>상한 60</b>으로 하락</li>
+            </ul>
+          </div></div>
+          <div class="row"><span class="k">복귀 재활</span><div class="v">복귀 후 <b>2일간 본인 필수 퀘스트 +1</b>.</div></div>
+          <div class="row"><span class="k">런 종료 조건</span><div class="v"><b>실제 플레이어</b>가 2명 미만이 되면 분대 해체로 런 종료. NPC 대리는 인원수에 포함하지 않는다.</div></div>
+        </div>
+      </div>
+
+      <div class="rule-box">
+        <h4>후송된 플레이어 본인 — 복귀 신병으로 재투입, 축적 전손</h4>
+        <ul>
+          <li><b>잃는 것</b>: 계급 → 이병 리셋, 복무 점수 0, 특기 숙련도 전 단계 소실, 간부 신뢰도 절반, 복귀 후 2일간 필수 +1</li>
+          <li><b>남는 것</b>: 조작권. 자기 보직으로 즉시 복귀하고 NPC 대리는 해제된다</li>
+          <li><b>영구 낙인</b>: 개인 기록에 “후송” 1회. <b>분대 전체의 무실패 배지가 깨져 모범 전역 엔딩이 불가</b>해진다</li>
+          <li><b>하달 권한 상실</b>: 계급 리셋은 곧 최하위 복귀 — 6.2의 역전 경로 2가 이 지점에서 발생한다</li>
+          <li>후송 당일 밤은 조작 불가(의무실). 이 하루가 유일한 관전 구간이다</li>
+        </ul>
+      </div>
+
+      <div class="sys">
+        <div class="sys-top"><span class="code">JDG-02</span><h3>판정 연출</h3></div>
+        <div class="anatomy">
+          <div class="row"><span class="k">진행</span><div class="v">
+            전원 관물대 앞 정렬 → 인원 보고(후송자 자리는 <b>점선 공석</b>) → 조건 A~D가 한 줄씩 순차 체크(각 0.6초) →
+            전부 통과 시 “취침” / 하나라도 X면 <b>그 줄에서 정지</b>하고 화면 톤이 경고색으로 전환.
+            실패한 조건 아래는 아예 판정하지 않고 <code>—</code>로 남긴다.
+          </div></div>
+          <div class="row"><span class="k">타임라인</span><div class="v">
+            <span class="mono">0.0s</span> 암전 + 정렬 → <span class="mono">0.8s</span> 인원 보고 →
+            <span class="mono">1.6 / 2.2 / 2.8 / 3.4s</span> 조건 A~D → <span class="mono">4.0s</span> 결과. 총 6.4초.
+          </div></div>
+          <div class="row"><span class="k">의도</span><div class="v">
+            실패 원인을 <b>단 한 줄로 지목</b>해서, 다음 런에서 무엇을 고쳐야 하는지 즉시 학습되게 한다.
+          </div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 11.0 -->
+    <section class="sec" id="s11">
+      <div class="sec-head"><span class="num">11.0</span><h2>보급 · 장비 시스템</h2><span class="tag keep">변경 없음</span></div>
+      <p class="lede">
+        인벤토리는 자원 관리가 아니라 <b>준비 여부</b>를 묻는 장치다. 어제 무엇을 챙겼는지가 오늘의 밴드에서 드러난다.
+      </p>
+
+      <div class="grid2">
+        <div class="card"><h4>피복 슬롯</h4><p class="ds">상의 / 하의 / 외피 / 두부 / 수족 / 군장. 각 슬롯이 보온치 · 통기치 · 방호치를 가진다. 젖음 · 오염 상태가 별도로 붙는다.</p></div>
+        <div class="card"><h4>소모품</h4><p class="ds">수통, 전투식량, 붕대, 핫팩, 얼음팩, 건전지, 정비 부품. 무게 합계가 행군 피로 계수에 직결.</p></div>
+        <div class="card"><h4>지급 장비</h4><p class="ds">소총, 방독면, 무전기, 야시장비, 공구함, 의무낭. 보직별 필수 지급품 미소지 시 훈련 출발 차단.</p></div>
+        <div class="card"><h4>분대 공용</h4><p class="ds">텐트, 난로, 발전기, 취사 도구, 들것. 창고에서 꺼내는 데 2인 필요 — 여기서도 협동이 강제된다.</p></div>
+      </div>
+
+      <div class="sys">
+        <div class="sys-top"><span class="code">SUP-01</span><h3>보급 사이클</h3></div>
+        <div class="anatomy">
+          <div class="row"><span class="k">주기</span><div class="v">3일마다 보급일(3 · 6 · 9 · 12 · 15일차). 보급 포인트로 분대 단위 청구 — 청구서는 행정병이 작성.</div></div>
+          <div class="row"><span class="k">포인트 획득</span><div class="v">일과 완수 정시성, 돌발 퀘스트 성공, 외부 지원 임무, 군기 보너스</div></div>
+          <div class="row"><span class="k">긴장 구조</span><div class="v">
+            포인트는 항상 부족하다. 방한 장비를 살 것인가, 의약품을 살 것인가 —
+            <b>다음 날 예보를 아는 행정병만 정답을 안다</b>. 정보를 가진 사람과 결정권을 가진 분대장이 대화해야 한다.
+            <br><b>2D 파급</b>: 두 사람이 다른 구역에 있고 무전이 끊겨 있으면 이 대화 자체가 성립하지 않는다.
+            정보 비대칭이 물리적 거리로 강화된다 (8.0).
+          </div></div>
+          <div class="row"><span class="k">분실 / 파손</span><div class="v">장비 분실 시 즉시 수색 돌발 퀘스트 발생. 미회수 상태로 점호 → 조건 D 실패.</div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 12.0 -->
+    <section class="sec" id="s12">
+      <div class="sec-head"><span class="num">12.0</span><h2>군기 · 신뢰도 시스템</h2><span class="tag keep">변경 없음</span></div>
+      <p class="lede">분대의 사회적 상태를 수치화한 레이어. 개인 스탯이 “몸”이라면 이쪽은 “조직”이다.</p>
+
+      <div class="sys">
+        <div class="sys-top"><span class="code">DISC-01</span><h3>분대 군기 게이지 (0~100, 시작 60)</h3></div>
+        <div class="anatomy">
+          <div class="row"><span class="k">상승</span><div class="v">정시 완수 +5, 합동 퀘스트 무결 완수 +12, 돌발 성공 +10, 전원 무부상 마감 +6</div></div>
+          <div class="row"><span class="k">하락</span><div class="v">선택 퀘스트 미완 −8, 지각 −4, 장비 분실 −10, 인원 사고 −15, 대리 NPC 상태 −3/일</div></div>
+          <div class="row"><span class="k">구간 효과</span><div class="v">
+            <ul>
+              <li><b>80+ 우수분대</b>: 돌발 발생률 −10%p, 보급 포인트 +20%, 개인정비 시간 +20초</li>
+              <li><b>40~79 보통</b>: 표준</li>
+              <li><b>20~39 이완</b>: 추가 일과 자동 부과(다음 날 선택 퀘스트 +2), 돌발 발생률 +15%p</li>
+              <li><b class="t-fail">19 이하 경고</b>: 점호 조건 C 상시 실패 → 실질적으로 다음 점호에서 런 종료</li>
+            </ul>
+          </div></div>
+        </div>
+      </div>
+
+      <div class="sys">
+        <div class="sys-top"><span class="code">DISC-02</span><h3>간부 신뢰도 (NPC 3인 개별 트랙)</h3></div>
+        <div class="anatomy">
+          <div class="row"><span class="k">대상</span><div class="v">소대장 / 부소대장 / 행보관 — 각각 중시하는 항목이 다르다(훈련 성과 / 복장 · 군기 / 보급 · 정비)</div></div>
+          <div class="row"><span class="k">기능</span><div class="v">
+            <b>구제권</b> — 필수 퀘스트 1건을 “정상 참작” 처리한다.
+            <b>런당 1회</b>, 세 간부 중 <b>신뢰도가 가장 높은 1명만</b> 발동할 수 있다.
+          </div></div>
+          <div class="row"><span class="k">진행</span><div class="v">저녁 개인정비 시간에 대화 상호작용으로 소량 조정 가능 — 시간을 쓸 가치가 있는지 판단하게 만든다.</div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 13.0 -->
+    <section class="sec" id="s13">
+      <div class="sec-head"><span class="num">13.0</span><h2>계급 · 성장 · 메타 진행</h2><span class="tag keep">변경 없음</span></div>
+      <p class="lede">
+        런 내부 성장(계급 · 숙련도)과 런 외부 성장(기록 · 해금)을 분리한다. 후자는 능력치 강화가 아니라
+        <b>선택지 확장</b>이어야 한다 — 파워 인플레는 하루 판정 구조를 망친다.
+      </p>
+
+      <div class="rule-box fail">
+        <h4>필수 퀘스트 완수는 승급 기준이 될 수 없다</h4>
+        <p>
+          필수 퀘스트는 미완료 시 그날 게임오버다. 즉 <b>살아있는 플레이어는 예외 없이 필수 100%</b>다.
+          전원이 만점인 지표는 변별력이 0이다.
+          승급은 <b>“안 해도 되는데 한 것”</b>으로만 측정한다 — 선택 퀘스트, 돌발, 훈련 무결 완주,
+          경계근무 자원, 간부 신뢰도, 후임 지원, 대행.
+        </p>
+      </div>
+
+      <div class="sys">
+        <div class="sys-top"><span class="code">RANK-01</span><h3>승급 구조 — 복무일수 × 성과 하이브리드</h3></div>
+        <div class="anatomy">
+          <div class="row"><span class="k">기능</span><div class="v">
+            <ul>
+              <li><b>심사 시점</b>은 복무일수가 연다 — D-03 / D-09 / D-15 점호 직후, 총 3회</li>
+              <li><b>통과 여부</b>는 누적 복무 점수가 결정한다</li>
+              <li>승급은 <b>개인 단위</b>다 — 같은 분대 안에서 계급이 갈린다</li>
+              <li>계급은 능력치를 주지 않는다. <b>권한만</b> 준다</li>
+              <li>미달 시 <b>보류</b> — 게임오버가 아니라 권한이 늦게 열릴 뿐</li>
+            </ul>
+          </div></div>
+          <div class="row"><span class="k">보류 · 재심사</span><div class="v">
+            미달자는 다음 <b>정비일</b>(D-06 / D-11 / D-14)에 재심사. 요구치 −10%.
+          </div></div>
+          <div class="row"><span class="k">공개 원칙</span><div class="v">
+            점수 내역은 <b>전원에게 공개</b>한다. 누가 무임승차했는지 드러나는 것이 이 시스템의
+            <b>사회적 압력 장치</b>다 — 필수만 하고 버티는 플레이를 규칙이 아니라 시선으로 막는다.
+          </div></div>
+        </div>
+      </div>
+
+      <div class="scroll">
+        <table>
+          <caption>표 13-1 · 복무 점수 항목 (전부 “선택적” 행동)</caption>
+          <thead><tr><th>항목</th><th>점수</th><th>획득 빈도</th><th>왜 이 항목인가</th></tr></thead>
+          <tbody>
+            <tr><td>선택 퀘스트 완수 — <b>등급 차등</b></td><td class="mono">A +3 · B +2 · C +1</td><td>하루 1~2회</td><td>가장 기본적인 “안 해도 되는 일”. <b>B가 등급 도입 전과 같은 값</b>이라 심사 요구치를 손대지 않았다</td></tr>
+            <tr><td>필수 퀘스트를 <b>A로</b> 완수</td><td class="mono">+1</td><td>하루 0~7회</td><td>“필수는 전원 100%라 변별력이 0”이던 문제가 등급으로 풀린다</td></tr>
+            <tr><td>돌발 퀘스트 성공</td><td class="mono">+3</td><td>하루 0~3회</td><td>시간을 태워야 하므로 실질 기회비용이 있다</td></tr>
+            <tr><td>합동 퀘스트 무결 완수</td><td class="mono">+4</td><td>하루 1~2회</td><td>부분 성공이 아닌 완전 수행에만 보상</td></tr>
+            <tr><td>훈련 100% 완주</td><td class="mono">+8</td><td>훈련일</td><td>70%로도 생존은 되므로 순수 초과 성과</td></tr>
+            <tr><td>야간 경계근무 자원</td><td class="mono">+3</td><td>순번마다</td><td>회복량 50% 손실을 감수한 대가</td></tr>
+            <tr><td><b>하달받은 공통 일과 완수</b> (대행)</td><td class="mono">+2</td><td>하루 0~2회</td><td>짬때리기를 <b>계급 역전의 사다리</b>로 만드는 핵심 항목</td></tr>
+            <tr><td>후임 지원 — 하급자 퀘스트 협력</td><td class="mono">+2</td><td>제한 없음</td><td>계급 격차가 소외가 아니라 협동 유인이 되게 만든다</td></tr>
+            <tr><td>특기 숙련도 단계 상승</td><td class="mono">+5</td><td>런당 최대 2회</td><td>반복 숙달에 대한 보상</td></tr>
+            <tr><td>간부 신뢰도 합계 ÷ 10</td><td class="mono">최대 +12</td><td>심사 시 정산</td><td>저녁 시간을 대화에 쓴 선택을 보상</td></tr>
+            <tr><td class="t-fail">내가 하달한 일과를 상대가 거부</td><td class="mono t-fail">−3</td><td>—</td><td>거부권의 대가를 하달자에게 지운다</td></tr>
+            <tr><td class="t-fail">지각 · 장비 분실 · 후송 · 대리 유지</td><td class="mono t-fail">−3 / −5 / −8 / −3일</td><td>—</td><td>—</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="scroll">
+        <table>
+          <caption>표 13-2 · 계급별 심사 기준과 권한</caption>
+          <thead><tr><th>계급</th><th>심사</th><th>요구 누적</th><th>획득 상한(추정)</th><th>부여 권한</th><th>감점 배율</th></tr></thead>
+          <tbody>
+            <tr><td class="d">이병</td><td>—</td><td class="mono">시작 계급</td><td class="mono">—</td>
+              <td>없음 — <b>하달 불가</b>. 받는 입장이므로 대행 점수를 가장 많이 벌 수 있다</td><td class="mono">×1.0</td></tr>
+            <tr><td class="d">일병</td><td class="mono">D-03</td><td class="mono">18</td><td class="mono">~38</td>
+              <td><b>하달 해금</b>(1건) / <b>분대 진행률 가시화</b>(수첩에 전원의 필수 잔여) / 돌발 우선 수령권</td><td class="mono">×1.2</td></tr>
+            <tr><td class="d">상병</td><td class="mono">D-09</td><td class="mono">70</td><td class="mono">~113</td>
+              <td><b>하달 2건</b> / 내 선택 퀘스트를 다른 시간대로 <b>1회/일 이월</b> / 간부 대화 효과 2배</td><td class="mono">×1.4</td></tr>
+            <tr><td class="d">병장</td><td class="mono">D-15</td><td class="mono">150</td><td class="mono">~200</td>
+              <td><b>하달 2건</b> / <b>점호 실패 시 구제권 발의</b> / 분대장 우선순위 지정 +1회 제공</td><td class="mono">×1.6</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="rule-box fail">
+        <h4>폐기 — “계급이 오르면 필수 퀘스트 +1”</h4>
+        <p>
+          4인 분대에서 전원 +1이면 하루 판정 대상이 17건 → 21건으로 늘고 완주율이 급락한다.
+          성장이 <b>처벌</b>로 체감되는 것도 문제다. 대신 <b>감점 배율</b>로 책임을 표현한다 —
+          계급이 높으면 같은 실수의 대가가 커지지만, 해야 할 일의 양은 늘지 않는다.
+        </p>
+      </div>
+
+      <div class="grid2">
+        <div class="card"><h4>특기 숙련도 (런 내부)</h4><p class="ds">보직 행동 반복 시 상승. 상호작용 시간 단축, 미니게임 허용 오차 확대. 최대 3단계.</p></div>
+        <div class="card"><h4>기록 (런 외부)</h4><p class="ds">최장 생존 일수, 무실패 일수, 보직별 완주 횟수, 분대 조합별 기록. 리더보드 대상.</p></div>
+        <div class="card"><h4>해금 (런 외부)</h4><p class="ds">보직 완주 시 그 보직의 <b>대체 특기</b> 해금. 능력 총량은 동일, 플레이 방식만 달라진다.</p></div>
+        <div class="card"><h4>엔딩 분기</h4><p class="ds"><b>모범 전역</b>(무실패 + 후송 0 + 군기 80+ + 병장) / <b>정상 전역</b> / <b>간신히 전역</b> / <b>분대 기록 엔딩</b>(히든 4개 — 분대원 개별 후기 생성)</p></div>
+      </div>
+    </section>
+
+    <!-- 14.0 -->
+    <section class="sec" id="s14">
+      <div class="sec-head"><span class="num">14.0</span><h2>18일 커리큘럼</h2><span class="tag gain">뷰 열 추가</span></div>
+      <p class="lede">
+        하루하루의 난이도 곡선. 기후 롤에 따라 <span class="t-cold">한랭 계열</span> /
+        <span class="t-heat">고온 계열</span>로 갈리는 칸이 명시되어 있고, 정비일(휴식)이 3개 배치되어
+        긴장-이완 리듬을 만든다. <b>필수 총량 76건은 손대지 않았다</b> — 건드리면 10.0의 완주율 밸런스가 깨진다.
+      </p>
+
+      <div class="rule-box">
+        <h4>해금은 문서가 아니라 규칙이다 <span class="tag gain">v1.1</span></h4>
+        <p>
+          표 14-1의 <code>unlocks</code> 열은 <b>아무도 읽지 않는 필드</b>였다. 커리큘럼은
+          “공통 일과는 D-2부터, 돌발은 D-4부터”라고 적어놨는데 배정기는 D-1부터 전부 냈다 —
+          표에 적힌 난이도 곡선이 실제로는 존재하지 않았고, <b>첫날이 3일차와 같은 밀도</b>로 시작했다.
+        </p>
+        <ul>
+          <li><b>공통 일과 — D-2부터.</b> D-1의 필수는 보직 2건뿐이라 공통이 없어도 하루가 성립한다</li>
+          <li><b>돌발 퀘스트 — D-4부터.</b> 조작도 안 익은 첫 사흘에 일과를 끊고 들어오면 압박이 아니라 사고다</li>
+          <li><b>하달 — D-3부터.</b> 계급으로도 막히지만 그건 승급 시점이 우연히 맞는 것이라, 규칙은 커리큘럼이 소유한다</li>
+        </ul>
+        <p>
+          <b>모든 항목이 게이트는 아니다.</b> <code>보직 퀘스트</code>(D-2)는 D-1의 필수
+          <code>roleQuests: 2</code>와 모순된다 — 그런 항목은 <b>화면이 그 기능을 처음 소개하는 시점</b>이지
+          존재 여부가 아니다. 규칙으로 쓰는 것만 게이트로 걸었다.
+        </p>
+      </div>
+
+
+      <div class="scroll">
+        <table>
+          <caption>표 14-1 · 일차별 커리큘럼 (4인 편성 · 필수 = 훈련 체크포인트 + 개인 보직 퀘스트)</caption>
+          <thead>
+            <tr><th>일차</th><th>기후</th><th>뷰</th><th>주요 일과 · 훈련</th><th>합동 퀘스트</th><th>합동 인원</th><th>필수</th><th>신규 해금</th></tr>
+          </thead>
+          <tbody>
+            <tr><td class="d">D-01</td><td>평시 고정</td><td>탑다운</td><td>입소, 보직 선택, 관물대 정리</td><td>내무실 정돈</td><td class="mono">2인 <span class="label">여유 2</span></td><td class="mono">2</td><td>기본 조작, 수첩, <b>구역 이동</b></td></tr>
+            <tr><td class="d">D-02</td><td>평시 고정</td><td>탑다운</td><td>일과 숙지, 제식, 총기 지급</td><td>탄약고 수령</td><td class="mono">2인 <span class="label">여유 2</span></td><td class="mono">3</td><td>보직 퀘스트, 공통 일과, 군기, <b>퀵 커맨드</b></td></tr>
+            <tr><td class="d">D-03</td><td>롤</td><td>+오버레이</td><td><b>사격훈련</b>, 보급일, <b>1차 승급 심사</b></td><td>사격 제원 전달 <span class="label">통신 → 소총</span></td><td class="mono">2인 <span class="label">여유 2</span></td><td class="mono">3 = 1+2</td><td>보급 청구, <b>무전 · 미니맵 마커</b>, 계급(일병), <b>하달</b></td></tr>
+            <tr><td class="d">D-04</td><td>롤</td><td>탑다운</td><td>피복 정리, 불시 점호 확정 발생</td><td>창고 재물조사</td><td class="mono">3인 <span class="label">여유 1</span></td><td class="mono">4</td><td>돌발 퀘스트</td></tr>
+            <tr><td class="d">D-05</td><td>롤</td><td>+컷인</td><td><b>화생방 훈련</b></td><td>제독소 운용</td><td class="mono">3인 <span class="label">여유 1</span></td><td class="mono">4 = 2+2</td><td>방독면 QTE, 수분 압박</td></tr>
+            <tr><td class="d">D-06</td><td>평시 고정</td><td>탑다운</td><td><span class="accent">정비일 — 휴식</span>, 종교행사, 세탁, 재심사</td><td>없음</td><td class="mono">— <span class="label">여유 4</span></td><td class="mono">2</td><td>간부 대화</td></tr>
+            <tr><td class="d">D-07</td><td>롤</td><td>탑다운</td><td>야간 경계근무 도입, 정신교육</td><td>초소 교대 인수인계</td><td class="mono">2인 <span class="label">여유 2</span></td><td class="mono">4</td><td>야간 경계, 수면 부채, <b>야간 가시성 저하</b></td></tr>
+            <tr><td class="d">D-08</td><td>롤</td><td class="t-cold">사이드뷰</td><td><b>20km 행군</b> <span class="t-heat">(혹서 시 야간 이월)</span></td><td>낙오자 부축 · 급수 관리</td><td class="mono accent">4인 전원</td><td class="mono">5 = 4+1</td><td>페이스 게이지, 뷰 전환</td></tr>
+            <tr><td class="d">D-09</td><td>롤</td><td>탑다운</td><td><b>숙영 1일차</b> — 텐트 · 배식 · 경계, <b>2차 승급 심사</b></td><td>텐트 설치 <span class="label">행정 주도</span></td><td class="mono">3인 <span class="label">여유 1</span></td><td class="mono">5 = 3+2</td><td>야외 취침, 청결 압박, 계급(상병)</td></tr>
+            <tr><td class="d">D-10</td><td class="t-cold">기후 이벤트 확정</td><td>탑다운</td><td><b>숙영 2일차</b> — 기상 악화(폭우/한파/폭염)</td><td>배수로 또는 난로 유지</td><td class="mono accent">4인 전원</td><td class="mono">5 = 3+2</td><td>기후 이벤트</td></tr>
+            <tr><td class="d">D-11</td><td>평시 고정</td><td>탑다운</td><td><span class="accent">정비일</span>, 장비 손질, 환자 처리, 보급일, 재심사</td><td>차량 정비 <span class="label">행정 주도</span></td><td class="mono">2인 <span class="label">여유 2</span></td><td class="mono">3</td><td>부상 누적 정산</td></tr>
+            <tr><td class="d">D-12</td><td>평시 · 온난</td><td class="t-cold">사이드뷰</td><td><b>유격 1일차</b> — 기초 코스</td><td>릴레이 통과</td><td class="mono accent">4인 전원</td><td class="mono">5 = 3+2</td><td>릴레이 협동</td></tr>
+            <tr><td class="d">D-13</td><td>평시 · 온난</td><td class="t-cold">사이드뷰</td><td><b>유격 2일차</b> — 종합 코스 (고난도)</td><td>전원 완주 필수</td><td class="mono accent">4인 전원</td><td class="mono">6 = 4+2</td><td>—</td></tr>
+            <tr><td class="d">D-14</td><td>롤</td><td>탑다운</td><td><span class="accent">정비일</span>, 재편성, 보급 대량 청구, 재심사</td><td>보급 트럭 하역</td><td class="mono">3인 <span class="label">여유 1</span></td><td class="mono">3</td><td>분대장 재신임</td></tr>
+            <tr><td class="d">D-15</td><td class="t-cold">밴드 분기 확정</td><td>탑다운</td><td><span class="t-cold">혹한기 훈련</span> 또는 <span class="t-heat">혹서기 대비</span>, <b>3차 승급 심사</b></td><td>보온 라인 / 급수 라인 구축</td><td class="mono accent">4인 전원</td><td class="mono">6 = 4+2</td><td>계절 전용 콘텐츠, 계급(병장)</td></tr>
+            <tr><td class="d">D-16</td><td>롤</td><td>탑다운</td><td><b>외부 지원 임무</b> — 별도 맵</td><td>대민지원 편성</td><td class="mono">3인 <span class="label">여유 1</span></td><td class="mono">5 = 3+2</td><td>외부 맵</td></tr>
+            <tr><td class="d">D-17</td><td>롤</td><td>탑다운</td><td><b>합동 전술훈련</b> — 4보직 전원 능력 사용</td><td>전 보직 순차 연계</td><td class="mono accent">4인 전원</td><td class="mono">7 = 5+2</td><td>—</td></tr>
+            <tr><td class="d">D-18</td><td>평시 고정</td><td>탑다운</td><td><b>전역 심사</b> — 18일 종합 판정, 엔딩</td><td>최종 점호</td><td class="mono accent">4인 전원 <span class="label">심사</span></td><td class="mono">4</td><td>엔딩 분기</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="rule-box">
+        <h4>커리큘럼 설계 의도</h4>
+        <ul>
+          <li><b>난이도 리듬.</b> 필수 수는 2 → 7로 단조 증가하지 않고 정비일(D-06 / D-11 / D-14)에서 3회 급락한다. 이 리듬이 없으면 100분 세션에서 이탈이 난다.</li>
+          <li><b>기후 고정 칸.</b> D-10과 D-15는 기후가 콘텐츠를 결정하는 칸으로 못 박았다 — 온도 시스템의 존재감을 런당 최소 2번 확실히 체감시킨다.</li>
+          <li><b>뷰 전환 배치.</b> D-08 · D-12 · D-13 세 번만 사이드뷰다. 드물어야 사건으로 읽힌다(9.0 TRN-01).</li>
+          <li><b>가시성 학습 곡선.</b> D-01 구역 이동 → D-02 퀵 커맨드 → D-03 무전 · 미니맵 마커 → D-07 야간 가시성 저하. <b>4일에 걸쳐 정보 부족을 단계적으로 가르친다.</b></li>
+          <li><b>최종 시험.</b> D-17은 4보직 전원의 고유 능력을 순서대로 요구한다. 앞선 16일 동안 학습한 협동 패턴 4종이 전부 나온다.</li>
+        </ul>
+      </div>
+
+      <div class="rule-box heat">
+        <h4>합동 인원과 “여유”의 리듬</h4>
+        <div class="scroll" style="margin-top:0.5rem">
+          <table style="min-width:480px">
+            <thead><tr><th>합동 인원</th><th>여유</th><th>배치 일수</th><th>성격</th></tr></thead>
+            <tbody>
+              <tr><td class="mono">—</td><td class="mono">4</td><td class="mono">1일</td><td>정비일 D-06 — 완전 이완</td></tr>
+              <tr><td class="mono">2인</td><td class="mono">2</td><td class="mono">5일</td><td>기본 리듬. 합동과 개인을 병행 배분</td></tr>
+              <tr><td class="mono">3인</td><td class="mono">1</td><td class="mono">5일</td><td>압박. 남은 1명이 개인 필수를 몰아서 처리</td></tr>
+              <tr><td class="mono accent">4인 전원</td><td class="mono">0</td><td class="mono">7일</td><td>훈련일 · 심사일. <b>훈련 체크포인트가 필수를 대신 채운다</b></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <ul>
+          <li><b>4인 전원 동원일에는 필수를 훈련이 처리한다.</b> 표의 <span class="mono">5 = 4+1</span> 표기가 (훈련 체크포인트 4 + 개인 보직 퀘스트 1)을 뜻한다.</li>
+          <li><b>“4인 전원”은 훈련이 진행되는 시간대에만 적용된다.</b> 나머지 칸에는 여유가 돌아온다.
+              가장 빡빡한 D-17은 훈련 4칸에 잔여 1칸이므로 <b>60초에 개인 2건</b>, 건당 30초다.
+              4.0의 시간 예산(이동 포함 건당 37초)에 근접하는 상한값이며, 이 칸이 밸런싱의 최전선이다.</li>
+          <li class="t-fail"><b>2D 주의</b>: 구역 가시성이 이동 비용을 올리므로 D-17의 30초가 더 빡빡해졌다.
+              M5 시뮬레이션에서 이 칸이 병목으로 나오면 <b>D-17 훈련을 3칸으로 줄이고 체크포인트를 4개로</b> 조정한다.</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- 15.0 -->
+    <section class="sec" id="s15">
+      <div class="sec-head"><span class="num">15.0</span><h2>UI / HUD</h2><span class="tag redo">2D 규격으로 재작성</span></div>
+      <div class="rule-box">
+        <h4>구현 — 접근성은 웹 셸에 있다</h4>
+        <p>
+          설정 · 접근성 화면(목업 7.10-E)은 Unity가 아니라 <b>로비(Next.js)</b>에 있다. 이유가 둘이다 —
+          게임이 뜨기 <b>전에</b> 고를 수 있어야 하고(멀미 나는 효과를 켜본 다음에 끄게 하면 이미 늦다),
+          IMGUI로 만든 설정 화면은 브라우저 폼보다 언제나 나쁘다.
+        </p>
+        <p>
+          고른 값은 <code>window.__sadSettings</code>로 넘어가고 Unity 쪽 <code>Accessibility</code>가 읽어
+          열 왜곡 · 결빙 프레임 · 화면 진동 · 미니게임 홀드 대체를 실제로 끈다.
+          이 화면이 보증하는 것은 하나다 — <b>타이핑을 전혀 하지 않고도 18일 완주가 가능해야 한다.</b>
+        </p>
+      </div>
+      <p class="lede">
+        정보가 많은 게임이다. 원칙은 <b>“지금 시간대에 필요한 것만 상시 노출”</b>.
+        상세 화면 목업은 별책 <b>SAD-ART-001</b>을 참조한다.
+      </p>
+
+      <div class="sys">
+        <div class="sys-top"><span class="code">UI-00</span><h3>하이브리드 해상도 — 핵심 결정</h3><span class="tag new">신설</span></div>
+        <div class="anatomy">
+          <div class="row"><span class="k">문제</span><div class="v">
+            이 게임은 정보 밀도가 매우 높다 — 6스탯, 4분할 수첩, 하달 드래그 UI, 18일 커리큘럼 표.
+            <b>저해상도 픽셀 UI로는 담을 수 없다.</b> 반대로 월드를 고해상도로 그리면 제작비가 폭발한다.
+          </div></div>
+          <div class="row"><span class="k">결정</span><div class="v">
+            <b>월드는 픽셀아트(640×360 논리 해상도, PPU 32), UI는 네이티브 1920×1080.</b>
+            두 레이어를 섞지 않는다. UI 안에 픽셀 아이콘을 넣을 때는 정수배 스케일(×3)로만 배치한다.
+          </div></div>
+          <div class="row"><span class="k">카메라</span><div class="v">
+            Orthographic Size <code>5.625</code> · Pixel Perfect Camera(Upscale Render Texture ON) ·
+            지원 배율 ×2 / ×3(기준) / ×4 · <b>Cinemachine Confiner 2D로 구역 경계 고정</b>(8.0)
+          </div></div>
+        </div>
+      </div>
+
+      <h3>15.1 인게임 HUD</h3>
+
+      <div class="grid2">
+        <div class="card"><h4>상단 — 시간대 바 <span class="label">960×72</span></h4><p class="ds">밴드 아이콘 + 시간대명 + 기온 + 진행 바 + 잔여 시간. 잔여 20% 이하에서 <span class="t-fail">alert</span> 전환 + 1Hz 점멸. 하달 창 중에는 <b>일시정지 라벨 + 사선 해칭</b>.</p></div>
+        <div class="card"><h4>좌하단 — 컨디션 <span class="label">192×120</span></h4><p class="ds">6스탯 컴팩트 링 3×2. 평시 40px · 알파 0.55로 축소, <b>위험 구간만 56px 확대 + 점멸</b>. Alt 홀드 시 수치 표시.</p></div>
+        <div class="card"><h4>우상단 — 미니맵 <span class="label">220×220</span></h4><p class="ds"><b>무전 상태에 따라 3단계로 변한다</b>(8.0 COMM-00). 통신병 시스템의 2D 대응 핵심 UI.</p></div>
+        <div class="card"><h4>우측 — 수첩 요약 <span class="label">280×120</span></h4><p class="ds">필수 / 선택 / 합동 3줄. 필수 미완료 + 잔여 20% 이하면 카드 전체가 <span class="t-fail">alert</span> 테두리로 점멸.</p></div>
+        <div class="card"><h4>중앙 하단 — 상호작용 <span class="label">480×88</span></h4><p class="ds">2행 구성. 2행에 <b>왜 진행이 안 되는지</b>를 항상 명시 — <span class="mono">⚠ 2인 필요 — 현재 1명</span>. 협동 강제 구조에서 가장 중요한 UX다.</p></div>
+        <div class="card"><h4>하단 우측 — 보온 게이지 <span class="label">극혹한 전용</span></h4><p class="ds">90초 열원 규칙(5.0)의 잔여 시간. 30초 이하에서 <span class="t-fail">동상 위험</span> 라벨.</p></div>
+      </div>
+
+      <h3>15.2 전체 화면 목록</h3>
+
+      <div class="scroll">
+        <table>
+          <caption>표 15-1 · UI 화면 15종</caption>
+          <thead><tr><th>#</th><th>화면</th><th>트리거</th><th>규격</th><th>우선순위</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">01</td><td class="d">인게임 HUD</td><td>상시</td><td>1920×1080</td><td class="accent">M0</td></tr>
+            <tr><td class="mono">02</td><td class="d">점호 판정</td><td>매일 22:00</td><td>1200×556 + 정렬 컷</td><td class="accent">M0</td></tr>
+            <tr><td class="mono">03</td><td class="d">수첩 4분할</td><td>Tab 홀드</td><td>1440×840</td><td class="accent">M1</td></tr>
+            <tr><td class="mono">04</td><td class="d">퀵 커맨드 라디얼</td><td>Q 홀드</td><td>지름 360</td><td class="accent">M1</td></tr>
+            <tr><td class="mono">05</td><td class="d">부대 지도</td><td>M</td><td>1180×940</td><td class="accent">M1</td></tr>
+            <tr><td class="mono">06</td><td class="d">일과표</td><td>매일 아침 / J</td><td>1600×880</td><td>M3</td></tr>
+            <tr><td class="mono">07</td><td class="d">하달 창</td><td>일과 진입 20초</td><td>1520×800</td><td>M3</td></tr>
+            <tr><td class="mono">08</td><td class="d">취침 정산</td><td>점호 통과 후</td><td>800×840</td><td>M3</td></tr>
+            <tr><td class="mono">09</td><td class="d">승급 심사</td><td>D-03 / 09 / 15</td><td>1440×920</td><td>M4</td></tr>
+            <tr><td class="mono">10</td><td class="d">보급 청구</td><td>보급일</td><td>1280×640</td><td>M3</td></tr>
+            <tr><td class="mono">11</td><td class="d">인벤토리 · 피복</td><td>I</td><td>1280×640</td><td>M3</td></tr>
+            <tr><td class="mono">12</td><td class="d">간부 대화</td><td>개인정비 시간대</td><td>1440×400</td><td>M4</td></tr>
+            <tr><td class="mono">13</td><td class="d">로비 <span class="label">웹 셸</span></td><td>게임 시작</td><td>웹 반응형</td><td class="accent">M0</td></tr>
+            <tr><td class="mono">14</td><td class="d">엔딩 리포트</td><td>D-18 / 게임오버</td><td>1520×940</td><td>M5</td></tr>
+            <tr><td class="mono">15</td><td class="d">하달 장부</td><td>런 종료</td><td>1200×940</td><td>M4</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="rule-box">
+        <h4>접근성 — 선택이 아니라 요구사항</h4>
+        <ul>
+          <li><b>타이핑 없이 18일 완주 가능</b> — 퀵 커맨드 + 상황판만으로 모든 협동 퀘스트가 해결되어야 한다. QA 체크리스트 항목화</li>
+          <li><b>키보드 배정 경로 필수</b> — 하달 창의 드래그를 <span class="mono">[1-3] → [←→] → [ENTER]</span>로 대체 가능</li>
+          <li>온도 밴드는 색 외에 <b>아이콘 형태 + 텍스트</b>로도 구분 — 색각 이상 대응</li>
+          <li><b>미니게임 홀드 대체 입력은 철회했다</b>(v1.1). 원형 14종이 저마다 다른 조작을 요구하는
+              설계에서 전부 홀드로 떨어뜨리는 스위치 하나는 <b>14종을 통째로 지우는 것</b>과 같다.
+              연타(<code>MASH</code>)도 예외 없이 켜져 있다 — 4건뿐이고, 그 4건이 제설 · 제초의 몸쓰는 감각이다</li>
+          <li>화면 흔들림 · 왜곡 효과 <b>개별 토글</b>(열 왜곡 / 결빙 프레임 / 패닉 진동)</li>
+          <li>UI 스케일 100 / 125 / 150%, 텍스트 크기 별도 조절</li>
+          <li>입력은 <b>키보드 / 마우스 전용</b>. 게임패드는 v1.1 이후</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- 16.0 -->
+    <section class="sec" id="s16">
+      <div class="sec-head"><span class="num">16.0</span><h2>아트 · 사운드</h2><span class="tag redo">전면 교체</span></div>
+      <p class="lede">
+        컨셉 한 줄: <b>“군용 등사판 서류 위에 놓인 저채도 픽셀 병영.”</b>
+        상세는 별책 <b>SAD-ART-001</b>. 여기서는 물량과 예산만 확정한다.
+      </p>
+
+      <div class="rule-box">
+        <h4>방 인테리어 — 목업이 규칙이고 개수는 방이 정한다 <span class="tag gain">v1.1</span></h4>
+        <p>
+          예전에는 소품을 <b>방 둘레를 따라 3칸 간격</b>으로 흩었다. 그러면 구역 목업의 그림이
+          전혀 안 나온다 — 침상 옆에 관물대가 붙어 있고, 세면대가 거울 아래 일렬로 서고,
+          러닝머신이 벽면을 통째로 차지하는 것이 그 방을 <b>그 방으로</b> 만든다.
+        </p>
+        <ul>
+          <li><b>자리는 목업의 정규화 좌표</b>, <b>반복은 타일 간격</b>. 우리 방이 목업보다 크면
+              (복도 2.6배 · 식당 2.1배) 같은 간격으로 더 들어차고, 작으면 덜 들어찬다 —
+              개수를 손으로 세어 박지 않는다</li>
+          <li><b>큰 가구는 실제로 크다.</b> 러닝머신 2×4 · 차량 5×4 · 게시판 2×5 · 총기 거치대 2×5.
+              전부 1×1~2×1이던 것이 방이 비어 보이던 직접 원인이었다</li>
+          <li><b>수행 지점이 검사된다.</b> 일과가 지목한 물건이 그 구역에 안 놓이면 맵이 안 구워진다</li>
+        </ul>
+      </div>
+
+
+      <div class="sys">
+        <div class="sys-top"><span class="code">ART-01</span><h3>비주얼 규격</h3></div>
+        <div class="anatomy">
+          <div class="row"><span class="k">시점</span><div class="v">
+            <b>탑다운 3/4 뷰, 4방향</b>(S · N · E, W는 미러링). 사이드뷰는 행군 · 유격 전용 씬에만.
+            <br>아이소메트릭은 스프라이트 물량 ×1.5와 Y-sort 복잡도로 기각. 사이드뷰 단독은 평면 이동 표현 불가로 기각.
+          </div></div>
+          <div class="row"><span class="k">캐릭터</span><div class="v">
+            셀 <b>32×48px</b>, 실제 점유 20×34. 피벗 하단 중앙.
+            <b>8레이어 스왑 구조</b>(body / legs / torso / outer / gear / head / mark / hand)로
+            4보직 × 피복 조합을 조합 생성한다.
+          </div></div>
+          <div class="row"><span class="k">보직 식별</span><div class="v">
+            <b>실루엣으로 구분</b>한다 — 소총수 등의 총열, 통신병 헤드셋 돌기 + 안테나,
+            의무병 백색 밴드(화면에서 유일한 흰색), 행정병 챙 없는 작업모 + 서류판.
+            <b>색을 다 지워도 구분된다</b>(색각 이상 대응). 머리 위 이름표에 보직 3글자 상시 표기.
+          </div></div>
+          <div class="row"><span class="k">3원칙</span><div class="v">
+            ① 실루엣 우선 ② <b>색은 정보다</b> — 채도 높은 색은 전부 의미를 갖는다(청=한랭, 주황=고온, 적=경고, 올리브=상호작용 가능)
+            ③ UI는 종이, 월드는 픽셀
+          </div></div>
+          <div class="row"><span class="k">금지</span><div class="v">
+            폭력 · 구타 · 인신공격 묘사 금지(20.0 소재 감수성). 유혈 없음 — 부상은 흰 붕대 + 게이지로만.
+            실존 부대명 · 계급장 실물 도안 금지 → 추상 도형으로 대체.
+          </div></div>
+        </div>
+      </div>
+
+      <div class="scroll">
+        <table>
+          <caption>표 16-1 · 제작 물량 산정</caption>
+          <thead><tr><th>카테고리</th><th>물량</th><th>담당</th><th>기간 (1인 기준)</th><th>비고</th></tr></thead>
+          <tbody>
+            <tr><td class="d">캐릭터 스프라이트</td><td class="mono">≈ 1,000 프레임</td><td>픽셀 아티스트</td><td class="mono">8~10주</td><td class="t-fail">최대 병목. legs를 팔레트 스왑으로 처리해 2,100 → 530장으로 축소</td></tr>
+            <tr><td class="d">타일셋 7종</td><td class="mono">≈ 580 타일</td><td>픽셀 아티스트</td><td class="mono">6~7주</td><td>실내2 · 야외2 · 눈 · 훈련 · 외부</td></tr>
+            <tr><td class="d">맵 오소링</td><td class="mono">25 맵</td><td>레벨 디자이너</td><td class="mono">5~6주</td><td>부대 16구역(단일 심리스) + 훈련 10</td></tr>
+            <tr><td class="d">UI 화면</td><td class="mono">15 화면</td><td>UI 디자이너</td><td class="mono">5~6주</td><td>표 15-1</td></tr>
+            <tr><td class="d">아이콘</td><td class="mono">80종</td><td>UI 디자이너</td><td class="mono">1.5주</td><td>스탯6 · 밴드6 · 커맨드8 · 장비 등</td></tr>
+            <tr><td class="d">VFX</td><td class="mono">파티클 12 + 셰이더 6</td><td>TA</td><td class="mono">3주</td><td>열 왜곡 · 결빙 · 야시장비 · 마스크 프레임</td></tr>
+            <tr><td class="d">SFX</td><td class="mono">≈ 82</td><td>사운드</td><td class="mono">3주</td><td class="accent">퀵 커맨드 8종이 최우선</td></tr>
+            <tr><td class="d">BGM</td><td class="mono">6 트랙</td><td>사운드</td><td class="mono">2주</td><td>훈련 진입 · 점호 판정에만 사용</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="rule-box">
+        <h4>사운드 — 퀵 커맨드 SFX가 소통의 청각적 실체다</h4>
+        <p>
+          음성 채팅이 없으므로 <b>8종 퀵 커맨드 SFX가 소통의 전부</b>다.
+          음높이 · 리듬 · 음색 <b>3축으로 전부 다르게</b> 만드는 것이 8.0의 성립 조건이며, 사운드 작업의 1순위다.
+        </p>
+        <p>
+          <b>음악은 최소</b> — 훈련 진입과 점호 판정에만 사용해서 두 순간의 무게를 만든다.
+          평시 일과에는 환경음만 흐른다. 점호 판정 트랙은 <b>6.4초 연출에 큐 포인트 4개</b>를 정확히 맞춘다(10.0 JDG-02).
+        </p>
+      </div>
+
+      <div class="rule-box heat">
+        <h4>에셋 예산 — 3D 안 대비 대폭 완화</h4>
+        <ul>
+          <li><b>초기 다운로드 ≤ 25MB</b> (v0.9의 120MB에서 복귀). 로비 프리페치로 체감 0에 가깝게</li>
+          <li>맵 번들당 ≤ 5MB. Addressables로 훈련 맵 온디맨드 스트리밍</li>
+          <li>텍스처 압축 <b>DXT 단일</b>, 스프라이트 아틀라스 2048×2048</li>
+          <li><b>캐릭터 1종 + 8레이어 스왑</b>으로 4보직 표현 — 리깅 · 리타게팅이 없어 3D 대비 물량이 근본적으로 다르다</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- 17.0 -->
+    <section class="sec" id="s17">
+      <div class="sec-head"><span class="num">17.0</span><h2>멀티플레이 구조</h2><span class="tag keep">변경 없음</span></div>
+
+      <div class="sys">
+        <div class="sys-top"><span class="code">NET-01</span><h3>권위 모델</h3></div>
+        <div class="anatomy">
+          <div class="row"><span class="k">서버</span><div class="v">
+            <b>서버 권위(authoritative)</b>. 시간대 타이머, 기온 롤, 퀘스트 상태, 판정은 전부 서버 소유.
+            클라이언트는 입력만 보내고 결과를 받는다 — 판정이 곧 승패이므로 클라 신뢰 불가.
+          </div></div>
+          <div class="row"><span class="k">틱 레이트</span><div class="v">시뮬레이션 20Hz / 스냅샷 10Hz / 델타 압축 + 관심 영역(AOI) 필터. 이동은 클라 예측 + 서버 보정.</div></div>
+          <div class="row"><span class="k">AOI = 구역</span><div class="v">
+            <b>8.0의 구역 가시성이 그대로 AOI 필터가 된다.</b> 다른 구역 플레이어의 스냅샷을 아예 보내지 않으면
+            대역폭이 줄고, <b>치팅으로 위치를 훔쳐볼 수도 없다.</b>
+            무전 상태에 따른 마커 정보는 별도의 저빈도 채널(1Hz)로 전송한다.
+          </div></div>
+          <div class="row"><span class="k">방 구조</span><div class="v">1방 = 1분대(4인 고정). 6자리 초대 코드. 공개 매칭 큐는 v1.1 이후.</div></div>
+          <div class="row"><span class="k">상태 저장</span><div class="v">런 상태(일차 · 스탯 · 군기 · 인벤토리)를 Redis에 스냅샷. 전원 이탈 시 24시간 보관 → 이어하기 가능.</div></div>
+          <div class="row"><span class="k">재접속</span><div class="v">동일 세션 재입장 시 NPC 대리에서 즉시 복귀. 진행 중인 시간대 잔여 시간은 그대로.</div></div>
+          <div class="row"><span class="k">치팅 대응</span><div class="v">상호작용은 서버 측 거리 · 상태 · 쿨다운 검증. 이동 속도 이상치는 스냅백. 판정 로직은 클라에 존재하지 않음.</div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 18.0 -->
+    <section class="sec" id="s18">
+      <div class="sec-head"><span class="num">18.0</span><h2>기술 스택</h2><span class="tag gain">WebGL 14MB 실측</span></div>
+      <div class="rule-box">
+        <h4>구현 — 예산은 실제로 남았다</h4>
+        <ul>
+          <li><b>WebGL 빌드 14MB</b> (브로틀리 · 스트리핑 High). 예산 25MB의 56%</li>
+          <li>브라우저에서 서버에 붙어 스냅샷 10Hz로 도는 것을 확인했다 — 로비 · 이동 · 일과 · 하달 창 전부</li>
+          <li>로딩 화면(WebGL 템플릿)도 <b>같은 야간 팔레트</b>다. 로비가 어두운데 여기서 한 번 하얘지면 눈이 두 번 적응한다</li>
+          <li>Tab · Space · 방향키는 <b>브라우저에서 뺏어와야</b> 한다 — 안 그러면 수첩과 일과표가 게임 안에서 영영 안 열린다. 에디터에서는 멀쩡해 보이는 종류의 버그다</li>
+        </ul>
+      </div>
+      <p class="lede">
+        <b>3레이어 분리 구조.</b> 웹 셸(Next.js) / 게임 클라이언트(Unity 2D) / 권위 서버(TypeScript).
+        게임 세션만 Unity가 담당하고, 그 밖의 모든 것은 웹이 가져간다.
+      </p>
+
+      <div class="sys">
+        <div class="sys-top"><span class="code">ARCH-01</span><h3>2D에서도 Unity를 쓰는 이유</h3></div>
+        <div class="anatomy">
+          <div class="row"><span class="k">근거 변화</span><div class="v">
+            v0.9에서 Unity의 1순위 근거는 <b>Humanoid 애니메이션 리타게팅</b>이었다. 2D에서 그 근거는 사라진다.
+            그런데도 Unity가 여전히 맞는 이유는 <b>남은 4개가 전부 유효</b>하기 때문이다.
+          </div></div>
+          <div class="row"><span class="k">타일맵 · 씬</span><div class="v">
+            부대 16구역 + 훈련 10맵. Tilemap · Rule Tile · Composite Collider · Confiner 2D가 전부 기본 제공된다.
+            <b>레벨 에디터 없이 25개 맵을 만드는 것은 비현실적이다.</b>
+          </div></div>
+          <div class="row"><span class="k">온도 룩</span><div class="v">
+            6밴드 그레이딩 + Light 2D + Shader Graph. <b>URP 2D Renderer가 Volume을 지원</b>하므로
+            밴드당 수 시간에 Profile을 뽑는다. 직접 구현하면 전부 수작업이다.
+          </div></div>
+          <div class="row"><span class="k">스프라이트 스왑</span><div class="v">
+            2D Animation 패키지의 <b>Sprite Library / Sprite Resolver</b>가 8레이어 런타임 스왑(16.0)을 그대로 처리한다.
+            이게 없으면 4보직 × 피복 조합을 전부 개별 시트로 만들어야 한다.
+          </div></div>
+          <div class="row"><span class="k">경로탐색</span><div class="v">
+            NPC 대리(10.0 JDG-03)가 자율 행동해야 한다. A* Pathfinding Project 또는 NavMeshPlus로 2D 그리드 경로탐색.
+          </div></div>
+          <div class="row"><span class="k">엔진 대안</span><div class="v">
+            <b>Godot 4는 2D에서 진짜 경쟁자가 됐다</b> — 웹 익스포트가 가볍고 2D 툴링이 성숙하다.
+            v0.9에서 Godot을 기각한 근거(애니메이션 툴링 부족)가 2D에서는 사라지기 때문이다.
+            그럼에도 Unity를 유지하는 것은 <b>Addressables · 팀 숙련도 · 에셋 생태계</b> 때문이며,
+            이는 기술적 우위가 아니라 <b>운영상의 선택</b>이다 — 20.0 미결정 항목으로 남긴다.
+          </div></div>
+        </div>
+      </div>
+
+      <div class="scroll">
+        <table>
+          <caption>표 18-1 · 레이어별 스택</caption>
+          <thead><tr><th>레이어</th><th>담당</th><th>스택</th><th>근거</th></tr></thead>
+          <tbody>
+            <tr><td class="d">웹 셸</td><td>로비 · 초대 코드 · 기록 · 리더보드 · 계정 · 하달 장부 · 관전</td><td>Next.js App Router</td><td>서버 렌더, 즉시 접속, 공유 링크</td></tr>
+            <tr><td class="d">게임 클라이언트</td><td>2D 세션 전체 · 렌더 · 입력 · 이동 예측</td><td>Unity 6 (URP 2D Renderer)</td><td>ARCH-01. <b>판정 로직을 갖지 않는다</b></td></tr>
+            <tr><td class="d">권위 서버</td><td>판정 · 기온 롤 · 퀘스트 상태 · 시간대 타이머 · 군기 · 복무 점수 · <b>구역 가시성</b></td><td>Node.js + TypeScript <code>packages/sim</code></td><td>헤드리스 밸런싱 시뮬레이터를 그대로 재사용</td></tr>
+            <tr><td class="d">실시간 전송</td><td>스냅샷 10Hz · 입력 · 채팅 · 퀵 커맨드 · 마커 1Hz</td><td>WebSocket</td><td>Unity WebGL은 네이티브 소켓 불가 → 브라우저 WS 경유</td></tr>
+            <tr><td class="d">상태 저장</td><td>런 스냅샷 / 영속 기록</td><td>Redis / Postgres</td><td>휘발성 런 상태와 영속 메타 진행 분리</td></tr>
+            <tr><td class="d">애셋 배포</td><td>Unity 빌드 · 맵 번들</td><td>CDN + Addressables</td><td>초기 다운로드를 줄이고 맵을 온디맨드 스트리밍</td></tr>
+            <tr><td class="d">오디오</td><td>공간화 · 방송 · 퀵 커맨드 SFX</td><td>Unity Audio</td><td>음성 채팅이 없으므로 WebRTC 브릿지 불필요</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="sys">
+        <div class="sys-top"><span class="code">ARCH-02</span><h3>경계 규칙 — 밸런싱 인프라를 잃지 않는 조건</h3></div>
+        <div class="anatomy">
+          <div class="row"><span class="k">핵심</span><div class="v">
+            설계가 이미 서버 권위이므로 Unity가 C#인 것은 문제가 되지 않는다.
+            클라이언트는 판정 로직을 갖고 있지 않고, 상태를 받아 그리고 입력을 보낼 뿐이다.
+            <b>클라 예측이 필요한 것은 이동뿐이다.</b>
+          </div></div>
+          <div class="row"><span class="k">금지</span><div class="v">
+            <b><code>sim</code> 로직을 C#으로 포팅하지 않는다.</b> 이중화하는 순간 규칙 불일치 버그가 생기고,
+            헤드리스 1000회 시뮬레이터라는 최대 자산을 잃는다. <b>Unity에는 규칙이 존재하지 않아야 한다.</b>
+          </div></div>
+          <div class="row"><span class="k">구역 가시성은 서버 소유</span><div class="v">
+            <span class="tag new">2D 추가</span>
+            “누가 어느 구역에 있고 누구에게 보이는가”는 <b>서버가 판정한다.</b>
+            클라이언트가 필터링하면 메모리 해킹으로 타 구역을 볼 수 있고, 그러면 통신병 시스템이 무력화된다 —
+            이것은 그래픽 최적화가 아니라 <b>게임 규칙</b>이다.
+          </div></div>
+          <div class="row"><span class="k">프로토콜</span><div class="v">
+            Unity ↔ 서버는 <b>스냅샷/입력 스키마만</b> 공유한다. 단일 정의(JSON Schema 또는 protobuf)에서
+            TS 타입과 C# 클래스를 <b>양쪽으로 코드 생성</b>한다.
+          </div></div>
+          <div class="row"><span class="k">데이터 테이블</span><div class="v">
+            18일 커리큘럼 · 온도 밴드 규칙 · <b>구역 정의</b>는 코드가 아니라 <b>JSON</b> — 빌드 없이 밸런싱.
+          </div></div>
+        </div>
+      </div>
+
+      <div class="sys">
+        <div class="sys-top"><span class="code">ARCH-03</span><h3>배포 타깃 — 데스크톱 웹 (Unity 2D WebGL2)</h3></div>
+        <div class="anatomy">
+          <div class="row"><span class="k">결정</span><div class="v">
+            <b>Unity WebGL2 확정.</b> 데스크톱 브라우저(Chrome / Edge / Firefox) 단일 타깃.
+          </div></div>
+          <div class="row"><span class="k">모바일</span><div class="v">
+            <b>여전히 제외한다.</b> 다만 이유가 바뀌었다 —
+            v0.9는 <b>성능</b> 때문이었고, 지금은 <b>UI 정보 밀도</b> 때문이다.
+            2D 성능은 모바일에서도 충분하지만, 하달 창의 드래그 배정과 4분할 수첩이 물리적으로 들어가지 않는다.
+          </div></div>
+          <div class="row"><span class="k">로딩 전략</span><div class="v">
+            로비(Next.js)에서 방원을 기다리는 동안 Unity 번들을 <b>백그라운드 프리페치</b>한다.
+            25MB이므로 4인이 모이는 수십 초 안에 <b>거의 확실히 끝난다</b> — v0.9의 120MB와 달리 여유가 있다.
+          </div></div>
+        </div>
+      </div>
+
+      <div class="scroll">
+        <table>
+          <caption>표 18-2 · 성능 예산 (2D 기준 · v0.9 대비)</caption>
+          <thead><tr><th>항목</th><th>v0.9 (3D)</th><th>v1.0 (2D)</th><th>완화 가능</th><th>비고</th></tr></thead>
+          <tbody>
+            <tr><td>초기 다운로드</td><td class="mono">≤ 120MB</td><td class="mono accent">≤ 25MB</td><td class="accent">가능</td><td>프리페치로 완전 흡수</td></tr>
+            <tr><td>콜드 스타트 로딩</td><td class="mono">≤ 90초</td><td class="mono accent">≤ 25초</td><td class="accent">가능</td><td>정상 경로에서는 대기 시간에 숨는다</td></tr>
+            <tr><td>메모리 힙</td><td class="mono">≤ 1GB</td><td class="mono accent">≤ 384MB</td><td class="accent">가능</td><td>탭 크래시 리스크가 사실상 소멸</td></tr>
+            <tr><td>4인 프레임</td><td class="mono t-fail">60fps · 완화 불가</td><td class="mono accent">60fps · 여유 큼</td><td class="accent">가능</td><td>스프라이트 4인 + 타일맵. 저사양에서도 안정</td></tr>
+            <tr><td>100분 세션 힙 안정성</td><td class="mono t-fail">누수 0 · 완화 불가</td><td class="mono">누수 0</td><td class="t-fail"><b>불가</b></td><td class="t-fail">유일하게 남은 완화 불가 항목 — 크래시 1회가 4명의 런을 날린다</td></tr>
+            <tr><td>모바일 브라우저</td><td>제외 (성능)</td><td>제외 (UI 밀도)</td><td>—</td><td>이유가 바뀌었을 뿐 결론은 동일</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="rule-box">
+        <h4>남은 단 하나의 완화 불가 항목</h4>
+        <p>
+          v0.9에는 완화 불가 항목이 둘이었다. 2D 전환으로 <b>4인 프레임은 해소</b>됐고,
+          <b>100분 힙 안정성만 남았다.</b> 이건 렌더 부하가 아니라 <b>코드 품질 문제</b>라서 뷰와 무관하다 —
+          오브젝트 풀링 누락, 이벤트 구독 해제 누락, 텍스처 언로드 누락은 2D에서도 똑같이 발생한다.
+        </p>
+        <p>
+          M0에서 <b>100분 연속 구동 힙 프로파일링</b>을 반드시 통과시킨다.
+          다만 v0.9와 달리 <b>이건 게이트가 아니라 회귀 테스트</b>다 — 매 마일스톤마다 재측정한다.
+        </p>
+      </div>
+    </section>
+
+    <!-- 19.0 -->
+    <section class="sec" id="s19">
+      <div class="sec-head"><span class="num">19.0</span><h2>개발 로드맵</h2><span class="tag gain">M0 ~ M4 구현 완료</span></div>
+      <p class="lede">
+        총 <b>22주</b>. 웹 셸(Next.js)과 권위 서버(TS)는 M0부터 Unity와 <b>병행 트랙</b>으로 진행한다.
+        2D 전환으로 확보한 3주 중 2주를 M3 콘텐츠에 넣고 1주를 단축했다.
+        <br><b>M0 ~ M4는 구현이 끝났다</b> — 무엇이 어떻게 다르게 만들어졌는지는 0.5를 보라.
+      </p>
+
+      <div class="scroll">
+        <table>
+          <caption>표 19-1 · 마일스톤</caption>
+          <thead><tr><th>단계</th><th>기간</th><th>Unity 트랙</th><th>웹 · 서버 트랙</th><th>검증 질문</th></tr></thead>
+          <tbody>
+            <tr>
+              <td class="d">M0<br>코어</td><td class="mono">3주 <span class="label">−1</span></td>
+              <td>부대 구역 3개(생활관 · 복도 · 연병장), 캐릭터 베이스 + idle/walk 4방향,
+                  HUD 시간대 바 + 컨디션 링, 점호 판정 화면, <b>100분 힙 프로파일링</b></td>
+              <td>시간대 엔진, 점호 판정, <code>sim</code> 골격, 로비 + 세션 토큰 핸드오프</td>
+              <td>하루 판정 구조만으로 재미가 있나?</td>
+            </tr>
+            <tr>
+              <td class="d">M1<br>협동 · <b>가시성</b></td><td class="mono">5주 <span class="label">+1</span></td>
+              <td><b>구역 가시성 구현</b>, 미니맵 3단계, 퀵 커맨드 라디얼 + SFX 8, 공동 부하(들것 · 텐트), 수첩 4분할</td>
+              <td>멀티 4인 동기화, <b>서버 측 구역 판정 · AOI</b>, 합동 퀘스트 4패턴, 근접 채팅 · 무전 채널</td>
+              <td class="t-fail"><b>무전 두절이 실제 압박이 되나?</b><br>혼자 못 깨는 구조가 긴장으로 읽히나?</td>
+            </tr>
+            <tr>
+              <td class="d">M2 환경</td><td class="mono">3주</td>
+              <td><b>Volume Profile 7종</b>, 셰이더 6종(열 왜곡 · 결빙 · 야시 · 마스크), 파티클 12, 눈 오버레이 타일맵</td>
+              <td>온도 롤 · 6밴드 규칙, 컨디션 6스탯, 취침 정산</td>
+              <td>기온이 바뀐 것을 말 안 해줘도 알아채나?</td>
+            </tr>
+            <tr>
+              <td class="d">M3 콘텐츠</td><td class="mono">7주 <span class="label">+1</span></td>
+              <td>훈련 맵 10종, <b>사이드뷰 씬</b>(행군 · 유격 공유), 방독면 컷인, A* + NPC 대리 행동, 일과표 · 하달 창</td>
+              <td>18일 커리큘럼 JSON, 공통 일과 · 하달, 보급 · 군기</td>
+              <td>18일이 지루한 구간 없이 이어지나?</td>
+            </tr>
+            <tr>
+              <td class="d">M4 완성도</td><td class="mono">3주 <span class="label">−1</span></td>
+              <td>4보직 피복 · 완장 · 계급장 전체, 승급 심사, 후송 연출, 하달 장부, 접근성 옵션</td>
+              <td>계급 · 승급 심사, 후송 파이프라인, 기록 · 리더보드, 채팅 필터 · 신고</td>
+              <td>보직마다 다시 플레이할 이유가 있나?</td>
+            </tr>
+            <tr>
+              <td class="d">M5 밸런스 · 출시</td><td class="mono">3주 <span class="label">−1</span></td>
+              <td>Addressables 번들 분할, 로비 프리페치, 엔딩 리포트</td>
+              <td><b>헤드리스 1000회 시뮬 밸런싱</b>, 클로즈 베타 운영</td>
+              <td>완주율이 목표 구간(15~25%)에 들어오나?</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="rule-box fail">
+        <h4>M1이 새로운 게이트다</h4>
+        <p>
+          v0.9의 M0 성능 게이트는 프로파일러가 답을 줬다. 2D의 M1 가시성 게이트는 <b>사람을 넣어봐야 안다.</b>
+          그래서 M1을 4주 → 5주로 늘리고, 마지막 1주를 <b>플레이테스트 전용</b>으로 잡았다.
+        </p>
+        <ul>
+          <li><b>통과</b> — 무전 두절 시 플레이어가 실제로 “찾으러 간다”. 통신병 유지에 자원을 쓴다 → 계획대로 진행</li>
+          <li><b>미달 A</b> — 답답하기만 하고 긴장이 없다 → <b>구역 크기를 키우고</b> 무전 두절 조건을 완화. 정보 부족의 강도를 낮춘다</li>
+          <li><b>미달 B</b> — 아무도 신경 쓰지 않는다(정보가 없어도 그럭저럭 된다) → <b>합동 퀘스트 요구 인원을 3인으로 상향</b>해 소집 비용을 강제로 올린다</li>
+          <li class="t-fail"><b>미달 C</b> — 두 조정으로도 안 된다 → <b>통신병 보직 자체를 재설계</b>한다. 이 경우 M3 이후로 밀리면 커리큘럼 전체를 다시 짜야 하므로 M1에서 결론을 내야 한다</li>
+        </ul>
+      </div>
+
+      <div class="rule-box">
+        <h4>v0.9 대비 변경점</h4>
+        <ul>
+          <li>총 기간 25주 → <b>22주</b></li>
+          <li>M0의 <b>성능 게이트 성격 삭제</b> — 4주 → 3주. 힙 프로파일링은 게이트가 아니라 회귀 테스트로 전환(18.0)</li>
+          <li>M1이 <b>협동 → 협동 · 가시성</b>으로 확장. 4주 → 5주, 플레이테스트 1주 포함</li>
+          <li>M3에 사이드뷰 씬과 방독면 컷인이 추가되어 6주 → 7주</li>
+          <li>M4 · M5는 각 1주씩 단축 — 스프라이트 물량이 3D 모델보다 후반 리스크가 작다</li>
+          <li><s>축소 순위표(파티클 → 맵 → 배경 NPC → 인원)</s> <b>삭제</b> — 2D에서 성능 미달로 스코프를 깎을 일이 사실상 없다</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- 20.0 -->
+    <section class="sec" id="s20">
+      <div class="sec-head"><span class="num">20.0</span><h2>리스크 · 미결정 사항</h2><span class="tag redo">순위 교체</span></div>
+
+      <div class="rule-box fail">
+        <h4>리스크 1순위가 성능에서 설계로 옮겨갔다</h4>
+        <p>
+          v0.9의 최대 리스크는 <b>“WebGL에서 4인 100분이 버티느냐”</b>였고, 이는 측정 가능한 문제였다.
+          2D에서 그 리스크는 거의 사라졌지만, 대신 <b>측정하기 어려운 리스크</b>가 1순위로 올라왔다.
+        </p>
+      </div>
+
+      <div class="grid2">
+        <div class="card" style="border-color:var(--alert)">
+          <h4 class="t-fail">1 · 구역 가시성이 작동하지 않을 위험</h4>
+          <p class="ds">
+            정보 부족이 <b>긴장이 아니라 답답함</b>으로 읽히면 통신병 보직과 협동 설계의 절반이 무너진다.
+            프로파일러로 잴 수 없고 플레이테스트로만 확인된다.
+            <b>대응</b>: M1 5주 중 1주를 테스트 전용으로 배정, 조정 순서 3단계 사전 확정(19.0).
+          </p>
+        </div>
+        <div class="card" style="border-color:var(--heat)">
+          <h4 class="t-heat">2 · 콘텐츠 물량</h4>
+          <p class="ds">
+            캐릭터 1,000 프레임 + 타일 580 + 맵 25개. <b>2D의 병목은 성능이 아니라 인력</b>이다.
+            <b>대응</b>: legs 팔레트 스왑, head 방향당 1프레임 고정, 사이드뷰 씬 3맵 공유(9.0),
+            훈련 맵을 타일셋 재조합으로 제작.
+          </p>
+        </div>
+        <div class="card"><h4>3 · 100분 힙 안정성</h4><p class="ds">유일하게 남은 완화 불가 항목. 뷰와 무관한 코드 품질 문제다. <b>대응</b>: 매 마일스톤 회귀 측정, 오브젝트 풀링 규약 문서화.</p></div>
+        <div class="card"><h4>4 · 2 코드베이스 운영</h4><p class="ds">Unity(C#)와 서버(TS)의 규칙 이중화 위험. <b>대응</b>: <code>sim</code> C# 포팅 금지, 프로토콜 스키마 단일 정의에서 양쪽 코드 생성(ARCH-02).</p></div>
+        <div class="card"><h4>5 · 동기화 복잡도</h4><p class="ds">합동 퀘스트는 동시성 버그의 온상. <b>대응</b>: 모든 협동을 서버 측 상태 기계 1개 패턴으로 통일.</p></div>
+        <div class="card"><h4>6 · 100분 세션 이탈</h4><p class="ds">한 명 나가면 분대가 무너진다. <b>대응</b>: NPC 대리, 24시간 이어하기, 정비일 리듬.</p></div>
+        <div class="card"><h4>7 · 초반 진입 장벽</h4><p class="ds">시스템이 10개 넘는다. <b>대응</b>: D-01~02 튜토리얼 고정, 일차별 순차 해금. 특히 <b>가시성은 D-01~07에 걸쳐 4단계로</b> 가르친다(14.0).</p></div>
+        <div class="card"><h4>8 · 하달 시스템의 독성</h4><p class="ds">공개 매칭에서 짬때리기는 괴롭힘 도구가 될 수 있다. <b>대응</b>: 재하달 금지, 수락 상한 2건, 1일 1회 거부권, 3일 연속 역페널티, 런 종료 시 장부 공개.</p></div>
+        <div class="card"><h4>9 · 소재 감수성</h4><p class="ds">병영을 다루므로 표현 수위 관리 필요. <b>대응</b>: 처벌은 게이지 · 추가 일과로만 추상화, 가혹행위 · 인신공격 묘사 배제, 실존 부대 도안 미사용.</p></div>
+        <div class="card"><h4>10 · 콘텐츠 반복성</h4><p class="ds">훈련 9종으로 18일을 채운다. <b>대응</b>: 기후 롤 + 보직 조합 + 돌발 풀로 변주, 훈련 자체보다 <b>준비 상태</b>가 매번 달라지게 설계.</p></div>
+      </div>
+
+      <div class="rule-box fail">
+        <h4>결정이 필요한 항목</h4>
+        <ol>
+          <li><b class="t-fail">구역 크기와 개수</b>: 16구역이 적정한가. 잘게 나눌수록 정보가 희소해지지만 이동이 잦아져 짜증이 된다.
+              <b>M1 플레이테스트의 1순위 튜닝 변수.</b></li>
+          <li><b>엔진 재검토</b>: 2D에서는 <b>Godot 4가 실질 경쟁자</b>다(ARCH-01). Unity 유지는 기술적 우위가 아니라 운영상 선택이므로,
+              팀 구성이 확정되면 한 번 더 검토할 가치가 있다. <b>M0 착수 전에 결론</b>을 낸다.</li>
+          <li><b>정규 난이도의 기본값</b>: 필수 1개 미달로 즉시 종료는 4인 협동에서 매우 가혹하다. 초회 플레이만 완화로 시작할지?</li>
+          <li><b>계절 선택 방식</b>: 런 시작 시 플레이어가 고르는가, 랜덤인가. 전자는 학습, 후자는 긴장.</li>
+          <li><b>구제 총량 재측정</b>: 구역 가시성이 이동 비용을 올렸으므로 개인 정확도 98% 가정이 흔들린다.
+              M5 헤드리스 시뮬로 실측 후 3회 → 4회 조정 여부 결정(10.0).</li>
+          <li><b>솔로 플레이 지원 범위</b>: 1인 + NPC 3명으로 18일 완주를 정식 지원할지, 튜토리얼 모드로만 둘지.
+              <b>가시성 시스템 때문에 솔로는 통신병 NPC에 크게 의존</b>하게 되므로 난이도 설계가 별도로 필요하다.</li>
+          <li><b>1일 실시간 길이</b>: 5~7분이 맞는지. 3분으로 줄여 총 60분 세션을 만드는 안도 검토 대상.</li>
+          <li><b>하달의 공개 매칭 정책</b>: 친구 방=자유 / 공개 매칭=분대장 승인제로 <b>방 종류에 따라 규칙을 다르게</b> 할지.</li>
+          <li><b>보류자 하한</b>: D-15까지 이병으로 남는 것을 허용할지, 최소 일병을 보장할지.
+              하달 시스템 때문에 이병 고정이 “계속 짬만 받는 역할”이 되므로 <b>보장 쪽이 유력</b>하다.</li>
+          <li><s><b>Unity 배포 타깃</b>: WebGL vs 네이티브</s> <b class="accent">해결 — ARCH-03.</b> 2D WebGL2 확정, 모바일 제외(사유 변경).</li>
+          <li><s><b>개인 게임오버 시 처리</b>: 관전 vs 재투입</s> <b class="accent">해결 — JDG-03.</b> 복귀 신병 재투입 + 축적 전손.</li>
+        </ol>
+      </div>
+    </section>
+
+    <footer>
+      <span>SAD-GDD-002 · v1.0 · 2026-07-31 · <s>SAD-GDD-001 v0.9</s> 대체</span>
+      <span>별책: SAD-ART-001 (2D 아트 · UI 명세) · MOCKUP 01~12 (화면 목업)</span>
+      <span>다음 개정 시 반영: M1 가시성 플레이테스트 결과 → 8.0 · 14.0 · 19.0 재조정</span>
+    </footer>
+
+  </main>
+</div>
+</body>
+</html>

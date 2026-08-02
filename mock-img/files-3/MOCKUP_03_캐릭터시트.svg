@@ -1,0 +1,434 @@
+<svg viewBox="0 0 1440 1980" xmlns="http://www.w3.org/2000/svg" font-family="Pretendard, 'Apple SD Gothic Neo', 'Malgun Gothic', 'Noto Sans KR', sans-serif">
+<defs>
+  <pattern id="px" width="6" height="6" patternUnits="userSpaceOnUse">
+    <path d="M6 0H0V6" fill="none" stroke="#C2C5B9" stroke-width="0.5"/>
+  </pattern>
+  <pattern id="px2" width="2.5" height="2.5" patternUnits="userSpaceOnUse">
+    <path d="M2.5 0H0V2.5" fill="none" stroke="#C2C5B9" stroke-width="0.3"/>
+  </pattern>
+
+  <!-- ===== 정면 S ===== -->
+  <g id="baseS">
+    <rect x="72" y="72" width="48" height="6" fill="#3D4629"/>
+    <rect x="66" y="78" width="60" height="12" fill="#55603C"/>
+    <rect x="66" y="90" width="60" height="6" fill="#3D4629"/>
+    <rect x="72" y="96" width="48" height="6" fill="#C29268"/>
+    <rect x="72" y="102" width="48" height="24" fill="#E0B48C"/>
+    <rect x="84" y="114" width="6" height="6" fill="#3A2E22"/>
+    <rect x="102" y="114" width="6" height="6" fill="#3A2E22"/>
+    <rect x="78" y="126" width="36" height="6" fill="#C29268"/>
+    <rect x="78" y="132" width="36" height="6" fill="#55603C"/>
+    <rect x="54" y="138" width="84" height="12" fill="#6E7A50"/>
+    <rect x="66" y="150" width="60" height="54" fill="#6E7A50"/>
+    <rect x="54" y="150" width="12" height="54" fill="#55603C"/>
+    <rect x="126" y="150" width="12" height="54" fill="#55603C"/>
+    <rect x="66" y="192" width="60" height="12" fill="#3D4629"/>
+    <rect x="54" y="204" width="12" height="6" fill="#E0B48C"/>
+    <rect x="126" y="204" width="12" height="6" fill="#E0B48C"/>
+    <rect x="72" y="210" width="24" height="42" fill="#55603C"/>
+    <rect x="96" y="210" width="6" height="42" fill="#3D4629"/>
+    <rect x="102" y="210" width="24" height="42" fill="#55603C"/>
+    <rect x="72" y="252" width="24" height="24" fill="#33352E"/>
+    <rect x="102" y="252" width="24" height="24" fill="#33352E"/>
+  </g>
+
+  <!-- ===== 후면 N ===== -->
+  <g id="baseN">
+    <rect x="72" y="72" width="48" height="6" fill="#3D4629"/>
+    <rect x="66" y="78" width="60" height="12" fill="#55603C"/>
+    <rect x="66" y="90" width="60" height="6" fill="#3D4629"/>
+    <rect x="72" y="96" width="48" height="30" fill="#4A3B2A"/>
+    <rect x="78" y="126" width="36" height="6" fill="#C29268"/>
+    <rect x="78" y="132" width="36" height="6" fill="#55603C"/>
+    <rect x="54" y="138" width="84" height="12" fill="#6E7A50"/>
+    <rect x="66" y="150" width="60" height="54" fill="#6E7A50"/>
+    <rect x="54" y="150" width="12" height="54" fill="#55603C"/>
+    <rect x="126" y="150" width="12" height="54" fill="#55603C"/>
+    <rect x="66" y="192" width="60" height="12" fill="#3D4629"/>
+    <rect x="54" y="204" width="12" height="6" fill="#E0B48C"/>
+    <rect x="126" y="204" width="12" height="6" fill="#E0B48C"/>
+    <rect x="72" y="210" width="24" height="42" fill="#55603C"/>
+    <rect x="96" y="210" width="6" height="42" fill="#3D4629"/>
+    <rect x="102" y="210" width="24" height="42" fill="#55603C"/>
+    <rect x="72" y="252" width="24" height="24" fill="#33352E"/>
+    <rect x="102" y="252" width="24" height="24" fill="#33352E"/>
+  </g>
+
+  <!-- ===== 측면 E ===== -->
+  <g id="baseE">
+    <rect x="78" y="72" width="42" height="6" fill="#3D4629"/>
+    <rect x="72" y="78" width="54" height="12" fill="#55603C"/>
+    <rect x="72" y="90" width="60" height="6" fill="#3D4629"/>
+    <rect x="78" y="96" width="24" height="30" fill="#4A3B2A"/>
+    <rect x="102" y="96" width="18" height="6" fill="#C29268"/>
+    <rect x="102" y="102" width="18" height="24" fill="#E0B48C"/>
+    <rect x="108" y="114" width="6" height="6" fill="#3A2E22"/>
+    <rect x="90" y="126" width="24" height="6" fill="#C29268"/>
+    <rect x="84" y="132" width="30" height="6" fill="#55603C"/>
+    <rect x="78" y="138" width="42" height="12" fill="#6E7A50"/>
+    <rect x="78" y="150" width="36" height="54" fill="#6E7A50"/>
+    <rect x="108" y="150" width="12" height="54" fill="#55603C"/>
+    <rect x="78" y="192" width="42" height="12" fill="#3D4629"/>
+    <rect x="108" y="204" width="12" height="6" fill="#E0B48C"/>
+    <rect x="78" y="210" width="12" height="42" fill="#3D4629"/>
+    <rect x="90" y="210" width="24" height="42" fill="#55603C"/>
+    <rect x="78" y="252" width="12" height="24" fill="#2A2C26"/>
+    <rect x="90" y="252" width="24" height="24" fill="#33352E"/>
+  </g>
+</defs>
+
+<rect width="1440" height="1980" fill="#E3E4DD"/>
+
+<!-- ================= 헤더 ================= -->
+<rect x="0" y="0" width="1440" height="140" fill="#E3E4DD"/>
+<rect x="0" y="138" width="1440" height="2" fill="#191C16"/>
+<text x="60" y="52" fill="#9E3226" font-size="12" letter-spacing="3" font-family="ui-monospace, Menlo, monospace">SAD-ART-001 · APPENDIX A</text>
+<text x="60" y="98" fill="#191C16" font-size="40" font-weight="800" letter-spacing="-1.2">캐릭터 스프라이트 규격</text>
+<text x="530" y="98" fill="#5E6E42" font-size="19" font-weight="700">32 × 48 px  ·  PPU 32  ·  4방향</text>
+<text x="1380" y="52" fill="#5A6053" font-size="12" text-anchor="end" letter-spacing="2" font-family="ui-monospace, Menlo, monospace">2026-07-31</text>
+<text x="1380" y="98" fill="#5A6053" font-size="15" text-anchor="end">SOLDIER : A DAY</text>
+
+<!-- ================= §A 셀 규격 + 4방향 ================= -->
+<text x="60" y="190" fill="#5E6E42" font-size="13" font-weight="700" letter-spacing="2.5" font-family="ui-monospace, Menlo, monospace">A.  셀 규격 · 4방향</text>
+<rect x="60" y="200" width="1320" height="1" fill="#B7BAAD"/>
+
+<!-- A-1 규격 다이어그램 -->
+<g transform="translate(60,236)">
+  <rect width="192" height="288" fill="#D8DAD0"/>
+  <rect width="192" height="288" fill="url(#px)"/>
+  <!-- 캐릭터 점유 영역 -->
+  <rect x="36" y="72" width="120" height="204" fill="#5E6E42" opacity="0.13"/>
+  <rect x="36" y="72" width="120" height="204" fill="none" stroke="#5E6E42" stroke-width="1.5" stroke-dasharray="4 3"/>
+  <use href="#baseS" opacity="0.4"/>
+  <rect width="192" height="288" fill="none" stroke="#191C16" stroke-width="2"/>
+  <!-- 피벗 -->
+  <circle cx="96" cy="276" r="5" fill="#9E3226"/>
+  <path d="M96 264v24M84 276h24" stroke="#9E3226" stroke-width="1.5"/>
+  <!-- 치수 -->
+  <path d="M0 -14h192" stroke="#5A6053" stroke-width="1"/>
+  <path d="M0 -19v10M192 -19v10" stroke="#5A6053" stroke-width="1"/>
+  <text x="96" y="-22" fill="#5A6053" font-size="12" text-anchor="middle" font-family="ui-monospace, Menlo, monospace">32 px</text>
+  <path d="M206 0v288" stroke="#5A6053" stroke-width="1"/>
+  <path d="M201 0h10M201 288h10" stroke="#5A6053" stroke-width="1"/>
+  <text x="214" y="148" fill="#5A6053" font-size="12" font-family="ui-monospace, Menlo, monospace">48</text>
+  <text x="0" y="312" fill="#5E6E42" font-size="13" font-weight="700">셀 규격</text>
+  <text x="0" y="332" fill="#5A6053" font-size="12">점유 20×34 · 피벗 (16,2)</text>
+</g>
+
+<!-- A-2~5 4방향 -->
+<g transform="translate(340,236)">
+  <rect width="192" height="288" fill="#D8DAD0"/><rect width="192" height="288" fill="url(#px)"/>
+  <use href="#baseS"/>
+  <rect width="192" height="288" fill="none" stroke="#B7BAAD"/>
+  <text x="0" y="312" fill="#191C16" font-size="15" font-weight="700">S — 정면</text>
+  <text x="0" y="332" fill="#5A6053" font-size="12">얼굴 · 계급장 노출</text>
+</g>
+<g transform="translate(600,236)">
+  <rect width="192" height="288" fill="#D8DAD0"/><rect width="192" height="288" fill="url(#px)"/>
+  <use href="#baseN"/>
+  <rect width="192" height="288" fill="none" stroke="#B7BAAD"/>
+  <text x="0" y="312" fill="#191C16" font-size="15" font-weight="700">N — 후면</text>
+  <text x="0" y="332" fill="#5A6053" font-size="12">군장 · 안테나 노출</text>
+</g>
+<g transform="translate(860,236)">
+  <rect width="192" height="288" fill="#D8DAD0"/><rect width="192" height="288" fill="url(#px)"/>
+  <use href="#baseE"/>
+  <rect width="192" height="288" fill="none" stroke="#B7BAAD"/>
+  <text x="0" y="312" fill="#191C16" font-size="15" font-weight="700">E — 측면</text>
+  <text x="0" y="332" fill="#5A6053" font-size="12">폭 7px로 축소</text>
+</g>
+<g transform="translate(1120,236)">
+  <rect width="192" height="288" fill="#D8DAD0"/><rect width="192" height="288" fill="url(#px)"/>
+  <g transform="translate(192,0) scale(-1,1)"><use href="#baseE"/></g>
+  <rect width="192" height="288" fill="none" stroke="#5E6E42" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <text x="0" y="312" fill="#5E6E42" font-size="15" font-weight="700">W — 미러링</text>
+  <text x="0" y="332" fill="#5A6053" font-size="12">별도 제작 안 함 · scaleX −1</text>
+</g>
+
+<!-- ================= §B 레이어 스택 ================= -->
+<text x="60" y="620" fill="#5E6E42" font-size="13" font-weight="700" letter-spacing="2.5" font-family="ui-monospace, Menlo, monospace">B.  레이어 스택 — Sprite Library / Sprite Resolver 런타임 스왑</text>
+<rect x="60" y="630" width="1320" height="1" fill="#B7BAAD"/>
+
+<g transform="translate(60,660)">
+  <!-- 1 body -->
+  <g transform="translate(0,0)">
+    <rect width="80" height="120" fill="#D8DAD0"/><rect width="80" height="120" fill="url(#px2)"/>
+    <g transform="scale(0.4167)">
+      <rect x="72" y="96" width="48" height="30" fill="#E0B48C"/><rect x="78" y="126" width="36" height="6" fill="#C29268"/>
+      <rect x="54" y="138" width="84" height="66" fill="#E0B48C"/><rect x="72" y="210" width="54" height="66" fill="#E0B48C"/>
+    </g>
+    <rect width="80" height="120" fill="none" stroke="#B7BAAD"/>
+    <text x="0" y="138" fill="#5A6053" font-size="11" font-family="ui-monospace, Menlo, monospace">1</text>
+    <text x="16" y="138" fill="#191C16" font-size="13" font-weight="700">body</text>
+    <text x="0" y="156" fill="#5A6053" font-size="11">피부 3톤</text>
+  </g>
+  <!-- 2 legs -->
+  <g transform="translate(160,0)">
+    <rect width="80" height="120" fill="#D8DAD0"/><rect width="80" height="120" fill="url(#px2)"/>
+    <g transform="scale(0.4167)">
+      <rect x="72" y="210" width="24" height="42" fill="#55603C"/><rect x="102" y="210" width="24" height="42" fill="#55603C"/>
+      <rect x="72" y="252" width="24" height="24" fill="#33352E"/><rect x="102" y="252" width="24" height="24" fill="#33352E"/>
+    </g>
+    <rect width="80" height="120" fill="none" stroke="#B7BAAD"/>
+    <text x="0" y="138" fill="#5A6053" font-size="11" font-family="ui-monospace, Menlo, monospace">2</text>
+    <text x="16" y="138" fill="#191C16" font-size="13" font-weight="700">legs</text>
+    <text x="0" y="156" fill="#9E3226" font-size="11">팔레트 스왑 처리</text>
+  </g>
+  <!-- 3 torso -->
+  <g transform="translate(320,0)">
+    <rect width="80" height="120" fill="#D8DAD0"/><rect width="80" height="120" fill="url(#px2)"/>
+    <g transform="scale(0.4167)">
+      <rect x="78" y="132" width="36" height="6" fill="#55603C"/><rect x="54" y="138" width="84" height="12" fill="#6E7A50"/>
+      <rect x="66" y="150" width="60" height="54" fill="#6E7A50"/><rect x="54" y="150" width="12" height="54" fill="#55603C"/>
+      <rect x="126" y="150" width="12" height="54" fill="#55603C"/><rect x="66" y="192" width="60" height="12" fill="#3D4629"/>
+    </g>
+    <rect width="80" height="120" fill="none" stroke="#B7BAAD"/>
+    <text x="0" y="138" fill="#5A6053" font-size="11" font-family="ui-monospace, Menlo, monospace">3</text>
+    <text x="16" y="138" fill="#191C16" font-size="13" font-weight="700">torso</text>
+    <text x="0" y="156" fill="#5A6053" font-size="11">전 클립 필요</text>
+  </g>
+  <!-- 4 outer -->
+  <g transform="translate(480,0)">
+    <rect width="80" height="120" fill="#D8DAD0"/><rect width="80" height="120" fill="url(#px2)"/>
+    <g transform="scale(0.4167)">
+      <rect x="48" y="138" width="96" height="78" fill="#3F4A2E"/><rect x="66" y="132" width="60" height="8" fill="#4A5636"/>
+      <rect x="90" y="150" width="12" height="66" fill="#2E3722"/>
+    </g>
+    <rect width="80" height="120" fill="none" stroke="#B7BAAD"/>
+    <text x="0" y="138" fill="#5A6053" font-size="11" font-family="ui-monospace, Menlo, monospace">4</text>
+    <text x="16" y="138" fill="#191C16" font-size="13" font-weight="700">outer</text>
+    <text x="0" y="156" fill="#5A6053" font-size="11">방상외피 · 우의</text>
+  </g>
+  <!-- 5 gear -->
+  <g transform="translate(640,0)">
+    <rect width="80" height="120" fill="#D8DAD0"/><rect width="80" height="120" fill="url(#px2)"/>
+    <g transform="scale(0.4167)">
+      <rect x="60" y="156" width="72" height="10" fill="#4A4A40"/><rect x="66" y="186" width="60" height="14" fill="#4A4A40"/>
+      <rect x="72" y="188" width="12" height="10" fill="#33352E"/><rect x="108" y="188" width="12" height="10" fill="#33352E"/>
+    </g>
+    <rect width="80" height="120" fill="none" stroke="#B7BAAD"/>
+    <text x="0" y="138" fill="#5A6053" font-size="11" font-family="ui-monospace, Menlo, monospace">5</text>
+    <text x="16" y="138" fill="#191C16" font-size="13" font-weight="700">gear</text>
+    <text x="0" y="156" fill="#5A6053" font-size="11">탄띠 · 군장 · 의무낭</text>
+  </g>
+  <!-- 6 head -->
+  <g transform="translate(800,0)">
+    <rect width="80" height="120" fill="#D8DAD0"/><rect width="80" height="120" fill="url(#px2)"/>
+    <g transform="scale(0.4167)">
+      <rect x="72" y="72" width="48" height="6" fill="#3D4629"/><rect x="66" y="78" width="60" height="12" fill="#55603C"/>
+      <rect x="66" y="90" width="60" height="6" fill="#3D4629"/>
+    </g>
+    <rect width="80" height="120" fill="none" stroke="#5E6E42" stroke-width="1.5"/>
+    <text x="0" y="138" fill="#5E6E42" font-size="11" font-family="ui-monospace, Menlo, monospace">6</text>
+    <text x="16" y="138" fill="#191C16" font-size="13" font-weight="700">head</text>
+    <text x="0" y="156" fill="#5E6E42" font-size="11">보직 식별 1순위</text>
+  </g>
+  <!-- 7 mark -->
+  <g transform="translate(960,0)">
+    <rect width="80" height="120" fill="#D8DAD0"/><rect width="80" height="120" fill="url(#px2)"/>
+    <g transform="scale(0.4167)">
+      <rect x="54" y="156" width="12" height="18" fill="#3F6E90"/>
+      <rect x="96" y="162" width="18" height="4" fill="#C9C7BC"/><rect x="96" y="170" width="18" height="4" fill="#C9C7BC"/>
+    </g>
+    <rect width="80" height="120" fill="none" stroke="#B7BAAD"/>
+    <text x="0" y="138" fill="#5A6053" font-size="11" font-family="ui-monospace, Menlo, monospace">7</text>
+    <text x="16" y="138" fill="#191C16" font-size="13" font-weight="700">mark</text>
+    <text x="0" y="156" fill="#5A6053" font-size="11">완장 + 계급장</text>
+  </g>
+  <!-- 8 hand -->
+  <g transform="translate(1120,0)">
+    <rect width="80" height="120" fill="#D8DAD0"/><rect width="80" height="120" fill="url(#px2)"/>
+    <g transform="scale(0.4167)">
+      <rect x="36" y="150" width="96" height="10" fill="#33352E" transform="rotate(38 84 155)"/>
+      <rect x="66" y="168" width="14" height="10" fill="#5A5A4E" transform="rotate(38 73 173)"/>
+    </g>
+    <rect width="80" height="120" fill="none" stroke="#B7BAAD"/>
+    <text x="0" y="138" fill="#5A6053" font-size="11" font-family="ui-monospace, Menlo, monospace">8</text>
+    <text x="16" y="138" fill="#191C16" font-size="13" font-weight="700">hand</text>
+    <text x="0" y="156" fill="#5A6053" font-size="11">소총 · 삽 · 들것</text>
+  </g>
+  <!-- 화살표 -->
+  <g stroke="#B7BAAD" stroke-width="1.5" fill="none">
+    <path d="M96 60h48M256 60h48M416 60h48M576 60h48M736 60h48M896 60h48M1056 60h48"/>
+  </g>
+  <g fill="#B7BAAD">
+    <path d="M144 55l10 5-10 5Z"/><path d="M304 55l10 5-10 5Z"/><path d="M464 55l10 5-10 5Z"/><path d="M624 55l10 5-10 5Z"/>
+    <path d="M784 55l10 5-10 5Z"/><path d="M944 55l10 5-10 5Z"/><path d="M1104 55l10 5-10 5Z"/>
+  </g>
+</g>
+
+<!-- ================= §C 4보직 ================= -->
+<text x="60" y="900" fill="#5E6E42" font-size="13" font-weight="700" letter-spacing="2.5" font-family="ui-monospace, Menlo, monospace">C.  4보직 정면 — head · mark · hand 3레이어만 교체</text>
+<rect x="60" y="910" width="1320" height="1" fill="#B7BAAD"/>
+
+<!-- 소총수 -->
+<g transform="translate(60,946)">
+  <rect width="192" height="288" fill="#D8DAD0"/><rect width="192" height="288" fill="url(#px)"/>
+  <rect x="36" y="150" width="96" height="10" fill="#33352E" transform="rotate(38 84 155)"/>
+  <use href="#baseS"/>
+  <rect x="54" y="156" width="12" height="18" fill="#6E7A50"/>
+  <rect x="96" y="162" width="18" height="6" fill="#C9C7BC"/>
+  <rect x="132" y="126" width="10" height="60" fill="#33352E" transform="rotate(20 137 156)"/>
+  <rect width="192" height="288" fill="none" stroke="#B7BAAD"/>
+  <text x="0" y="316" fill="#191C16" font-size="19" font-weight="800">소총수</text>
+  <rect x="86" y="300" width="52" height="20" fill="#6E7A50"/>
+  <text x="112" y="315" fill="#E3E4DD" font-size="12" font-weight="800" text-anchor="middle" font-family="ui-monospace, Menlo, monospace">RFL</text>
+  <text x="0" y="340" fill="#5A6053" font-size="12">전투모 · 등에 총열 실루엣</text>
+  <text x="0" y="358" fill="#5A6053" font-size="12">완장 #6E7A50</text>
+</g>
+
+<!-- 통신병 -->
+<g transform="translate(400,946)">
+  <rect width="192" height="288" fill="#D8DAD0"/><rect width="192" height="288" fill="url(#px)"/>
+  <rect x="132" y="60" width="4" height="96" fill="#8A9080"/>
+  <use href="#baseS"/>
+  <rect x="66" y="84" width="60" height="6" fill="#2A2E24"/>
+  <rect x="60" y="102" width="12" height="18" fill="#2A2E24"/>
+  <rect x="120" y="102" width="12" height="18" fill="#2A2E24"/>
+  <rect x="126" y="162" width="18" height="30" fill="#3A3F38"/>
+  <rect x="130" y="168" width="10" height="8" fill="#7FAECF"/>
+  <rect x="54" y="156" width="12" height="18" fill="#3F6E90"/>
+  <rect x="96" y="162" width="18" height="6" fill="#C9C7BC"/>
+  <rect x="96" y="174" width="18" height="6" fill="#C9C7BC"/>
+  <rect width="192" height="288" fill="none" stroke="#B7BAAD"/>
+  <text x="0" y="316" fill="#191C16" font-size="19" font-weight="800">통신병</text>
+  <rect x="86" y="300" width="52" height="20" fill="#3F6E90"/>
+  <text x="112" y="315" fill="#E3E4DD" font-size="12" font-weight="800" text-anchor="middle" font-family="ui-monospace, Menlo, monospace">COM</text>
+  <text x="0" y="340" fill="#5A6053" font-size="12">헤드셋 돌기 · 등 안테나 1px</text>
+  <text x="0" y="358" fill="#5A6053" font-size="12">완장 #3F6E90</text>
+</g>
+
+<!-- 의무병 -->
+<g transform="translate(740,946)">
+  <rect width="192" height="288" fill="#D8DAD0"/><rect width="192" height="288" fill="url(#px)"/>
+  <use href="#baseS"/>
+  <rect x="66" y="90" width="60" height="6" fill="#EEF1E8"/>
+  <rect x="90" y="90" width="6" height="6" fill="#9E3226"/>
+  <rect x="126" y="168" width="18" height="24" fill="#EEF1E8"/>
+  <rect x="132" y="174" width="6" height="12" fill="#9E3226"/>
+  <rect x="129" y="177" width="12" height="6" fill="#9E3226"/>
+  <rect x="54" y="156" width="12" height="18" fill="#EEF1E8"/>
+  <rect x="58" y="159" width="4" height="12" fill="#9E3226"/>
+  <rect x="56" y="163" width="8" height="4" fill="#9E3226"/>
+  <rect x="96" y="162" width="18" height="6" fill="#C9C7BC"/>
+  <rect x="96" y="174" width="18" height="6" fill="#C9C7BC"/>
+  <rect x="96" y="186" width="18" height="6" fill="#E0D8B0"/>
+  <rect width="192" height="288" fill="none" stroke="#B7BAAD"/>
+  <text x="0" y="316" fill="#191C16" font-size="19" font-weight="800">의무병</text>
+  <rect x="86" y="300" width="52" height="20" fill="#191C16"/>
+  <text x="112" y="315" fill="#EEF1E8" font-size="12" font-weight="800" text-anchor="middle" font-family="ui-monospace, Menlo, monospace">MED</text>
+  <text x="0" y="340" fill="#5A6053" font-size="12">유일하게 흰색 사용 → 즉시 식별</text>
+  <text x="0" y="358" fill="#5A6053" font-size="12">완장 백색 + 적십자</text>
+</g>
+
+<!-- 행정병 -->
+<g transform="translate(1080,946)">
+  <rect width="192" height="288" fill="#D8DAD0"/><rect width="192" height="288" fill="url(#px)"/>
+  <use href="#baseS"/>
+  <rect x="66" y="78" width="60" height="18" fill="#D8DAD0"/>
+  <rect x="72" y="72" width="48" height="12" fill="#55603C"/>
+  <rect x="66" y="84" width="60" height="12" fill="#55603C"/>
+  <rect x="72" y="96" width="48" height="6" fill="#C29268"/>
+  <rect x="126" y="162" width="24" height="36" fill="#D8DAD0"/>
+  <rect x="126" y="162" width="24" height="6" fill="#8A9080"/>
+  <rect x="130" y="174" width="16" height="3" fill="#B7BAAD"/>
+  <rect x="130" y="182" width="16" height="3" fill="#B7BAAD"/>
+  <rect x="54" y="156" width="12" height="18" fill="#B08A2C"/>
+  <rect x="96" y="162" width="18" height="6" fill="#C9C7BC"/>
+  <rect width="192" height="288" fill="none" stroke="#B7BAAD"/>
+  <text x="0" y="316" fill="#191C16" font-size="19" font-weight="800">행정병</text>
+  <rect x="86" y="300" width="52" height="20" fill="#B08A2C"/>
+  <text x="112" y="315" fill="#191C16" font-size="12" font-weight="800" text-anchor="middle" font-family="ui-monospace, Menlo, monospace">ADM</text>
+  <text x="0" y="340" fill="#5A6053" font-size="12">유일하게 챙 없는 작업모 + 서류판</text>
+  <text x="0" y="358" fill="#5A6053" font-size="12">완장 #B08A2C</text>
+</g>
+
+<!-- ================= §D 계급장 ================= -->
+<text x="60" y="1390" fill="#5E6E42" font-size="13" font-weight="700" letter-spacing="2.5" font-family="ui-monospace, Menlo, monospace">D.  계급장 3×5 px  ·  실물 도안 미사용 (추상 도형)</text>
+<rect x="60" y="1400" width="1320" height="1" fill="#B7BAAD"/>
+
+<g transform="translate(60,1430)">
+  <g transform="translate(0,0)">
+    <rect width="60" height="100" fill="#33382C"/>
+    <g transform="translate(12,20)"><rect width="36" height="8" fill="#C9C7BC"/></g>
+    <text x="0" y="124" fill="#191C16" font-size="15" font-weight="700">이병</text>
+    <text x="0" y="144" fill="#9E3226" font-size="12">하달 불가 (최하위)</text>
+  </g>
+  <g transform="translate(190,0)">
+    <rect width="60" height="100" fill="#33382C"/>
+    <g transform="translate(12,14)"><rect width="36" height="8" fill="#C9C7BC"/><rect y="16" width="36" height="8" fill="#C9C7BC"/></g>
+    <text x="0" y="124" fill="#191C16" font-size="15" font-weight="700">일병</text>
+    <text x="0" y="144" fill="#5E6E42" font-size="12">하달 1건 해금 · D-03</text>
+  </g>
+  <g transform="translate(380,0)">
+    <rect width="60" height="100" fill="#33382C"/>
+    <g transform="translate(12,10)"><rect width="36" height="8" fill="#E0D8B0"/><rect y="16" width="36" height="8" fill="#E0D8B0"/><rect y="32" width="36" height="8" fill="#E0D8B0"/></g>
+    <text x="0" y="124" fill="#191C16" font-size="15" font-weight="700">상병</text>
+    <text x="0" y="144" fill="#5E6E42" font-size="12">하달 2건 · D-09</text>
+  </g>
+  <g transform="translate(570,0)">
+    <rect width="60" height="100" fill="#33382C"/>
+    <g transform="translate(12,6)"><rect x="14" width="8" height="8" fill="#FFD98A"/><rect y="16" width="36" height="8" fill="#FFD98A"/><rect y="32" width="36" height="8" fill="#FFD98A"/><rect y="48" width="36" height="8" fill="#FFD98A"/></g>
+    <text x="0" y="124" fill="#191C16" font-size="15" font-weight="700">병장</text>
+    <text x="0" y="144" fill="#5E6E42" font-size="12">구제권 발의 · D-15</text>
+  </g>
+  <!-- 분대장 -->
+  <g transform="translate(790,0)">
+    <rect width="60" height="100" fill="#33382C"/>
+    <path d="M30 34 l16 16 l-16 16 l-16 -16 Z" fill="#9AB06F"/>
+    <text x="0" y="124" fill="#191C16" font-size="15" font-weight="700">분대장</text>
+    <text x="0" y="144" fill="#5A6053" font-size="12">계급과 무관 · 투표</text>
+  </g>
+  <!-- 후송 마크 -->
+  <g transform="translate(1010,0)">
+    <rect width="60" height="100" fill="#33382C"/>
+    <g stroke="#D2594B" stroke-width="5" fill="none"><path d="M18 34 L42 66 M42 34 L18 66"/></g>
+    <text x="0" y="124" fill="#191C16" font-size="15" font-weight="700">후송 기록</text>
+    <text x="0" y="144" fill="#9E3226" font-size="12">영구 낙인 · 모범 전역 불가</text>
+  </g>
+</g>
+
+<!-- ================= §E 스프라이트 시트 배치 ================= -->
+<text x="60" y="1650" fill="#5E6E42" font-size="13" font-weight="700" letter-spacing="2.5" font-family="ui-monospace, Menlo, monospace">E.  스프라이트 시트 배치 규격 — 행 = 클립×방향, 열 = 프레임</text>
+<rect x="60" y="1660" width="1320" height="1" fill="#B7BAAD"/>
+
+<g transform="translate(60,1692)">
+  <!-- 열 헤더 -->
+  <g fill="#5A6053" font-size="11" font-family="ui-monospace, Menlo, monospace" text-anchor="middle">
+    <text x="238" y="-6">0</text><text x="286" y="-6">1</text><text x="334" y="-6">2</text><text x="382" y="-6">3</text>
+    <text x="430" y="-6">4</text><text x="478" y="-6">5</text><text x="526" y="-6">6</text><text x="574" y="-6">7</text>
+  </g>
+  <!-- 행 -->
+  <g font-size="12" fill="#191C16">
+    <g><rect x="0" y="0" width="1320" height="30" fill="#EEEFE9"/><text x="10" y="20" font-weight="700">idle_S</text><text x="120" y="20" fill="#5A6053">4f · 6fps</text>
+      <g fill="#5E6E42" opacity="0.75"><rect x="218" y="4" width="40" height="22"/><rect x="266" y="4" width="40" height="22"/><rect x="314" y="4" width="40" height="22"/><rect x="362" y="4" width="40" height="22"/></g>
+      <text x="700" y="20" fill="#5A6053">Y-sort · 피벗 하단 중앙 고정</text></g>
+    <g transform="translate(0,32)"><rect x="0" y="0" width="1320" height="30" fill="#E3E4DD"/><text x="10" y="20" font-weight="700">idle_N</text><text x="120" y="20" fill="#5A6053">4f · 6fps</text>
+      <g fill="#5E6E42" opacity="0.75"><rect x="218" y="4" width="40" height="22"/><rect x="266" y="4" width="40" height="22"/><rect x="314" y="4" width="40" height="22"/><rect x="362" y="4" width="40" height="22"/></g></g>
+    <g transform="translate(0,64)"><rect x="0" y="0" width="1320" height="30" fill="#EEEFE9"/><text x="10" y="20" font-weight="700">idle_E</text><text x="120" y="20" fill="#5A6053">4f · 6fps</text>
+      <g fill="#5E6E42" opacity="0.75"><rect x="218" y="4" width="40" height="22"/><rect x="266" y="4" width="40" height="22"/><rect x="314" y="4" width="40" height="22"/><rect x="362" y="4" width="40" height="22"/></g></g>
+    <g transform="translate(0,96)"><rect x="0" y="0" width="1320" height="30" fill="#E3E4DD"/><text x="10" y="20" font-weight="700">walk_S</text><text x="120" y="20" fill="#5A6053">6f · 10fps</text>
+      <g fill="#5E6E42" opacity="0.75"><rect x="218" y="4" width="40" height="22"/><rect x="266" y="4" width="40" height="22"/><rect x="314" y="4" width="40" height="22"/><rect x="362" y="4" width="40" height="22"/><rect x="410" y="4" width="40" height="22"/><rect x="458" y="4" width="40" height="22"/></g></g>
+    <g transform="translate(0,128)"><rect x="0" y="0" width="1320" height="30" fill="#EEEFE9"/><text x="10" y="20" font-weight="700">walk_N / walk_E</text><text x="180" y="20" fill="#5A6053">6f</text>
+      <g fill="#5E6E42" opacity="0.5"><rect x="218" y="4" width="280" height="22"/></g></g>
+    <g transform="translate(0,160)"><rect x="0" y="0" width="1320" height="30" fill="#E3E4DD"/><text x="10" y="20" font-weight="700">walk_coop_*</text><text x="180" y="20" fill="#5A6053">6f · 2인 1조 운반</text>
+      <g fill="#B25E2C" opacity="0.6"><rect x="218" y="4" width="280" height="22"/></g></g>
+    <g transform="translate(0,192)"><rect x="0" y="0" width="1320" height="30" fill="#EEEFE9"/><text x="10" y="20" font-weight="700">work_generic / ground / panel</text><text x="290" y="20" fill="#5A6053">4f ×3종</text>
+      <g fill="#5E6E42" opacity="0.5"><rect x="218" y="4" width="184" height="22"/></g></g>
+    <g transform="translate(0,224)"><rect x="0" y="0" width="1320" height="30" fill="#E3E4DD"/><text x="10" y="20" font-weight="700">mask_on</text><text x="120" y="20" fill="#5A6053">8f · 10fps · 정면 only</text>
+      <g fill="#3F6E90" opacity="0.6"><rect x="218" y="4" width="376" height="22"/></g></g>
+    <g transform="translate(0,256)"><rect x="0" y="0" width="1320" height="30" fill="#EEEFE9"/><text x="10" y="20" font-weight="700">shiver / pant</text><text x="180" y="20" fill="#5A6053">4f · idle 대체 (동상 / 탈수)</text>
+      <g><rect x="218" y="4" width="88" height="22" fill="#3F6E90" opacity="0.6"/><rect x="314" y="4" width="88" height="22" fill="#B25E2C" opacity="0.6"/></g></g>
+    <g transform="translate(0,288)"><rect x="0" y="0" width="1320" height="30" fill="#E3E4DD"/><text x="10" y="20" font-weight="700">collapse / carried</text><text x="200" y="20" fill="#5A6053">6f + 2f · 후송 파이프라인</text>
+      <g fill="#9E3226" opacity="0.6"><rect x="218" y="4" width="280" height="22"/></g></g>
+    <g transform="translate(0,320)"><rect x="0" y="0" width="1320" height="30" fill="#EEEFE9"/><text x="10" y="20" font-weight="700">march / climb</text><text x="180" y="20" fill="#5A6053">8f · 6f · 사이드뷰 씬 전용</text>
+      <g fill="#5A6053" opacity="0.5"><rect x="218" y="4" width="376" height="22"/></g></g>
+  </g>
+  <rect x="0" y="0" width="1320" height="350" fill="none" stroke="#B7BAAD"/>
+</g>
+
+<text x="60" y="2078" fill="#5A6053" font-size="12">시트 1장 = 2048×2048 · 셀 32×48 · 여백 0 (Full Rect, Filter Point, Compression None)</text>
+<rect x="0" y="1948" width="1440" height="2" fill="#191C16"/>
+<text x="60" y="1970" fill="#5A6053" font-size="12" font-family="ui-monospace, Menlo, monospace">SAD-ART-001 · APPENDIX A · v0.1</text>
+<text x="1380" y="1970" fill="#5A6053" font-size="12" text-anchor="end">베이스 ≈ 263 프레임 · 스왑 포함 총 ≈ 1,000 프레임</text>
+</svg>

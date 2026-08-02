@@ -1,0 +1,278 @@
+<svg viewBox="0 0 1400 1420" xmlns="http://www.w3.org/2000/svg" font-family="Pretendard, 'Apple SD Gothic Neo', 'Malgun Gothic', 'Noto Sans KR', sans-serif">
+<rect width="1400" height="1420" fill="#E3E4DD"/>
+
+<text x="60" y="46" fill="#9E3226" font-size="12" letter-spacing="3" font-family="ui-monospace, Menlo, monospace">SAD-ART-003 · FIELD 01</text>
+<text x="60" y="86" fill="#191C16" font-size="32" font-weight="800" letter-spacing="-1">생활관동 — 일과 수행 지점</text>
+<text x="560" y="85" fill="#5E6E42" font-size="16" font-weight="700">6구역 · 16건</text>
+<text x="1340" y="60" fill="#5A6053" font-size="13" text-anchor="end">마커 색 = 수행 주체</text>
+<g font-size="12">
+  <circle cx="960" cy="80" r="8" fill="#5A6053"/><text x="974" y="85" fill="#5A6053">공통</text>
+  <circle cx="1030" cy="80" r="8" fill="#5E6E42"/><text x="1044" y="85" fill="#5A6053">소총</text>
+  <circle cx="1100" cy="80" r="8" fill="#9E3226"/><text x="1114" y="85" fill="#5A6053">의무</text>
+  <circle cx="1170" cy="80" r="8" fill="#3F6E90"/><text x="1184" y="85" fill="#5A6053">통신</text>
+  <circle cx="1240" cy="80" r="8" fill="#B08A2C"/><text x="1254" y="85" fill="#5A6053">행정</text>
+  <circle cx="1310" cy="80" r="8" fill="#B25E2C"/><text x="1324" y="85" fill="#5A6053" text-anchor="end">돌발</text>
+</g>
+<rect x="60" y="104" width="1280" height="2" fill="#191C16"/>
+
+<!-- ============ Z01 생활관 ============ -->
+<text x="60" y="146" fill="#5E6E42" font-size="13" font-weight="700" letter-spacing="2" font-family="ui-monospace, Menlo, monospace">Z01 · 생활관 (1분대)</text>
+<g>
+  <rect x="60" y="164" width="620" height="330" fill="#EEEFE9"/>
+  <g stroke="#CBCDC2" stroke-width="0.5">
+    <path d="M100 164V494M140 164V494M180 164V494M220 164V494M260 164V494M300 164V494M340 164V494M380 164V494M420 164V494M460 164V494M500 164V494M540 164V494M580 164V494M620 164V494M660 164V494"/>
+    <path d="M60 204H680M60 244H680M60 284H680M60 324H680M60 364H680M60 404H680M60 444H680"/>
+  </g>
+  <rect x="60" y="164" width="620" height="330" fill="none" stroke="#191C16" stroke-width="4"/>
+
+  <g fill="#A88254" stroke="#5F482C" stroke-width="1.5">
+    <rect x="86" y="188" width="140" height="60"/><rect x="330" y="188" width="140" height="60"/>
+    <rect x="86" y="410" width="140" height="60"/><rect x="330" y="410" width="140" height="60"/>
+  </g>
+  <g fill="#EEEFE9" stroke="#5F482C"><rect x="94" y="196" width="26" height="44"/><rect x="338" y="196" width="26" height="44"/><rect x="192" y="418" width="26" height="44"/><rect x="436" y="418" width="26" height="44"/></g>
+  <text x="156" y="222" fill="#3D2E1C" font-size="12" text-anchor="middle">침상</text>
+  <text x="400" y="222" fill="#3D2E1C" font-size="12" text-anchor="middle">침상</text>
+
+  <g fill="#84643E" stroke="#191C16" stroke-width="1.5">
+    <rect x="240" y="188" width="70" height="60"/><rect x="484" y="188" width="70" height="60"/>
+    <rect x="240" y="410" width="70" height="60"/><rect x="484" y="410" width="70" height="60"/>
+  </g>
+  <g stroke="#5F482C" stroke-width="1"><path d="M240 208H310M240 228H310M484 208H554M484 228H554M240 430H310M240 450H310M484 430H554M484 450H554"/></g>
+  <text x="275" y="262" fill="#5A6053" font-size="11" text-anchor="middle">관물대</text>
+
+  <rect x="574" y="188" width="86" height="130" fill="#C9C7BC" stroke="#191C16" stroke-width="2"/>
+  <text x="617" y="248" fill="#191C16" font-size="11" font-weight="700" text-anchor="middle">화장실</text>
+
+  <rect x="86" y="296" width="360" height="80" fill="#D8DAD0" stroke="#B7BAAD" stroke-dasharray="5 4"/>
+  <text x="266" y="322" fill="#5A6053" font-size="12" text-anchor="middle">중앙 통로</text>
+  <rect x="150" y="332" width="130" height="36" fill="#B4B2A9" stroke="#807E76"/>
+  <text x="215" y="356" fill="#191C16" font-size="11" text-anchor="middle">수입용 깔개</text>
+
+  <rect x="60" y="330" width="10" height="50" fill="#5E6E42"/>
+  <text x="80" y="360" fill="#5E6E42" font-size="11">상황판</text>
+
+  <circle cx="156" cy="270" r="13" fill="#5A6053"/><text x="156" y="275" fill="#EEEFE9" font-size="13" font-weight="800" text-anchor="middle">1</text>
+  <circle cx="275" cy="290" r="13" fill="#5A6053"/><text x="275" y="295" fill="#EEEFE9" font-size="13" font-weight="800" text-anchor="middle">2</text>
+  <circle cx="400" cy="270" r="13" fill="#9E3226"/><text x="400" y="275" fill="#EEEFE9" font-size="13" font-weight="800" text-anchor="middle">3</text>
+  <circle cx="215" cy="350" r="13" fill="#5E6E42"/><text x="215" y="355" fill="#EEEFE9" font-size="13" font-weight="800" text-anchor="middle">4</text>
+  <circle cx="519" cy="330" r="13" fill="#B25E2C"/><text x="519" y="335" fill="#EEEFE9" font-size="13" font-weight="800" text-anchor="middle">5</text>
+  <path d="M519 344V400" stroke="#B25E2C" stroke-width="2" stroke-dasharray="4 3"/>
+  <text x="537" y="380" fill="#B25E2C" font-size="11">관물대 앞 정렬</text>
+</g>
+<g transform="translate(60,510)" font-size="13">
+  <g><circle cx="10" cy="10" r="9" fill="#5A6053"/><text x="10" y="15" fill="#EEEFE9" font-size="11" font-weight="800" text-anchor="middle">1</text>
+     <text x="28" y="15" fill="#191C16" font-weight="700">생활관 바닥 청소</text><text x="180" y="15" fill="#5A6053">침상 밑 먼지 — 침상 하단</text>
+     <text x="660" y="15" fill="#5E6E42" text-anchor="end" font-family="ui-monospace, Menlo, monospace">SCRUB 15s</text></g>
+  <g transform="translate(0,26)"><circle cx="10" cy="10" r="9" fill="#5A6053"/><text x="10" y="15" fill="#EEEFE9" font-size="11" font-weight="800" text-anchor="middle">2</text>
+     <text x="28" y="15" fill="#191C16" font-weight="700">관물대 정돈 점검</text><text x="180" y="15" fill="#5A6053">각 맞추기 — 관물대 정면</text>
+     <text x="660" y="15" fill="#5E6E42" text-anchor="end" font-family="ui-monospace, Menlo, monospace">PLACE 12s</text></g>
+  <g transform="translate(0,52)"><circle cx="10" cy="10" r="9" fill="#9E3226"/><text x="10" y="15" fill="#EEEFE9" font-size="11" font-weight="800" text-anchor="middle">3</text>
+     <text x="28" y="15" fill="#191C16" font-weight="700">환자 발생 점검</text><text x="180" y="15" fill="#5A6053">침상 훑어 이상 징후 — 침상 사이</text>
+     <text x="660" y="15" fill="#5E6E42" text-anchor="end" font-family="ui-monospace, Menlo, monospace">SEARCH 18s</text></g>
+  <g transform="translate(0,78)"><circle cx="10" cy="10" r="9" fill="#5E6E42"/><text x="10" y="15" fill="#EEEFE9" font-size="11" font-weight="800" text-anchor="middle">4</text>
+     <text x="28" y="15" fill="#191C16" font-weight="700">총기 수입</text><text x="180" y="15" fill="#5A6053">총열 통소지 → 결합 — 바닥 깔개 위</text>
+     <text x="660" y="15" fill="#5E6E42" text-anchor="end" font-family="ui-monospace, Menlo, monospace">SCRUB+PLACE 20s</text></g>
+  <g transform="translate(0,104)"><circle cx="10" cy="10" r="9" fill="#B25E2C"/><text x="10" y="15" fill="#EEEFE9" font-size="11" font-weight="800" text-anchor="middle">5</text>
+     <text x="28" y="15" fill="#191C16" font-weight="700">불시 점호</text><text x="180" y="15" fill="#5A6053">번호 세기 — 관물대 앞 정렬선</text>
+     <text x="660" y="15" fill="#5E6E42" text-anchor="end" font-family="ui-monospace, Menlo, monospace">RHYTHM 15s</text></g>
+</g>
+
+<!-- ============ Z03 세면장 ============ -->
+<text x="730" y="146" fill="#5E6E42" font-size="13" font-weight="700" letter-spacing="2" font-family="ui-monospace, Menlo, monospace">Z03 · 공용 세면장 · 샤워장</text>
+<g>
+  <rect x="730" y="164" width="610" height="330" fill="#EEEFE9"/>
+  <g stroke="#CBCDC2" stroke-width="0.5">
+    <path d="M770 164V494M810 164V494M850 164V494M890 164V494M930 164V494M970 164V494M1010 164V494M1050 164V494M1090 164V494M1130 164V494M1170 164V494M1210 164V494M1250 164V494M1290 164V494"/>
+    <path d="M730 204H1340M730 244H1340M730 284H1340M730 324H1340M730 364H1340M730 404H1340M730 444H1340"/>
+  </g>
+  <rect x="730" y="164" width="610" height="330" fill="none" stroke="#191C16" stroke-width="4"/>
+
+  <rect x="754" y="172" width="330" height="44" fill="#C7DDE8" stroke="#5A8296" stroke-width="2"/>
+  <g fill="#EEF4F8" opacity="0.85">
+    <ellipse cx="790" cy="190" rx="16" ry="9"/><ellipse cx="832" cy="200" rx="12" ry="7"/>
+    <ellipse cx="880" cy="186" rx="18" ry="8"/><ellipse cx="930" cy="199" rx="14" ry="8"/>
+    <ellipse cx="985" cy="188" rx="16" ry="9"/><ellipse cx="1040" cy="198" rx="12" ry="7"/>
+  </g>
+  <text x="919" y="199" fill="#2E4652" font-size="14" font-weight="800" text-anchor="middle">거울 — 물때</text>
+
+  <g fill="#8E958F" stroke="#484D49" stroke-width="1.5">
+    <rect x="754" y="224" width="70" height="40"/><rect x="838" y="224" width="70" height="40"/>
+    <rect x="922" y="224" width="70" height="40"/><rect x="1006" y="224" width="70" height="40"/>
+  </g>
+  <g fill="#C9C7BC"><circle cx="789" cy="244" r="10"/><circle cx="873" cy="244" r="10"/><circle cx="957" cy="244" r="10"/><circle cx="1041" cy="244" r="10"/></g>
+  <text x="915" y="282" fill="#5A6053" font-size="12" text-anchor="middle">세면대 ×4</text>
+
+  <g fill="#5A8296" opacity="0.4" stroke="#2E4652" stroke-width="1.5">
+    <rect x="754" y="330" width="96" height="140"/><rect x="866" y="330" width="96" height="140"/><rect x="978" y="330" width="96" height="140"/>
+  </g>
+  <g fill="#484D49"><circle cx="802" cy="452" r="8"/><circle cx="914" cy="452" r="8"/><circle cx="1026" cy="452" r="8"/></g>
+  <text x="914" y="352" fill="#2E4652" font-size="12" font-weight="700" text-anchor="middle">샤워 부스 ×3</text>
+  <text x="914" y="480" fill="#2E4652" font-size="11" text-anchor="middle">바닥 배수구</text>
+
+  <g fill="#C9C7BC" stroke="#484D49" stroke-width="1.5">
+    <rect x="1110" y="224" width="96" height="90"/><rect x="1110" y="326" width="96" height="90"/><rect x="1218" y="224" width="96" height="90"/>
+  </g>
+  <g fill="#8E958F"><rect x="1140" y="250" width="36" height="46" rx="10"/><rect x="1140" y="352" width="36" height="46" rx="10"/><rect x="1248" y="250" width="36" height="46" rx="10"/></g>
+  <text x="1212" y="440" fill="#5A6053" font-size="12" text-anchor="middle">화장실 칸 ×3</text>
+
+  <rect x="1218" y="336" width="96" height="80" fill="#EAEDDF" stroke="#5E6E42" stroke-width="1.5"/>
+  <text x="1266" y="366" fill="#5E6E42" font-size="11" font-weight="700" text-anchor="middle">소독 약제</text>
+  <text x="1266" y="384" fill="#5A6053" font-size="10" text-anchor="middle">분무기 · 잔량</text>
+
+  <circle cx="919" cy="300" r="13" fill="#5A6053"/><text x="919" y="305" fill="#EEEFE9" font-size="13" font-weight="800" text-anchor="middle">1</text>
+  <path d="M919 287V222" stroke="#5A6053" stroke-width="2" stroke-dasharray="4 3"/>
+  <circle cx="1266" cy="404" r="13" fill="#5A6053"/><text x="1266" y="409" fill="#EEEFE9" font-size="13" font-weight="800" text-anchor="middle">2</text>
+  <circle cx="1158" cy="372" r="13" fill="#5A6053"/><text x="1158" y="377" fill="#EEEFE9" font-size="13" font-weight="800" text-anchor="middle">3</text>
+  <circle cx="914" cy="418" r="13" fill="#9E3226"/><text x="914" y="423" fill="#EEEFE9" font-size="13" font-weight="800" text-anchor="middle">4</text>
+</g>
+<g transform="translate(730,510)" font-size="13">
+  <g><circle cx="10" cy="10" r="9" fill="#5A6053"/><text x="10" y="15" fill="#EEEFE9" font-size="11" font-weight="800" text-anchor="middle">1</text>
+     <text x="28" y="15" fill="#191C16" font-weight="700">세면장 청소</text><text x="160" y="15" fill="#5A6053">거울 물때 — 세면대 앞, 위쪽 거울면</text>
+     <text x="610" y="15" fill="#5E6E42" text-anchor="end" font-family="ui-monospace, Menlo, monospace">SCRUB 16s</text></g>
+  <g transform="translate(0,26)"><circle cx="10" cy="10" r="9" fill="#5A6053"/><text x="10" y="15" fill="#EEEFE9" font-size="11" font-weight="800" text-anchor="middle">2</text>
+     <text x="28" y="15" fill="#191C16" font-weight="700">방역 소독 보조</text><text x="160" y="15" fill="#5A6053">약제 잔량 제한 — 약제함에서 출발</text>
+     <text x="610" y="15" fill="#5E6E42" text-anchor="end" font-family="ui-monospace, Menlo, monospace">SCRUB 16s</text></g>
+  <g transform="translate(0,52)"><circle cx="10" cy="10" r="9" fill="#5A6053"/><text x="10" y="15" fill="#EEEFE9" font-weight="700">3</text>
+     <text x="28" y="15" fill="#191C16" font-weight="700">화장실 청소</text><text x="160" y="15" fill="#5A6053">칸별 이동 — 변기칸 3개 순회</text>
+     <text x="610" y="15" fill="#5E6E42" text-anchor="end" font-family="ui-monospace, Menlo, monospace">SCRUB 18s</text></g>
+  <g transform="translate(0,78)"><circle cx="10" cy="10" r="9" fill="#9E3226"/><text x="10" y="15" fill="#EEEFE9" font-size="11" font-weight="800" text-anchor="middle">4</text>
+     <text x="28" y="15" fill="#191C16" font-weight="700">위생 점검</text><text x="160" y="15" fill="#5A6053">곰팡이 · 배수 상태 — 샤워 부스 배수구</text>
+     <text x="610" y="15" fill="#5E6E42" text-anchor="end" font-family="ui-monospace, Menlo, monospace">AUDIT 20s</text></g>
+</g>
+
+<!-- ============ Z13 세탁 ============ -->
+<text x="60" y="686" fill="#5E6E42" font-size="13" font-weight="700" letter-spacing="2" font-family="ui-monospace, Menlo, monospace">Z13 · 세탁 · 건조실</text>
+<g>
+  <rect x="60" y="704" width="400" height="250" fill="#EEEFE9" stroke="#191C16" stroke-width="3"/>
+  <g fill="#8E958F" stroke="#484D49" stroke-width="1.5">
+    <rect x="80" y="724" width="66" height="66"/><rect x="156" y="724" width="66" height="66"/><rect x="232" y="724" width="66" height="66"/>
+  </g>
+  <g fill="#484D49"><circle cx="113" cy="757" r="18"/><circle cx="189" cy="757" r="18"/><circle cx="265" cy="757" r="18"/></g>
+  <text x="189" y="808" fill="#5A6053" font-size="12" text-anchor="middle">세탁기 ×3</text>
+
+  <g stroke="#8E958F" stroke-width="4"><path d="M80 850H300M80 890H300"/></g>
+  <g fill="#6E7A50"><rect x="96" y="850" width="22" height="26"/><rect x="140" y="850" width="22" height="26"/><rect x="200" y="850" width="22" height="26"/><rect x="252" y="890" width="22" height="26"/><rect x="120" y="890" width="22" height="26"/></g>
+  <text x="190" y="936" fill="#5A6053" font-size="12" text-anchor="middle">건조대 — 간격 균등</text>
+
+  <rect x="320" y="724" width="120" height="100" fill="#84643E" stroke="#5F482C" stroke-width="1.5"/>
+  <g fill="#D8DAD0"><rect x="332" y="738" width="30" height="20"/><rect x="368" y="738" width="30" height="20"/><rect x="404" y="738" width="30" height="20"/><rect x="332" y="766" width="30" height="20"/><rect x="368" y="766" width="30" height="20"/></g>
+  <text x="380" y="842" fill="#5A6053" font-size="11" text-anchor="middle">세탁물 수령대</text>
+  <text x="380" y="858" fill="#5A6053" font-size="10" text-anchor="middle">관등성명 태그</text>
+
+  <circle cx="190" cy="870" r="13" fill="#5A6053"/><text x="190" y="875" fill="#EEEFE9" font-size="13" font-weight="800" text-anchor="middle">1</text>
+  <circle cx="380" cy="790" r="13" fill="#5A6053"/><text x="380" y="795" fill="#EEEFE9" font-size="13" font-weight="800" text-anchor="middle">2</text>
+</g>
+<g transform="translate(60,970)" font-size="12">
+  <g><circle cx="10" cy="10" r="9" fill="#5A6053"/><text x="10" y="15" fill="#EEEFE9" font-size="11" font-weight="800" text-anchor="middle">1</text>
+     <text x="28" y="15" fill="#191C16" font-weight="700">건조대 정리</text><text x="140" y="15" fill="#5A6053">겹치면 감점</text>
+     <text x="400" y="15" fill="#5E6E42" text-anchor="end" font-family="ui-monospace, Menlo, monospace">PLACE 12s</text></g>
+  <g transform="translate(0,24)"><circle cx="10" cy="10" r="9" fill="#5A6053"/><text x="10" y="15" fill="#EEEFE9" font-size="11" font-weight="800" text-anchor="middle">2</text>
+     <text x="28" y="15" fill="#191C16" font-weight="700">세탁물 수령 · 배분</text><text x="170" y="15" fill="#5A6053">분대별 분류</text>
+     <text x="400" y="15" fill="#5E6E42" text-anchor="end" font-family="ui-monospace, Menlo, monospace">SORT 15s</text></g>
+</g>
+
+<!-- ============ Z16 사지방 ============ -->
+<text x="520" y="686" fill="#5E6E42" font-size="13" font-weight="700" letter-spacing="2" font-family="ui-monospace, Menlo, monospace">Z16 · 사이버지식정보방</text>
+<g>
+  <rect x="520" y="704" width="400" height="250" fill="#EEEFE9" stroke="#191C16" stroke-width="3"/>
+  <g fill="#C9C7BC" stroke="#484D49" stroke-width="1.5">
+    <rect x="540" y="744" width="170" height="30"/><rect x="540" y="814" width="170" height="30"/><rect x="540" y="884" width="170" height="30"/>
+  </g>
+  <g fill="#3F6E90">
+    <rect x="552" y="726" width="34" height="18"/><rect x="602" y="726" width="34" height="18"/><rect x="652" y="726" width="34" height="18"/>
+    <rect x="552" y="796" width="34" height="18"/><rect x="602" y="796" width="34" height="18"/><rect x="652" y="796" width="34" height="18"/>
+    <rect x="552" y="866" width="34" height="18"/><rect x="602" y="866" width="34" height="18"/><rect x="652" y="866" width="34" height="18"/>
+  </g>
+  <g fill="#84643E"><rect x="556" y="778" width="26" height="26"/><rect x="606" y="778" width="26" height="26"/><rect x="656" y="778" width="26" height="26"/>
+     <rect x="556" y="848" width="26" height="26"/><rect x="606" y="848" width="26" height="26"/></g>
+  <text x="625" y="936" fill="#5A6053" font-size="12" text-anchor="middle">단말 ×9 · 의자</text>
+
+  <rect x="740" y="744" width="160" height="130" fill="#D8DAD0" stroke="#807E76" stroke-width="1.5"/>
+  <text x="820" y="790" fill="#191C16" font-size="12" font-weight="700" text-anchor="middle">정신교육</text>
+  <text x="820" y="810" fill="#5A6053" font-size="11" text-anchor="middle">집합 좌석</text>
+  <g fill="#84643E"><rect x="756" y="824" width="26" height="20"/><rect x="796" y="824" width="26" height="20"/><rect x="836" y="824" width="26" height="20"/></g>
+
+  <circle cx="625" cy="790" r="13" fill="#5A6053"/><text x="625" y="795" fill="#EEEFE9" font-size="13" font-weight="800" text-anchor="middle">1</text>
+  <circle cx="820" cy="850" r="13" fill="#B25E2C"/><text x="820" y="855" fill="#EEEFE9" font-size="13" font-weight="800" text-anchor="middle">2</text>
+</g>
+<g transform="translate(520,970)" font-size="12">
+  <g><circle cx="10" cy="10" r="9" fill="#5A6053"/><text x="10" y="15" fill="#EEEFE9" font-size="11" font-weight="800" text-anchor="middle">1</text>
+     <text x="28" y="15" fill="#191C16" font-weight="700">사이버지식방 정돈</text><text x="180" y="15" fill="#5A6053">의자 밀어넣기 · 전원 차단</text>
+     <text x="400" y="15" fill="#5E6E42" text-anchor="end" font-family="ui-monospace, Menlo, monospace">PLACE 12s</text></g>
+  <g transform="translate(0,24)"><circle cx="10" cy="10" r="9" fill="#B25E2C"/><text x="10" y="15" fill="#EEEFE9" font-size="11" font-weight="800" text-anchor="middle">2</text>
+     <text x="28" y="15" fill="#191C16" font-weight="700">정신교육 소집</text><text x="150" y="15" fill="#5A6053">졸음 게이지 — 집합 좌석</text>
+     <text x="400" y="15" fill="#5E6E42" text-anchor="end" font-family="ui-monospace, Menlo, monospace">HOLD 18s</text></g>
+</g>
+
+<!-- ============ Z17 체력단련장 ============ -->
+<text x="980" y="686" fill="#5E6E42" font-size="13" font-weight="700" letter-spacing="2" font-family="ui-monospace, Menlo, monospace">Z17 · 체력단련장</text>
+<g>
+  <rect x="980" y="704" width="360" height="250" fill="#EEEFE9" stroke="#191C16" stroke-width="3"/>
+  <rect x="1000" y="726" width="180" height="48" fill="#6A716C" stroke="#484D49" stroke-width="1.5"/>
+  <g fill="#33352E">
+    <circle cx="1024" cy="750" r="11"/><circle cx="1058" cy="750" r="13"/><circle cx="1096" cy="750" r="15"/><circle cx="1140" cy="750" r="17"/>
+  </g>
+  <text x="1090" y="796" fill="#5A6053" font-size="12" text-anchor="middle">덤벨 랙 — 무게순</text>
+
+  <rect x="1000" y="828" width="180" height="100" fill="#8E958F" stroke="#484D49" stroke-width="1.5"/>
+  <g stroke="#484D49" stroke-width="3"><path d="M1020 848V908M1160 848V908"/></g>
+  <g stroke="#5F5E5A" stroke-width="2"><path d="M1020 862H1160M1020 886H1160"/></g>
+  <text x="1090" y="948" fill="#5A6053" font-size="12" text-anchor="middle">케이블 머신 — 마모 점검</text>
+
+  <rect x="1204" y="726" width="116" height="202" fill="#C9C7BC" stroke="#484D49" stroke-width="1.5"/>
+  <text x="1262" y="820" fill="#191C16" font-size="12" text-anchor="middle">러닝머신</text>
+  <text x="1262" y="840" fill="#5A6053" font-size="11" text-anchor="middle">볼트 풀림</text>
+
+  <circle cx="1090" cy="810" r="13" fill="#5A6053"/><text x="1090" y="815" fill="#EEEFE9" font-size="13" font-weight="800" text-anchor="middle">1</text>
+  <circle cx="1090" cy="874" r="13" fill="#9E3226"/><text x="1090" y="879" fill="#EEEFE9" font-size="13" font-weight="800" text-anchor="middle">2</text>
+</g>
+<g transform="translate(980,970)" font-size="12">
+  <g><circle cx="10" cy="10" r="9" fill="#5A6053"/><text x="10" y="15" fill="#EEEFE9" font-size="11" font-weight="800" text-anchor="middle">1</text>
+     <text x="28" y="15" fill="#191C16" font-weight="700">체력단련장 정리</text><text x="160" y="15" fill="#5A6053">덤벨 무게순 거치</text>
+     <text x="360" y="15" fill="#5E6E42" text-anchor="end" font-family="ui-monospace, Menlo, monospace">PLACE 14s</text></g>
+  <g transform="translate(0,24)"><circle cx="10" cy="10" r="9" fill="#9E3226"/><text x="10" y="15" fill="#EEEFE9" font-size="11" font-weight="800" text-anchor="middle">2</text>
+     <text x="28" y="15" fill="#191C16" font-weight="700">안전 점검</text><text x="120" y="15" fill="#5A6053">케이블 마모 · 볼트 풀림</text>
+     <text x="360" y="15" fill="#5E6E42" text-anchor="end" font-family="ui-monospace, Menlo, monospace">AUDIT 14s</text></g>
+</g>
+
+<!-- ============ Z02 복도 ============ -->
+<text x="60" y="1076" fill="#5E6E42" font-size="13" font-weight="700" letter-spacing="2" font-family="ui-monospace, Menlo, monospace">Z02 · 생활관동 복도</text>
+<g>
+  <rect x="60" y="1094" width="620" height="200" fill="#EEEFE9" stroke="#191C16" stroke-width="3"/>
+  <g fill="#D8DAD0" stroke="#807E76" stroke-width="1.5">
+    <rect x="80" y="1114" width="110" height="44"/><rect x="200" y="1114" width="110" height="44"/><rect x="320" y="1114" width="110" height="44"/><rect x="440" y="1114" width="110" height="44"/>
+  </g>
+  <text x="315" y="1142" fill="#5A6053" font-size="12" text-anchor="middle">생활관 출입문 ×4</text>
+  <rect x="80" y="1174" width="470" height="52" fill="#C9C7BC"/>
+  <text x="315" y="1206" fill="#191C16" font-size="13" font-weight="700" text-anchor="middle">복도</text>
+
+  <g fill="#84643E" stroke="#5F482C" stroke-width="1.5"><rect x="80" y="1240" width="90" height="38"/></g>
+  <text x="125" y="1264" fill="#EEEFE9" font-size="11" text-anchor="middle">청소도구함</text>
+  <g fill="#6E7A50"><rect x="200" y="1250" width="26" height="14"/><rect x="234" y="1250" width="26" height="14"/><rect x="268" y="1256" width="26" height="14"/><rect x="302" y="1250" width="26" height="14"/></g>
+  <text x="264" y="1284" fill="#5A6053" font-size="11" text-anchor="middle">슬리퍼 — 선 맞추기</text>
+  <rect x="570" y="1114" width="90" height="164" fill="#EAEDDF" stroke="#5E6E42" stroke-width="2"/>
+  <text x="615" y="1190" fill="#5E6E42" font-size="12" font-weight="700" text-anchor="middle">게시판</text>
+
+  <circle cx="264" cy="1218" r="13" fill="#5A6053"/><text x="264" y="1223" fill="#EEEFE9" font-size="13" font-weight="800" text-anchor="middle">1</text>
+</g>
+<g transform="translate(60,1320)" font-size="12">
+  <circle cx="10" cy="10" r="9" fill="#5A6053"/><text x="10" y="15" fill="#EEEFE9" font-size="11" font-weight="800" text-anchor="middle">1</text>
+  <text x="28" y="15" fill="#191C16" font-weight="700">복도 정돈</text><text x="130" y="15" fill="#5A6053">청소도구 · 슬리퍼 선 맞추기 — 복도 중앙</text>
+  <text x="620" y="15" fill="#5E6E42" text-anchor="end" font-family="ui-monospace, Menlo, monospace">PLACE 12s</text>
+</g>
+
+<g transform="translate(730,1094)">
+  <rect x="0" y="0" width="610" height="200" fill="#EEEFE9" stroke="#B7BAAD"/>
+  <rect x="0" y="0" width="6" height="200" fill="#5E6E42"/>
+  <text x="24" y="32" fill="#5E6E42" font-size="12" letter-spacing="2" font-family="ui-monospace, Menlo, monospace">배치 원칙</text>
+  <text x="24" y="62" fill="#191C16" font-size="14" font-weight="700">퀘스트 내용에 등장한 사물은 반드시 맵에 있다</text>
+  <text x="24" y="86" fill="#5A6053" font-size="13">거울 물때 → 세면대 위 거울면. 수입용 깔개 → 중앙 통로.</text>
+  <text x="24" y="106" fill="#5A6053" font-size="13">약제 잔량 → 소독 약제함. 없으면 미니게임이 허공에서 열린다.</text>
+  <text x="24" y="140" fill="#191C16" font-size="14" font-weight="700">수행 지점은 사물 앞 1~2타일</text>
+  <text x="24" y="164" fill="#5A6053" font-size="13">상호작용 반경 안에 서야 열린다. 마커에서 사물로 뻗은</text>
+  <text x="24" y="184" fill="#5A6053" font-size="13">점선은 시선 · 작업 대상 방향을 뜻한다.</text>
+</g>
+
+<rect x="60" y="1380" width="1280" height="1" fill="#B7BAAD"/>
+<text x="60" y="1406" fill="#5A6053" font-size="12" font-family="ui-monospace, Menlo, monospace">SAD-ART-003 · FIELD 01 · 생활관동 6구역 16건</text>
+</svg>

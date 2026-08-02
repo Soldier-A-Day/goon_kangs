@@ -1,0 +1,229 @@
+<svg viewBox="0 0 1400 1260" xmlns="http://www.w3.org/2000/svg" font-family="Pretendard, 'Apple SD Gothic Neo', 'Malgun Gothic', 'Noto Sans KR', sans-serif">
+<rect width="1400" height="1260" fill="#E3E4DD"/>
+
+<text x="60" y="48" fill="#9E3226" font-size="12" letter-spacing="3" font-family="ui-monospace, Menlo, monospace">SAD-ART-002 · PLAN 02</text>
+<text x="60" y="88" fill="#191C16" font-size="34" font-weight="800" letter-spacing="-1">생활관동 내부</text>
+<text x="360" y="87" fill="#5E6E42" font-size="17" font-weight="700">침대형 4인실 · 화장실 포함 · 편의시설 통합</text>
+<text x="1340" y="88" fill="#5A6053" font-size="14" text-anchor="end">1타일 = 0.5m · 상세도 24px/타일</text>
+<rect x="60" y="104" width="1280" height="2" fill="#191C16"/>
+
+<text x="80" y="150" fill="#5E6E42" font-size="13" font-weight="700" letter-spacing="2" font-family="ui-monospace, Menlo, monospace">A.  생활관 — 분대 1개 = 4인실</text>
+<text x="80" y="176" fill="#5A6053" font-size="13">16 × 12 타일 · 실척 8m × 6m · 2023~2027 개선 방향(2~4인실 + 실내 화장실)을 그대로 채택</text>
+
+<g>
+  <rect x="80" y="210" width="384" height="288" fill="#EEEFE9"/>
+  <g stroke="#CBCDC2" stroke-width="0.5">
+    <path d="M104 210V498M128 210V498M152 210V498M176 210V498M200 210V498M224 210V498M248 210V498M272 210V498M296 210V498M320 210V498M344 210V498M368 210V498M392 210V498M416 210V498M440 210V498"/>
+    <path d="M80 234H464M80 258H464M80 282H464M80 306H464M80 330H464M80 354H464M80 378H464M80 402H464M80 426H464M80 450H464M80 474H464"/>
+  </g>
+  <rect x="80" y="210" width="384" height="288" fill="none" stroke="#191C16" stroke-width="4"/>
+
+  <g fill="#A88254" stroke="#5F482C" stroke-width="1.5">
+    <rect x="104" y="234" width="96" height="48"/><rect x="272" y="234" width="96" height="48"/>
+    <rect x="104" y="426" width="96" height="48"/><rect x="272" y="426" width="96" height="48"/>
+  </g>
+  <g fill="#EEEFE9" stroke="#5F482C" stroke-width="1">
+    <rect x="110" y="240" width="20" height="36"/><rect x="278" y="240" width="20" height="36"/>
+    <rect x="168" y="432" width="20" height="36"/><rect x="336" y="432" width="20" height="36"/>
+  </g>
+
+  <g fill="#84643E" stroke="#191C16" stroke-width="1.5">
+    <rect x="200" y="234" width="48" height="48"/><rect x="368" y="234" width="48" height="48"/>
+    <rect x="200" y="426" width="48" height="48"/><rect x="368" y="426" width="48" height="48"/>
+  </g>
+  <g stroke="#5F482C" stroke-width="1">
+    <path d="M200 250H248M200 266H248M368 250H416M368 266H416M200 442H248M200 458H248M368 442H416M368 458H416"/>
+  </g>
+
+  <rect x="368" y="306" width="96" height="96" fill="#C9C7BC" stroke="#191C16" stroke-width="2"/>
+  <g fill="#8E958F"><rect x="378" y="316" width="30" height="24"/><rect x="424" y="316" width="30" height="30"/></g>
+  <text x="416" y="380" fill="#191C16" font-size="12" font-weight="700" text-anchor="middle">화장실</text>
+  <text x="416" y="396" fill="#5A6053" font-size="10" text-anchor="middle">세면 · 변기</text>
+
+  <rect x="80" y="330" width="10" height="48" fill="#5E6E42"/>
+  <rect x="248" y="494" width="48" height="8" fill="#E3E4DD" stroke="#191C16" stroke-width="2"/>
+
+  <g fill="#5E6E42">
+    <circle cx="224" cy="258" r="9"/><text x="224" y="263" fill="#EEEFE9" font-size="12" font-weight="800" text-anchor="middle">1</text>
+    <circle cx="152" cy="258" r="9"/><text x="152" y="263" fill="#EEEFE9" font-size="12" font-weight="800" text-anchor="middle">2</text>
+    <circle cx="416" cy="354" r="9"/><text x="416" y="359" fill="#EEEFE9" font-size="12" font-weight="800" text-anchor="middle">3</text>
+    <circle cx="97" cy="354" r="9"/><text x="97" y="359" fill="#EEEFE9" font-size="12" font-weight="800" text-anchor="middle">4</text>
+  </g>
+</g>
+
+<g transform="translate(500,210)">
+  <text x="0" y="-34" fill="#5E6E42" font-size="13" font-weight="700" letter-spacing="2" font-family="ui-monospace, Menlo, monospace">B.  관물대 정면</text>
+  <rect x="0" y="0" width="150" height="240" fill="#84643E" stroke="#191C16" stroke-width="3"/>
+  <rect x="0" y="0" width="150" height="46" fill="#6B5232"/>
+  <g fill="#55603C" stroke="#3D4629" stroke-width="1">
+    <rect x="8" y="6" width="40" height="34"/><rect x="54" y="6" width="40" height="34"/>
+  </g>
+  <text x="120" y="28" fill="#D8DAD0" font-size="11" text-anchor="middle">군장</text>
+  <rect x="8" y="54" width="134" height="80" fill="#9A7648" stroke="#5F482C"/>
+  <g stroke="#5F482C" stroke-width="1"><path d="M8 54h134" /></g>
+  <g fill="#6E7A50" stroke="#3D4629" stroke-width="0.8">
+    <rect x="16" y="62" width="20" height="64"/><rect x="40" y="62" width="20" height="64"/><rect x="64" y="62" width="20" height="64"/><rect x="88" y="62" width="20" height="64"/>
+  </g>
+  <text x="128" y="98" fill="#3D2E1C" font-size="11" text-anchor="middle">피복</text>
+  <rect x="8" y="142" width="134" height="42" fill="#9A7648" stroke="#5F482C"/>
+  <text x="75" y="168" fill="#3D2E1C" font-size="12" text-anchor="middle">개인물품 · 생필품</text>
+  <rect x="8" y="190" width="134" height="42" fill="#9A7648" stroke="#5F482C"/>
+  <text x="75" y="216" fill="#3D2E1C" font-size="12" text-anchor="middle">세탁물 전용칸</text>
+  <text x="0" y="266" fill="#5A6053" font-size="12">비치 위치가 고정 지시된다 — 유사시 즉시</text>
+  <text x="0" y="284" fill="#5A6053" font-size="12">꺼낼 수 있어야 하기 때문</text>
+</g>
+
+<g transform="translate(730,180)">
+  <rect x="0" y="0" width="610" height="330" fill="#EEEFE9" stroke="#B7BAAD"/>
+  <rect x="0" y="0" width="6" height="330" fill="#5E6E42"/>
+  <text x="24" y="34" fill="#5E6E42" font-size="12" letter-spacing="2" font-family="ui-monospace, Menlo, monospace">상호작용 지점 · 게임 시스템 연동</text>
+
+  <g font-size="14">
+    <circle cx="34" cy="66" r="9" fill="#5E6E42"/><text x="34" y="71" fill="#EEEFE9" font-size="12" font-weight="800" text-anchor="middle">1</text>
+    <text x="56" y="64" fill="#191C16" font-weight="700">관물대 — 1인 1개</text>
+    <text x="56" y="86" fill="#5A6053" font-size="13">점호 조건 D 검사 대상. 정리 상태가 곧 청결 스탯</text>
+
+    <circle cx="34" cy="126" r="9" fill="#5E6E42"/><text x="34" y="131" fill="#EEEFE9" font-size="12" font-weight="800" text-anchor="middle">2</text>
+    <text x="56" y="124" fill="#191C16" font-weight="700">침상 — 모포 정리 · 취침</text>
+    <text x="56" y="146" fill="#5A6053" font-size="13">06:00 기상 점검 미이행 시 군기 −5 (4.0)</text>
+
+    <circle cx="34" cy="186" r="9" fill="#5E6E42"/><text x="34" y="191" fill="#EEEFE9" font-size="12" font-weight="800" text-anchor="middle">3</text>
+    <text x="56" y="184" fill="#191C16" font-weight="700">실내 화장실 — 청결 회복</text>
+    <text x="56" y="206" fill="#5A6053" font-size="13">공용 세면장까지 안 가도 되므로 야간 동선이 짧다</text>
+
+    <circle cx="34" cy="246" r="9" fill="#5E6E42"/><text x="34" y="251" fill="#EEEFE9" font-size="12" font-weight="800" text-anchor="middle">4</text>
+    <text x="56" y="244" fill="#191C16" font-weight="700">분대 상황판 — 행정병 갱신</text>
+    <text x="56" y="266" fill="#5A6053" font-size="13">무전과 독립. 무전 두절 시 유일한 정보원 (8.0)</text>
+  </g>
+  <text x="24" y="306" fill="#9E3226" font-size="13" font-weight="700">이 방 하나가 곧 구역 Z01 — 카메라가 여기서 고정된다</text>
+</g>
+
+<text x="80" y="570" fill="#5E6E42" font-size="13" font-weight="700" letter-spacing="2" font-family="ui-monospace, Menlo, monospace">C.  편의시설 — 2004년 이후 생활관 내부로 통합된 구역</text>
+
+<g transform="translate(80,600)">
+  <rect x="0" y="0" width="290" height="200" fill="#EEEFE9" stroke="#191C16" stroke-width="3"/>
+  <rect x="0" y="0" width="290" height="28" fill="#D8DAD0"/>
+  <text x="12" y="20" fill="#191C16" font-size="14" font-weight="800">공용 세면장 · 샤워장</text>
+  <g fill="#8E958F" stroke="#484D49" stroke-width="1.5">
+    <rect x="16" y="46" width="44" height="26"/><rect x="70" y="46" width="44" height="26"/><rect x="124" y="46" width="44" height="26"/><rect x="178" y="46" width="44" height="26"/>
+  </g>
+  <text x="119" y="90" fill="#5A6053" font-size="12">세면대 ×4</text>
+  <g fill="#5A8296" opacity="0.5" stroke="#2E4652" stroke-width="1.5">
+    <rect x="16" y="110" width="56" height="70"/><rect x="80" y="110" width="56" height="70"/><rect x="144" y="110" width="56" height="70"/>
+  </g>
+  <text x="122" y="150" fill="#2E4652" font-size="12" text-anchor="middle">샤워 부스 ×3</text>
+  <rect x="222" y="46" width="56" height="134" fill="#C9C7BC" stroke="#484D49"/>
+  <text x="250" y="118" fill="#191C16" font-size="12" text-anchor="middle">변기</text>
+  <circle cx="45" cy="59" r="8" fill="#5E6E42"/>
+  <text x="12" y="196" fill="#5A6053" font-size="11">청결 스탯 회복 · 점호 조건 D 20 이상 필요</text>
+</g>
+
+<g transform="translate(410,600)">
+  <rect x="0" y="0" width="290" height="200" fill="#EEEFE9" stroke="#191C16" stroke-width="3"/>
+  <rect x="0" y="0" width="290" height="28" fill="#D8DAD0"/>
+  <text x="12" y="20" fill="#191C16" font-size="14" font-weight="800">세탁실 · 건조실</text>
+  <g fill="#8E958F" stroke="#484D49" stroke-width="1.5">
+    <rect x="16" y="46" width="52" height="52"/><rect x="76" y="46" width="52" height="52"/><rect x="136" y="46" width="52" height="52"/>
+  </g>
+  <g fill="#484D49"><circle cx="42" cy="72" r="14"/><circle cx="102" cy="72" r="14"/><circle cx="162" cy="72" r="14"/></g>
+  <text x="102" y="116" fill="#5A6053" font-size="12">세탁기 ×3</text>
+  <g stroke="#8E958F" stroke-width="3">
+    <path d="M16 140H272M16 162H272"/>
+  </g>
+  <g fill="#6E7A50"><rect x="30" y="140" width="18" height="20"/><rect x="70" y="140" width="18" height="20"/><rect x="130" y="162" width="18" height="20"/><rect x="190" y="140" width="18" height="20"/></g>
+  <text x="144" y="196" fill="#5A6053" font-size="11" text-anchor="middle">피복 젖음 상태 해제 — 보온치 −6 복구 (5.0)</text>
+  <circle cx="230" cy="72" r="8" fill="#5E6E42"/>
+</g>
+
+<g transform="translate(740,600)">
+  <rect x="0" y="0" width="290" height="200" fill="#EEEFE9" stroke="#191C16" stroke-width="3"/>
+  <rect x="0" y="0" width="290" height="28" fill="#D8DAD0"/>
+  <text x="12" y="20" fill="#191C16" font-size="14" font-weight="800">사이버지식정보방</text>
+  <g fill="#C9C7BC" stroke="#484D49" stroke-width="1.5">
+    <rect x="16" y="50" width="120" height="30"/><rect x="16" y="100" width="120" height="30"/><rect x="16" y="150" width="120" height="30"/>
+    <rect x="160" y="50" width="114" height="30"/><rect x="160" y="100" width="114" height="30"/>
+  </g>
+  <g fill="#3F6E90">
+    <rect x="26" y="34" width="30" height="16"/><rect x="76" y="34" width="30" height="16"/>
+    <rect x="26" y="84" width="30" height="16"/><rect x="76" y="84" width="30" height="16"/>
+    <rect x="26" y="134" width="30" height="16"/><rect x="76" y="134" width="30" height="16"/>
+    <rect x="180" y="34" width="30" height="16"/><rect x="230" y="34" width="30" height="16"/>
+    <rect x="180" y="84" width="30" height="16"/><rect x="230" y="84" width="30" height="16"/>
+  </g>
+  <text x="217" y="160" fill="#5A6053" font-size="12" text-anchor="middle">단말 ×10</text>
+  <text x="12" y="196" fill="#5A6053" font-size="11">정신력 회복 — D-06 정비일 전용 개방</text>
+  <circle cx="217" cy="122" r="8" fill="#5E6E42"/>
+</g>
+
+<g transform="translate(1070,600)">
+  <rect x="0" y="0" width="270" height="200" fill="#EEEFE9" stroke="#191C16" stroke-width="3"/>
+  <rect x="0" y="0" width="270" height="28" fill="#D8DAD0"/>
+  <text x="12" y="20" fill="#191C16" font-size="14" font-weight="800">체력단련장</text>
+  <g fill="#6A716C" stroke="#484D49" stroke-width="1.5">
+    <rect x="16" y="48" width="70" height="34"/><rect x="100" y="48" width="70" height="34"/>
+  </g>
+  <text x="51" y="70" fill="#EEEFE9" font-size="11" text-anchor="middle">벤치</text>
+  <text x="135" y="70" fill="#EEEFE9" font-size="11" text-anchor="middle">벤치</text>
+  <g fill="#484D49"><rect x="16" y="100" width="150" height="8"/><rect x="16" y="120" width="150" height="8"/></g>
+  <text x="91" y="146" fill="#5A6053" font-size="12" text-anchor="middle">역기 거치대</text>
+  <rect x="190" y="48" width="64" height="120" fill="#8E958F" stroke="#484D49"/>
+  <text x="222" y="112" fill="#191C16" font-size="11" text-anchor="middle">러닝머신</text>
+  <text x="12" y="192" fill="#5A6053" font-size="11">체력 회복 · 피로 증가 — 자원 교환 지점</text>
+  <circle cx="91" cy="112" r="8" fill="#5E6E42"/>
+</g>
+
+<text x="80" y="870" fill="#5E6E42" font-size="13" font-weight="700" letter-spacing="2" font-family="ui-monospace, Menlo, monospace">D.  이동 구역과 통제 구역</text>
+
+<g transform="translate(80,900)">
+  <rect x="0" y="0" width="620" height="200" fill="#EEEFE9" stroke="#191C16" stroke-width="3"/>
+  <rect x="0" y="0" width="620" height="28" fill="#D8DAD0"/>
+  <text x="12" y="20" fill="#191C16" font-size="14" font-weight="800">복도 — 폭 4타일(2m) · 생활관 8실을 잇는 이동 허브</text>
+  <g fill="#D8DAD0" stroke="#807E76" stroke-width="1.5">
+    <rect x="20" y="44" width="90" height="50"/><rect x="120" y="44" width="90" height="50"/><rect x="220" y="44" width="90" height="50"/><rect x="320" y="44" width="90" height="50"/>
+  </g>
+  <text x="215" y="74" fill="#5A6053" font-size="12" text-anchor="middle">생활관 1~4</text>
+  <rect x="20" y="104" width="390" height="48" fill="#C9C7BC"/>
+  <text x="215" y="133" fill="#191C16" font-size="13" font-weight="700" text-anchor="middle">복도</text>
+  <g fill="#D8DAD0" stroke="#807E76" stroke-width="1.5">
+    <rect x="20" y="162" width="90" height="30"/><rect x="120" y="162" width="90" height="30"/><rect x="220" y="162" width="90" height="30"/><rect x="320" y="162" width="90" height="30"/>
+  </g>
+  <rect x="430" y="44" width="80" height="148" fill="#B4B2A9" stroke="#484D49" stroke-width="2"/>
+  <text x="470" y="112" fill="#191C16" font-size="12" font-weight="700" text-anchor="middle">계단</text>
+  <rect x="530" y="44" width="76" height="148" fill="#EAEDDF" stroke="#5E6E42" stroke-width="2"/>
+  <text x="568" y="104" fill="#5E6E42" font-size="12" font-weight="700" text-anchor="middle">게시판</text>
+  <text x="568" y="122" fill="#5A6053" font-size="11" text-anchor="middle">일과표</text>
+  <circle cx="568" cy="150" r="8" fill="#5E6E42"/>
+</g>
+
+<g transform="translate(740,900)">
+  <rect x="0" y="0" width="290" height="200" fill="#EEEFE9" stroke="#9E3226" stroke-width="3"/>
+  <rect x="0" y="0" width="290" height="28" fill="#9E3226"/>
+  <text x="12" y="20" fill="#EEEFE9" font-size="14" font-weight="800">무기고 — 통제구역</text>
+  <g fill="#484D49" stroke="#2C2C2A" stroke-width="1.5">
+    <rect x="16" y="50" width="120" height="130"/><rect x="152" y="50" width="120" height="130"/>
+  </g>
+  <g stroke="#8E958F" stroke-width="2">
+    <path d="M28 60V170M44 60V170M60 60V170M76 60V170M92 60V170M108 60V170M124 60V170"/>
+    <path d="M164 60V170M180 60V170M196 60V170M212 60V170M228 60V170M244 60V170M260 60V170"/>
+  </g>
+  <text x="144" y="196" fill="#5A6053" font-size="11" text-anchor="middle">총기 거치대 · 소총수 전용 · 탄약은 여기 없음</text>
+  <circle cx="144" cy="115" r="9" fill="#9E3226"/>
+</g>
+
+<g transform="translate(1070,900)">
+  <rect x="0" y="0" width="270" height="200" fill="#EEEFE9" stroke="#B7BAAD"/>
+  <rect x="0" y="0" width="6" height="200" fill="#9E3226"/>
+  <text x="20" y="30" fill="#9E3226" font-size="12" letter-spacing="2" font-family="ui-monospace, Menlo, monospace">고증 반영</text>
+  <text x="20" y="58" fill="#191C16" font-size="14" font-weight="700">총기와 탄약은 분리 보관</text>
+  <text x="20" y="82" fill="#5A6053" font-size="13">무기고는 생활관동 안,</text>
+  <text x="20" y="102" fill="#5A6053" font-size="13">탄약고는 외곽 격리 구역이다.</text>
+  <text x="20" y="132" fill="#191C16" font-size="14" font-weight="700">게임 파급</text>
+  <text x="20" y="156" fill="#5A6053" font-size="13">D-02 총기 지급은 실내에서,</text>
+  <text x="20" y="176" fill="#5A6053" font-size="13">D-03 탄약 수령은 외곽까지</text>
+  <text x="20" y="196" fill="#5E6E42" font-size="13" font-weight="700">— 합동 퀘스트 동선이 갈린다</text>
+</g>
+
+<rect x="60" y="1160" width="1280" height="1" fill="#B7BAAD"/>
+<text x="60" y="1190" fill="#5A6053" font-size="12" font-family="ui-monospace, Menlo, monospace">SAD-ART-002 · PLAN 02 · 생활관동</text>
+<text x="1340" y="1190" fill="#5A6053" font-size="12" text-anchor="end">참조: 국방부 병영생활관 개선사업 지표 · 병영생활관 2~4인실 전환 계획</text>
+</svg>

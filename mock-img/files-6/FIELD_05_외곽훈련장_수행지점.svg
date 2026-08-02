@@ -1,0 +1,272 @@
+<svg viewBox="0 0 1400 1200" xmlns="http://www.w3.org/2000/svg" font-family="Pretendard, 'Apple SD Gothic Neo', 'Malgun Gothic', 'Noto Sans KR', sans-serif">
+<rect width="1400" height="1200" fill="#E3E4DD"/>
+
+<text x="60" y="46" fill="#9E3226" font-size="12" letter-spacing="3" font-family="ui-monospace, Menlo, monospace">SAD-ART-003 · FIELD 05</text>
+<text x="60" y="86" fill="#191C16" font-size="32" font-weight="800" letter-spacing="-1">외곽 경계 · 훈련장 — 일과 수행 지점</text>
+<text x="800" y="85" fill="#5E6E42" font-size="16" font-weight="700">5구역 · 15건</text>
+<g font-size="12">
+  <circle cx="1030" cy="80" r="8" fill="#5A6053"/><text x="1044" y="85" fill="#5A6053">공통</text>
+  <circle cx="1110" cy="80" r="8" fill="#5E6E42"/><text x="1124" y="85" fill="#5A6053">소총</text>
+  <circle cx="1190" cy="80" r="8" fill="#3F6E90"/><text x="1204" y="85" fill="#5A6053">통신</text>
+  <circle cx="1270" cy="80" r="8" fill="#B25E2C"/><text x="1284" y="85" fill="#5A6053">돌발</text>
+</g>
+<rect x="60" y="104" width="1280" height="2" fill="#191C16"/>
+
+<!-- Z12 초소1 -->
+<text x="60" y="146" fill="#5E6E42" font-size="13" font-weight="700" letter-spacing="2" font-family="ui-monospace, Menlo, monospace">Z12 · 초소 1 (북서)</text>
+<g>
+  <rect x="60" y="164" width="420" height="290" fill="#B5A98D"/>
+  <g stroke="#9C8F72" stroke-width="0.5"><path d="M140 164V454M220 164V454M300 164V454M380 164V454M460 164V454"/><path d="M60 244H480M60 324H480M60 404H480"/></g>
+  <rect x="60" y="164" width="420" height="290" fill="none" stroke="#191C16" stroke-width="4"/>
+
+  <rect x="130" y="196" width="200" height="150" fill="#C9C7BC" stroke="#484D49" stroke-width="3"/>
+  <rect x="150" y="216" width="160" height="56" fill="#5A646E" opacity="0.45" stroke="#484D49" stroke-width="1.5"/>
+  <text x="230" y="250" fill="#191C16" font-size="12" font-weight="700" text-anchor="middle">감시창</text>
+  <rect x="150" y="290" width="94" height="24" fill="#8E958F" stroke="#484D49"/>
+  <text x="197" y="307" fill="#191C16" font-size="10" text-anchor="middle">인수인계대</text>
+  <rect x="256" y="286" width="54" height="34" fill="#484D49" stroke="#2C2C2A"/>
+  <g fill="#B4B2A9"><rect x="266" y="294" width="34" height="12"/></g>
+  <text x="283" y="336" fill="#191C16" font-size="10" text-anchor="middle">초소 전화</text>
+
+  <path d="M283 286 L283 200 L400 200 L400 164" stroke="#3F6E90" stroke-width="2.5" fill="none" stroke-dasharray="8 4"/>
+  <circle cx="400" cy="200" r="6" fill="#9E3226"/>
+  <text x="412" y="196" fill="#9E3226" font-size="10">단선</text>
+
+  <g fill="#8E7A5B" stroke="#5F482C" stroke-width="1.5">
+    <rect x="88" y="376" width="46" height="24" rx="8"/><rect x="140" y="376" width="46" height="24" rx="8"/><rect x="192" y="376" width="46" height="24" rx="8"/>
+    <rect x="114" y="404" width="46" height="24" rx="8"/><rect x="166" y="404" width="46" height="24" rx="8"/>
+  </g>
+  <text x="163" y="446" fill="#3D2E1C" font-size="11" text-anchor="middle">모래주머니 — 재적재</text>
+
+  <g stroke="#5E6E42" stroke-width="2" fill="none" opacity="0.5">
+    <path d="M230 244 L100 190 M230 244 L230 172 M230 244 L370 190"/>
+  </g>
+
+  <circle cx="163" cy="352" r="14" fill="#5A6053"/><text x="163" y="358" fill="#EEEFE9" font-size="13" font-weight="800" text-anchor="middle">1</text>
+  <circle cx="340" cy="240" r="14" fill="#3F6E90"/><text x="340" y="246" fill="#EEEFE9" font-size="13" font-weight="800" text-anchor="middle">2</text>
+  <circle cx="330" cy="352" r="14" fill="#3F6E90"/><text x="330" y="358" fill="#EEEFE9" font-size="13" font-weight="800" text-anchor="middle">3</text>
+  <path d="M320 341 L300 320" stroke="#3F6E90" stroke-width="2" stroke-dasharray="3 3"/>
+  <circle cx="230" cy="282" r="14" fill="#5E6E42"/><text x="230" y="288" fill="#EEEFE9" font-size="13" font-weight="800" text-anchor="middle">4</text>
+</g>
+<g transform="translate(60,470)" font-size="12">
+  <g><circle cx="10" cy="10" r="9" fill="#5A6053"/><text x="10" y="15" fill="#EEEFE9" font-size="11" font-weight="800" text-anchor="middle">1</text>
+     <text x="28" y="15" fill="#191C16" font-weight="700">초소 주변 정리</text><text x="160" y="15" fill="#5A6053">모래주머니 재적재</text>
+     <text x="420" y="15" fill="#5E6E42" text-anchor="end" font-family="ui-monospace, Menlo, monospace">PLACE 16s</text></g>
+  <g transform="translate(0,24)"><circle cx="10" cy="10" r="9" fill="#3F6E90"/><text x="10" y="15" fill="#EEEFE9" font-size="11" font-weight="800" text-anchor="middle">2</text>
+     <text x="28" y="15" fill="#191C16" font-weight="700">초소 전화 점검</text><text x="160" y="15" fill="#5A6053">단선 지점 추적</text>
+     <text x="420" y="15" fill="#5E6E42" text-anchor="end" font-family="ui-monospace, Menlo, monospace">TRACE 16s</text></g>
+  <g transform="translate(0,48)"><circle cx="10" cy="10" r="9" fill="#3F6E90"/><text x="10" y="15" fill="#EEEFE9" font-size="11" font-weight="800" text-anchor="middle">3</text>
+     <text x="28" y="15" fill="#191C16" font-weight="700">정시 교신</text><text x="130" y="15" fill="#5A6053">절차 순서 + 정시 ±2초</text>
+     <text x="420" y="15" fill="#5E6E42" text-anchor="end" font-family="ui-monospace, Menlo, monospace">SEQ 18s</text></g>
+  <g transform="translate(0,72)"><circle cx="10" cy="10" r="9" fill="#5E6E42"/><text x="10" y="15" fill="#EEEFE9" font-size="11" font-weight="800" text-anchor="middle">4</text>
+     <text x="28" y="15" fill="#191C16" font-weight="700">경계근무</text><text x="130" y="15" fill="#5A6053">감시창 · 졸음 게이지 병행</text>
+     <text x="420" y="15" fill="#5E6E42" text-anchor="end" font-family="ui-monospace, Menlo, monospace">TRACK 25s</text></g>
+</g>
+
+<!-- Z18 위병소 -->
+<text x="510" y="146" fill="#5E6E42" font-size="13" font-weight="700" letter-spacing="2" font-family="ui-monospace, Menlo, monospace">Z18 · 정문 위병소</text>
+<g>
+  <rect x="510" y="164" width="380" height="290" fill="#B5A98D"/>
+  <g stroke="#9C8F72" stroke-width="0.5"><path d="M590 164V454M670 164V454M750 164V454M830 164V454"/><path d="M510 244H890M510 324H890M510 404H890"/></g>
+  <rect x="510" y="164" width="380" height="290" fill="none" stroke="#191C16" stroke-width="4"/>
+
+  <rect x="534" y="192" width="150" height="120" fill="#C9C7BC" stroke="#484D49" stroke-width="3"/>
+  <rect x="550" y="210" width="118" height="40" fill="#5A646E" opacity="0.4"/>
+  <rect x="550" y="264" width="118" height="30" fill="#EEEFE9" stroke="#807E76"/>
+  <g stroke="#807E76" stroke-width="0.8"><path d="M556 274H662M556 282H662M556 290H662"/></g>
+  <text x="609" y="330" fill="#191C16" font-size="11" font-weight="700" text-anchor="middle">출입 기록대장</text>
+
+  <rect x="710" y="192" width="160" height="230" fill="#5A646E" opacity="0.3"/>
+  <text x="790" y="220" fill="#3D3D3A" font-size="12" font-weight="700" text-anchor="middle">진입로</text>
+  <rect x="710" y="300" width="160" height="12" fill="#9E3226"/>
+  <g fill="#EEEFE9"><rect x="722" y="302" width="20" height="8"/><rect x="762" y="302" width="20" height="8"/><rect x="802" y="302" width="20" height="8"/></g>
+  <text x="790" y="292" fill="#9E3226" font-size="11" font-weight="700" text-anchor="middle">차단기</text>
+
+  <rect x="710" y="336" width="70" height="50" fill="#EAEDDF" stroke="#5E6E42" stroke-width="1.5"/>
+  <text x="745" y="358" fill="#5E6E42" font-size="10" font-weight="700" text-anchor="middle">검문대</text>
+  <text x="745" y="374" fill="#5A6053" font-size="9" text-anchor="middle">신분증</text>
+
+  <circle cx="609" cy="348" r="14" fill="#5A6053"/><text x="609" y="354" fill="#EEEFE9" font-size="13" font-weight="800" text-anchor="middle">1</text>
+  <circle cx="745" cy="402" r="14" fill="#5E6E42"/><text x="745" y="408" fill="#EEEFE9" font-size="13" font-weight="800" text-anchor="middle">2</text>
+  <path d="M745 388 V318" stroke="#5E6E42" stroke-width="2" stroke-dasharray="3 3"/>
+</g>
+<g transform="translate(510,470)" font-size="12">
+  <g><circle cx="10" cy="10" r="9" fill="#5A6053"/><text x="10" y="15" fill="#EEEFE9" font-size="11" font-weight="800" text-anchor="middle">1</text>
+     <text x="28" y="15" fill="#191C16" font-weight="700">출입 기록 정리</text><text x="160" y="15" fill="#5A6053">시각 대장 대조</text>
+     <text x="380" y="15" fill="#5E6E42" text-anchor="end" font-family="ui-monospace, Menlo, monospace">AUDIT 14s</text></g>
+  <g transform="translate(0,24)"><circle cx="10" cy="10" r="9" fill="#5E6E42"/><text x="10" y="15" fill="#EEEFE9" font-size="11" font-weight="800" text-anchor="middle">2</text>
+     <text x="28" y="15" fill="#191C16" font-weight="700">정문 출입 통제</text><text x="160" y="15" fill="#5A6053">통과 / 차단 판정</text>
+     <text x="380" y="15" fill="#5E6E42" text-anchor="end" font-family="ui-monospace, Menlo, monospace">SORT 20s</text></g>
+</g>
+
+<!-- Z19 탄약고 -->
+<text x="920" y="146" fill="#5E6E42" font-size="13" font-weight="700" letter-spacing="2" font-family="ui-monospace, Menlo, monospace">Z19 · 탄약고</text>
+<g>
+  <rect x="920" y="164" width="420" height="290" fill="#B5A98D"/>
+  <g stroke="#9C8F72" stroke-width="0.5"><path d="M1000 164V454M1080 164V454M1160 164V454M1240 164V454M1320 164V454"/><path d="M920 244H1340M920 324H1340M920 404H1340"/></g>
+  <rect x="920" y="164" width="420" height="290" fill="none" stroke="#9E3226" stroke-width="4"/>
+
+  <rect x="944" y="188" width="200" height="150" fill="#6A716C" stroke="#2C2C2A" stroke-width="3"/>
+  <g fill="#484D49" stroke="#33352E" stroke-width="1.5">
+    <rect x="960" y="206" width="52" height="40"/><rect x="1020" y="206" width="52" height="40"/><rect x="1080" y="206" width="52" height="40"/>
+    <rect x="960" y="256" width="52" height="40"/><rect x="1020" y="256" width="52" height="40"/><rect x="1080" y="256" width="52" height="40"/>
+  </g>
+  <g fill="#8E958F" font-size="8">
+    <rect x="964" y="300" width="44" height="10"/><rect x="1024" y="300" width="44" height="10"/><rect x="1084" y="300" width="44" height="10"/>
+  </g>
+  <text x="1044" y="330" fill="#EEEFE9" font-size="11" text-anchor="middle">탄통 — 수량 표기</text>
+
+  <rect x="1180" y="188" width="130" height="60" fill="#C9C7BC" stroke="#484D49" stroke-width="2"/>
+  <text x="1245" y="214" fill="#191C16" font-size="11" font-weight="700" text-anchor="middle">상하키 수령</text>
+  <text x="1245" y="232" fill="#5A6053" font-size="10" text-anchor="middle">잠금 해제</text>
+
+  <rect x="1180" y="270" width="130" height="70" fill="#EAEDDF" stroke="#5E6E42" stroke-width="2"/>
+  <text x="1245" y="298" fill="#5E6E42" font-size="11" font-weight="700" text-anchor="middle">재고 대장</text>
+  <g stroke="#5E6E42" stroke-width="0.8" opacity="0.6"><path d="M1192 310H1298M1192 320H1298"/></g>
+
+  <rect x="1000" y="378" width="120" height="52" fill="#8E958F" stroke="#484D49" stroke-width="2"/>
+  <text x="1060" y="408" fill="#191C16" font-size="11" text-anchor="middle">운반 적재대</text>
+  <path d="M1044 348 V370" stroke="#5E6E42" stroke-width="2" stroke-dasharray="4 3"/>
+
+  <circle cx="1060" cy="358" r="14" fill="#5E6E42"/><text x="1060" y="364" fill="#EEEFE9" font-size="13" font-weight="800" text-anchor="middle">1</text>
+  <circle cx="1245" cy="356" r="14" fill="#5E6E42"/><text x="1245" y="362" fill="#EEEFE9" font-size="13" font-weight="800" text-anchor="middle">2</text>
+</g>
+<g transform="translate(920,470)" font-size="12">
+  <g><circle cx="10" cy="10" r="9" fill="#5E6E42"/><text x="10" y="15" fill="#EEEFE9" font-size="11" font-weight="800" text-anchor="middle">1</text>
+     <text x="28" y="15" fill="#191C16" font-weight="700">탄약 수령</text><text x="130" y="15" fill="#5A6053">탄통 운반 — 저장고 → 적재대</text>
+     <text x="420" y="15" fill="#5E6E42" text-anchor="end" font-family="ui-monospace, Menlo, monospace">BALANCE 18s</text></g>
+  <g transform="translate(0,24)"><circle cx="10" cy="10" r="9" fill="#5E6E42"/><text x="10" y="15" fill="#EEEFE9" font-size="11" font-weight="800" text-anchor="middle">2</text>
+     <text x="28" y="15" fill="#191C16" font-weight="700">탄약 재고 확인</text><text x="160" y="15" fill="#5A6053">계수 · 단위 착오 유발</text>
+     <text x="420" y="15" fill="#5E6E42" text-anchor="end" font-family="ui-monospace, Menlo, monospace">AUDIT 18s</text></g>
+</g>
+
+<!-- Z12b 초소2 -->
+<text x="60" y="616" fill="#5E6E42" font-size="13" font-weight="700" letter-spacing="2" font-family="ui-monospace, Menlo, monospace">Z12b · 초소 2 (남서) — 울타리 구간</text>
+<g>
+  <rect x="60" y="634" width="340" height="290" fill="#8FA06A"/>
+  <g stroke="#7A8A58" stroke-width="0.5"><path d="M140 634V924M220 634V924M300 634V924M380 634V924"/><path d="M60 714H400M60 794H400M60 874H400"/></g>
+  <rect x="60" y="634" width="340" height="290" fill="none" stroke="#191C16" stroke-width="4"/>
+
+  <rect x="90" y="660" width="110" height="90" fill="#C9C7BC" stroke="#484D49" stroke-width="2"/>
+  <rect x="102" y="676" width="86" height="30" fill="#5A646E" opacity="0.4"/>
+  <text x="145" y="736" fill="#191C16" font-size="11" font-weight="700" text-anchor="middle">초소 2</text>
+
+  <g stroke="#8E958F" stroke-width="3">
+    <path d="M84 790V920M124 790V920M164 790V920M204 790V920M244 790V920M284 790V920M324 790V920M364 790V920"/>
+  </g>
+  <g stroke="#B4B2A9" stroke-width="1.5">
+    <path d="M70 800H392M70 830H392M70 860H392M70 890H392"/>
+  </g>
+  <text x="230" y="782" fill="#3D4629" font-size="12" font-weight="700" text-anchor="middle">외곽 철조망</text>
+
+  <g stroke="#9E3226" stroke-width="3"><path d="M236 826 l16 10 M252 826 l-16 10"/></g>
+  <circle cx="244" cy="831" r="16" fill="none" stroke="#9E3226" stroke-width="2" stroke-dasharray="4 3"/>
+  <text x="290" y="828" fill="#9E3226" font-size="10">절단 흔적</text>
+
+  <path d="M145 760 L145 856 L340 856" stroke="#5E6E42" stroke-width="2.5" fill="none" stroke-dasharray="8 5"/>
+  <text x="110" y="880" fill="#5E6E42" font-size="10">순찰 이동</text>
+
+  <circle cx="200" cy="856" r="14" fill="#5E6E42"/><text x="200" y="862" fill="#EEEFE9" font-size="13" font-weight="800" text-anchor="middle">1</text>
+</g>
+<g transform="translate(60,940)" font-size="12">
+  <circle cx="10" cy="10" r="9" fill="#5E6E42"/><text x="10" y="15" fill="#EEEFE9" font-size="11" font-weight="800" text-anchor="middle">1</text>
+  <text x="28" y="15" fill="#191C16" font-weight="700">울타리 순찰</text>
+  <text x="0" y="40" fill="#5A6053">이동하며 철조망 절단 흔적 탐색</text>
+  <text x="340" y="62" fill="#5E6E42" text-anchor="end" font-family="ui-monospace, Menlo, monospace">SEARCH 24s</text>
+</g>
+
+<!-- Z50 훈련장 -->
+<text x="440" y="616" fill="#5E6E42" font-size="13" font-weight="700" letter-spacing="2" font-family="ui-monospace, Menlo, monospace">Z50 · 훈련장 (숙영지)</text>
+<g>
+  <rect x="440" y="634" width="900" height="290" fill="#8FA06A"/>
+  <g stroke="#7A8A58" stroke-width="0.5">
+    <path d="M520 634V924M600 634V924M680 634V924M760 634V924M840 634V924M920 634V924M1000 634V924M1080 634V924M1160 634V924M1240 634V924M1320 634V924"/>
+    <path d="M440 714H1340M440 794H1340M440 874H1340"/>
+  </g>
+  <rect x="440" y="634" width="900" height="290" fill="none" stroke="#191C16" stroke-width="4"/>
+
+  <g>
+    <path d="M470 760 L520 668 L570 760 Z" fill="#55603C" stroke="#3D4629" stroke-width="2"/>
+    <path d="M470 760 L520 668 L520 760 Z" fill="#6E7A50"/>
+    <path d="M600 760 L650 668 L700 760 Z" fill="#55603C" stroke="#3D4629" stroke-width="2"/>
+    <path d="M600 760 L650 668 L650 760 Z" fill="#6E7A50"/>
+    <text x="585" y="782" fill="#2E381F" font-size="11" text-anchor="middle">텐트</text>
+  </g>
+
+  <g stroke="#5A8296" stroke-width="9" fill="none" opacity="0.7">
+    <path d="M470 800 H700 L740 850 H900"/>
+  </g>
+  <g stroke="#436374" stroke-width="1.5" fill="none" stroke-dasharray="6 5">
+    <path d="M470 800 H700 L740 850 H900"/>
+  </g>
+  <text x="530" y="822" fill="#2E4652" font-size="11" font-weight="700">텐트 주변 배수로</text>
+
+  <g>
+    <rect x="760" y="660" width="150" height="90" fill="#B4B2A9" stroke="#5F482C" stroke-width="2"/>
+    <g fill="#8E958F"><circle cx="790" cy="690" r="14"/><circle cx="830" cy="690" r="14"/></g>
+    <rect x="774" y="716" width="120" height="20" fill="#A88254"/>
+    <text x="835" y="732" fill="#3D2E1C" font-size="10" text-anchor="middle">야전 취사도구</text>
+    <text x="835" y="682" fill="#191C16" font-size="11" font-weight="700" text-anchor="middle">야전 취사장</text>
+  </g>
+
+  <g>
+    <rect x="950" y="660" width="70" height="60" fill="#6B5C45" stroke="#4A4131" stroke-width="2"/>
+    <g fill="#8E7A5B"><rect x="960" y="672" width="50" height="10"/><rect x="960" y="688" width="50" height="10"/><rect x="960" y="704" width="50" height="10"/></g>
+    <ellipse cx="1060" cy="700" rx="26" ry="18" fill="#84643E" stroke="#4A4131" stroke-width="2"/>
+    <path d="M1060 682 l0 -22" stroke="#5F5E5A" stroke-width="4"/>
+    <text x="1015" y="742" fill="#3D2E1C" font-size="11" text-anchor="middle">모탕 · 장작더미</text>
+  </g>
+
+  <g>
+    <path d="M1130 700 L1200 670 L1270 700" fill="none" stroke="#55603C" stroke-width="4"/>
+    <path d="M1130 700 L1130 740 M1270 700 L1270 740" stroke="#5F5E5A" stroke-width="3"/>
+    <g fill="#484D49"><rect x="1124" y="740" width="12" height="14"/><rect x="1264" y="740" width="12" height="14"/></g>
+    <text x="1200" y="772" fill="#2E381F" font-size="11" text-anchor="middle">그늘막 — 팩 3타</text>
+  </g>
+
+  <g stroke="#3F6E90" stroke-width="2.5" fill="none" stroke-dasharray="9 5">
+    <path d="M700 880 H900 M900 880 L980 848 M900 880 L980 902 M980 848 H1120 M980 902 H1080"/>
+  </g>
+  <g fill="#3F6E90"><circle cx="900" cy="880" r="6"/><circle cx="980" cy="848" r="6"/><circle cx="980" cy="902" r="6"/></g>
+  <text x="760" y="902" fill="#3F6E90" font-size="11" font-weight="700">유선 회선 — 분기 있음</text>
+
+  <rect x="1160" y="820" width="150" height="70" fill="#D8CBAF" stroke="#8E7A5B" stroke-width="2" stroke-dasharray="7 4"/>
+  <text x="1235" y="848" fill="#6B5C45" font-size="11" font-weight="700" text-anchor="middle">타 분대 구역</text>
+  <text x="1235" y="868" fill="#8E7A5B" font-size="10" text-anchor="middle">지원 요청 발신</text>
+
+  <circle cx="835" cy="764" r="14" fill="#5A6053"/><text x="835" y="770" fill="#EEEFE9" font-size="13" font-weight="800" text-anchor="middle">1</text>
+  <circle cx="1060" cy="748" r="14" fill="#5A6053"/><text x="1060" y="754" fill="#EEEFE9" font-size="13" font-weight="800" text-anchor="middle">2</text>
+  <circle cx="1200" cy="792" r="14" fill="#5A6053"/><text x="1200" y="798" fill="#EEEFE9" font-size="13" font-weight="800" text-anchor="middle">3</text>
+  <circle cx="720" cy="826" r="14" fill="#5A6053"/><text x="720" y="832" fill="#EEEFE9" font-size="13" font-weight="800" text-anchor="middle">4</text>
+  <circle cx="900" cy="908" r="14" fill="#3F6E90"/><text x="900" y="914" fill="#EEEFE9" font-size="13" font-weight="800" text-anchor="middle">5</text>
+  <circle cx="1235" cy="900" r="14" fill="#B25E2C"/><text x="1235" y="906" fill="#EEEFE9" font-size="13" font-weight="800" text-anchor="middle">6</text>
+</g>
+<g transform="translate(440,940)" font-size="12">
+  <g><circle cx="10" cy="10" r="9" fill="#5A6053"/><text x="10" y="15" fill="#EEEFE9" font-size="11" font-weight="800" text-anchor="middle">1</text>
+     <text x="28" y="15" fill="#191C16" font-weight="700">취사장 정리</text><text x="140" y="15" fill="#5A6053">야전 취사도구 수납</text>
+     <text x="430" y="15" fill="#5E6E42" text-anchor="end" font-family="ui-monospace, Menlo, monospace">PLACE 18s</text></g>
+  <g transform="translate(0,24)"><circle cx="10" cy="10" r="9" fill="#5A6053"/><text x="10" y="15" fill="#EEEFE9" font-size="11" font-weight="800" text-anchor="middle">2</text>
+     <text x="28" y="15" fill="#191C16" font-weight="700">땔감 수집</text><text x="130" y="15" fill="#5A6053">장작 패기 — 모탕 앞</text>
+     <text x="430" y="15" fill="#5E6E42" text-anchor="end" font-family="ui-monospace, Menlo, monospace">TIMING 20s</text></g>
+  <g transform="translate(0,48)"><circle cx="10" cy="10" r="9" fill="#5A6053"/><text x="10" y="15" fill="#EEEFE9" font-size="11" font-weight="800" text-anchor="middle">3</text>
+     <text x="28" y="15" fill="#191C16" font-weight="700">그늘막 설치 보조</text><text x="170" y="15" fill="#5A6053">팩 박기 3타</text>
+     <text x="430" y="15" fill="#5E6E42" text-anchor="end" font-family="ui-monospace, Menlo, monospace">TIMING 16s</text></g>
+  <g transform="translate(470,0)"><circle cx="10" cy="10" r="9" fill="#5A6053"/><text x="10" y="15" fill="#EEEFE9" font-size="11" font-weight="800" text-anchor="middle">4</text>
+     <text x="28" y="15" fill="#191C16" font-weight="700">텐트 주변 배수</text><text x="160" y="15" fill="#5A6053">물이 실제로 흐르는지 검증</text>
+     <text x="430" y="15" fill="#5E6E42" text-anchor="end" font-family="ui-monospace, Menlo, monospace">TRACE 16s</text></g>
+  <g transform="translate(470,24)"><circle cx="10" cy="10" r="9" fill="#3F6E90"/><text x="10" y="15" fill="#EEEFE9" font-size="11" font-weight="800" text-anchor="middle">5</text>
+     <text x="28" y="15" fill="#191C16" font-weight="700">유선 가설 점검</text><text x="160" y="15" fill="#5A6053">최장 회선 · 분기 있음</text>
+     <text x="430" y="15" fill="#5E6E42" text-anchor="end" font-family="ui-monospace, Menlo, monospace">TRACE 22s</text></g>
+  <g transform="translate(470,48)"><circle cx="10" cy="10" r="9" fill="#B25E2C"/><text x="10" y="15" fill="#EEEFE9" font-size="11" font-weight="800" text-anchor="middle">6</text>
+     <text x="28" y="15" fill="#191C16" font-weight="700">타 분대 지원 요청</text><text x="180" y="15" fill="#5A6053">다른 구역 미니게임 무작위 소환</text>
+     <text x="430" y="15" fill="#5E6E42" text-anchor="end" font-family="ui-monospace, Menlo, monospace">랜덤 22s</text></g>
+</g>
+
+<g transform="translate(60,1060)">
+  <rect x="0" y="0" width="1280" height="110" fill="#EEEFE9" stroke="#B7BAAD"/>
+  <rect x="0" y="0" width="6" height="110" fill="#5E6E42"/>
+  <text x="24" y="30" fill="#5E6E42" font-size="12" letter-spacing="2" font-family="ui-monospace, Menlo, monospace">외곽 구역의 공통 성질</text>
+  <text x="24" y="58" fill="#191C16" font-size="14"><tspan font-weight="700">전부 20초 이상이거나 이동을 포함한다.</tspan> 초소 경계 25초, 울타리 순찰 24초, 유선 점검 22초.</text>
+  <text x="24" y="84" fill="#5A6053" font-size="13">외곽까지 걸어간 김에 오래 머무르는 구조라, 여기 배정된 인원은 그 시간대에 사실상 빠진다 — 합동 퀘스트 인원 계산에서 빼고 시작해야 한다.</text>
+</g>
+</svg>
