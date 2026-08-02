@@ -30,6 +30,14 @@ namespace SoldierADay.Net
         public Interactor interactor;
         public LocalPlayer player;
 
+        /// <summary>
+        /// 판 열림/닫힘 페이드. `Evacuation`이 쓰는 것과 같은 슬롯이지만,
+        /// 그쪽은 쓰러진 동안 값을 계속 밀어 넣고 이쪽은 200ms 펄스 동안만
+        /// 건드린다 — 펄스가 끝나면 손을 뗀다. 그래야 두 시스템이 같은
+        /// 프레임에 같은 필드를 쓰는데도 서로 지우지 않는다.
+        /// </summary>
+        public ScreenEffects effects;
+
         /// <summary>지금 열려 있는 판의 일과. 없으면 null</summary>
         public string QuestId { get; private set; }
         public string Label { get; private set; } = "";
@@ -62,8 +70,17 @@ namespace SoldierADay.Net
         private float _resultAge;
         private SnapshotQuestsItemMinigame _spec;
 
+        /// <summary>1 → 0, 200ms. 판이 열리거나 닫힐 때 한 번 튄다</summary>
+        private float _fadePulse;
+
         private void Update()
         {
+            if (_fadePulse > 0f)
+            {
+                _fadePulse = Mathf.Max(0f, _fadePulse - Time.deltaTime / 0.2f);
+                if (effects != null) effects.fadeOut = _fadePulse;
+            }
+
             if (QuestId != null && !Alive(QuestId))
             {
                 Close();
@@ -143,6 +160,7 @@ namespace SoldierADay.Net
             _spec = string.IsNullOrEmpty(quest.minigame?.type) ? null : quest.minigame;
             _resultAge = 0f;
             Settling = false;
+            _fadePulse = 1f;
 
             // **판이 없는 일과도 판을 띄운다.**
             //
@@ -275,6 +293,7 @@ namespace SoldierADay.Net
             Settling = false;
             _resultAge = 0f;
             _spec = null;
+            _fadePulse = 1f;
             if (player != null) player.Suspended = false;
         }
     }

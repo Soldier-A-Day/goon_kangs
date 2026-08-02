@@ -23,6 +23,12 @@ namespace SoldierADay.Net
         public static bool ColorBlind { get; private set; }
         /// <summary>UI 배율 1.0 · 1.25 · 1.5</summary>
         public static float UiScale { get; private set; } = 1f;
+        /// <summary>
+        /// 화면 흔들림 원본 토글. `grading.allowShake`는 `panicShake`와 AND된
+        /// 값이라 결과창 흔들림(A-2) 같은 IMGUI 패널 흔들림에는 못 쓴다 — 이건
+        /// 그 결합 전의 값이다. WebGL이 아니면 기본 켜짐.
+        /// </summary>
+        public static bool ScreenShake { get; private set; } = true;
 
 #if UNITY_WEBGL && !UNITY_EDITOR
         [DllImport("__Internal")]
@@ -78,6 +84,7 @@ namespace SoldierADay.Net
 
             ColorBlind = settings.colorBlind;
             UiScale = Mathf.Clamp(settings.uiScale, 100, 150) / 100f;
+            ScreenShake = settings.screenShake;
 
             Debug.Log($"[접근성] 왜곡 {settings.heatDistort} · 결빙 {settings.frostFrame} · " +
                       $"진동 {settings.panicShake} · 색각 {settings.colorBlind} · " +

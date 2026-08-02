@@ -105,6 +105,24 @@ namespace SoldierADay.Net
 
         public BoardState State { get; private set; }
 
+        /// <summary>
+        /// 0~1. 성공/실수 플래시 세기 — 지수 감쇠. `HudMinigame`이 본문 위에 겹쳐 그린다.
+        ///
+        /// 예전에는 `RhythmBoard` 등 3종이 저마다 `_flash` 필드를 따로 들고
+        /// 있었다. 여기로 올리면 `Clear`/`Miss`/`Fail`을 부르는 14종 전체가
+        /// 개별 배선 없이 같은 피드백을 받는다 — 그게 이 필드가 여기 있는 이유다.
+        /// </summary>
+        public float FlashT { get; private set; }
+
+        /// <summary>지금 플래시가 성공(Accent)인지 실수(Alert)인지</summary>
+        public bool FlashSuccess { get; private set; }
+
+        /// <summary>결과 화면(통과·재시도)이 뜬 뒤 지난 시간(초) — 스케일 팝·흔들림이 쓴다</summary>
+        public float ResultAge { get; private set; }
+
+        private float _flashDuration = 0.25f;
+        private BoardState _presentedState = BoardState.Running;
+
         public void Begin(SnapshotQuestsItemMinigame spec, float limitSeconds, string questId)
         {
             Spec = spec;
@@ -113,6 +131,9 @@ namespace SoldierADay.Net
             Fill = 0f;
             Mistakes = 0;
             State = BoardState.Running;
+            FlashT = 0f;
+            ResultAge = 0f;
+            _presentedState = BoardState.Running;
             Rng = new System.Random(StableHash(questId ?? ""));
             Setup();
         }
@@ -149,12 +170,60 @@ namespace SoldierADay.Net
         protected virtual bool TimesOut => true;
 
         /// <summary>목표를 채웠다</summary>
-        protected void Clear() => State = BoardState.Cleared;
+        protected void Clear()
+        {
+            State = BoardState.Cleared;
+            SetFlash(true, 0.25f);
+            Sfx.Play("success");
+        }
 
         /// <summary>즉시 실패 — 극성을 반대로 꽂는 것 같은, 되돌릴 수 없는 실수</summary>
-        protected void Fail() => State = BoardState.Failed;
+        protected void Fail()
+        {
+            State = BoardState.Failed;
+            // 되돌릴 수 없는 실수라 플래시도 소리도 `Miss`보다 크게 간다
+            SetFlash(false, 0.3f);
+            Sfx.Play("warning");
+        }
 
-        protected void Miss() => Mistakes += 1;
+        protected void Miss()
+        {
+            Mistakes += 1;
+            SetFlash(false, 0.25f);
+            Sfx.Play("miss");
+        }
+
+        private void SetFlash(bool success, float duration)
+        {
+            FlashT = 1f;
+            FlashSuccess = success;
+            _flashDuration = duration;
+        }
+
+        /// <summary>
+        /// 매 프레임 화면이 채운다. `Tick`과 분리한 이유는 판이 멈춘(Cleared·
+        /// Failed) 뒤에도 결과창 애니메이션(스케일 팝·흔들림)과 플래시 감쇠는
+        /// 계속 흘러야 하는데, `QuestPlay`는 그 상태에서 더 이상 `Tick`을
+        /// 부르지 않기 때문이다(판정을 서버 응답까지 붙잡아 두는 동안에도
+        /// 화면은 살아 있어야 한다).
+        /// </summary>
+        public void Present(float dt)
+        {
+            if (State != _presentedState)
+            {
+                _presentedState = State;
+                ResultAge = 0f;
+            }
+            else if (State != BoardState.Running)
+            {
+                ResultAge += dt;
+            }
+
+            if (FlashT <= 0f) return;
+            // 지수 감쇠 — `_flashDuration`초 만에 세기의 1%로 떨어진다
+            FlashT *= Mathf.Pow(0.01f, dt / Mathf.Max(0.001f, _flashDuration));
+            if (FlashT < 0.01f) FlashT = 0f;
+        }
 
         /// <summary>
         /// 등급.
