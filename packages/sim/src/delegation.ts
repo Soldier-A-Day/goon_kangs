@@ -42,10 +42,33 @@ export type DelegationRefusal =
   | "giverLimit"
   | "receiverLimit"
   | "alreadyDelegated"
-  | "unknownMember";
+  | "unknownMember"
+  /**
+   * F-2(WORKORDER) 잔여 — 받는 쪽이 아직 이병(최하위 계급)이면 못 넘긴다.
+   *
+   * "경험자가 하달로 일을 다 가져가면 초행자는 미니게임을 한 번도 못 해
+   * 본다"는 온보딩 리서치 지적을 그대로 규칙으로 옮긴 것이다. 하달은
+   * D-3부터만 열리므로(위 `locked`) D-3 시점에도 이병이라는 것은 "이제 막
+   * 시작한 사람"이 아니라 "1차 승급 심사를 아직 못 넘긴 사람"이지만, 둘 다
+   * 조작이 서툴다는 뜻은 같다 — 공통 일과를 최대 2건(`RECEIVE_LIMIT`)까지
+   * 떠안으면 자기 보직 퀘스트(진짜 재미)에 닿기도 전에 그 시간대가 끝난다.
+   * "첫 세션인가"는 계정 층(WORKORDER G단계, 아직 미결정)이 있어야 알 수
+   * 있지만, 계급 하나로도 같은 효과를 낸다 — 별도 세션 카운터를 새로 만들지
+   * 않는다.
+   */
+  | "receiverRookie";
 
 export function rankIndex(member: Member): number {
   return RANK_ORDER.indexOf(member.rank);
+}
+
+/**
+ * F-2 — 초행자 판정. 아직 이병(계급 최하위)이면 하달을 받을 수 없다
+ * (`canDelegate`의 `receiverRookie`). 계급은 승급 심사를 통과해야 오르므로,
+ * D-3(하달 해금일)이 지나도 이병이라는 것은 여전히 손이 느리다는 신호다.
+ */
+export function isRookieReceiver(member: Member): boolean {
+  return member.rank === "private";
 }
 
 /**
@@ -167,6 +190,10 @@ export function canDelegate(
   const allowance = delegationAllowance(from, to);
   if (allowance === 0) return { ok: false, reason: "rankTooLow" };
   if (from.delegatedThisWindow >= allowance) return { ok: false, reason: "giverLimit" };
+  // F-2 — 초행자 굶기지 않기. rankTooLow 다음에 본다: 계급차가 없으면 애초에
+  // 하달 자체가 안 되니 그 사유가 먼저 나오는 게 맞고, 계급차가 있는데도
+  // 받는 쪽이 이병이면 이 사유로 갈린다
+  if (isRookieReceiver(to)) return { ok: false, reason: "receiverRookie" };
   if (to.choresReceived >= RECEIVE_LIMIT) return { ok: false, reason: "receiverLimit" };
 
   return { ok: true };

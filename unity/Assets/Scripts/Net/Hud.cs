@@ -847,6 +847,16 @@ namespace SoldierADay.Net
                     // 영문 토큰이 뜬다. 이미 하달 창이 스스로 닫히는 것으로 같은 사실을
                     // 말하므로(HudScreens 타이머) 그 값만 걸러낸다.
                     if (item.message == "delegationWindowClosed") return;
+                    // F-2(WORKORDER) — "내일 예고 |"로 시작하면 취침 정산 화면이
+                    // 전용으로 그린다(`HudScreens.cs` DrawSleep). 파이프로 구분된
+                    // 원문을 토스트로 그대로 띄우면 보기 흉하니 여기서는 안 띄우고
+                    // 넘긴다 — `judge.ts` `pushTomorrowPreview`가 이 형식으로 보낸다
+                    // (새 프로토콜 필드 대신 기존 log 이펙트를 쓰는 이유는 그 주석 참고).
+                    if (item.message.StartsWith("내일 예고 |"))
+                    {
+                        _screens.OnEvent(item);
+                        return;
+                    }
                     Notify("알림", item.message, HudTheme.Heat);
                     return;
             }
@@ -1722,7 +1732,18 @@ namespace SoldierADay.Net
                 GUI.color = new Color(1f, 1f, 1f, alpha);
                 // 트랙을 `Dim`으로 — 링이 어떤 배경 위에 놓여도 윤곽이 남는다.
                 // `Rule2`는 이제 밝아져서 트랙으로 쓰면 채움과 구분이 안 된다
-                HudIcons.DrawRing(rect, id, value, color, HudTheme.Dim);
+                //
+                // F-2(WORKORDER) — 청결 링에만 조건 D 문턱선을 굽는다. 위험색은
+                // 문턱을 이미 넘은 "뒤"에만 켜지는 반응형이라 사전 예측이 안 됐다
+                // (§7.1.2 danger 판정 참고) — 이 선은 항상 보여서 미리 대비하게 한다.
+                // 값 20은 `packages/sim/src/judge.ts`의 `HYGIENE_FLOOR` — 서버 소유
+                // 규칙이라 원래는 스냅샷에서 읽어야 맞지만(ARCH-02), 지금은 Unity
+                // `Generated/Protocol.cs` 재생성이 금지돼 있어 새 필드를 못 읽는다.
+                // 그래서 이미 같은 값을 하드코딩해 쓰던 자리(§7.1.2 `Danger` — 바로
+                // 아래, 그리고 스탯 툴팁 문구 "20 이하면 점호 조건 D가 깨진다")와
+                // 똑같이 상수로 맞춰 둔다 — 값이 바뀌면 세 곳을 같이 고쳐야 한다.
+                var threshold = id == "hygiene" ? HygieneFloor / 100f : float.NaN;
+                HudIcons.DrawRing(rect, id, value, color, HudTheme.Dim, threshold, HudTheme.Alert);
                 HudIcons.Stat(id, new Rect(rect.x + size * 0.28f, rect.y + size * 0.28f,
                                            size * 0.44f, size * 0.44f), HudTheme.White);
                 GUI.color = previous;
@@ -1785,11 +1806,20 @@ namespace SoldierADay.Net
             _ => (float)stats.satiety,
         };
 
+        /// <summary>
+        /// 10.0 조건 D — 청결 하한. `packages/sim/src/judge.ts`의 `HYGIENE_FLOOR`와
+        /// 값을 맞춰야 한다(서버 소유 규칙, ARCH-02) — 스냅샷에 실어 보내는 게
+        /// 정석이지만 `Generated/Protocol.cs` 재생성이 금지돼 있어 지금은 상수로
+        /// 미러링한다(F-2, WORKORDER). 값이 바뀌면 여기와 `DrawCondition`의 문턱선,
+        /// `StatHints`의 툴팁 문구까지 셋을 같이 고쳐야 한다.
+        /// </summary>
+        public const float HygieneFloor = 20f;
+
         /// <summary>§7.1.2 임계값 — 피로만 방향이 반대다</summary>
         public static bool Danger(string id, float value) => id switch
         {
             "fatigue" => value >= 70f,
-            "hygiene" => value <= 20f,
+            "hygiene" => value <= HygieneFloor,
             _ => value <= 30f,
         };
 

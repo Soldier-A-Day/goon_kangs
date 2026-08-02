@@ -1,4 +1,5 @@
 import {
+  HYGIENE_FLOOR,
   RESCUE_REQUIRED_MS,
   bandRule,
   buildHeadline,
@@ -84,6 +85,9 @@ export function projectSnapshot(
     // "저녁 개인정비에 간부 구제 버튼을 보여줄지"를 클라가 판단하는 근거다.
     leaderReliefsRemaining: state.leaderReliefsRemaining,
     officerReliefsRemaining: state.officerReliefsRemaining,
+    // F-2 — 조건 D 청결 하한. sim의 `HYGIENE_FLOOR`가 소유한 상수이고, 여기선
+    // 그대로 실어 나른다(ARCH-02, 규칙은 sim에만 있다).
+    hygieneFloor: HYGIENE_FLOOR,
     leaderId: state.leaderId,
     members: state.members.map((member) => ({
       id: member.id,
@@ -280,8 +284,9 @@ export function projectEffect(effect: Effect): ServerEvent | null {
       //
       // sim의 `Effect["delegationRefused"]`는 `reason`을 `string`으로만 선언한다
       // (packages/sim/src/types.ts) — 실제 값은 언제나 `delegation.ts`의
-      // `DelegationRefusal` 9종 중 하나다(canDelegate가 그 타입만 반환한다). sim은
-      // 이 발주의 소유가 아니라(ARCH-02) 타입을 여기서 좁혀 받는다.
+      // `DelegationRefusal` 10종 중 하나다(canDelegate가 그 타입만 반환한다,
+      // F-2가 `receiverRookie`를 추가했다). sim은 이 발주의 소유가 아니라
+      // (ARCH-02) 타입을 여기서 좁혀 받는다.
       return {
         type: "delegationRefused",
         reason: effect.reason as Extract<ServerEvent, { type: "delegationRefused" }>["reason"],

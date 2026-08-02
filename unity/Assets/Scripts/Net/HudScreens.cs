@@ -215,7 +215,29 @@ namespace SoldierADay.Net
                     _lastRefusal = item;
                     _refusalAt = Time.unscaledTime;
                     break;
+
+                case ServerEventTypeValues.Log:
+                    // F-2(WORKORDER) — 취침 정산(§7.6)의 "내일 예고" 한 줄. Hud.cs가
+                    // "내일 예고 |"로 시작하는 log만 걸러서 여기로 넘긴다(judge.ts
+                    // `pushTomorrowPreview` 주석 — 새 프로토콜 필드 대신 기존 log
+                    // 이펙트를 쓴 이유가 거기 있다). 형식: "내일 예고 | {날씨 힌트} |
+                    // {내일 열리는 것}".
+                    ParseTomorrowPreview(item.message);
+                    break;
             }
+        }
+
+        /// <summary>F-2 — "내일 예고 | {힌트} | {해금}"을 갈라 저장한다. 다음 취침
+        /// 정산 화면이 새로 도착할 때까지 그대로 남아 있다(스냅샷이 아니라 사건이라
+        /// 판정마다 한 번만 온다 — `judge.ts` `pushTomorrowPreview`).</summary>
+        private string _tomorrowHint = "";
+        private string _tomorrowUnlocks = "";
+
+        private void ParseTomorrowPreview(string message)
+        {
+            var parts = message.Split('|');
+            _tomorrowHint = parts.Length > 1 ? parts[1].Trim() : "";
+            _tomorrowUnlocks = parts.Length > 2 ? parts[2].Trim() : "";
         }
 
         /// <summary>하루 마감 화면을 큐에 쌓는다. 지금 아무 화면도 안 떠 있으면(이론상
@@ -1704,6 +1726,22 @@ namespace SoldierADay.Net
             GUI.Label(new Rect(panel.xMax - 200f, y + 28f, 160f, 30f),
                 $"{snapshot.discipline?.value ?? 0d:0}",
                 theme.At(theme.Mono, 17, HudTheme.Ink, TextAnchor.MiddleRight));
+            y += 58f;
+
+            // F-2(WORKORDER) — "내일" 한 줄. 재접속 이유를 심는 장치다. 날씨는
+            // 방향만(밴드·확률 소수점은 없다 — `judge.ts` `pushTomorrowPreview`),
+            // 해금은 커리큘럼에 확정된 이름 그대로다. 판정 하루당 한 번만 오므로
+            // (§7.6은 매 프레임이 아니라 사건이다) 비어 있으면(첫 로드 등) 줄 자체를
+            // 건너뛴다 — 빈 줄보다는 없는 게 낫다.
+            if (!string.IsNullOrEmpty(_tomorrowHint))
+            {
+                var tomorrow = new Rect(panel.x + 40f, y, panel.width - 80f, 30f);
+                theme.Fill(tomorrow, HudTheme.Paper2);
+                theme.Spine(tomorrow, HudTheme.Cold, 3f);
+                GUI.Label(new Rect(tomorrow.x + 12f, tomorrow.y, tomorrow.width - 24f, tomorrow.height),
+                    $"내일 — {_tomorrowHint} · {_tomorrowUnlocks}",
+                    theme.At(theme.Body, 15, HudTheme.Ink2));
+            }
 
             // E-2 잔여 — "군기" 한 줄이 최종값만 보여줘 왜 그렇게 됐는지 안 보이던
             // 자리다(WORKORDER.md E-2). `Hud.CollectJournal`이 같은 정산에서 받아 둔

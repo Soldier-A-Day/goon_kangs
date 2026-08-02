@@ -466,10 +466,14 @@ namespace SoldierADay.Net
         }
 
         /// <summary>
-        /// C-1b — 하달 거부 사유 9종을 문구로. `packages/sim/src/delegation.ts`의
+        /// C-1b — 하달 거부 사유 10종을 문구로. `packages/sim/src/delegation.ts`의
         /// `DelegationRefusal` enum과 순서·값을 맞춘다. 예전에는 `snapshot.ts`가
         /// 이 이벤트를 통째로 버려서 하달 버튼을 눌러도 아무 반응이 없었다
         /// (감사 보고서 침묵 판정 1건, WORKORDER.md E단계).
+        ///
+        /// `receiverRookie`(F-2)는 새로 생긴 사유다 — 받는 쪽이 아직 이병이면
+        /// 하달을 못 받는다. 이것도 침묵시키지 않는다: 왜 안 됐는지 모르면
+        /// "썼는지도 몰랐다"가 "왜 안 되는지 몰랐다"로 이름만 바뀐다.
         /// </summary>
         public static string DelegationRefusalText(string reason) => reason switch
         {
@@ -482,6 +486,7 @@ namespace SoldierADay.Net
             "receiverLimit" => "그 사람은 이미 여력이 없다",
             "alreadyDelegated" => "이미 한 번 넘어간 일이다",
             "unknownMember" => "대상을 찾을 수 없다",
+            "receiverRookie" => "그 사람은 아직 이병이다 — 혼자 먼저 해봐야 한다",
             _ => "하달이 거부됐다",
         };
 

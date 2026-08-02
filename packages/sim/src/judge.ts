@@ -1,5 +1,7 @@
+import { CURRICULUM } from "./curriculum.js";
 import { humanCount } from "./run.js";
 import { hasRequiredGear, missingGear } from "./supply.js";
+import { forecast } from "./weather.js";
 import type {
   ConditionBreach,
   Effect,
@@ -228,36 +230,70 @@ export function applyJudgement(state: RunState, effects: Effect[]): void {
       state.status = "cleared";
       effects.push({ type: "runEnded", status: "cleared" });
     }
-    return;
-  }
-
-  if (state.config.difficulty === "regular") {
+  } else if (state.config.difficulty === "regular") {
     state.status = "discharged";
     effects.push({ type: "runEnded", status: "discharged" });
-    return;
-  }
-
-  // 완화 난이도: 1차 경고(다음 날 필수 +2) → 2차 근신(개인정비 박탈) → 3차 종료
-  state.warnings += 1;
-  if (state.warnings >= 3) {
-    state.status = "discharged";
-    effects.push({ type: "runEnded", status: "discharged" });
-    return;
-  }
-  if (state.warnings === 1) {
-    state.nextDayExtraRequired += 2;
-    effects.push({ type: "log", message: "1차 경고 — 다음 날 필수 퀘스트 +2" });
   } else {
-    state.personalTimeRevoked = true;
-    effects.push({ type: "log", message: "2차 근신 — 다음 날 개인정비 시간 박탈" });
+    // 완화 난이도: 1차 경고(다음 날 필수 +2) → 2차 근신(개인정비 박탈) → 3차 종료
+    state.warnings += 1;
+    if (state.warnings >= 3) {
+      state.status = "discharged";
+      effects.push({ type: "runEnded", status: "discharged" });
+    } else {
+      if (state.warnings === 1) {
+        state.nextDayExtraRequired += 2;
+        effects.push({ type: "log", message: "1차 경고 — 다음 날 필수 퀘스트 +2" });
+      } else {
+        state.personalTimeRevoked = true;
+        effects.push({ type: "log", message: "2차 근신 — 다음 날 개인정비 시간 박탈" });
+      }
+
+      // 경고로 버티는 것은 다음 날이 있을 때 얘기다. 마지막 날 판정을 통과하지
+      // 못하면 완화 난이도라도 전역은 없다 — 승리 조건은 18일차 심사 통과다(2.0).
+      if (state.day >= state.config.totalDays) {
+        state.status = "discharged";
+        effects.push({ type: "runEnded", status: "discharged" });
+      }
+    }
   }
 
-  // 경고로 버티는 것은 다음 날이 있을 때 얘기다. 마지막 날 판정을 통과하지 못하면
-  // 완화 난이도라도 전역은 없다 — 승리 조건은 18일차 심사 통과다(2.0).
-  if (state.day >= state.config.totalDays) {
-    state.status = "discharged";
-    effects.push({ type: "runEnded", status: "discharged" });
+  // F-2(WORKORDER) — 내일로 이어질 때만 예고를 심는다. `status`가 위 분기들을
+  // 다 거친 뒤에도 여전히 "running"이면 그 뜻이다 — cleared·discharged면
+  // 내일이 없으므로 건너뛴다
+  if (state.status === "running") {
+    pushTomorrowPreview(state, effects);
   }
+}
+
+/**
+ * F-2(WORKORDER) 잔여 — 세션 종료(취침 정산) 화면에 "내일" 한 줄을 심는다.
+ * 재접속 이유를 심는 장치다("날씨 힌트(밴드 방향만) · 내일 열리는 것").
+ *
+ * **새 프로토콜 필드를 만들지 않는다.** `dayJudged`에 필드를 얹으면 Unity의
+ * `Generated/Protocol.cs`를 다시 굽어야 그 값을 읽을 수 있는데, 이 작업은
+ * 재생성이 금지돼 있다(다른 워커들이 같은 파일을 병렬로 건드리는 중이라
+ * 한 워커가 굽으면 나머지가 어긋난다) — 그래서 이미 왕복이 되는 `log`
+ * 이펙트(문자열 한 줄, `packages/protocol` `serverEventSchema`)에 실어
+ * 보낸다. `내일 예고 |` 접두어로 Unity가 이 메시지만 골라 취침 정산 화면
+ * 전용으로 저장하고 일반 토스트로는 띄우지 않는다(`delegationWindowClosed`를
+ * 거르는 것과 같은 자리·같은 방식 — `unity/Assets/Scripts/Net/Hud.cs`).
+ *
+ * **확률의 소수점은 안 보낸다.** 날씨는 `forecast()`가 이미 방향(추워진다/
+ * 더워진다)만 돌려준다 — `viewerRole`을 관리자가 아닌 값으로 고정해서 정확한
+ * 밴드(행정병 전용 정보 비대칭, 5.0)가 이 공용 화면으로 새지 않게 한다.
+ * 해금은 커리큘럼의 `unlocks` 목록 그대로다 — 확률이 아니라 확정된 사실이라
+ * 숨길 이유가 없다.
+ */
+function pushTomorrowPreview(state: RunState, effects: Effect[]): void {
+  // day는 아직 증가 전이다(step.ts endDay가 이 함수 다음에 올린다) — 그래서
+  // CURRICULUM의 다음 일차(day+1)가 0-based 인덱스로는 그냥 `state.day`다
+  const tomorrowPlan = CURRICULUM[state.day];
+  const hint = forecast(state, state.season, "private").hint;
+  const unlocks =
+    tomorrowPlan && tomorrowPlan.unlocks.length > 0
+      ? tomorrowPlan.unlocks.join(" · ")
+      : "새로 열리는 것 없음";
+  effects.push({ type: "log", message: `내일 예고 | ${hint} | ${unlocks}` });
 }
 
 /**

@@ -356,3 +356,60 @@ describe("C-1 — 결정타 기록 (firstConditionBreach)", () => {
     expect(state.firstConditionBreach.D?.questLabel).toBeNull();
   });
 });
+
+/**
+ * F-2(WORKORDER) 잔여 — 세션 종료 화면의 "내일 예고".
+ *
+ * 새 프로토콜 필드를 만들지 않고 기존 `log` 이펙트(문자열 한 줄)에 실어
+ * 보낸다(`judge.ts` `pushTomorrowPreview` 주석 참고 — Unity `Generated/Protocol.cs`
+ * 재생성이 금지돼 있어 새 필드를 만들어도 지금은 읽을 방법이 없다). 접두어
+ * `내일 예고 |`로 골라낼 수 있어야 하고, 확률의 소수점이 아니라 방향·확정
+ * 사실만 담겨야 한다.
+ */
+describe("F-2 — 내일 예고", () => {
+  function tomorrowPreviewLog(effects: readonly { type: string; message?: string }[]) {
+    return effects.find(
+      (e) => e.type === "log" && typeof e.message === "string" && e.message.startsWith("내일 예고 |"),
+    ) as { type: "log"; message: string } | undefined;
+  }
+
+  it("런이 다음 날로 이어지면 내일 예고 로그가 뜬다", () => {
+    const state = withQuests(beginDay(fullSquad()), []);
+    const result = step(state, { type: "tick", elapsedMs: FULL_DAY });
+
+    expect(result.state.status).toBe("running");
+    const preview = tomorrowPreviewLog(result.effects);
+    expect(preview).toBeDefined();
+    // 날씨 힌트는 방향 문구지 숫자가 아니다 — 소수점이 새면 안 된다
+    expect(preview!.message).not.toMatch(/\d\.\d/);
+  });
+
+  it("내일 열리는 게 있으면 이름이 그대로 들어간다 — D-1 다음 날(D-2)은 '보직 퀘스트'가 열린다", () => {
+    let state = fullSquad();
+    state.day = 1;
+    state = withQuests(beginDay(state), []);
+    const result = step(state, { type: "tick", elapsedMs: FULL_DAY });
+
+    const preview = tomorrowPreviewLog(result.effects);
+    expect(preview?.message).toContain("보직 퀘스트");
+  });
+
+  it("런이 여기서 끝나면(전역·퇴소) 내일 예고를 심지 않는다", () => {
+    const state = fullSquad({ config: { difficulty: "regular" } });
+    const started = withQuests(beginDay(state), [quest({ id: "a" })]); // 필수 미완 → 즉시 퇴소
+    const result = step(started, { type: "tick", elapsedMs: FULL_DAY });
+
+    expect(result.state.status).toBe("discharged");
+    expect(tomorrowPreviewLog(result.effects)).toBeUndefined();
+  });
+
+  it("18일차를 통과해 전역하면 내일 예고를 심지 않는다 — 내일이 없다", () => {
+    let state = fullSquad();
+    state.day = 18;
+    state = withQuests(beginDay(state), []);
+    const result = step(state, { type: "tick", elapsedMs: FULL_DAY });
+
+    expect(result.state.status).toBe("cleared");
+    expect(tomorrowPreviewLog(result.effects)).toBeUndefined();
+  });
+});

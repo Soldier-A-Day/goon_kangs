@@ -719,7 +719,12 @@ describe("17.0 이어하기와 기록", () => {
     const storage = memoryStorage();
     const store = new RoomStore(() => {}, storage);
     const room = store.createRoom({ difficulty: "regular" });
+    // F-2 — 3인 이상이어야 기록 대상이다(1~2인은 연습 방이라 저장을 건너뛴다,
+    // 아래 "1~2인 연습 방" describe 참고). 여기서는 "기록이 남는다"는 정상
+    // 경로를 보는 시험이라 3인으로 채운다
     const joined = room.join("김소총", "rifle");
+    room.join("김통신", "comms");
+    room.join("김의무", "medic");
     if (!joined.ok) throw new Error("입장 실패");
     room.start();
     room.tick(11_000);
@@ -743,7 +748,11 @@ describe("17.0 이어하기와 기록", () => {
     const storage = memoryStorage();
     const store = new RoomStore(() => {}, storage);
     const room = store.createRoom({});
+    // F-2 — 3인 이상으로 채운다(1~2인은 저장을 아예 건너뛰므로 "한 번만"을
+    // 시험하려면 저장이 실제로 일어나는 경로여야 한다)
     room.join("김소총", "rifle");
+    room.join("김통신", "comms");
+    room.join("김의무", "medic");
     room.start();
     if (!room.run) throw new Error("런 없음");
     room.run.status = "cleared";
@@ -751,6 +760,49 @@ describe("17.0 이어하기와 기록", () => {
     room.tick(1000);
     room.tick(1000);
 
+    expect(await storage.records.list()).toHaveLength(1);
+  });
+
+  it("F-2 — 1~2인 연습 방은 런이 끝나도 기록을 남기지 않는다", async () => {
+    const storage = memoryStorage();
+    const store = new RoomStore(() => {}, storage);
+    const room = store.createRoom({});
+    const joined = room.join("혼자", "rifle");
+    if (!joined.ok) throw new Error("입장 실패");
+    room.start();
+    if (!room.run) throw new Error("런 없음");
+    room.run.status = "cleared";
+
+    room.tick(1000);
+
+    // 로비 문구("1~2인 방은 튜토리얼 · 연습 용도이며 기록에 남지 않습니다",
+    // apps/web lobby/page.tsx)가 실제로 성립해야 한다
+    expect(await storage.records.list()).toHaveLength(0);
+    // 스냅샷 정리는 기록 저장과 무관하게 그대로 일어난다 — 연습 방도 다시
+    // 이어할 이유는 없다
+    expect(await storage.snapshots.load(room.code)).toBeNull();
+  });
+
+  it("F-2 — 2인 방도 기록을 남기지 않고, 3인부터 남긴다", async () => {
+    const storage = memoryStorage();
+    const store = new RoomStore(() => {}, storage);
+    const twoPersonRoom = store.createRoom({});
+    twoPersonRoom.join("김소총", "rifle");
+    twoPersonRoom.join("김통신", "comms");
+    twoPersonRoom.start();
+    if (!twoPersonRoom.run) throw new Error("런 없음");
+    twoPersonRoom.run.status = "cleared";
+    twoPersonRoom.tick(1000);
+    expect(await storage.records.list()).toHaveLength(0);
+
+    const threePersonRoom = store.createRoom({});
+    threePersonRoom.join("김소총", "rifle");
+    threePersonRoom.join("김통신", "comms");
+    threePersonRoom.join("김의무", "medic");
+    threePersonRoom.start();
+    if (!threePersonRoom.run) throw new Error("런 없음");
+    threePersonRoom.run.status = "cleared";
+    threePersonRoom.tick(1000);
     expect(await storage.records.list()).toHaveLength(1);
   });
 });

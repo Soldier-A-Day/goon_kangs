@@ -116,12 +116,16 @@ export const presenceSchema = z.enum([
 ]);
 
 /**
- * 6.2 하달 거부 사유 9종 (`packages/sim/src/delegation.ts` `DelegationRefusal`).
+ * 6.2 하달 거부 사유 10종 (`packages/sim/src/delegation.ts` `DelegationRefusal`).
  *
  * **예전에는 이 값이 서버에서 아예 버려졌다**(`services/gameserver/src/snapshot.ts`
  * `projectEffect` — "클라이언트가 알 필요 없는 신호는 흘리지 않는다"로 묶여 있었다).
  * 하달 버튼을 눌러도 왜 안 됐는지 화면이 말하지 않는 원인이었다 — 감사 보고서
  * 침묵 판정 1건(WORKORDER.md E단계). 이제는 흘려보내고 하달 창이 사유를 문구로 보여준다.
+ *
+ * `receiverRookie`(F-2, WORKORDER)는 받는 쪽이 아직 이병이면 거절되는 사유다 —
+ * 경험자가 하달로 일을 다 가져가면 초행자가 미니게임을 한 번도 못 해 보는
+ * 문제를 막는다. **추가만** — 기존 9종의 순서·값은 그대로다.
  */
 export const delegationRefusalSchema = z.enum([
   "locked",
@@ -133,6 +137,7 @@ export const delegationRefusalSchema = z.enum([
   "receiverLimit",
   "alreadyDelegated",
   "unknownMember",
+  "receiverRookie",
 ]);
 
 /**
@@ -704,6 +709,17 @@ export const snapshotSchema = z.object({
    * 하나다 — 나머지 조건(문턱 신뢰도)은 `trust`로 클라가 계산한다.
    */
   officerReliefsRemaining: z.number(),
+  /**
+   * F-2(WORKORDER) 잔여 — 10.0 조건 D의 청결 하한(`packages/sim/src/judge.ts`
+   * `HYGIENE_FLOOR`). 컨디션 게이지에 판정 문턱을 사전 예측 가능하게 표시하려면
+   * 클라가 이 값을 알아야 한다 — 서버 소유 규칙이라(ARCH-02) 베끼지 않고 스냅샷에
+   * 실어 보낸다. **추가만** — Unity `Generated/Protocol.cs`는 이번 커밋에서
+   * 재생성하지 않는다(다른 워커들과 동시 작업 중이라 각자 재생성하면 서로
+   * 어긋난다). 그래서 지금 Unity 쪽은 이 필드 대신 같은 값을 상수로 미러링해
+   * 쓴다(`unity/Assets/Scripts/Net/Hud.cs` `HygieneFloor`) — 재생성 이후엔
+   * 그 상수를 이 필드로 바꿔야 한다.
+   */
+  hygieneFloor: z.number(),
   leaderId: z.string().nullable(),
   members: z.array(memberViewSchema),
   quests: z.array(questViewSchema),

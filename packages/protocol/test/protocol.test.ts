@@ -74,6 +74,7 @@ describe("스냅샷 스키마", () => {
     reliefsRemaining: 3,
     leaderReliefsRemaining: 2,
     officerReliefsRemaining: 1,
+    hygieneFloor: 20, // F-2 — 조건 D 청결 하한(packages/sim judge.ts HYGIENE_FLOOR)
     leaderId: null,
     members: [],
     quests: [],
