@@ -154,6 +154,17 @@ namespace SoldierADay.Net
             Send(new Intent { type = IntentTypeValues.QuickCommand, command = command });
         }
 
+        /// <summary>
+        /// B-3 정형 문구(quick-phrase) 발화. `phrase`는 `Hud.QuickPhrases`의 id 8종 중 하나다.
+        ///
+        /// 스팸 가드(같은 사람 2초 쿨다운)는 서버가 판정한다(`room.ts`) — 여기서는
+        /// 그냥 보낼 뿐이고, 쿨다운에 걸리면 서버가 조용히 버려 이벤트가 안 온다.
+        /// </summary>
+        public void QuickPhrase(string phrase)
+        {
+            Send(new Intent { type = IntentTypeValues.QuickPhrase, phrase = phrase });
+        }
+
         /* ------------------------------------------------------------ 수신 */
 
         private void OnMessage(string payload)

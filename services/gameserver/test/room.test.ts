@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { phaseAt } from "@sad/sim";
 import type { ServerMessage, Snapshot } from "@sad/protocol";
-import { DISCONNECT_GRACE_MS, Room } from "../src/room.js";
+import { DISCONNECT_GRACE_MS, QUICK_PHRASE_COOLDOWN_MS, Room } from "../src/room.js";
 import { RoomStore, generateCode } from "../src/store.js";
 import { projectEffect } from "../src/snapshot.js";
 import { RUN_TTL_MS, memoryStorage } from "../src/persistence.js";
@@ -269,6 +269,126 @@ describe("채널", () => {
       .filter((s) => s.message.type === "events")
       .map((s) => s.memberId);
     expect(receivers).toContain(medic);
+  });
+});
+
+describe("정형 문구(quick-phrase, B-3)", () => {
+  it("발화자를 포함해 전 인원에 브로드캐스트된다", () => {
+    const h = harness();
+    const ids = fourPlayers(h.room);
+    h.room.start();
+    const [rifle] = ids;
+    if (!rifle) throw new Error("분대원 없음");
+    h.sent.length = 0;
+
+    h.room.handleIntent(rifle, { type: "quickPhrase", phrase: "assist" });
+
+    const receivers = h.sent
+      .filter((s) => s.message.type === "events")
+      .map((s) => s.memberId);
+    expect(receivers).toEqual(expect.arrayContaining(ids));
+
+    const item = h.sent
+      .flatMap((s) => (s.message.type === "events" ? s.message.items : []))
+      .find((e) => e.type === "quickPhrase");
+    expect(item).toMatchObject({ type: "quickPhrase", memberId: rifle, phrase: "assist" });
+  });
+
+  it("같은 사람이 쿨다운 안에 다시 보내면 서버가 조용히 버린다", () => {
+    const h = harness();
+    const ids = fourPlayers(h.room);
+    h.room.start();
+    const [rifle] = ids;
+    if (!rifle) throw new Error("분대원 없음");
+
+    h.room.handleIntent(rifle, { type: "quickPhrase", phrase: "assist" });
+    h.sent.length = 0;
+
+    // 쿨다운 안 — 버려진다
+    h.room.handleIntent(rifle, { type: "quickPhrase", phrase: "thanks" });
+    expect(h.sent.filter((s) => s.message.type === "events")).toHaveLength(0);
+
+    // 쿨다운이 다 지나면 다시 보낼 수 있다
+    h.room.tick(QUICK_PHRASE_COOLDOWN_MS + 100);
+    h.room.handleIntent(rifle, { type: "quickPhrase", phrase: "thanks" });
+    const afterCooldown = h.sent
+      .flatMap((s) => (s.message.type === "events" ? s.message.items : []))
+      .find((e) => e.type === "quickPhrase" && "phrase" in e && e.phrase === "thanks");
+    expect(afterCooldown).toBeDefined();
+  });
+
+  it("쿨다운은 사람마다 따로 간다 — 남이 눌러도 내 쿨다운엔 안 걸린다", () => {
+    const h = harness();
+    const ids = fourPlayers(h.room);
+    h.room.start();
+    const [rifle, comms] = ids;
+    if (!rifle || !comms) throw new Error("분대원 없음");
+
+    h.room.handleIntent(rifle, { type: "quickPhrase", phrase: "assist" });
+    h.sent.length = 0;
+
+    h.room.handleIntent(comms, { type: "quickPhrase", phrase: "here" });
+    const item = h.sent
+      .flatMap((s) => (s.message.type === "events" ? s.message.items : []))
+      .find((e) => e.type === "quickPhrase");
+    expect(item).toMatchObject({ type: "quickPhrase", memberId: comms, phrase: "here" });
+  });
+});
+
+describe("B-3 합동 판 자동 말풍선", () => {
+  it("합동 판을 붙잡으면 즉시 한 번, 이후 30초마다 자동으로 발화한다", () => {
+    const h = harness();
+    const ids = fourPlayers(h.room);
+    h.room.start();
+    if (!h.room.run) throw new Error("런 없음");
+    const [rifle] = ids;
+    if (!rifle) throw new Error("분대원 없음");
+
+    const joint = h.room.run.quests.find((q) => q.kind === "joint");
+    if (!joint) throw new Error("합동 퀘스트 없음");
+
+    h.sent.length = 0;
+    h.room.handleIntent(rifle, { type: "interact", questId: joint.id, active: true });
+    h.room.tick(100);
+
+    // 방송은 인원수만큼 중복으로 쌓인다(broadcast가 한 사람씩 sendTo한다) — 한
+    // 수신자 앞으로 온 것만 세야 실제로 몇 번 발화했는지 셀 수 있다
+    const autoEvents = () =>
+      h.sent
+        .filter((s) => s.memberId === rifle && s.message.type === "events")
+        .flatMap((s) => (s.message.type === "events" ? s.message.items : []))
+        .filter((e) => e.type === "quickPhrase" && "auto" in e && e.auto === true);
+
+    expect(autoEvents()).toHaveLength(1);
+    expect(autoEvents()[0]).toMatchObject({ memberId: rifle, phrase: "assist", auto: true });
+
+    h.sent.length = 0;
+    h.room.tick(10_000); // 30초가 안 지났으니 아직 안 나간다
+    expect(autoEvents()).toHaveLength(0);
+
+    h.room.tick(20_100); // 합 30.1초 — 다시 나간다
+    expect(autoEvents()).toHaveLength(1);
+  });
+
+  it("합동이 아닌 판을 붙잡고 있을 때는 자동 발화가 없다", () => {
+    const h = harness();
+    const ids = fourPlayers(h.room);
+    h.room.start();
+    if (!h.room.run) throw new Error("런 없음");
+    const [rifle] = ids;
+    if (!rifle) throw new Error("분대원 없음");
+
+    const solo = h.room.run.quests.find((q) => q.kind !== "joint" && q.ownerId === rifle);
+    if (!solo) throw new Error("개인 퀘스트 없음");
+
+    h.sent.length = 0;
+    h.room.handleIntent(rifle, { type: "interact", questId: solo.id, active: true });
+    h.room.tick(100);
+
+    const autoEvents = h.sent
+      .flatMap((s) => (s.message.type === "events" ? s.message.items : []))
+      .filter((e) => e.type === "quickPhrase");
+    expect(autoEvents).toHaveLength(0);
   });
 });
 

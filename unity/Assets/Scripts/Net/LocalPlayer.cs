@@ -39,6 +39,20 @@ namespace SoldierADay.Net
         public bool Suspended { get; set; }
 
         /// <summary>
+        /// B-3 정형 문구(quick-phrase) 8종 — id 순서가 곧 숫자 1~8과 `Hud.QuickPhrases`의
+        /// 표시 순서다. 둘 중 하나만 바뀌면 번호와 문구가 어긋나므로 항상 같이 고친다.
+        /// </summary>
+        public static readonly string[] QuickPhraseIds =
+        {
+            "assist", "goingFirst", "gather", "here", "thanks", "comingNow", "danger", "wellDone",
+        };
+
+        /// <summary>C를 누르고 있는 동안 true — quick-phrase 목록이 열려 있다는 뜻이다.
+        /// `Hud`가 이 값을 읽어 목록을 그린다(HudScreens가 아니라 Hud가 그리는 이유는
+        /// B-3 소유 파일이 GameClient·Hud·LocalPlayer뿐이라서다).</summary>
+        public bool PhraseWheelOpen { get; private set; }
+
+        /// <summary>
         /// §9.0 사이드뷰 코스 — 전진을 `LaneRun`이 몬다.
         ///
         /// 여기서 WASD를 그대로 두면 옆에서 본 화면인데 위아래로 걸어 다니게
@@ -85,6 +99,25 @@ namespace SoldierADay.Net
                 : Vector2.zero;
             if (_input.sqrMagnitude > 1f) _input.Normalize();
             _running = free && Input.GetKey(KeyCode.LeftShift);
+
+            // B-3 정형 문구(quick-phrase) — C를 누르고 있으면 목록이 열리고 숫자
+            // 1~8로 발화한다. Q는 이미 8.0 퀵 커맨드(전술 지시) 라디얼이 쓰고
+            // 있어(`HudScreens.cs`) 겹치지 않는 C를 쓴다. 목록이 열린 동안은
+            // 이동을 멈춘다 — 위 free 계산은 그대로 두고 여기서 입력만 덧씌운다.
+            // 그래야 번호를 누르며 걷다가 엉뚱한 방향으로 튀어나가지 않는다.
+            PhraseWheelOpen = free && Input.GetKey(KeyCode.C);
+            if (PhraseWheelOpen)
+            {
+                _input = Vector2.zero;
+                _running = false;
+                if (client != null)
+                {
+                    for (var i = 0; i < QuickPhraseIds.Length; i += 1)
+                    {
+                        if (Input.GetKeyDown(KeyCode.Alpha1 + i)) client.QuickPhrase(QuickPhraseIds[i]);
+                    }
+                }
+            }
 
             if (!_paceApplied && _rig != null && client != null && !string.IsNullOrEmpty(client.MemberId))
             {

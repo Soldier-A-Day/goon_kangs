@@ -70,6 +70,36 @@ namespace SoldierADay.Net
             public float born;
         }
 
+        /// <summary>
+        /// B-3 정형 문구 8종 — id는 프로토콜 `quickPhraseSchema`와 같은 순서다.
+        ///
+        /// 요청·위치·정서·응답이 고루 있다. quickCommand(8.0)는 타임 프레셔
+        /// 구간의 전술 지시어라 어휘가 다르다 — 이쪽은 언제든 쓰는 사회적
+        /// 문구라서, 자유 채팅의 트롤링 없이 "말을 건 느낌"을 내는 것이 목적이다.
+        /// 숫자 순서가 곧 휠·번호 입력의 순서다(`LocalPlayer.QuickPhraseIds`와
+        /// 반드시 같은 순서를 유지한다).
+        /// </summary>
+        private static readonly (string id, string text)[] QuickPhrases =
+        {
+            ("assist", "손 좀 빌려주십시오"),
+            ("goingFirst", "먼저 갑니다"),
+            ("gather", "집합"),
+            ("here", "여기다"),
+            ("thanks", "고맙다"),
+            ("comingNow", "지금 간다"),
+            ("danger", "위험하다"),
+            ("wellDone", "잘했다"),
+        };
+
+        private static string QuickPhraseLabel(string id)
+        {
+            foreach (var (key, text) in QuickPhrases)
+            {
+                if (key == id) return text;
+            }
+            return id;
+        }
+
         private void Awake()
         {
             _screens = new HudScreens(this);
@@ -183,6 +213,7 @@ namespace SoldierADay.Net
             DrawMask();
             DrawEvacuation();
             DrawMinigame();
+            DrawPhraseWheel();
 
             _screens.Draw(_theme, snapshot);
 
@@ -320,6 +351,48 @@ namespace SoldierADay.Net
             GUI.Label(new Rect(box.x + 28f, box.y + 96f, 540f, 24f),
                 "분대의 하루는 계속된다 — 남은 필수는 대행으로 넘어간다",
                 _theme.At(_theme.Body, 15, HudTheme.Ink2));
+        }
+
+        /* ────────────────────────────────────── B-3 정형 문구(quick-phrase) 목록 */
+
+        /// <summary>
+        /// C를 누르고 있는 동안 뜨는 quick-phrase 목록. 숫자 1~8(`LocalPlayer`가
+        /// 읽는다) 또는 여기 클릭으로 고른다.
+        ///
+        /// 8.0 퀵 커맨드의 원형 라디얼(Q, `HudScreens.DrawRadial`)과 다르게 세로
+        /// 목록으로 그렸다 — 두 휠이 같이 뜰 일이 없어(Q/C가 겹치지 않는다) 같은
+        /// 모양을 흉내 낼 이유가 없고, 문장이 길어 원형보다 목록이 더 읽기 쉽다.
+        /// 발화 자체의 자격(스팸 가드)은 서버가 판정한다(ARCH-02) — 여기서는
+        /// 고른 것을 그대로 서버로 보낼 뿐이다.
+        /// </summary>
+        private void DrawPhraseWheel()
+        {
+            if (world?.player == null || !world.player.PhraseWheelOpen) return;
+
+            const float rowHeight = 42f;
+            var box = new Rect(HudTheme.ViewWidth * 0.5f - 170f,
+                HudTheme.DesignHeight * 0.5f - QuickPhrases.Length * rowHeight * 0.5f - 12f,
+                340f, QuickPhrases.Length * rowHeight + 24f);
+            _theme.Panel(box, HudTheme.Paper2, HudTheme.Rule);
+
+            GUI.Label(new Rect(box.x + 12f, box.y + 4f, box.width - 24f, 20f),
+                "정형 문구 — 숫자 또는 클릭",
+                _theme.At(_theme.Label, 12, HudTheme.Ink2));
+
+            for (var i = 0; i < QuickPhrases.Length; i += 1)
+            {
+                var (id, text) = QuickPhrases[i];
+                var row = new Rect(box.x + 8f, box.y + 24f + i * rowHeight, box.width - 16f,
+                    rowHeight - 4f);
+                if (row.Contains(_mouse)) _theme.Fill(row, HudTheme.AccentW, 0.35f);
+
+                GUI.Label(new Rect(row.x + 6f, row.y, 28f, row.height), $"{i + 1}",
+                    _theme.At(_theme.Heading, 16, HudTheme.Ink2));
+                GUI.Label(new Rect(row.x + 36f, row.y, row.width - 44f, row.height), text,
+                    _theme.At(_theme.Body, 16, HudTheme.Ink, TextAnchor.MiddleLeft));
+
+                if (GUI.Button(row, "", GUIStyle.none)) client.QuickPhrase(id);
+            }
         }
 
         /* ─────────────────────────────── 현재 위치 · 근처 안내 (좌상단) */
@@ -564,6 +637,20 @@ namespace SoldierADay.Net
                     _bubbles.Add(new Bubble
                     {
                         memberId = item.memberId, command = item.command, born = Time.unscaledTime,
+                    });
+                    return;
+
+                case ServerEventTypeValues.QuickPhrase:
+                    // B-3 정형 문구 소통 — 아이콘이 아니라 문장 말풍선이다.
+                    // quickCommand(8.0 전술 지시)와 어휘가 다르다는 것을 한눈에
+                    // 보여주려고 일부러 다른 그림(문장 vs 아이콘)을 쓴다.
+                    // `auto`(합동 판을 열고 있는 동안의 자동 발화, §4항)도 사람이
+                    // 누른 것과 같은 말풍선으로 보여준다 — 도와달라는 말이 자동이든
+                    // 수동이든 화면이 다르게 취급할 이유가 없다.
+                    _bubbles.Add(new Bubble
+                    {
+                        memberId = item.memberId, text = QuickPhraseLabel(item.phrase),
+                        born = Time.unscaledTime,
                     });
                     return;
 
