@@ -174,7 +174,16 @@ export function generateDayQuests(state: RunState): readonly [Quest[], RngState]
     const [picked, afterPick] = sample(rng, templates, roleTotal);
     rng = afterPick;
 
-    picked.forEach((template, index) => {
+    // S5 — 같은 미니게임 원형이 연달아 배치되면 같은 판을 두 번 내리 하게 된다
+    // ("너무 진부하다" 평가의 한 원인, 와리오웨어의 교훈). 재배열은 순수 함수라
+    // rng를 더 소비하지 않고, required 프리픽스를 유지한 채 필수·선택 그룹
+    // 내부에서만 섞으므로 `requiredCountFor` 불변식도 그대로다.
+    const orderedPicked = [
+      ...avoidAdjacentMinigame(picked.slice(0, roleRequired), roleQuestMinigameType),
+      ...avoidAdjacentMinigame(picked.slice(roleRequired), roleQuestMinigameType),
+    ];
+
+    orderedPicked.forEach((template, index) => {
       const required = index < roleRequired;
       quests.push(
         toQuest(template, {
@@ -359,6 +368,66 @@ function choresFor(band: TempBand, plan: DayPlan): readonly QuestTemplate[] {
 function pickPhase(required: boolean, index: number): PhaseId {
   const pool = required ? REQUIRED_PHASES : OPTIONAL_PHASES;
   return pool[index % pool.length] as PhaseId;
+}
+
+function roleQuestMinigameType(template: QuestTemplate): string | null {
+  return template.minigame?.type ?? null;
+}
+
+/**
+ * 인접한 두 항목이 같은 원형(`typeOf`가 돌려주는 값)을 갖지 않도록 재배열한다(S5).
+ *
+ * **표준 "no-two-adjacent" 재배치 — 빈도 내림차순으로 짝수 자리부터 채운다.**
+ * 최다빈도 원형의 개수가 `ceil(n/2)`를 넘지 않으면 이 방식으로 언제나 인접
+ * 충돌 없는 배치가 나온다는 것이 증명된 결과다. 넘으면(예: 전부 같은 원형)
+ * 애초에 회피가 불가능하므로 원래 순서 그대로 돌려준다 — 억지로 섞어봐야
+ * 다른 자리에서 새 충돌만 생긴다.
+ *
+ * `typeOf`가 null을 돌려주는 항목(판이 없는 일과)은 항목마다 유일한 키를 매겨
+ * 서로도, 다른 원형과도 충돌로 치지 않는다.
+ *
+ * rng를 전혀 쓰지 않는 순수 함수다 — 입력 배열의 내용에만 의존하는 결정론적
+ * 재배열이라, 이 함수를 끼워 넣어도 `generateDayQuests`의 rng 소비 순서는
+ * 바뀌지 않는다(세이브 호환 유지).
+ */
+export function avoidAdjacentMinigame<T>(
+  items: readonly T[],
+  typeOf: (item: T) => string | null,
+): T[] {
+  const n = items.length;
+  if (n <= 1) return [...items];
+
+  // 원형별로 묶는다. 그룹 내부는 원래 등장 순서를 그대로 지켜 안정적이다
+  const buckets = new Map<string, T[]>();
+  const order: string[] = [];
+  items.forEach((item, index) => {
+    const key = typeOf(item) ?? `__none_${index}__`;
+    if (!buckets.has(key)) {
+      buckets.set(key, []);
+      order.push(key);
+    }
+    buckets.get(key)!.push(item);
+  });
+
+  const maxFreq = Math.max(...order.map((key) => buckets.get(key)!.length));
+  if (maxFreq > Math.ceil(n / 2)) return [...items];
+
+  // 빈도 내림차순 — 동률이면 첫 등장 순서를 지켜 결정론을 유지한다
+  const keys = [...order].sort((a, b) => {
+    const diff = buckets.get(b)!.length - buckets.get(a)!.length;
+    return diff !== 0 ? diff : order.indexOf(a) - order.indexOf(b);
+  });
+
+  const result: T[] = new Array(n);
+  let index = 0;
+  for (const key of keys) {
+    for (const item of buckets.get(key)!) {
+      if (index >= n) index = 1;
+      result[index] = item;
+      index += 2;
+    }
+  }
+  return result;
 }
 
 function jointZone(day: number): Zone {
