@@ -34,21 +34,28 @@ namespace SoldierADay.Net
             private float _value = -1f;
             private Color _fill;
             private Color _track;
+            private float _threshold = float.NaN;
+            private Color _thresholdColor;
 
-            public Texture2D Get(float value, Color fill, Color track)
+            public Texture2D Get(float value, Color fill, Color track, float threshold, Color thresholdColor)
             {
-                if (_tex != null && Mathf.Abs(_value - value) < 0.004f && _fill == fill && _track == track)
+                if (_tex != null && Mathf.Abs(_value - value) < 0.004f && _fill == fill && _track == track &&
+                    (float.IsNaN(_threshold) ? float.IsNaN(threshold) : Mathf.Approximately(_threshold, threshold)) &&
+                    _thresholdColor == thresholdColor)
                     return _tex;
 
                 _value = value;
                 _fill = fill;
                 _track = track;
+                _threshold = threshold;
+                _thresholdColor = thresholdColor;
 
                 // 텍스처에 굽는 색은 **보정하지 않는다** — sRGB 텍스처라 Unity가
                 // 샘플링할 때 이미 선형으로 바꾼다(HudTheme.Lin 참조). 여기 걸면
                 // 감마가 두 번 적용되어 링이 검게 가라앉는다
                 var fillLin = fill;
                 var trackLin = track;
+                var thresholdLin = thresholdColor;
 
                 if (_tex == null)
                 {
@@ -64,6 +71,10 @@ namespace SoldierADay.Net
                 const float inner = outer - Size * 0.135f;   // 링 두께 ≈ 지름의 13.5%
                 var center = new Vector2(Size * 0.5f, Size * 0.5f);
                 var pixels = new Color32[Size * Size];
+                // F-2(WORKORDER) — 조건 D 문턱선의 각도 폭. 링 둘레 기준 각도 절반폭이라
+                // 값과 무관하게 항상 같은 굵기로 보인다
+                const float thresholdHalfWidthDeg = 2.6f;
+                var thresholdAngle = threshold * 360f;
 
                 for (var y = 0; y < Size; y += 1)
                 for (var x = 0; x < Size; x += 1)
@@ -84,6 +95,12 @@ namespace SoldierADay.Net
                     var on = angle <= value * 360f;
                     var color = on ? fillLin : trackLin;
 
+                    // F-2 — 판정 문턱을 가는 선으로 굽는다. 값이 아직 안전해도
+                    // 항상 보이므로(반응형 위험색과 달리) 사전에 예측할 수 있다.
+                    // 같은 각도 계산을 재사용해서 링 값과 절대 어긋나지 않는다
+                    if (!float.IsNaN(threshold) && Mathf.Abs(angle - thresholdAngle) < thresholdHalfWidthDeg)
+                        color = thresholdLin;
+
                     // 가장자리 한 픽셀만 부드럽게. 링이 톱니로 보이면 서류 톤이 깨진다
                     var edge = Mathf.Min(outer - r, r - inner);
                     color.a *= Mathf.Clamp01(edge);
@@ -100,12 +117,23 @@ namespace SoldierADay.Net
 
         public static void DrawRing(Rect rect, string id, float value, Color fill, Color track)
         {
+            DrawRing(rect, id, value, fill, track, float.NaN, default);
+        }
+
+        /// <summary>
+        /// F-2(WORKORDER) — 판정 문턱선이 있는 링. `threshold`는 0~1 비율(예: 조건 D
+        /// 청결 하한 20/100 = 0.2f)이고, `float.NaN`이면 문턱선 없이 기존과 같다.
+        /// </summary>
+        public static void DrawRing(
+            Rect rect, string id, float value, Color fill, Color track,
+            float threshold, Color thresholdColor)
+        {
             if (!Rings.TryGetValue(id, out var ring))
             {
                 ring = new Ring();
                 Rings[id] = ring;
             }
-            GUI.DrawTexture(rect, ring.Get(Mathf.Clamp01(value), fill, track));
+            GUI.DrawTexture(rect, ring.Get(Mathf.Clamp01(value), fill, track, threshold, thresholdColor));
         }
 
         /* ══════════════════════════════════════════════════ 도형 프리미티브 */

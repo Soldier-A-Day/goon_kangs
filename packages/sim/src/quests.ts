@@ -6,6 +6,7 @@ import { trainingName, trainingPlace } from "./training.js";
 import type {
   Member,
   Minigame,
+  MinigameType,
   PhaseId,
   Quest,
   RunState,
@@ -44,6 +45,74 @@ const SURPRISE_POOL = questTable.surprise as readonly QuestTemplate[];
 const JOINT = questTable.joint;
 const JOINT_BOARDS = (questTable.joint as { boards?: Record<string, Record<string, unknown>> })
   .boards ?? {};
+
+/**
+ * F-1(WORKORDER) 잔여 — 원형별 도입 일차. `quests.json`의 `archetypeIntroDay`가
+ * 소유한다. 여기 없는 원형(RANDOM처럼 14종 밖)은 게이트가 없다 — 항상 허용.
+ */
+const ARCHETYPE_INTRO_DAY = (
+  questTable as { archetypeIntroDay?: Record<string, number> }
+).archetypeIntroDay ?? {};
+
+/** 그 원형이 그 일차에 배정 후보로 들어갈 수 있는가 */
+function archetypeUnlockedOn(day: number, type: MinigameType | null | undefined): boolean {
+  if (!type) return true; // 판이 없는 항목은 원형 다양성과 무관하다
+  const introDay = ARCHETYPE_INTRO_DAY[type];
+  return introDay === undefined || day >= introDay;
+}
+
+/**
+ * 템플릿 하나가 그 일차에 허용되는가. `phase2`(20초 이상 퀘스트의 2페이즈)도
+ * 같이 본다 — 안 그러면 주 원형은 1일차 원형인데 2페이즈만 미도입 원형인
+ * 템플릿(예: `medic-mess` AUDIT+TIMING)이 조기 노출로 새는 구멍이 생긴다.
+ */
+function templateArchetypesUnlocked(day: number, minigame: Minigame | null | undefined): boolean {
+  if (!minigame) return true;
+  if (!archetypeUnlockedOn(day, minigame.type)) return false;
+  if (minigame.phase2 && !archetypeUnlockedOn(day, minigame.phase2)) return false;
+  return true;
+}
+
+/** 그날 도입된 원형만 남긴다 — 부족해도 채워 넣지 않는다(선택 폭이 줄어드는 것은 안전하다) */
+function filterArchetypesLenient<T extends { minigame?: Minigame }>(
+  templates: readonly T[],
+  day: number,
+): readonly T[] {
+  return templates.filter((t) => templateArchetypesUnlocked(day, t.minigame ?? null));
+}
+
+/**
+ * F-1 원형 게이트를 적용한 표본 추출 — **2단계**로 뽑는다.
+ *
+ * 1단계는 그날 도입된 원형(`filterArchetypesLenient`)에서만 뽑는다. 2단계는
+ * 1단계가 `count`를 못 채웠을 때만 나머지 원형에서 부족분을 채운다.
+ *
+ * 이 순서가 중요하다 — `orderedPicked`에서 필수 자리는 배열 앞쪽 `roleRequired`
+ * 개다(`generateDayQuests`). 1단계 결과를 배열 앞에 이어붙이므로, 1단계
+ * 표본 수가 `roleRequired` 이상이기만 하면 **필수 퀘스트는 항상 그날 도입된
+ * 원형 안에서만 나온다** — 2단계로 새는 것은 초과분(선택)뿐이다. 단순히 두
+ * 풀을 합쳐서 한 번에 뽑으면(예전 버전) 이 순서가 안 지켜져 필수 자리에도
+ * 미도입 원형이 무작위로 섞였다.
+ *
+ * 그래도 1단계만으로 `count`를 못 채우면(표본이 작은 보직 — comms가 특히
+ * 그렇다) 2단계가 채운다 — "필수 건수는 커리큘럼과 정확히 같다"는 불변식이
+ * 원형 다양화보다 우선이다.
+ */
+function sampleGated<T extends { minigame?: Minigame }>(
+  rng: RngState,
+  templates: readonly T[],
+  day: number,
+  count: number,
+): readonly [T[], RngState] {
+  const allowed = filterArchetypesLenient(templates, day);
+  const [primary, afterPrimary] = sample(rng, allowed, count);
+  if (primary.length >= count) return [primary, afterPrimary];
+
+  const allowedSet = new Set(allowed);
+  const rest = templates.filter((t) => !allowedSet.has(t));
+  const [extra, afterExtra] = sample(afterPrimary, rest, count - primary.length);
+  return [[...primary, ...extra], afterExtra];
+}
 
 /**
  * 합동 판 정의에서 `steps`·`asymmetric`을 떼어낸다.
@@ -104,8 +173,11 @@ export function generateDayQuests(state: RunState): readonly [Quest[], RngState]
   );
   rng = afterSize;
 
+  // F-1 — 공통 일과 풀도 원형 도입 일차를 탄다. 부족해도 채워 넣지 않는다
+  // (`filterArchetypesLenient`) — 공통 일과는 인당 최대 1건이라 풀이 줄어도
+  // "그날 못 나온다"로 끝날 뿐, 필수 불변식과는 무관하다
   const available = unlocked(state.day, UNLOCK.chores, state.elapsedRealMs)
-    ? choresFor(state.weather.band, plan)
+    ? filterArchetypesLenient(choresFor(state.weather.band, plan), state.day)
     : [];
   const [chosen, afterChores] = sample(rng, available, poolSize);
   rng = afterChores;
@@ -178,8 +250,11 @@ export function generateDayQuests(state: RunState): readonly [Quest[], RngState]
     // 이완 구간(20~39)에 빠지면 다음 날 선택 퀘스트가 늘어난다 (12.0)
     const roleTotal = Math.max(roleRequired, roleTotalRoll) + state.nextDayExtraOptional;
 
+    // F-1 — 원형 도입 일차로 후보를 좁힌다(`sampleGated`). 1단계 표본이
+    // `roleRequired`에 못 미치면 2단계가 채우지만, 채워도 필수 건수는
+    // 절대 못 채워지지 않는다 — 불변식이 원형 다양화보다 우선이다
     const templates = ROLE_POOL[member.role] ?? [];
-    const [picked, afterPick] = sample(rng, templates, roleTotal);
+    const [picked, afterPick] = sampleGated(rng, templates, state.day, roleTotal);
     rng = afterPick;
 
     // S5 — 같은 미니게임 원형이 연달아 배치되면 같은 판을 두 번 내리 하게 된다
@@ -340,7 +415,10 @@ export function rollSurprise(
   let rng = afterRoll;
   if (value / 10000 >= chance) return [null, rng];
 
-  const [template, afterPick] = sample(rng, SURPRISE_POOL, 1);
+  // F-1 — 돌발도 원형 도입 일차를 탄다. 돌발은 필수가 아니므로 부족하면
+  // 그냥 안 터지는 쪽으로 끝난다(top-up 없음) — `filterArchetypesLenient`
+  const pool = filterArchetypesLenient(SURPRISE_POOL, state.day);
+  const [template, afterPick] = sample(rng, pool, 1);
   rng = afterPick;
   const picked = template[0];
   if (!picked) return [null, rng];

@@ -511,8 +511,21 @@ export class Room {
     if (floor > this.seq) this.seq = floor;
   }
 
+  /**
+   * F-2 — 1~2인으로 시작한 방(튜토리얼·연습 경로)은 기록을 남기지 않는다.
+   *
+   * 로비 문구("1~2인 방은 튜토리얼 · 연습 용도이며 기록에 남지 않습니다",
+   * apps/web `lobby/page.tsx`)가 실제로 성립하려면 저장을 여기서 걸러야
+   * 한다 — `startedHumans`는 창설 시점에 실제로 자리에 앉았던 사람 수로
+   * 고정되고(`start()`) 이후 NPC 대리·후송으로 바뀌지 않으므로, "처음부터
+   * 적게 시작했는가"를 그대로 잰다(judge.ts `checkDisband`의 같은 값과
+   * 동일한 근거). `RoomStore.onFinished`가 `null`을 받으면 기록 저장을
+   * 건너뛴다(store.ts).
+   */
   summarize() {
-    return this.run ? summarizeRun(this.run) : null;
+    if (!this.run) return null;
+    if (this.run.startedHumans <= 2) return null;
+    return summarizeRun(this.run);
   }
 
   /** 유예를 넘긴 사람만 진짜 이탈로 처리한다 */

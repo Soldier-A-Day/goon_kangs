@@ -14,6 +14,23 @@
     "surpriseMaxChance": 0.4,
     "surpriseDisciplinePivot": 60
   },
+  "_archetypeIntroDayNote": "F-1(WORKORDER) 잔여. 미니게임 원형 14종이 아무 게이트 없이 첫날부터 전부 무작위로 뽑혀서, 초행 4인 세션도 D-1~D-2에 14종을 거의 다 구경하는 문제가 있었다(해금 실시간 게이트는 '시스템'을 늦출 뿐 '원형 다양성'은 안 봤다). 이 표는 그 원형이 언제부터 배정 후보에 들어가는지를 정한다 — 값은 그 원형이 등장하기 시작하는 일차다. 여기 없는 원형(RANDOM)은 14종에 안 들어가는 별도 소환이라 게이트가 없다. TRACE가 day1인 이유는 취향이 아니라 데이터다 — comms 보직 풀 7종 중 통신 계열 3종이 TRACE라, SCRUB·PLACE·AUDIT·BALANCE만 열면 comms 하루 표본이 2종(PLACE·AUDIT)뿐이라 곧바로 다음 원형으로 새 버린다. **필수 불변식이 항상 우선한다** — `quests.ts`의 `sampleGated`는 그날 도입분(1단계)이 그 칸의 필수 조달에 못 미칠 때만 2단계로 나머지 원형을 채우고, 채워도 초과분은 선택 자리로만 간다.",
+  "archetypeIntroDay": {
+    "SCRUB": 1,
+    "PLACE": 1,
+    "AUDIT": 1,
+    "BALANCE": 1,
+    "TRACE": 1,
+    "SORT": 3,
+    "TIMING": 3,
+    "HOLD": 3,
+    "MASH": 5,
+    "SEQ": 5,
+    "RHYTHM": 5,
+    "TRACK": 5,
+    "SEARCH": 5,
+    "REACT": 5
+  },
   "role": {
     "rifle": [
       {
