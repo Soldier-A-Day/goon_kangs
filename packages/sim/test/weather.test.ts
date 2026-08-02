@@ -86,7 +86,7 @@ describe("표 5-1 밴드", () => {
   });
 
   it("극혹한에만 보온 게이지가 붙는다", () => {
-    expect(bandRule("extremeCold").warmthGauge).toBe(true);
+    expect(bandRule("extremeCold").warmthGauge?.seconds).toBe(90);
     expect(bandRule("cold").warmthGauge).toBeUndefined();
   });
 });
@@ -114,12 +114,49 @@ describe("기온 롤", () => {
     expect(opposite / 400).toBeLessThan(0.1);
   });
 
-  it("D-10과 D-15는 계절의 극단으로 못 박힌다", () => {
-    for (const day of [10, 15]) {
-      const cold = weatherFor(day, day, "cold");
-      const hot = weatherFor(day, day, "hot");
-      expect(cold.band, `D-${day} 혹한기`).toBe("extremeCold");
-      expect(hot.band, `D-${day} 혹서기`).toBe("extremeHot");
+  it("D-15는 계절의 극단으로 못 박힌다", () => {
+    // 14.0 D-15 "혹한기 훈련 또는 혹서기 대비 훈련" — 갈래가 계절 둘뿐이라
+    // 시드와 무관하게 극단이다
+    for (let seed = 0; seed < 60; seed += 1) {
+      expect(weatherFor(seed, 15, "cold").band, `시드 ${seed} 혹한기`).toBe("extremeCold");
+      expect(weatherFor(seed, 15, "hot").band, `시드 ${seed} 혹서기`).toBe("extremeHot");
+    }
+  });
+
+  it("D-10은 폭우 · 한파 · 폭염 셋으로 갈린다", () => {
+    // 14.0 D-10 "기상 악화(폭우/한파/폭염)". 계절이 어느 둘을 무대에 올릴지
+    // 정한다 — 추운 계절에는 한파, 더운 계절에는 폭우 아니면 폭염.
+    // 영하에 쏟아지는 것은 비가 아니라 눈이고, 그건 한파 쪽이 이미 표현한다.
+    for (let seed = 0; seed < 120; seed += 1) {
+      const w = weatherFor(seed, 10, "cold");
+      expect(w.rain, `시드 ${seed} 추운 계절에 비`).toBe(false);
+      expect(w.band, `시드 ${seed}`).toBe("extremeCold");
+    }
+
+    let storms = 0;
+    let heat = 0;
+    for (let seed = 0; seed < 200; seed += 1) {
+      const w = weatherFor(seed, 10, "hot");
+      if (w.rain) {
+        storms += 1;
+        // 폭우는 폭염을 **깨뜨린다.** 악천후 둘을 한 날에 겹쳐 쌓지 않고,
+        // 대신 그날의 어려움이 더위에서 젖는 쪽으로 옮겨간다
+        expect(w.band, `시드 ${seed}`).not.toBe("extremeHot");
+      } else {
+        heat += 1;
+        expect(w.band, `시드 ${seed}`).toBe("extremeHot");
+      }
+    }
+    expect(storms, "폭우가 한 번도 안 나왔다").toBeGreaterThan(20);
+    expect(heat, "폭염이 한 번도 안 나왔다").toBeGreaterThan(20);
+  });
+
+  it("폭우는 D-10에만 온다 — 매일 오면 악천후가 아니다", () => {
+    for (let seed = 0; seed < 50; seed += 1) {
+      for (let day = 1; day <= 18; day += 1) {
+        if (day === 10) continue;
+        expect(weatherFor(seed, day, "cold").rain, `시드 ${seed} D-${day}`).toBe(false);
+      }
     }
   });
 

@@ -43,13 +43,15 @@ beforeAll(async () => {
 
 afterAll(() => server?.kill());
 
+// `response.json()`은 `unknown`을 준다 — 테스트에서 매번 좁히면 읽기만 나빠지므로
+// 여기서 한 번 푼다. 서버 응답 모양은 아래 단언들이 검사한다
 const post = async (path: string, body: unknown) => {
   const response = await fetch(`${BASE}${path}`, {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify(body),
   });
-  return { status: response.status, body: await response.json() };
+  return { status: response.status, body: (await response.json()) as any };
 };
 
 /** 다음 메시지를 기다린다. 조건에 맞는 것이 올 때까지 흘려보낸다 */
@@ -139,8 +141,10 @@ describe("와이어 프로토콜", () => {
 
   it("토큰 없이 열면 거절한다", async () => {
     const socket = new WebSocket(`ws://127.0.0.1:${PORT}/ws`);
-    await new Promise((resolve) => socket.once("open", resolve));
 
+    // `open`을 기다린 뒤에 리스너를 걸면 놓친다. 서버는 연결되자마자 거절
+    // 메시지를 보내고 곧바로 닫으므로, 그 사이에 리스너가 없으면 영영 못 받는다 —
+    // 간헐 실패의 원인이었다. 리스너를 먼저 건다
     const error = await nextMessage(socket, (m) => m.type === "error");
     expect(error.code).toBe("invalidToken");
     socket.close();
@@ -162,7 +166,7 @@ describe("와이어 프로토콜", () => {
       const from = me.zone;
 
       // 지금 있는 곳이 아닌 데로 보낸다
-      const to = from === "messHall" ? "storage" : "messHall";
+      const to = from === "Z07" ? "Z08" : "Z07";
       socket.send(JSON.stringify({ type: "move", to }));
 
       // 이동에는 시간이 걸린다(4.3 구역 그래프). 도착할 때까지 스냅샷을 본다.

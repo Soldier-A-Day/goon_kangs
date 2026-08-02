@@ -12,7 +12,7 @@ import { FULL_DAY, SECOND, beginDay, completeRequired, fullSquad, playDays } fro
 function dayStart(band: RunState["weather"]["band"] = "normal", day = 7): RunState {
   const state = beginDay(fullSquad());
   state.day = day;
-  state.weather = { band, feelsLike: 10, airTemp: 10, humidity: 50, windSpeed: 0 };
+  state.weather = { band, feelsLike: 10, airTemp: 10, humidity: 50, windSpeed: 0, rain: false };
   return state;
 }
 
@@ -196,7 +196,18 @@ describe("18일 컨디션 곡선", () => {
     expect(state.status).toBe("cleared");
   });
 
-  it("숙영 이틀(D-09~10)이 청결을 조건 D 근처까지 밀어붙인다", () => {
+  /**
+   * 회복이 자동에서 행동으로 바뀌면서(7.0 · quests.json care) 이 창을 다시 잡았다.
+   *
+   * 예전에는 개인정비 칸이 끝나면 청결 +45가 저절로 들어갔고, 숙영지에서도
+   * 똑같이 들어갔다. 지금은 숙영 중에 부대 세면장을 못 쓰므로 야전판 회복만
+   * 받는다(`CARE_BIVOUAC_RATIO`) — 숙영이 청결을 미는 압박은 그 차액이다.
+   *
+   * 상한을 50에서 60으로 늘렸다. 야전 회복량이 정수로 반올림되는 탓에 비율을
+   * 0.01만 움직여도 최저 청결이 19와 52 사이를 건너뛴다 — 50에 딱 맞추려면
+   * 그 계단 위에 테스트를 세워야 하고, 그건 밸런스가 아니라 반올림을 고정하는 것이다.
+   */
+  it("숙영 이틀(D-09~10)이 청결을 조건 D 쪽으로 밀어붙인다", () => {
     const before = playDays(fullSquad(), 8);
     const after = playDays(fullSquad(), 10);
 
@@ -204,7 +215,7 @@ describe("18일 컨디션 곡선", () => {
     const hygieneAfter = Math.min(...after.members.map((m) => m.stats.hygiene));
 
     expect(hygieneAfter).toBeLessThan(hygieneBefore);
-    expect(hygieneAfter).toBeLessThan(50);
+    expect(hygieneAfter).toBeLessThan(60);
     expect(hygieneAfter).toBeGreaterThan(20);
   });
 });

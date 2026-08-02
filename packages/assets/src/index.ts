@@ -18,7 +18,9 @@ export type AssetCategory =
   | "baseMap"
   | "trainingMap"
   | "prop"
-  | "equipment";
+  | "equipment"
+  /** 블록아웃이 아닌 실제 에셋. 예산이 §4의 블록아웃 기준과 다르다 */
+  | "furniture";
 
 export interface AssetEntry {
   readonly id: string;
@@ -32,7 +34,6 @@ export interface AssetEntry {
   readonly lodLevels?: number;
   readonly rig?: string;
   readonly slot?: string;
-  readonly zone?: string;
   readonly modules?: number;
   readonly bundleMb?: number;
   readonly curriculum?: string;

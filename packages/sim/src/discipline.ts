@@ -79,7 +79,10 @@ export function applyDailyDiscipline(state: RunState, effects: Effect[]): void {
     adjustDiscipline(state, GAINS.noInjuryDay.value);
   }
 
-  const optionalMissed = state.quests.some((q) => !q.required && q.kind !== "joint" && q.status !== "done");
+  // 회복 행동은 안 했다고 군기가 깎이지 않는다 — 몸으로 갚는다(7.0)
+  const optionalMissed = state.quests.some(
+    (q) => !q.required && q.kind !== "joint" && q.kind !== "care" && q.status !== "done",
+  );
   if (optionalMissed) {
     adjustDiscipline(state, LOSSES.optionalMissed.value);
   }

@@ -41,6 +41,8 @@ export interface Module {
   /** 이 모듈 하나의 형상 */
   readonly build: (detail: number) => Mesh;
   readonly placements: readonly Placement[];
+  /** 2D 투영용 형상 구분. 정점만 보고는 정사각 상자와 원기둥을 못 가른다 */
+  readonly shape: "box" | "cyl";
 }
 
 /** 배치된 모듈 하나. 씬에서 GameObject 하나가 된다 */
@@ -152,6 +154,7 @@ export function boxModule(
 ): Module {
   return {
     name,
+    shape: "box",
     placements: normalize(placements),
     build: (detail) => box(size, Math.max(1, Math.round(detail * detailScale))),
   };
@@ -166,6 +169,7 @@ export function cylinderModule(
 ): Module {
   return {
     name,
+    shape: "cyl",
     placements: normalize(placements),
     build: (detail) => cylinder(radius, height, Math.max(3, Math.round(detail * detailScale * 2))),
   };

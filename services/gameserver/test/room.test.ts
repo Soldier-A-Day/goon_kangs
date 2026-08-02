@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { phaseAt } from "@sad/sim";
 import type { ServerMessage, Snapshot } from "@sad/protocol";
 import { DISCONNECT_GRACE_MS, Room } from "../src/room.js";
 import { RoomStore, generateCode } from "../src/store.js";
@@ -110,11 +111,22 @@ describe("진행", () => {
     h.room.start();
     if (!h.room.run || !rifle) throw new Error("런 없음");
 
+    // 아무 퀘스트나 잡고 **그 구역으로 옮긴 뒤** 붙잡는다.
+    // 시작 구역에 있는 퀘스트를 찾던 예전 방식은 그날 배정 뽑기에 기대고 있어서,
+    // 퀘스트 풀이 늘자 시드에 따라 못 찾고 깨졌다
+    // **지금 시간대의** 일과여야 한다. 일과는 제 칸에서만 진척이 쌓이는데(4.0),
+    // 예전에는 아무 일과나 집어서 기상·점검 칸에 오후 일과를 붙잡고 있었다
+    const now = phaseAt(h.room.run.phaseIndex).id;
     const quest = h.room.run.quests.find(
-      (q) => q.ownerId === rifle && q.zone === h.room.run?.members[0]?.zone,
+      (q) => q.ownerId === rifle && q.phase === now,
     );
-    if (!quest) throw new Error("같은 구역 퀘스트 없음");
+    if (!quest) throw new Error(`${now} 칸의 소총수 일과 없음`);
 
+    // 걸어서 옮긴다. 인접 구역으로만 즉시 넘어가므로(`zones.ts`) 복도를
+    // 경유한다 — 생활관동의 방은 전부 복도(Z02)에서만 이어지고, 연병장으로
+    // 나가는 문도 복도에 있다. 연병장을 먼저 거치면 세면장으로 못 들어간다
+    h.room.handleIntent(rifle, { type: "move", to: "Z02", onFoot: true });
+    h.room.handleIntent(rifle, { type: "move", to: quest.zone, onFoot: true });
     h.room.handleIntent(rifle, { type: "interact", questId: quest.id, active: true });
     h.room.tick(5000);
 
@@ -132,7 +144,7 @@ describe("진행", () => {
     if (!quest) throw new Error("퀘스트 없음");
 
     h.room.handleIntent(rifle, { type: "interact", questId: quest.id, active: true });
-    h.room.handleIntent(rifle, { type: "move", to: "storage" });
+    h.room.handleIntent(rifle, { type: "move", to: "Z08" });
     h.room.tick(5000);
 
     expect(h.room.run.quests.find((q) => q.id === quest.id)?.workedMs).toBe(0);
@@ -187,7 +199,7 @@ describe("채널", () => {
     const [rifle, , medic] = ids;
     if (!rifle || !medic) throw new Error("분대원 없음");
 
-    h.room.handleIntent(medic, { type: "move", to: "infirmary" });
+    h.room.handleIntent(medic, { type: "move", to: "Z05" });
     h.room.tick(60_000);
     h.sent.length = 0;
 
@@ -207,7 +219,7 @@ describe("채널", () => {
     const [rifle, comms, medic] = ids;
     if (!rifle || !comms || !medic) throw new Error("분대원 없음");
 
-    h.room.handleIntent(medic, { type: "move", to: "infirmary" });
+    h.room.handleIntent(medic, { type: "move", to: "Z05" });
     h.room.tick(60_000);
     h.sent.length = 0;
 

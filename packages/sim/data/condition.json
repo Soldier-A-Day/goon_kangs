@@ -1,15 +1,28 @@
 {
   "_source": "SAD-GDD-001 7.0 컨디션 스탯 시스템 · 표 7-1 · COND-02",
   "_note": "체력·수분·피로의 시간대당 변화는 온도 밴드가 결정한다(표 5-1). 여기 있는 값은 밴드와 무관한 기본 소모(청결·포만감)와 회복량이다. 표 7-1은 회복 '수단'만 정하고 수치는 주지 않으므로 아래 값은 여기서 정의했으며 밸런싱 대상이다.",
-  "_recoveryNote": "phaseRecovery는 지금 자동으로 들어간다. 세면·샤워·배식이 개인정비 시간대의 퀘스트로 들어오면 이 자동 회복을 줄이고 행동으로 옮겨야 한다 — 그때가 청결이 진짜 선택이 되는 시점이다.",
+  "_recoveryNote": "phaseRecovery는 이제 **바닥값**이다. 회복의 큰 몫은 중식·개인정비 칸의 회복 행동(quests.json care)으로 옮겼다 — 배식대에 가서 먹고, 세면장에 가서 씻는다. 여기 남은 값은 '그 칸에 있기만 해도 이만큼은 된다'는 최소치이며, 안 움직이면 포만감·청결이 하루를 못 버틴다. 그게 12시·18시 칸이 존재하는 이유다.",
   "perPhaseDecay": {
     "hygiene": -6,
     "satiety": -8,
     "mental": -2
   },
   "phaseRecovery": {
-    "lunch": { "satiety": 45, "hydration": 25, "mental": 6 },
-    "personal": { "satiety": 45, "hygiene": 45, "mental": 6, "hydration": 15 }
+    "reveille": {
+      "hygiene": 5,
+      "hydration": 4
+    },
+    "lunch": {
+      "satiety": 10,
+      "hydration": 6,
+      "mental": 3
+    },
+    "personal": {
+      "satiety": 10,
+      "hygiene": 8,
+      "mental": 3,
+      "hydration": 4
+    }
   },
   "sleep": {
     "stamina": 35,

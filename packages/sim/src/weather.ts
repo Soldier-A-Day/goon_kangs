@@ -14,8 +14,12 @@ export interface BandRule {
   readonly duties: readonly string[];
   readonly requiredGear: readonly string[];
   readonly forbidden: readonly string[];
-  /** 극혹한 — 90초마다 열원 접촉이 필요한 보온 게이지 */
-  readonly warmthGauge?: boolean;
+  /** 극혹한 — 열원 접촉 주기와 미접촉 시 디버프 (5.0 · `warmth.ts`) */
+  readonly warmthGauge?: {
+    readonly seconds: number;
+    readonly moveSlowdown: number;
+    readonly workPenalty: number;
+  };
   readonly afternoonOutdoorToIndoor?: boolean;
   readonly mandatoryShadeRestSeconds?: number;
   readonly deferDaytimeOutdoorToNight?: boolean;
@@ -94,12 +98,29 @@ export function weatherFor(seed: number, day: number, season: Season): WeatherSt
     return makeWeather(12, 50, 0);
   }
 
+
+
   // 선택한 계절이 기준값을 결정하고, 반대편은 낮은 확률로만 등장한다
   let effective = season;
   if (climate === "roll") {
     const [flipped, next] = roll(rng, SEASONS._oppositeBandChance);
     rng = next;
     if (flipped) effective = season === "cold" ? "hot" : "cold";
+  }
+
+  // 14.0 D-10 "기상 악화(폭우/한파/폭염)" — 갈래가 **셋**이다.
+  //
+  // 예전에는 한파·폭염 둘뿐이었다. 계절이 그 둘을 갈랐으므로 폭우가 나올
+  // 자리가 없었고, D-10은 늘 "더 추운 날" 아니면 "더 더운 날"이었다.
+  //
+  // 폭우는 **더운 계절에만** 온다. 영하에 쏟아지는 것은 비가 아니라 눈이고,
+  // 눈은 이미 한파 쪽이 표현한다 — 처음에 계절을 안 가렸더니 −10℃에 비가
+  // 내리는 날이 나왔다.
+  let storm = false;
+  if (climate === "climateEvent" && effective === "hot") {
+    const [wet, next] = roll(rng, SEASONS._stormChance);
+    rng = next;
+    storm = wet;
   }
 
   const profile = effective === "cold" ? SEASONS.cold : SEASONS.hot;
@@ -112,8 +133,10 @@ export function weatherFor(seed: number, day: number, season: Season): WeatherSt
 
   let airTemp = profile.baseTemp + delta;
 
-  if (climate === "climateEvent" || climate === "bandBranch") {
-    // 기후가 콘텐츠를 결정하는 칸 — 계절의 극단으로 밀어붙인다
+  if ((climate === "climateEvent" && !storm) || climate === "bandBranch") {
+    // 기후가 콘텐츠를 결정하는 칸 — 계절의 극단으로 밀어붙인다.
+    // 폭우로 갈린 날은 예외다. 온도까지 극단으로 밀면 "폭우 + 한파"가 되어
+    // 한 날에 악천후 둘을 겹쳐 얹게 된다
     airTemp = effective === "cold" ? profile.baseTemp - variation : profile.baseTemp + variation;
   }
 
@@ -122,7 +145,11 @@ export function weatherFor(seed: number, day: number, season: Season): WeatherSt
   const limit =
     climate === "normalOrWarm" ? ([1, 30] as const) : undefined;
 
-  return makeWeather(airTemp, profile.humidity, wind, limit);
+  // 폭우는 기온을 **끌어내리고** 습도를 밀어 올린다. 규칙에 닿아야 악천후다 —
+  // 화면만 젖고 체감온도가 그대로면 비는 그냥 배경 애니메이션이 된다.
+  // 한여름 폭우가 폭염 밴드를 깨뜨리는 것이 이 갈래의 값어치다
+  if (storm) airTemp = profile.baseTemp - variation * 2;
+  return makeWeather(airTemp, storm ? 95 : profile.humidity, wind, limit, storm);
 }
 
 function makeWeather(
@@ -130,6 +157,7 @@ function makeWeather(
   humidity: number,
   windSpeed: number,
   feelsLimit?: readonly [number, number],
+  rain = false,
 ): WeatherState {
   let feels = feelsLike({ airTemp, humidity, windSpeed });
   let effectiveAirTemp = airTemp;
@@ -144,6 +172,7 @@ function makeWeather(
     airTemp: Math.round(effectiveAirTemp * 10) / 10,
     humidity,
     windSpeed,
+    rain,
   };
 }
 

@@ -85,7 +85,10 @@ export function createRun(options: CreateRunOptions): RunState {
       airTemp: 12,
       humidity: 50,
       windSpeed: 0,
+      rain: false,
     },
+    // 통신병이 자리에 있는 편성으로 시작한다. 첫 tick에서 실제 상태로 갱신된다
+    radio: "ok",
     members,
     quests: [],
 
@@ -107,6 +110,7 @@ export function createRun(options: CreateRunOptions): RunState {
     supplyPoints: SUPPLY_START,
     pendingClaim: [],
     hiddenUnlocked: [],
+    jointProxyMs: 0,
     judgements: [],
   };
 }
@@ -123,7 +127,7 @@ function makeMember(
     role,
     rank: "private",
     presence,
-    zone: "barracks",
+    zone: "Z01",   // 아침에 눈을 뜨는 곳은 생활관이다
     travelRemainingMs: 0,
     stats: initialStats(),
     serviceScore: 0,
@@ -131,6 +135,8 @@ function makeMember(
     vetoUsedToday: false,
     delegatedThisWindow: 0,
     collapseTimerMs: 0,
+    warmthRemainingMs: 0,
+    frostbitten: false,
     evacuations: 0,
     rehabDaysLeft: 0,
     inventory: [...STARTING_KIT],

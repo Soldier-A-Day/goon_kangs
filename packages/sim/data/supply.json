@@ -6,7 +6,15 @@
 
   "startingKit": {
     "_note": "입소 시 지급되는 기본 피복. 평시·한랭·온난 밴드의 필수 장비는 여기서 충족된다 — 극단 밴드(극혹한·혹서·극혹서)의 장비만 청구 대상이다. 이렇게 두지 않으면 D-03 이전에 극단 밴드가 뽑히는 순간 아무 대응 없이 조건 D가 깨진다.",
-    "items": ["combatUniform", "combatBoots", "thermalLiner", "gloves", "canteen"]
+    "items": ["combatUniform", "combatBoots", "thermalLiner", "gloves", "canteen"],
+    "_labelNote": "카탈로그 품목은 label을 제 안에 들고 있는데 기본 지급 피복은 청구 대상이 아니라 그럴 자리가 없었다. 그래서 화면마다 제각기 한글 이름을 들고 있었고, 유니티에는 아예 없어서 일과표에 `combatUniform`이 그대로 떴다.",
+    "labels": {
+      "combatUniform": "전투복",
+      "combatBoots": "전투화",
+      "thermalLiner": "방한 내피",
+      "gloves": "장갑",
+      "canteen": "수통"
+    }
   },
 
   "points": {

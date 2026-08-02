@@ -25,6 +25,26 @@ export function itemById(id: string): SupplyItem | undefined {
   return CATALOG.find((item) => item.id === id);
 }
 
+const KIT_LABELS = supplyTable.startingKit.labels as Record<string, string>;
+
+/**
+ * 품목 id → 한글 이름.
+ *
+ * 청구 품목은 카탈로그가, 기본 지급 피복은 `startingKit.labels`가 들고 있다.
+ * **화면이 직접 표를 들지 않는다** — 예전에는 웹이 제 표를 들고 유니티는 아무
+ * 표도 없어서, 일과표의 필수 장비 칸에 `combatUniform`이 그대로 떴다.
+ */
+export function itemLabel(id: string): string {
+  return itemById(id)?.label ?? KIT_LABELS[id] ?? id;
+}
+
+/** 아는 품목 전부. C# 생성기가 이 목록으로 표를 찍는다 */
+export function allItemLabels(): Record<string, string> {
+  const out: Record<string, string> = { ...KIT_LABELS };
+  for (const item of CATALOG) out[item.id] = item.label;
+  return out;
+}
+
 export function isSupplyDay(day: number): boolean {
   return SUPPLY_DAYS.includes(day);
 }

@@ -1,3 +1,4 @@
+import { readFile } from "node:fs/promises";
 import { describe, expect, it } from "vitest";
 import {
   ASSETS,
@@ -88,11 +89,19 @@ describe("sim과의 정합", () => {
     // 에셋에 없으면 그 규칙은 화면에서 일어나지 못한다.
     //
     // 방향은 assets → sim 이다. 규칙이 장소를 정하고 미술이 그것을 채운다.
+    //
+    // 보는 대상은 **실제로 나가는 2D 맵**이다. 예전에는 이 위 `baseMap` 예산표의
+    // `zone` 칸을 봤는데, 그건 3D 시절 삼각형 예산 기록이고 구역이 8개이던 때의
+    // 이름표였다. 구역이 방 단위로 쪼개진 뒤로 그 칸은 아무것도 가리키지 않는다.
     const { ZONES } = await import("@sad/sim");
-    const covered = new Set(
-      byCategory("baseMap").map((m) => m.zone).filter(Boolean),
-    );
+    const map = JSON.parse(
+      await readFile(
+        new URL("../../../unity/Assets/Art/2d/base_map.json", import.meta.url),
+        "utf8",
+      ),
+    ) as { zones: { id: string }[] };
 
+    const covered = new Set(map.zones.map((z) => z.id));
     const missing = ZONES.filter((zone) => !covered.has(zone));
     expect(missing, `맵이 없는 구역: ${missing.join(", ")}`).toEqual([]);
   });
