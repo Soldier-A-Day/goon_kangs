@@ -1121,6 +1121,7 @@ namespace SoldierADay.EditorTools
             view.font = AssetDatabase.LoadAssetAtPath<Font>("Assets/Fonts/SoldierKR.otf");
             if (view.font == null) Debug.LogWarning("[부대] 한글 폰트를 못 찾았다 — Assets/Fonts/SoldierKR.otf");
 
+            local.client = client;
             local.Bind(rig);
             // 시트 색인은 씬을 세울 때 붙는다. 보직은 스냅샷이 정하므로 기본 외형으로
             // 시작하고, 첫 스냅샷에서 `ZoneWorld`가 갈아입힌다

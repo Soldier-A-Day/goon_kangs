@@ -23,6 +23,9 @@ namespace SoldierADay.Net
         /// 옮기는 설계에서 §6.1의 동선 비용을 정한다. 느리면 부대가 넓기만 하고,
         /// 빠르면 이동이 비용이 아니게 된다.
         /// </summary>
+        [Tooltip("내 자리를 올릴 곳. 없으면 안 보낸다 — 표시용이라 없어도 게임은 돈다")]
+        public GameClient client;
+
         [Tooltip("걷는 속도(타일/초). PLAN 01 = 10")]
         public float speed = 10f;
 
@@ -91,6 +94,29 @@ namespace SoldierADay.Net
             if (Locked || Suspended || SideView) return;
             var pace = speed * (_running ? sprint : 1f);
             _body.MovePosition(_body.position + _input * (pace * Time.fixedDeltaTime));
+        }
+
+        /// <summary>내 자리를 서버로 올리는 주기(초). 스냅샷이 10Hz라 그보다 성기게 보낸다</summary>
+        private const float ReportEvery = 0.2f;
+        /// <summary>이만큼 안 움직였으면 안 보낸다 — 가만히 서 있는 사람이 5Hz로 떠들 이유가 없다</summary>
+        private const float ReportMoved = 0.15f;
+
+        private float _reportAt;
+        private Vector2 _reported = new Vector2(float.MinValue, float.MinValue);
+
+        private void LateUpdate()
+        {
+            if (client == null) return;
+
+            _reportAt -= Time.deltaTime;
+            if (_reportAt > 0f) return;
+            _reportAt = ReportEvery;
+
+            var at = (Vector2)transform.position;
+            if (Vector2.Distance(at, _reported) < ReportMoved) return;
+
+            _reported = at;
+            client.Position(at.x, at.y);
         }
     }
 }

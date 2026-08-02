@@ -17,10 +17,10 @@ describe("ARCH-02 — 단일 정의에서 C#을 생성한다", () => {
     }
   });
 
-  it("의도 13종의 판별자가 전부 상수로 남는다", () => {
+  it("의도 14종의 판별자가 전부 상수로 남는다", () => {
     const intent = schemas.Intent;
     const variants = intent?.anyOf ?? intent?.oneOf ?? [];
-    expect(variants.length).toBe(13);
+    expect(variants.length).toBe(14);
 
     for (const variant of variants) {
       const literal = variant.properties?.type?.const;

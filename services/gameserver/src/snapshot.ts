@@ -16,7 +16,12 @@ import type { ServerEvent, Snapshot } from "@sad/protocol";
  * 시드와 RNG 상태는 절대 나가지 않는다 — 나가면 기온 롤과 돌발을 미리 계산할 수 있다.
  * 퀘스트도 남은 ms가 아니라 진척 비율만 준다.
  */
-export function projectSnapshot(state: RunState, seq: number): Snapshot {
+export function projectSnapshot(
+  state: RunState,
+  seq: number,
+  /** 표시용 좌표 — 방이 들고 있다. 규칙은 이 값을 모른다 */
+  positions?: ReadonlyMap<string, { x: number; y: number }>,
+): Snapshot {
   const phase = phaseAt(state.phaseIndex);
   const last = state.judgements[state.judgements.length - 1];
 
@@ -80,6 +85,8 @@ export function projectSnapshot(state: RunState, seq: number): Snapshot {
       // 5.0 보온 게이지. 극혹한이 아니면 0이고 클라는 그때 이 UI를 띄우지 않는다
       warmthRemainingMs: Math.round(member.warmthRemainingMs),
       frostbitten: member.frostbitten,
+      x: positions?.get(member.id)?.x ?? 0,
+      y: positions?.get(member.id)?.y ?? 0,
     })),
     quests: state.quests.map((quest) => ({
       id: quest.id,

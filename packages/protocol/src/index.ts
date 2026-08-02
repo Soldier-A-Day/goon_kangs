@@ -178,6 +178,18 @@ export const intentSchema = z.discriminatedUnion("type", [
    * 물리적으로 막는 것이 이 퀘스트의 목적이다.
    */
   z.object({ type: z.literal("jointStep"), questId: z.string() }),
+  /**
+   * 지금 서 있는 자리.
+   *
+   * **판정에 쓰이지 않는다.** 서버는 이 값을 검증도 저장도 하지 않고 스냅샷에
+   * 그대로 되비추기만 한다 — 규칙이 보는 것은 여전히 `zone`뿐이다(`canWork`).
+   * 벽을 통과해 걸어도 서버는 모르지만, 엉뚱한 구역에서는 일과가 안 되므로
+   * 얻을 것이 없다.
+   *
+   * 이게 없으면 같은 방 안에서 남이 어디 있는지 알 수가 없다. 구역이 바뀔
+   * 때만 위치가 갱신되어, 방 안에서는 아무도 움직이지 않는 것으로 보인다.
+   */
+  z.object({ type: z.literal("position"), x: z.number(), y: z.number() }),
   z.object({ type: z.literal("quickCommand"), command: quickCommandSchema }),
   z.object({ type: z.literal("chat"), text: z.string().max(200) }),
   z.object({ type: z.literal("voteSkip"), value: z.boolean() }),
@@ -236,6 +248,17 @@ export const memberViewSchema = z.object({
   warmthRemainingMs: z.number(),
   /** 동상 디버프 — 이동 −30%, 작업 −20%. 의무병만 해제할 수 있다 */
   frostbitten: z.boolean(),
+  /**
+   * 월드 좌표 — **표시 전용이다.**
+   *
+   * 규칙은 이 값을 보지 않는다. sim에 두지 않은 이유가 그것이다 — 규칙 엔진이
+   * 화면 데이터를 들기 시작하면 헤드리스 시뮬이 좌표를 만들어내야 하고,
+   * 퀘스트 픽스처마다 의미 없는 x·y가 붙는다.
+   *
+   * 아직 한 번도 안 보낸 사람은 0이다. 클라는 그때 구역의 기본 자리에 세운다.
+   */
+  x: z.number(),
+  y: z.number(),
 });
 
 /* ---------------------------------------------------------------- 미니게임 */

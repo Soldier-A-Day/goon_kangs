@@ -31,6 +31,9 @@ namespace SoldierADay.Net
             public string role;
             public string rank;
             public Vector2 target;
+            /// <summary>지금 그려지고 있는 자리. 목표로 미끄러진다</summary>
+            public Vector2 at;
+            public bool placed;
         }
 
         private readonly Dictionary<string, Member> _members = new Dictionary<string, Member>();
@@ -79,13 +82,32 @@ namespace SoldierADay.Net
                 view.go.SetActive(canSee);
                 if (!canSee) continue;
 
+                // **자리는 서버가 준 좌표를 쓴다.**
+                //
+                // 예전에는 구역이 바뀔 때만 그 방의 기본 자리로 옮겼다. 그래서
+                // 같은 방 안에서는 아무도 안 움직이는 것으로 보였다 — 문 앞에
+                // 있는지 관물대 앞에 있는지가 화면에 없었다. 지금은 좌표가
+                // 스냅샷에 실려 온다(표시 전용이라 판정은 안 흔들린다).
+                //
+                // 아직 한 번도 안 보낸 사람은 0이다. 그때만 구역 기본 자리에 세운다
+                var reported = new Vector2((float)member.x, (float)member.y);
+                var known = reported.sqrMagnitude > 0.0001f;
+
                 if (view.zone != member.zone)
                 {
                     view.zone = member.zone;
-                    view.target = world != null
-                        ? world.StandPoint(member.zone, seen, total)
-                        : view.target;
-                    view.go.transform.position = view.target;
+                    if (!known && world != null) view.target = world.StandPoint(member.zone, seen, total);
+                    // 구역이 바뀌는 것은 순간이동이다 — 방을 가로질러 미끄러지면
+                    // 벽을 통과하는 것으로 보인다
+                    view.placed = false;
+                }
+
+                if (known) view.target = reported;
+
+                if (!view.placed)
+                {
+                    view.at = view.target;
+                    view.placed = true;
                 }
 
                 seen += 1;
@@ -96,10 +118,35 @@ namespace SoldierADay.Net
                     member.frostbitten,
                     member.stats != null &&
                     (member.stats.fatigue >= 90d || member.stats.hydration <= 30d));
-                view.rig.Step(Vector2.zero);
             }
 
             Sweep(snapshot);
+        }
+
+        /// <summary>
+        /// 스냅샷 사이를 잇는다.
+        ///
+        /// 스냅샷은 10Hz라 그대로 찍으면 남의 캐릭터가 초당 열 번 순간이동한다.
+        /// **보간은 표시 계층의 몫**이고 판정에는 영향을 주지 않는다 —
+        /// 서버가 준 좌표가 목표이고, 여기서는 거기까지 미끄러질 뿐이다.
+        /// </summary>
+        private void Update()
+        {
+            foreach (var pair in _members)
+            {
+                var view = pair.Value;
+                if (view.go == null || !view.go.activeSelf || !view.placed) continue;
+
+                var before = view.at;
+                // 10Hz 간격(0.1초)을 조금 넘겨 잡는다. 딱 맞추면 매번 도착해서
+                // 다시 튀고, 너무 느리면 남이 계속 뒤처져 보인다
+                view.at = Vector2.Lerp(view.at, view.target, 1f - Mathf.Exp(-14f * Time.deltaTime));
+                view.go.transform.position = view.at;
+
+                // 걷는 것으로 보이게 — 다리가 안 움직이면 미끄러지는 것으로 읽힌다
+                var velocity = (view.at - before) / Mathf.Max(0.0001f, Time.deltaTime);
+                view.rig?.Step(velocity, velocity.magnitude > 6f);
+            }
         }
 
         private static int CountOthers(Snapshot snapshot)

@@ -802,6 +802,7 @@ namespace SoldierADay.Protocol
         public const string Interact = "interact";
         public const string QuestCleared = "questCleared";
         public const string JointStep = "jointStep";
+        public const string Position = "position";
         public const string QuickCommand = "quickCommand";
         public const string Chat = "chat";
         public const string VoteSkip = "voteSkip";
@@ -950,6 +951,8 @@ namespace SoldierADay.Protocol
         public bool onGuardTonight;
         public double warmthRemainingMs;
         public bool frostbitten;
+        public double x;
+        public double y;
     }
 
     [Serializable]
@@ -1284,6 +1287,8 @@ namespace SoldierADay.Protocol
         public bool onGuardTonight;
         public double warmthRemainingMs;
         public bool frostbitten;
+        public double x;
+        public double y;
     }
 
     [Serializable]
@@ -1537,6 +1542,10 @@ namespace SoldierADay.Protocol
         public bool active;
         // 선택적 — variant에 따라 없을 수 있다
         public string grade;
+        // 선택적 — variant에 따라 없을 수 있다
+        public double x;
+        // 선택적 — variant에 따라 없을 수 있다
+        public double y;
         // 선택적 — variant에 따라 없을 수 있다
         public string command;
         // 선택적 — variant에 따라 없을 수 있다

@@ -114,6 +114,19 @@ namespace SoldierADay.Net
             Send(new Intent { type = IntentTypeValues.JointStep, questId = questId });
         }
 
+        /// <summary>
+        /// 지금 서 있는 자리.
+        ///
+        /// **판정에 안 쓰인다.** 서버는 검증 없이 스냅샷에 되비추기만 하고,
+        /// 규칙이 보는 것은 여전히 구역뿐이다. 이게 없으면 같은 방 안에서
+        /// 남이 어디 있는지 알 수가 없다 — 구역이 바뀔 때만 갱신되어
+        /// 방 안에서는 아무도 안 움직이는 것으로 보인다.
+        /// </summary>
+        public void Position(float x, float y)
+        {
+            Send(new Intent { type = IntentTypeValues.Position, x = x, y = y });
+        }
+
         public void QuickCommand(string command)
         {
             Send(new Intent { type = IntentTypeValues.QuickCommand, command = command });

@@ -59,6 +59,14 @@ export class Room {
   private pendingEvents: ServerEvent[] = [];
   /** 지금 붙잡고 있는 퀘스트 — 진척은 서버가 센다 */
   private readonly working = new Map<string, string>();
+  /**
+   * 표시용 좌표. **검증하지 않고 되비추기만 한다.**
+   *
+   * 규칙이 보는 것은 `zone`뿐이라(`canWork`) 이 값이 틀려도 판정은 안 흔들린다.
+   * sim에 두지 않은 이유가 그것이다 — 규칙 엔진에 화면 데이터를 넣으면
+   * 헤드리스 시뮬이 좌표를 만들어내야 한다.
+   */
+  private readonly positions = new Map<string, { x: number; y: number }>();
   private readonly skipVotes = new Set<string>();
   /** 끊겼지만 아직 유예 중인 사람 → 남은 유예 ms */
   private readonly graceLeft = new Map<string, number>();
@@ -287,6 +295,10 @@ export class Room {
         this.voteLeader(memberId, intent.candidateId);
         break;
 
+      case "position":
+        this.positions.set(memberId, { x: intent.x, y: intent.y });
+        break;
+
       case "quickCommand":
         this.pendingEvents.push({
           type: "quickCommand",
@@ -330,7 +342,7 @@ export class Room {
 
     if (this.run) {
       this.apply({ type: "rejoinRun", memberId });
-      this.sendTo(memberId, projectSnapshot(this.run, ++this.seq));
+      this.sendTo(memberId, projectSnapshot(this.run, ++this.seq, this.positions));
     } else {
       this.broadcastLobby();
     }
@@ -459,7 +471,7 @@ export class Room {
   broadcastSnapshot(force = false): void {
     if (!this.run) return;
     if (!force && !this.started) return;
-    this.broadcast(projectSnapshot(this.run, ++this.seq));
+    this.broadcast(projectSnapshot(this.run, ++this.seq, this.positions));
   }
 
   broadcastLobby(): void {
