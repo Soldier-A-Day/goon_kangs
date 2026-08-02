@@ -423,9 +423,20 @@ def _color(key: str) -> tuple:
     return P.W[key]
 
 
-def render(parts: list[tuple], pose: dict, swap: dict[str, str] | None = None) -> Image.Image:
+#: 발밑 그림자 (D-1) — 캐릭터 조립 최하위 레이어(`body`, CharacterRig sortingOrder
+#: 0)에 굽는다. 8레이어가 각각 별도 시트라 파이썬에서 하나로 합칠 수 없고,
+#: Unity `CharacterRig.Layers` 배열(스크립트 — 다른 에이전트 소관)에 새 레이어를
+#: 추가하지 않고도 그림자가 항상 최하위에 깔리게 하는 방법이 이것뿐이다.
+#: 반투명 금지 원칙대로 팔레트의 어두운 단색(`night1`)으로 찍는다.
+_SHADOW_CX, _SHADOW_CY, _SHADOW_RX, _SHADOW_RY = CELL_W / 2, CELL_H - 2, 7, 2
+
+
+def render(parts: list[tuple], pose: dict, swap: dict[str, str] | None = None,
+           shadow: bool = False) -> Image.Image:
     """파츠 목록 + 포즈 → 32×48 한 프레임."""
     img = PX.blank(CELL_W, CELL_H)
+    if shadow:
+        PX.ellipse(img, _SHADOW_CX, _SHADOW_CY, _SHADOW_RX, _SHADOW_RY, P.W["night1"])
     for x, y, w, h, key, group in parts:
         if swap and key in swap:
             key = swap[key]
@@ -487,9 +498,14 @@ def build_layer(layer: str, variant: str, role: str = "rifle", rank: str = "priv
             else:
                 parts = PARTS[direction][layer]
 
+            # `body`가 최하위 레이어(sortingOrder 0)다 — 그림자를 여기 굽으면
+            # `legs`(발) 등 위 레이어가 자동으로 그 위에 그려진다. 누운 자세는
+            # 발밑 개념이 없어 제외한다(`source`가 DOWN_PARTS일 때)
+            want_shadow = layer == "body" and source is None
+
             frames = []
             for i, pose in enumerate(spec["poses"]):
-                frame = render(parts, pose, swap)
+                frame = render(parts, pose, swap, shadow=want_shadow)
                 if spec.get("fade"):
                     # collapse — 서 있던 사람이 사라지고 누운 사람이 남는다.
                     # 중간 프레임을 알파로 넘긴다. §3.3대로 고통 묘사는 넣지 않는다

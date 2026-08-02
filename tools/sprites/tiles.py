@@ -89,17 +89,56 @@ def snow_cover(level: int) -> Image.Image:
     return img
 
 
-def floor(kind: str) -> Image.Image:
+#: 변형을 굽는 바닥 종류 → 몇 종 (D-2 "반복 깨기").
+#:
+#: 같은 32×32 비트맵이 타일맵에 그대로 반복되면 얼룩을 아무리 넣어도 소용없다
+#: — 타일 경계마다 무늬가 정확히 반복돼 오히려 벽지처럼 보인다(BENCHMARK §3
+#: "콘크리트가 화면에서 제일 넓은 면적이 제일 납작하다"). `basemap.py`가
+#: `floor_variant()`로 좌표 해시에 따라 0/1/2를 섞어 깔아 그 반복을 깬다.
+FLOOR_VARIANTS = {"concrete": 3, "concreteLight": 3, "drill": 3}
+
+
+def floor_variant(kind: str, x: int, y: int) -> str:
+    """
+    좌표 해시로 바닥 variant kind 문자열을 고른다. `basemap.py`가 칸을 채울 때 쓴다.
+
+    `random`이 아니라 `_hash()`를 쓴다 — 다시 굽어도 같은 좌표는 같은 변형을
+    고른다(diff 안정성, 이 파일 머리말 원칙).
+    """
+    n = FLOOR_VARIANTS.get(kind)
+    if not n:
+        return kind
+    salt = sum(map(ord, kind))
+    i = _hash(x, y, salt) % n
+    return kind if i == 0 else f"{kind}{i + 1}"
+
+
+def floor(kind: str, variant: int = 0) -> Image.Image:
     base, dark, pattern = FLOORS[kind]
     img = PX.blank(TILE, TILE)
     PX.rect(img, 0, 0, TILE - 1, TILE - 1, P.W[base])
     px = img.load()
     d = P.W[dark]
+    salt = variant * 4111  # variant마다 다른 결정적 시드 — `random` 아님
 
     if pattern == "slab":
-        # 콘크리트 슬래브 — 이음매 십자
-        PX.rect(img, 0, 0, TILE - 1, 0, d)
-        PX.rect(img, 0, 0, 0, TILE - 1, d)
+        # 콘크리트 슬래브 — 이음매(variant마다 다른 자국) + 얼룩 6%(D-2,
+        # BENCHMARK §3 "화면에서 제일 넓은 면적이 제일 납작하다"). 얼룩만으론
+        # 반복을 못 깨서(비트맵 자체가 반복되므로) 이음매 모양도 variant별로
+        # 바꾼다 — 타일 경계에서 무늬가 안 이어져야 반복이 안 보인다
+        if variant % 3 == 0:
+            PX.rect(img, 0, 0, TILE - 1, 0, d)
+            PX.rect(img, 0, 0, 0, TILE - 1, d)
+        elif variant % 3 == 1:
+            PX.rect(img, 0, 0, TILE - 1, 0, d)
+            for i in range(TILE):
+                PX.rect(img, i, i, i, i, d)          # 대각 균열
+        else:
+            PX.ellipse(img, TILE * 0.7, TILE * 0.7, 7, 4, d)   # 얼룩 자국
+        for y in range(TILE):
+            for x in range(TILE):
+                if _hash(x, y, 53 + salt) % 100 < 6:
+                    px[x, y] = d + (255,)
     elif pattern == "grid4":
         # 실내 타일 — 16px 격자. 8px로 촘촘히 그으면 방 전체가 그물처럼 읽히고,
         # 그 위에 놓인 소품이 무늬에 묻힌다(§3.2 실루엣 우선)
@@ -116,7 +155,7 @@ def floor(kind: str) -> Image.Image:
     elif pattern == "speck":
         for y in range(TILE):
             for x in range(TILE):
-                if _hash(x, y) % 23 == 0:
+                if _hash(x, y, salt) % 23 == 0:
                     px[x, y] = d + (255,)
     elif pattern == "lane":
         # 아스팔트에 차선. 흙과 색만 다르면 "조금 어두운 흙"으로 읽히는데,
@@ -128,7 +167,7 @@ def floor(kind: str) -> Image.Image:
         # 잔디 — 세로 2px 날. 얼룩보다 풀로 읽힌다
         for y in range(TILE):
             for x in range(TILE):
-                if _hash(x, y, 7) % 11 == 0:
+                if _hash(x, y, 7 + salt) % 11 == 0:
                     PX.rect(img, x, y, x, min(TILE - 1, y + 1), d)
 
     return img
@@ -190,13 +229,39 @@ def wall(kind: str, mask: int) -> Image.Image:
 # 크기는 타일 단위이며, 상호작용 지점의 이름이 곧 이 키다(ZoneMap이 이름으로 찾는다).
 
 def _box(w: int, h: int, body: str, top: str, line: str) -> Image.Image:
+    """
+    소품 상자 프리미티브. 소품 90여 종이 이 함수를 공유한다(BENCHMARK §3).
+
+    이전엔 상변만 밝고 좌/우/하변이 전부 `line`이라 광원이 위 한쪽에서만
+    오는 것처럼 보였다. 좌상 하이라이트 + 우하 그림자로 통일한다 — 색은
+    `body`의 팔레트 계열 이웃에서 `palette.neighbor()`로 뽑아(D-1 §3) 105종이
+    같은 색 이동 규칙(`ramp()`이 이미 그 계열에 심어둔 한랭/온난 이동) 아래
+    놓이게 한다. **새 색을 계산하지 않고** 등록된 팔레트 안에서만 고르는
+    이유는 §4.3 온도 밴드 그레이딩이 팔레트를 통째로 밀어내는 방식이라,
+    새로 계산한 색은 날씨가 바뀌어도 그레이딩을 안 타기 때문이다.
+
+    `top`/`line`은 호출부가 소재별로 골라준 값인데, 실루엣마다 제각각이라
+    광원 방향을 통일하는 목적과는 안 맞아 여기서는 더 안 쓴다 — 시그니처는
+    90여 개 호출부를 건드리지 않으려고 그대로 둔다.
+
+    그림자는 직선 밴드 대신 밑변에 걸친 타원으로 찍는다(D-1 §1 "발밑
+    그림자"와 같은 프리미티브) — 각진 경계는 조명이 아니라 재질 경계로
+    읽히고, 타원은 "물건이 바닥을 누르는" 인상을 준다.
+    """
+    del top, line
     img = PX.blank(w * TILE, h * TILE)
-    H = h * TILE
-    PX.rect(img, 0, 0, w * TILE - 1, H - 1, P.W[body])
-    PX.rect(img, 0, 0, w * TILE - 1, 5, P.W[top])
-    PX.rect(img, 0, H - 3, w * TILE - 1, H - 1, P.W[line])
-    PX.rect(img, 0, 0, 0, H - 1, P.W[line])
-    PX.rect(img, w * TILE - 1, 0, w * TILE - 1, H - 1, P.W[line])
+    W_, H_ = w * TILE, h * TILE
+    body_c = P.W[body]
+    hi = P.neighbor(body, 1)
+    lo = P.neighbor(body, -1)
+
+    PX.rect(img, 0, 0, W_ - 1, H_ - 1, body_c)
+    # 좌상 하이라이트 — 위쪽 6px + 왼쪽 1px
+    PX.rect(img, 0, 0, W_ - 1, 5, hi)
+    PX.rect(img, 0, 0, 0, H_ - 1, hi)
+    # 우하 그림자 — 밑변 타원(발밑 그림자 원리) + 오른쪽 1px
+    PX.ellipse(img, W_ / 2, H_ - 1, W_ * 0.46, 5, lo)
+    PX.rect(img, W_ - 1, 0, W_ - 1, H_ - 1, lo)
     return img
 
 
@@ -830,6 +895,13 @@ def generate(out_dir: str) -> dict:
     for kind in FLOORS:
         floor(kind).save(os.path.join(tiles_dir, f"floor_{kind}.png"))
         index["floors"].append({"kind": kind, "file": f"tiles/floor_{kind}.png"})
+        # D-2 반복 깨기 — 이 바닥이 variant를 갖는다면 나머지도 구워 등록한다.
+        # kind 이름 그대로("concrete") + 접미 번호("concrete2","concrete3")로
+        # 나가고, `basemap.py`의 `floor_variant()`가 좌표 해시로 섞어 고른다
+        for v in range(1, FLOOR_VARIANTS.get(kind, 1)):
+            vkind = f"{kind}{v + 1}"
+            floor(kind, variant=v).save(os.path.join(tiles_dir, f"floor_{vkind}.png"))
+            index["floors"].append({"kind": vkind, "file": f"tiles/floor_{vkind}.png"})
 
     # §6.3 `TS_Snow` 오버레이
     index["snow"] = []

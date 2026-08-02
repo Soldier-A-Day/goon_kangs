@@ -283,9 +283,28 @@ class Grid:
                 if 0 <= x < self.w and 0 <= y < self.h:
                     self.cells[(x, y)] = value
 
+    def fill_floor(self, x0: int, y0: int, w: int, h: int, kind: str) -> None:
+        """
+        바닥 전용 채우기 — 칸마다 좌표 해시로 variant를 고른다 (D-2 반복 깨기).
+
+        `fill()`로 사각형을 통째로 같은 문자열로 채우면 Unity 타일맵에 같은
+        32×32 비트맵이 그대로 반복돼 복사기로 찍은 것처럼 보인다
+        (BENCHMARK §3). variant가 없는 종류(`kind`가 `tiles.FLOOR_VARIANTS`에
+        없음)는 `T.floor_variant()`가 그대로 돌려주므로 `fill()`과 동작이
+        같다 — 안전하게 모든 바닥 채우기에 대신 쓸 수 있다.
+        """
+        for y in range(y0, y0 + h):
+            for x in range(x0, x0 + w):
+                if 0 <= x < self.w and 0 <= y < self.h:
+                    self.cells[(x, y)] = f"floor:{T.floor_variant(kind, x, y)}"
+
     def set(self, x: int, y: int, value: str) -> None:
         if 0 <= x < self.w and 0 <= y < self.h:
             self.cells[(x, y)] = value
+
+    def set_floor(self, x: int, y: int, kind: str) -> None:
+        """`fill_floor()`의 칸 하나짜리 버전 — 문지방·복도 이음매처럼 낱개로 깔 때"""
+        self.set(x, y, f"floor:{T.floor_variant(kind, x, y)}")
 
     def get(self, x: int, y: int) -> str | None:
         return self.cells.get((x, y))
@@ -369,7 +388,7 @@ def build() -> dict:
     walls = Grid(WIDTH, HEIGHT)
 
     # 바탕 — 부대 안은 전부 흙이고 그 위에 건물과 도로가 얹힌다
-    ground.fill(0, 0, WIDTH, HEIGHT, "floor:dirt")
+    ground.fill_floor(0, 0, WIDTH, HEIGHT, "dirt")
 
     zones: list[dict] = []
     props: list[dict] = []
@@ -706,15 +725,15 @@ def _building(b: dict, ground: Grid, walls: Grid,
     출입구는 **복도의 끝**에 낸다. 복도가 동을 가로지르므로 서·동 끝에 문을
     내면 바로 이어지고, 남쪽 벽에 내면 그 사이에 있는 방을 관통해야 한다.
     """
-    ground.fill(b["x"], b["y"], b["w"], b["h"], "floor:concreteLight")
+    ground.fill_floor(b["x"], b["y"], b["w"], b["h"], "concreteLight")
     walls.fill(b["x"], b["y"], b["w"], b["h"], f"wall:{b['wall']}")
 
-    def carve(rect: dict, floor: str) -> None:
+    def carve(rect: dict, floor_kind: str) -> None:
         """벽을 파내 방(또는 복도) 안쪽을 만든다. 둘레 한 겹은 벽으로 남긴다"""
         for y in range(rect["y"] + 1, rect["y"] + rect["h"] - 1):
             for x in range(rect["x"] + 1, rect["x"] + rect["w"] - 1):
                 walls.clear(x, y)
-                ground.set(x, y, floor)
+                ground.set_floor(x, y, floor_kind)
 
     corridor_rect = None
     if b["corridor"] is not None:
@@ -724,7 +743,7 @@ def _building(b: dict, ground: Grid, walls: Grid,
         for y in range(cy, cy + CORRIDOR):
             for x in range(b["x"] + 1, b["x"] + b["w"] - 1):
                 walls.clear(x, y)
-                ground.set(x, y, "floor:concreteLight")
+                ground.set_floor(x, y, "concreteLight")
 
         # 복도도 **동 외벽까지 닿는다.** 안쪽으로 한 칸 들여놓으면 그 자리가
         # 또 벽이 되어 동 안에 벽이 겹겹이 생긴다
@@ -739,12 +758,12 @@ def _building(b: dict, ground: Grid, walls: Grid,
         props.extend(_place_props(corridor_zone))
 
     for r in b["rooms"]:
-        carve(r, f"floor:{r['floor']}")
+        carve(r, r["floor"])
 
         span = door_span(r, r["door"])
         for (dx, dy) in span:
             walls.clear(dx, dy)
-            ground.set(dx, dy, "floor:concreteLight")
+            ground.set_floor(dx, dy, "concreteLight")
 
         ox, oy = _outward(r["door"])
         head = span[0]
@@ -773,7 +792,7 @@ def _building(b: dict, ground: Grid, walls: Grid,
         wall_x = b["x"] if side == "west" else b["x"] + b["w"] - 1
         for y in range(cy, cy + CORRIDOR):
             walls.clear(wall_x, y)
-            ground.set(wall_x, y, "floor:concreteLight")
+            ground.set_floor(wall_x, y, "concreteLight")
 
         ox = -1 if side == "west" else 1
         doors.append({
@@ -789,7 +808,7 @@ def _building(b: dict, ground: Grid, walls: Grid,
         # 어디가 입구인지 밖에서 안 보인다
         for i in range(1, 3):
             for y in range(cy, cy + CORRIDOR):
-                ground.set(wall_x + ox * i, y, "floor:concrete")
+                ground.set_floor(wall_x + ox * i, y, "concrete")
 
 
 def _training(ground: Grid, walls: Grid, zones: list[dict], props: list[dict]) -> None:
@@ -800,14 +819,14 @@ def _training(ground: Grid, walls: Grid, zones: list[dict], props: list[dict]) -
     둘 수 없고, `train_maps.json`의 `lanes`로 따로 나가 전용 무대가 그린다.
     """
     for spec in TR.build()["topdown"]:
-        ground.fill(spec["x"], spec["y"], spec["w"], spec["h"], f"floor:{spec['floor']}")
+        ground.fill_floor(spec["x"], spec["y"], spec["w"], spec["h"], spec["floor"])
         walls.outline(spec["x"], spec["y"], spec["w"], spec["h"], f"wall:{spec['wall']}")
 
         # 남쪽 가운데를 연다 — 부대에서 걸어 들어가는 입구
         rect = dict(x=spec["x"], y=spec["y"], w=spec["w"], h=spec["h"])
         for (dx, dy) in door_span(rect, "south"):
             walls.clear(dx, dy)
-            ground.set(dx, dy, "floor:concrete")
+            ground.set_floor(dx, dy, "concrete")
 
         zones.append(_zone_entry(spec, indoor=False, kind="outdoor"))
         props.extend(_place_props(spec))
@@ -831,12 +850,12 @@ def _lanes(ground: Grid, walls: Grid, zones: list[dict], props: list[dict]) -> N
         w, h = lane["w"], lane["h"]
 
         # 하늘 — 밟을 수 없다는 것이 색으로 보여야 한다
-        ground.fill(x0, y0, w, h, f"floor:{lane['sky']}")
+        ground.fill_floor(x0, y0, w, h, lane["sky"])
 
         for column, height in enumerate(lane["ground"]):
             top = y0 + h - height
             for y in range(top, y0 + h):
-                ground.set(x0 + column, y, f"floor:{lane['floor']}")
+                ground.set_floor(x0 + column, y, lane["floor"])
 
         for obstacle in lane["obstacles"]:
             column = obstacle["x"]
@@ -882,8 +901,8 @@ def _connect_boiler_to_washroom(ground: Grid, walls: Grid, doors: list[dict]) ->
     for (bx, by) in span:
         walls.clear(bx, by)
         walls.clear(washroom_wall_x, by)
-        ground.set(bx, by, "floor:concreteLight")
-        ground.set(washroom_wall_x, by, "floor:concreteLight")
+        ground.set_floor(bx, by, "concreteLight")
+        ground.set_floor(washroom_wall_x, by, "concreteLight")
 
     # 세면장에서 볼 때와 보일러실에서 볼 때 할 말이 다르다 — 동 출입구가
     # `name`(밖에서 볼 때) · `exitLabel`(안에서 볼 때)을 나누는 것과 같은 규칙.
@@ -898,7 +917,7 @@ def _connect_boiler_to_washroom(ground: Grid, walls: Grid, doors: list[dict]) ->
 
 def _outdoor(ground: Grid, walls: Grid, zones: list[dict], props: list[dict]) -> None:
     for o in OUTDOOR:
-        ground.fill(o["x"], o["y"], o["w"], o["h"], f"floor:{o['floor']}")
+        ground.fill_floor(o["x"], o["y"], o["w"], o["h"], o["floor"])
 
         if o.get("walled"):
             # 벽만 두른다. 문은 여기서 내지 않는다 — 예전에는 동쪽 벽에 틈만
@@ -922,16 +941,16 @@ def _outdoor(ground: Grid, walls: Grid, zones: list[dict], props: list[dict]) ->
                 for i in range(gap):
                     if side == "north":
                         walls.clear(cx + i, rect["y"])
-                        ground.set(cx + i, rect["y"], "floor:concrete")
+                        ground.set_floor(cx + i, rect["y"], "concrete")
                     elif side == "south":
                         walls.clear(cx + i, rect["y"] + rect["h"] - 1)
-                        ground.set(cx + i, rect["y"] + rect["h"] - 1, "floor:concrete")
+                        ground.set_floor(cx + i, rect["y"] + rect["h"] - 1, "concrete")
                     elif side == "east":
                         walls.clear(rect["x"] + rect["w"] - 1, cy + i)
-                        ground.set(rect["x"] + rect["w"] - 1, cy + i, "floor:concrete")
+                        ground.set_floor(rect["x"] + rect["w"] - 1, cy + i, "concrete")
                     else:
                         walls.clear(rect["x"], cy + i)
-                        ground.set(rect["x"], cy + i, "floor:concrete")
+                        ground.set_floor(rect["x"], cy + i, "concrete")
 
             open_fence(1)
             if o.get("double"):
