@@ -15,6 +15,37 @@ export default function RoomPage() {
   const [session, setSession] = useState<Session | null>(null);
   const [lobby, setLobby] = useState<LobbyState | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+  const [canShare, setCanShare] = useState(false);
+
+  useEffect(() => {
+    setCanShare(typeof navigator !== "undefined" && "share" in navigator);
+  }, []);
+
+  const inviteUrl =
+    typeof window !== "undefined" ? `${window.location.origin}/join/${code}` : "";
+
+  async function copyInvite() {
+    try {
+      await navigator.clipboard.writeText(inviteUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setError("클립보드 복사에 실패했다. 링크를 직접 선택해 복사하라.");
+    }
+  }
+
+  async function shareInvite() {
+    try {
+      await navigator.share({
+        title: "SOLDIER : A DAY",
+        text: `${code} 코드로 분대에 합류하라`,
+        url: inviteUrl,
+      });
+    } catch {
+      // 사용자가 공유를 취소한 경우도 여기로 온다 — 조용히 무시한다
+    }
+  }
 
   useEffect(() => {
     const stored = loadSession();
@@ -62,6 +93,26 @@ export default function RoomPage() {
           </p>
         </div>
       </header>
+
+      <div className="flex flex-wrap items-center gap-3 border border-rule bg-paper-3 px-5 py-4">
+        <span className="flex-1 truncate font-mono text-sm text-ink-2">{inviteUrl}</span>
+        <button
+          type="button"
+          onClick={copyInvite}
+          className="border-2 border-ink bg-ink px-5 py-2.5 text-sm font-bold text-paper transition-opacity hover:opacity-80"
+        >
+          {copied ? "복사됨" : "초대 링크 복사"}
+        </button>
+        {canShare && (
+          <button
+            type="button"
+            onClick={shareInvite}
+            className="border-2 border-accent px-5 py-2.5 text-sm font-bold text-accent transition-opacity hover:opacity-80"
+          >
+            공유
+          </button>
+        )}
+      </div>
 
       <ul className="grid gap-px border border-rule bg-rule">
         {(lobby?.seats ?? []).map((seat) => {
