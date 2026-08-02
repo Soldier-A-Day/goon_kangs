@@ -27,6 +27,15 @@ namespace SoldierADay.Net
         private float _need;
         private bool _phase2;
 
+        /// <summary>
+        /// 처음 잡기 전에는 계기가 흐르지 않는다.
+        ///
+        /// 바늘이 0에서 시작하는데 안전 범위는 위쪽이라, 열리자마자 세면
+        /// 지시문을 읽는 동안 이탈이 쌓여 손도 대기 전에 진다. 계기는
+        /// 잡는 순간부터 네 책임이다 — 그 전의 시간은 판의 것이 아니다.
+        /// </summary>
+        private bool _engaged;
+
         public override string Instruction => "누르고 있으면 오르고, 놓으면 내려간다";
 
         public override string Status
@@ -50,12 +59,19 @@ namespace SoldierADay.Net
             _leaked = 0f;
             _held = 0f;
             _phase2 = false;
+            _engaged = false;
             // 제한 시간의 60%를 범위 안에서 버텨야 한다
             _need = Limit * 0.6f;
         }
 
         protected override void Advance(float dt, BoardInput input)
         {
+            if (!_engaged)
+            {
+                if (!input.Hold) return;
+                _engaged = true;
+            }
+
             // 놓으면 흐르고, 누르면 오른다. 누르는 힘이 흐름보다 조금 세다
             _needle += (input.Hold ? _drift * 1.8f : -_drift) * dt;
             _needle = Mathf.Clamp01(_needle);
@@ -100,7 +116,9 @@ namespace SoldierADay.Net
             theme.Border(band, HudTheme.Accent);
 
             var inBand = _needle >= _min && _needle <= _max;
-            var color = inBand ? HudTheme.Accent
+            // 잡기 전에는 경고색을 쓰지 않는다 — 아직 아무 일도 안 일어나고 있다
+            var color = !_engaged ? HudTheme.Ink2
+                      : inBand ? HudTheme.Accent
                       : _leaked > _slack * 0.6f ? HudTheme.Alert
                       : HudTheme.Heat;
 
@@ -117,8 +135,9 @@ namespace SoldierADay.Net
             // 유지 시간 — 이 판이 무엇을 세는지 말한다
             var bar = new Rect(body.x + 40f, body.yMax - 46f, body.width - 80f, 18f);
             theme.Bar(bar, Fill, HudTheme.Accent);
-            GUI.Label(new Rect(bar.x, bar.y - 24f, bar.width, 20f), "안전 범위 유지",
-                theme.At(theme.Label, 12, HudTheme.Ink2));
+            GUI.Label(new Rect(bar.x, bar.y - 24f, bar.width, 20f),
+                _engaged ? "안전 범위 유지" : "누르는 순간부터 계기가 흐른다",
+                theme.At(theme.Label, 12, _engaged ? HudTheme.Ink2 : HudTheme.Accent));
 
             // 이탈 여유 — 얼마나 벗어나 있어도 되는가
             if (_leaked > 0f)
