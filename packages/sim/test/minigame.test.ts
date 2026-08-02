@@ -37,6 +37,11 @@ const ALL: readonly Template[] = [
  * 설계안 스스로 짚은 것이다: 연병장 11건 중 4건이 `MASH`(배수로·제설·제초·
  * 제초추가)라 야외 일과가 몰리는 구역에서 체감 반복이 가장 심하게 나온다.
  * 배수로를 물길 내기로 돌리면 3건으로 줄고 성격도 갈린다.
+ *
+ * A-5 2차 — 신규 원형 `STILL`·`DODGE` 도입에 맞춰 기존 배정 3건을 옮겼다
+ * (설계안 §A-5 2차 "정신교육/집합 대기 계열→STILL, 낙하물/작업 안전 계열→
+ * DODGE"). `불시 점호`·`정신교육 소집`이 `RHYTHM`·`HOLD`에서 `STILL`로,
+ * `보급 트럭 도착`이 `MASH`에서 `DODGE`로 — 합이 69로 그대로 유지된다.
  */
 const EXPECTED: Readonly<Record<MinigameType, number>> = {
   PLACE: 10,
@@ -44,15 +49,17 @@ const EXPECTED: Readonly<Record<MinigameType, number>> = {
   SCRUB: 8,
   TRACE: 6,
   BALANCE: 5,
-  HOLD: 5,
-  MASH: 4,
+  HOLD: 4,
+  MASH: 3,
   SORT: 4,
   SEARCH: 4,
   TIMING: 3,
   SEQ: 3,
-  RHYTHM: 3,
+  RHYTHM: 2,
   TRACK: 2,
   REACT: 1,
+  STILL: 2,
+  DODGE: 1,
   RANDOM: 1,
 };
 
