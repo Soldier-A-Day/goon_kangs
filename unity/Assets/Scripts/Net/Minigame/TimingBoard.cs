@@ -12,6 +12,13 @@ namespace SoldierADay.Net
     ///
     /// 명중할 때마다 창이 옮겨 가고 좁아진다. 한 자리에 고정하면 리듬이 되고,
     /// 리듬은 `RHYTHM`의 몫이다.
+    ///
+    /// ── A-5 2차 — 접근을 피치로 듣는다 ───────────────────────────────────
+    /// 바늘이 판정 구간에 가까워질수록 `tap` 클립을 더 높은 피치로, 더 자주
+    /// 튕긴다("가까울수록 더 급해진다" — 가이거 계수기와 같은 문법). 구간
+    /// 밖에서는 조용하다 — 판이 도는 내내 배경 잡음이 되면 그 자체로 피로다.
+    /// 실제 판정(`_window`)은 전혀 안 건드린다 — 소리는 어디까지나 보조고,
+    /// 소리 없이도 시각 바늘만으로 깰 수 있어야 한다(청각장애 접근성 최저선).
     /// </summary>
     public sealed class TimingBoard : Board
     {
@@ -25,6 +32,11 @@ namespace SoldierADay.Net
         private int _miss;
         private float _flash;
         private bool _good;
+
+        /// <summary>이 거리 안쪽부터 접근음이 들리기 시작한다. 그 밖은 조용하다</summary>
+        private const float CueRange = 0.3f;
+
+        private float _cueTimer;
 
         public override string Instruction => "[SPACE] 또는 클릭 — 구간에서 멈춰라";
 
@@ -56,6 +68,8 @@ namespace SoldierADay.Net
             if (_cursor >= 1f) { _cursor = 1f; _direction = -1; }
             if (_cursor <= 0f) { _cursor = 0f; _direction = 1; }
 
+            PlayApproachCue(dt);
+
             if (!input.Tap) return;
 
             var half = _window * 0.5f;
@@ -78,6 +92,26 @@ namespace SoldierADay.Net
             if (_miss >= 3) Fail();
         }
 
+        /// <summary>바늘-구간 거리를 피치로 튕긴다. 멀면 낮고 뜸하게, 가까울수록 높고
+        /// 잦게 — 간격 자체가 좁아지는 것도 접근감의 일부다. 실제 명중 판정과는
+        /// 완전히 분리된 연출용 타이머라 `_window`가 아니라 `CueRange`를 쓴다</summary>
+        private void PlayApproachCue(float dt)
+        {
+            var dist = Mathf.Abs(_cursor - _center);
+            if (dist > CueRange)
+            {
+                _cueTimer = 0f; // 범위 밖 — 다음에 들어오는 즉시 울리도록 리셋해 둔다
+                return;
+            }
+
+            _cueTimer -= dt;
+            if (_cueTimer > 0f) return;
+
+            var closeness = 1f - Mathf.Clamp01(dist / CueRange);
+            Sfx.Play("tap", 0.16f, Mathf.Lerp(0.6f, 1.9f, closeness));
+            _cueTimer = Mathf.Lerp(0.22f, 0.06f, closeness);
+        }
+
         public override void Draw(HudTheme theme, Rect body)
         {
             theme.Fill(body, HudTheme.Paper3);
@@ -85,10 +119,14 @@ namespace SoldierADay.Net
             var track = new Rect(body.x + 60f, body.center.y - 24f, body.width - 120f, 48f);
             theme.Fill(track, HudTheme.Paper);
 
-            // 판정 구간
-            var half = _window * 0.5f;
+            // 판정 구간 — 실제 판정 폭(`_window`)은 그대로 두고, **보이는** 폭만
+            // 난이도 3에서 줄인다. 시각 마커가 좁아진 만큼은 `PlayApproachCue`의
+            // 피치가 메운다 — 판정 자체가 어려워지는 게 아니라 "무엇으로 알아채는가"가
+            // 바뀌는 것이다(시각 큐는 줄이는 것이지 없애는 것이 아니다)
+            var visualWindow = Difficulty >= 2.5f ? _window * 0.45f : _window;
+            var half = visualWindow * 0.5f;
             var win = new Rect(track.x + track.width * (_center - half), track.y,
-                               track.width * _window, track.height);
+                               track.width * visualWindow, track.height);
             theme.Fill(win, HudTheme.AccentW);
             theme.Border(win, HudTheme.Accent, 2f);
 

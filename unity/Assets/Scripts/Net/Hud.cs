@@ -811,6 +811,7 @@ namespace SoldierADay.Net
                     // "위기"가 가로챈 자리다(evacuation.ts checkCollapses)
                     var name = NameOf(item.memberId);
                     var seconds = Mathf.RoundToInt((float)item.crisisMs / 1000f);
+                    Sfx.Play("alarm"); // D-4 3단계 — 토스트보다 먼저 귀로 알아챈다
                     Notify("위기", $"{name}{HudTheme.Josa(name, "이", "가")} 쓰러졌다 — {seconds}초 안에 가라",
                         HudTheme.Alert, 5.6f);
                     return;

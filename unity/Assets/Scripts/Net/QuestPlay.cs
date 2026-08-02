@@ -168,6 +168,7 @@ namespace SoldierADay.Net
             _resultAge = 0f;
             Settling = false;
             _fadePulse = 1f;
+            Sfx.Play("open"); // D-4 3단계 — 판이 뜨는 순간의 소리 한 줄
 
             // **연속 A 상승 곡선.** 보상은 서버 소관이라 손대지 않는다 — 조이는
             // 것은 제한 시간뿐이다. 스택이 없으면 배율이 1이라 평소와 같다
@@ -325,6 +326,7 @@ namespace SoldierADay.Net
 
         public void Close()
         {
+            var wasOpen = QuestId != null;
             Retry = false;
             Quit = false;
             Send(false);
@@ -335,6 +337,9 @@ namespace SoldierADay.Net
             _spec = null;
             _fadePulse = 1f;
             if (player != null) player.Suspended = false;
+            // D-4 3단계 — 판이 이미 안 열려 있었으면(Close가 습관적으로 여러 번
+            // 불려도) 닫는 소리를 또 내지 않는다
+            if (wasOpen) Sfx.Play("close");
         }
     }
 }
