@@ -112,7 +112,9 @@ export function canDelegate(
 ): { ok: true } | { ok: false; reason: DelegationRefusal } {
   // 하달은 D-3부터 열린다 (표 14-1). 계급으로도 막히지만(`rankTooLow`) 그건
   // 우연히 시기가 맞는 것이라, 규칙은 커리큘럼이 소유한다
-  if (!unlocked(state.day, UNLOCK.delegation)) return { ok: false, reason: "locked" };
+  if (!unlocked(state.day, UNLOCK.delegation, state.elapsedRealMs)) {
+    return { ok: false, reason: "locked" };
+  }
   if (!isDelegationWindow(state)) return { ok: false, reason: "notDelegationWindow" };
 
   const from = find(state, fromId);
