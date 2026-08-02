@@ -120,7 +120,8 @@ namespace SoldierADay.Net
             // **런이 끝났거나 붙지 못했으면 여기서 끝난다.**
             // 그 아래 HUD는 그릴 이유가 없고, 멈춘 화면을 그대로 두면
             // 플레이어는 퇴소된 줄도 모른 채 얼어붙은 부대를 본다
-            if (HudEnding.Draw(_theme, client, () => boot?.RestartRun(), GoLobby))
+            if (HudEnding.Draw(_theme, client, () => boot?.RestartRun(), GoLobby,
+                    boot != null && boot.Restarting, boot != null ? boot.RestartError : ""))
             {
                 GUI.matrix = matrix;
                 return;
@@ -574,8 +575,14 @@ namespace SoldierADay.Net
 
         private void DrawMinimap(Snapshot snapshot)
         {
-            // 목업 실측: 220×220 @ (1652, 48) — 오른쪽 가장자리에서 잰다
-            var rect = new Rect(HudTheme.RightOf(1652f, 220f), 48f, 220f, 220f);
+            // 미니맵·수첩 요약을 우상단에 한 덩어리로 붙인다(§7.1.3+§7.1.4 재배치).
+            //
+            // 폭은 **수첩 쪽(280) 기준으로 통일했다** — 반대로 수첩을 미니맵 폭(220)에
+            // 맞추면 `DrawNotebookSummary`의 행이 라벨 120px + 값 140px 고정폭이라
+            // 220에서는 이미 여백 없이 겹치던 것이 더 잘려 보인다. 미니맵은 내용이
+            // `DrawSectorPlan`에서 컨테이너에 맞춰 자동으로 프레이밍되므로 넓혀도 안전하다.
+            // x는 기존 수첩과 같은 1592(오른쪽 끝 1872 = 1920 - SafeMargin 48)를 그대로 쓴다.
+            var rect = new Rect(HudTheme.RightOf(1592f, 280f), 48f, 280f, 220f);
             _theme.Fill(rect, HudTheme.Paper, 0.94f);
             _theme.Border(rect, HudTheme.Rule);
 
@@ -594,7 +601,13 @@ namespace SoldierADay.Net
             HudIcons.Dot(new Rect(head.xMax - 16f, head.y + 9f, 8f, 8f), radioColor);
 
             var body = new Rect(rect.x + 12f, head.yMax + 10f, rect.width - 24f, rect.height - head.height - 22f);
-            DrawSectorPlan(body, snapshot, radio);
+
+            // **잘라낸다.** 미니맵은 구역을 확대해서 보므로 옆방이 패널 밖으로
+            // 뻗어 나간다. 그대로 두면 지도가 화면 절반에 그려진다.
+            // 그룹 안에서는 좌표가 그룹 기준이라 원점을 0으로 넘긴다
+            GUI.BeginGroup(body);
+            DrawSectorPlan(new Rect(0f, 0f, body.width, body.height), snapshot, radio);
+            GUI.EndGroup();
         }
 
         /// <summary>
@@ -614,6 +627,23 @@ namespace SoldierADay.Net
         /// 부대와 훈련장은 걸어서 이어져 있지만 **한 지도에 그릴 것은 아니다.**
         /// 사이드뷰 코스는 아예 다른 화면이라 또 따로 둔다.
         /// </summary>
+        /// <summary>
+        /// 미니맵이 한 번에 보는 폭(타일).
+        ///
+        /// 부대에서 제일 넓은 야외 구역(연병장 46타일)이 겨우 들어가는 값이다 —
+        /// 이보다 넓히면 방이 손톱만 해지고, 좁히면 연병장 한가운데서 사방이
+        /// 잘려 어디쯤인지 알 수 없다.
+        /// </summary>
+        private const float MaxView = 48f;
+
+        /// <summary>
+        /// 시야 중심을 지도 안에 물린다. 다 담기면 가운데로 놓는다.
+        /// </summary>
+        private static float Framed(float at, float view, float lo, float hi) =>
+            view >= hi - lo
+                ? (lo + hi) * 0.5f
+                : Mathf.Clamp(at, lo + view * 0.5f, hi - view * 0.5f);
+
         private static string RegionOf(string zone)
         {
             if (string.IsNullOrEmpty(zone) || !zone.StartsWith("TR")) return "base";
@@ -661,6 +691,44 @@ namespace SoldierADay.Net
             var pad = detailed ? 26f : 14f;
             var inner = new Rect(area.x + pad, area.y + pad, area.width - pad * 2f,
                                  area.height - pad * 2f);
+
+            // **미니맵은 지금 있는 구역을 확대해서 본다.**
+            //
+            // 권역 전체를 220px 안에 욱여넣으면 방 하나가 손톱만 해져서,
+            // 내가 어느 방에 있는지는 알아도 **그 방 안 어디인지**를 알 수 없다.
+            // 부대 전체 배치는 지도 창(TAB)이 맡고, 여기는 "지금 여기"만 본다.
+            // 둘레를 조금 남기는 것은 옆방으로 가는 문이 보여야 하기 때문이다.
+            if (!detailed && world.Here != null)
+            {
+                var seen = world.Here.area;
+
+                // 구역과 그 둘레 55%가 패널을 채우는 배율 — 방에서는 지금까지와 같다
+                var fit = Mathf.Min(inner.width / (seen.width * 2.1f),
+                                    inner.height / (seen.height * 2.1f));
+
+                // **한 번에 이보다 넓게 보지 않는다.**
+                //
+                // 구역을 통째로 담으려 하면 긴 구역에서 무너진다 — 생활관동 복도는
+                // 56타일짜리 한 칸이라, 둘레까지 얹으면 118타일을 220px에 넣게 되고
+                // 배율이 부대 지도와 같아진다. 지도 밖까지 프레임이 나가서 패널
+                // 왼쪽 위 3분의 1이 빈 종이가 되고, 부대는 오른쪽 아래로 쏠린다.
+                // 그게 복도에서 미니맵이 깨져 보이던 것의 정체다.
+                var zoom = Mathf.Max(fit, inner.width / MaxView);
+                var view = new Vector2(inner.width / zoom, inner.height / zoom);
+
+                // 다 못 담으면 **사람을 따라간다.** 구역 중앙에 고정하면 복도
+                // 동쪽 끝에 서 있는데 화면은 서쪽 문을 비춘다
+                var focus = world.player != null
+                    ? (Vector2)world.player.transform.position
+                    : seen.center;
+
+                // 지도 밖을 비추지 않는다 — 빈 종이가 차지한 만큼 부대가 줄어든다
+                focus = new Vector2(Framed(focus.x, view.x, min.x, max.x),
+                                    Framed(focus.y, view.y, min.y, max.y));
+
+                min = focus - view * 0.5f;
+                max = focus + view * 0.5f;
+            }
 
             var span = max - min;
             var k = Mathf.Min(inner.width / span.x, inner.height / span.y);
@@ -896,28 +964,140 @@ namespace SoldierADay.Net
                 _theme.Fill(Snap(DoorLine(door)), HudTheme.Heat);
             }
 
-            /* ── 4. 이름 ── */
+            /* ── 4. 이름 ──
+             *
+             * "방 이름이 한눈에 안 들어온다"(플레이어 보고). 셋을 합쳐서 푼다.
+             *
+             *   1. 글자 뒤에 종이색 칩을 깐다 — 벽선·문 위에 얹혀도 읽힌다
+             *   2. 상자에 안 들어가면 밖으로 빼고 가는 지시선으로 잇는다
+             *   3. 글자를 키운다 — 예전 13pt 상한은 1920 기준 전체화면
+             *      지도에는 작았다
+             *
+             * **이름은 방 한가운데**에 놓는다(칩이 있으면). 왼쪽 위에 붙이면
+             * 벽선과 붙어서 글자가 벽에 걸린 표찰처럼 보이고, 어느 방의
+             * 이름인지도 한 칸 애매해진다. 짧은 이름을 쓰는 것도 그대로다 —
+             * 긴 이름은 좁은 방에서 잘리고, 잘린 이름은 없는 이름과 같다. */
             if (detailed)
             {
+                // 폰트는 상자 **높이와 폭을 같이** 본다. 예전에는 높이만 보고
+                // 정했는데, 무기고처럼 세로로 길고 가로가 좁은 방은 높이 기준
+                // 글자가 폭을 넘어설 뻔했다. `GUIStyle.CalcSize`로 정확히 잴
+                // 수도 있지만 그건 프레임마다 `GUIContent`를 새로 만든다(M0
+                // "힙 누수 0"). 한글 완성형 글자는 폭이 폰트 크기에 거의
+                // 맞먹는 정사각형이라 "글자 수 × 폰트 크기"면 넉넉히 맞고,
+                // `widthMargin`이 오차를 흡수한다.
+                const float minFont = 10f, maxFont = 20f, heightMul = 0.16f;
+                const float widthMargin = 14f, charWidth = 1f;
+
+                // 칩은 글자 폭만큼만 깐다 — 방을 다 덮으면 채움처럼 보인다
+                Rect ChipOf(Vector2 center, string text, float fontSize) =>
+                    new Rect(center.x - (text.Length * fontSize * charWidth + 8f) * 0.5f,
+                              center.y - (fontSize * 1.3f + 4f) * 0.5f,
+                              text.Length * fontSize * charWidth + 8f, fontSize * 1.3f + 4f);
+
+                // 상자 안에 못 들어가는 방(현재 base_map.json 25개 중에는 없다 —
+                // 계산으로 확인했다)은 여기로 온다. 네 방향으로 "다음 방(복도
+                // 제외)까지 거리"를 재서 가장 넓게 뚫린 쪽에 이름을 내놓는다.
+                // 복도는 이름이 없는 통로라 지나가도 되지만, **다른 방과는
+                // 겹치면 안 된다** — 그래서 복도만 후보에서 뺀다.
+                void DrawOutside(ZoneMap zone, Rect box, string label, Color color)
+                {
+                    float ClearWorld(Vector2 dir)
+                    {
+                        var r = zone.area;
+                        var best = 6f; // 후보가 없으면 반 칸만 — 안전 쪽으로
+                        foreach (var other in world.zones)
+                        {
+                            if (other == null || other == zone) continue;
+                            if (RegionOf(other.id) != region || other.kind == "corridor") continue;
+
+                            if (dir.x != 0f)
+                            {
+                                var overlap = Mathf.Min(r.yMax, other.area.yMax) -
+                                              Mathf.Max(r.yMin, other.area.yMin);
+                                if (overlap <= 0f) continue;
+                                var gap = dir.x > 0f
+                                    ? other.area.xMin - r.xMax
+                                    : r.xMin - other.area.xMax;
+                                if (gap >= 0f) best = Mathf.Min(best, gap);
+                            }
+                            else
+                            {
+                                var overlap = Mathf.Min(r.xMax, other.area.xMax) -
+                                              Mathf.Max(r.xMin, other.area.xMin);
+                                if (overlap <= 0f) continue;
+                                var gap = dir.y > 0f
+                                    ? other.area.yMin - r.yMax
+                                    : r.yMin - other.area.yMax;
+                                if (gap >= 0f) best = Mathf.Min(best, gap);
+                            }
+                        }
+                        return best;
+                    }
+
+                    var chosen = Vector2.right;
+                    var bestClear = -1f;
+                    foreach (var d in new[] { Vector2.right, Vector2.left, Vector2.up, Vector2.down })
+                    {
+                        var c = ClearWorld(d);
+                        if (c <= bestClear) continue;
+                        bestClear = c;
+                        chosen = d;
+                    }
+
+                    // 화면 y는 월드 y와 반대로 커진다
+                    var screenDir = new Vector2(chosen.x, -chosen.y);
+                    var reach = Mathf.Min(bestClear * k * 0.5f, 44f);
+                    var edge = chosen.x != 0f ? box.width * 0.5f : box.height * 0.5f;
+                    var start = box.center + screenDir * edge;
+                    var end = start + screenDir * reach;
+
+                    // 지시선 — 가늘게, 도면의 인출선과 같은 무게
+                    if (chosen.x != 0f)
+                        _theme.Fill(new Rect(Mathf.Min(start.x, end.x), start.y - 0.5f,
+                            Mathf.Abs(end.x - start.x), 1f), HudTheme.Rule2);
+                    else
+                        _theme.Fill(new Rect(start.x - 0.5f, Mathf.Min(start.y, end.y),
+                            1f, Mathf.Abs(end.y - start.y)), HudTheme.Rule2);
+
+                    var style = _theme.At(_theme.Small, (int)minFont, color, TextAnchor.MiddleCenter);
+                    var tag = ChipOf(end, label, minFont);
+                    _theme.Fill(tag, HudTheme.Paper, 0.88f);
+                    GUI.Label(tag, label, style);
+                }
+
                 foreach (var zone in world.zones)
                 {
                     if (zone == null || RegionOf(zone.id) != region) continue;
                     if (zone.kind == "corridor") continue;   // 복도는 지나가는 곳이다
 
                     var box = BoxOf(zone.area);
-                    if (box.width < 40f || box.height < 22f) continue;
+                    var label = ZoneNames.ShortOf(zone.id);
+                    var color = zone.id == here ? HudTheme.Ink : HudTheme.Ink2;
 
-                    // **이름은 방 한가운데**에 놓는다. 왼쪽 위에 붙이면 벽선과
-                    // 붙어서 글자가 벽에 걸린 표찰처럼 보이고, 어느 방의
-                    // 이름인지도 한 칸 애매해진다.
+                    // **이름은 방 한가운데**에 놓고, 글자 뒤에 종이색 칩을 깐다.
+                    // 왼쪽 위에 붙이면 글자가 벽에 걸린 표찰처럼 보이고, 칩이
+                    // 없으면 벽선과 문 위에 글자가 그대로 얹혀 둘 다 안 읽힌다.
                     //
-                    // 짧은 이름을 쓴다 — 긴 이름은 좁은 방에서 잘리고, 잘린
-                    // 이름은 없는 이름과 같다. 짧은 쪽이 부대에서 실제로 부르는
-                    // 말이기도 하다(사지방 · 체단장 · 위병소).
-                    GUI.Label(box, ZoneNames.ShortOf(zone.id),
-                        _theme.At(_theme.Small, 11,
-                            zone.id == here ? HudTheme.Ink : HudTheme.Ink2,
-                            TextAnchor.MiddleCenter));
+                    // 크기는 높이와 **폭** 둘 다로 잰다. 높이로만 재던 시절에는
+                    // 좁고 긴 방에서 이름이 방을 넘어가 잘렸고, **잘린 이름은
+                    // 없는 이름과 같다**.
+                    var byHeight = Mathf.Clamp(box.height * heightMul, minFont, maxFont);
+                    var byWidth = label.Length > 0
+                        ? (box.width - widthMargin) / (label.Length * charWidth)
+                        : maxFont;
+                    var size = Mathf.Min(byHeight, byWidth);
+
+                    if (size < minFont || box.width < 40f || box.height < 22f)
+                    {
+                        DrawOutside(zone, box, label, color);
+                        continue;
+                    }
+
+                    var fontSize = Mathf.FloorToInt(size);
+                    var style = _theme.At(_theme.Small, fontSize, color, TextAnchor.MiddleCenter);
+                    _theme.Fill(ChipOf(box.center, label, size), HudTheme.Paper, 0.82f);
+                    GUI.Label(box, label, style);
                 }
             }
 
@@ -929,11 +1109,11 @@ namespace SoldierADay.Net
                 if (!detailed && box.width <= 40f) continue;
 
                 var mine = world.Here != null && building.area.Overlaps(world.Here.area);
-                GUI.Label(new Rect(box.x, box.y - (detailed ? 19f : 13f),
-                                   Mathf.Max(box.width, detailed ? 160f : 96f), 18f),
+                GUI.Label(new Rect(box.x, box.y - (detailed ? 28f : 13f),
+                                   Mathf.Max(box.width, detailed ? 220f : 96f), 24f),
                     building.name,
-                    _theme.At(_theme.Label, detailed ? 12 : 10,
-                        mine ? HudTheme.Accent : HudTheme.Ink2));
+                    _theme.At(_theme.Label, detailed ? 13 : 11,
+                        mine ? HudTheme.Accent : HudTheme.Ink3));
             }
 
             if (snapshot?.members == null) return;
@@ -970,7 +1150,8 @@ namespace SoldierADay.Net
                 var dot = new Rect(at.x - 4f, at.y - 4f, 8f, 8f);
                 var color = HudTheme.RoleColor(member.role);
 
-                // §7.9 범례 "타 구역 아군 — 무전으로만". 속 빈 원으로 구분한다
+                // 형태 = 가시성(속 찬 점/속 빈 원), 색 = 보직(RoleColor) — 서로 다른 축이라 겹쳐 찍는다.
+                // §7.9 범례가 이 둘을 나눠서 설명한다(HudScreens.cs DrawBaseMap)
                 if (sameZone) HudIcons.Dot(dot, color);
                 else HudIcons.Circle(dot, 2f, color);
             }
@@ -984,9 +1165,21 @@ namespace SoldierADay.Net
 
         private void DrawNotebookSummary(Snapshot snapshot)
         {
-            // 목업 실측: 280×120 @ (1592, 640) — 오른쪽 가장자리에서 잰다
+            // 미니맵 바로 아래 붙인다(§7.1.3+§7.1.4). 폭 280은 `DrawMinimap`과
+            // 통일한 값 — 근거는 그쪽 주석 참고. x도 같은 RightOf(1592, 280)를 써서
+            // 오른쪽 변을 정확히 맞춘다.
+            //
+            // y는 더 이상 BottomOf(화면 아래 기준)로 재지 않는다 — 그러면 화면비가
+            // 바뀔 때 미니맵과 수첩이 서로 다른 기준(위/아래)으로 움직여 간격이
+            // 벌어지거나 겹칠 수 있다. 대신 미니맵 하단(48 + 220)에서 곧장 이어 붙인다.
+            //
+            // 간격 4px: 토스트 목록의 76-64=12px(따로 노는 항목들 간격)보다 좁게 잡아
+            // "각자인데 붙어 있다"가 아니라 "한 덩어리인데 두 판"으로 읽히게 한다.
+            const float minimapY = 48f;
+            const float minimapHeight = 220f;
+            const float panelGap = 4f;
             var rect = new Rect(HudTheme.RightOf(1592f, 280f),
-                                HudTheme.BottomOf(640f, 120f), 280f, 120f);
+                                minimapY + minimapHeight + panelGap, 280f, 120f);
 
             var counts = HudScreens.CountQuests(snapshot, client.MemberId);
             var left = counts.requiredTotal - counts.requiredDone;

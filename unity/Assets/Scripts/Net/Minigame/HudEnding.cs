@@ -19,7 +19,8 @@ namespace SoldierADay.Net
     {
         /// <summary>그렸으면 참 — 그 아래 HUD는 그릴 이유가 없다</summary>
         public static bool Draw(HudTheme theme, GameClient client,
-                                System.Action onRestart, System.Action onLobby)
+                                System.Action onRestart, System.Action onLobby,
+                                bool restarting = false, string restartError = "")
         {
             if (client == null) return false;
 
@@ -76,6 +77,24 @@ namespace SoldierADay.Net
                             "로비로 — 다시 들어가기", HudTheme.Alert, mouse))
             {
                 onLobby?.Invoke();
+            }
+
+            // **버튼을 눌렀는데 화면이 아무 말도 안 하면 안 눌린 것과 같다.**
+            //
+            // 재시작은 서버가 진행 중(409)·방 청소됨(404)·토큰 만료(401) 등으로
+            // 거절할 수 있다. 그 결과를 여기서 안 그리면 실패가 그대로 사라져
+            // 플레이어는 버튼이 고장난 줄 안다.
+            if (again && restarting)
+            {
+                GUI.Label(new Rect(panel.x, panel.yMax - 40f, panel.width, 24f),
+                    "다시 시작 중…",
+                    theme.At(theme.Small, 14, HudTheme.Ink3, TextAnchor.MiddleCenter));
+            }
+            else if (again && !string.IsNullOrEmpty(restartError))
+            {
+                GUI.Label(new Rect(panel.x, panel.yMax - 40f, panel.width, 24f),
+                    $"다시 시작 실패 — {restartError}",
+                    theme.At(theme.Small, 14, HudTheme.Alert, TextAnchor.MiddleCenter));
             }
 
             return true;

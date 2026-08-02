@@ -53,17 +53,31 @@ namespace SoldierADay.Net
             if (_lobby == null || client == null || string.IsNullOrEmpty(_code)) return;
             if (_restarting) return;
             _restarting = true;
+            RestartError = "";
             StartCoroutine(RestartRoutine());
         }
 
         private bool _restarting;
 
+        /// <summary>지금 재시작 요청이 오가는 중인가 — 종료 화면이 "다시 시작 중"을 그리는 데 쓴다</summary>
+        public bool Restarting => _restarting;
+
+        /// <summary>
+        /// 마지막 재시작 시도가 실패한 이유. 비어 있으면 실패한 적이 없거나 이미 성공했다.
+        ///
+        /// **이걸 읽는 화면이 없으면 버튼은 눌러도 아무 일도 안 일어난 것처럼 보인다.**
+        /// 재시작은 서버가 409(진행 중)·404(방이 청소됨)·401(토큰 만료) 어느 것으로든
+        /// 거절할 수 있는데, 예전에는 `Status`/`Detail`에만 남고 종료 화면이 그걸 그리지
+        /// 않아 실패가 통째로 화면 밖으로 사라졌다.
+        /// </summary>
+        public string RestartError { get; private set; } = "";
+
         private IEnumerator RestartRoutine()
         {
             Status = "다시 시작 중";
             yield return _lobby.RestartRun(_code, client.token,
-                () => { Status = "진행 중"; Detail = $"방 {_code}"; },
-                (reason) => { Status = "다시 시작 실패"; Detail = reason; });
+                () => { Status = "진행 중"; Detail = $"방 {_code}"; RestartError = ""; },
+                (reason) => { Status = "다시 시작 실패"; Detail = reason; RestartError = reason; });
             _restarting = false;
         }
 
