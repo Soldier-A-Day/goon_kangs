@@ -396,15 +396,14 @@ namespace SoldierADay.Net
             _ => Accent,
         };
 
-        public static string BandLabel(string band) => band switch
-        {
-            "extremeCold" => "극혹한",
-            "cold" => "한랭",
-            "warm" => "온난",
-            "hot" => "혹서",
-            "extremeHot" => "극혹서",
-            _ => "평시",
-        };
+        /// <summary>
+        /// §4.3 온도 밴드 6종 표시 이름.
+        ///
+        /// 값은 `HudLabels.Band`(WORKORDER.md H-3 명칭 테이블)에서 온다 — 번역이
+        /// 들어올 때 이 switch 문을 다시 뒤지지 않게 하려고 표로 옮겼다.
+        /// </summary>
+        public static string BandLabel(string band) =>
+            band != null && HudLabels.Band.TryGetValue(band, out var label) ? label : "평시";
 
         /// <summary>§5.3 보직 색 — 완장 색과 같은 값이라 월드와 UI가 일치한다</summary>
         public static Color RoleColor(string role) => role switch
@@ -415,29 +414,22 @@ namespace SoldierADay.Net
             _ => Hex("6E7A50"),
         };
 
-        public static string RoleTag(string role) => role switch
-        {
-            "comms" => "COM",
-            "medic" => "MED",
-            "admin" => "ADM",
-            _ => "RFL",
-        };
+        /// <summary>값은 `HudLabels.RoleTag`(WORKORDER.md H-3 명칭 테이블)에서 온다</summary>
+        public static string RoleTag(string role) =>
+            role != null && HudLabels.RoleTag.TryGetValue(role, out var tag) ? tag : "RFL";
 
-        public static string RoleName(string role) => role switch
-        {
-            "comms" => "통신",
-            "medic" => "의무",
-            "admin" => "행정",
-            _ => "소총",
-        };
+        /// <summary>값은 `HudLabels.RoleName`(WORKORDER.md H-3 명칭 테이블)에서 온다</summary>
+        public static string RoleName(string role) =>
+            role != null && HudLabels.RoleName.TryGetValue(role, out var name) ? name : "소총";
 
-        public static string RankName(string rank) => rank switch
-        {
-            "pfc" => "일병",
-            "corporal" => "상병",
-            "sergeant" => "병장",
-            _ => "이병",
-        };
+        /// <summary>
+        /// 값은 `HudLabels.Rank`(WORKORDER.md H-3 명칭 테이블)에서 온다. 계급 키
+        /// 자체는 서버가 이미 영문(`private`/`pfc`/`corporal`/`sergeant`)으로 주므로,
+        /// 표시만 표로 바꾸면 번역 전환 비용이 이 표 한 곳으로 끝난다 — 531개
+        /// 하드코딩 정리(WORKORDER.md H-3)의 착수점이자 템플릿이 이 함수다.
+        /// </summary>
+        public static string RankName(string rank) =>
+            rank != null && HudLabels.Rank.TryGetValue(rank, out var name) ? name : "이병";
 
         /// <summary>계급 서열 0(이병)~3(병장). sim의 `RANK_ORDER`와 같은 순서다</summary>
         public static int RankIndex(string rank) => rank switch
@@ -503,16 +495,12 @@ namespace SoldierADay.Net
             _ => "구제가 거부됐다",
         };
 
-        public static string PhaseLabel(string phase) => phase switch
-        {
-            "reveille" => "기상 · 점검",
-            "morning" => "오전 일과",
-            "lunch" => "중식 · 휴식",
-            "afternoon" => "오후 일과",
-            "personal" => "석식 · 개인정비",
-            "rollcall" => "점호 · 판정",
-            _ => phase,
-        };
+        /// <summary>
+        /// 값은 `HudLabels.Phase`(WORKORDER.md H-3 명칭 테이블)에서 온다. 모르는
+        /// 시간대 id는 원래 switch 문처럼 id를 그대로 돌려준다 — 빈칸보다 낫다.
+        /// </summary>
+        public static string PhaseLabel(string phase) =>
+            phase != null && HudLabels.Phase.TryGetValue(phase, out var label) ? label : phase;
 
         public static Color Hex(string rgb)
         {
