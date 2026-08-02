@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
+  DISCIPLINE_FLOOR,
   HIDDEN_FOR_RECORD_ENDING,
   HIDDEN_QUESTS,
+  applyJudgement,
+  buildHeadline,
   checkHiddenQuests,
   deserializeRun,
   resolveEnding,
@@ -257,5 +260,68 @@ describe("런 기록", () => {
   it("처음부터 빈 자리는 기록에 남지 않는다", () => {
     const state = fullSquad({ members: [{ id: "p1", name: "김소총", role: "rifle" }] });
     expect(summarizeRun(state).members).toHaveLength(1);
+  });
+});
+
+describe("C-1 — 런 기록의 결정타와 헤드라인", () => {
+  it("퇴소한 런은 최초 결정타 수치를 함께 남긴다", () => {
+    // applyJudgement를 직접 불러 판정만 본다 — step의 endDay(군기 정산 등)를
+    // 거치지 않아야 여기서 준 discipline이 그대로 기록에 실린다.
+    const state = fullSquad();
+    state.discipline = 30;
+    applyJudgement(state, []);
+
+    expect(state.status).toBe("discharged");
+    const record = summarizeRun(state);
+    expect(record.failedAt).toBe("C");
+    expect(record.firstFailure?.condition).toBe("C");
+    expect(record.firstFailure?.day).toBe(1);
+    expect(record.firstFailure?.value).toBe(30);
+    expect(record.firstFailure?.threshold).toBe(DISCIPLINE_FLOOR);
+  });
+
+  it("전역한 런은 결정타가 없다", () => {
+    const state = playDays(fullSquad(), 18);
+    expect(state.status).toBe("cleared");
+    expect(summarizeRun(state).firstFailure).toBeNull();
+  });
+
+  it("헤드라인 — 평시·보급 여유면 날짜와 결과만 적는다", () => {
+    // 1일차는 커리큘럼상 항상 평시(fixedNormal)로 고정된다 (curriculum.json)
+    const state = fullSquad();
+    state.day = 1;
+    state.status = "cleared";
+    expect(buildHeadline(state)).toBe("D-1 완주");
+  });
+
+  it("헤드라인 — 보급이 바닥이면 물자 부족이 붙는다", () => {
+    const state = fullSquad();
+    state.day = 1;
+    state.status = "discharged";
+    state.supplyPoints = 0;
+    expect(buildHeadline(state)).toBe("물자 부족 D-1 퇴소");
+  });
+
+  it("헤드라인 — 결과 문구가 상태별로 갈린다", () => {
+    const state = fullSquad();
+    state.day = 1;
+    state.status = "disbanded";
+    expect(buildHeadline(state)).toBe("D-1 해산");
+  });
+
+  it("헤드라인 — 날씨 밴드가 우세하면 앞머리에 붙는다", () => {
+    // 10일차는 14.0 D-10 "기상 악화" 칸이라 한랭 계절에서는 항상 극혹한으로 고정된다
+    // (weather.ts weatherFor의 climateEvent 분기 — 습도·풍속 롤과 무관하게 결정론적이다)
+    const state = fullSquad({ config: { season: "cold" } });
+    state.day = 10;
+    state.status = "discharged";
+    expect(buildHeadline(state)).toMatch(/^(한파|혹한) 속 D-10 퇴소$/);
+  });
+
+  it("summarizeRun의 headline도 같은 규칙을 따른다", () => {
+    const state = fullSquad();
+    state.day = 1;
+    state.status = "cleared";
+    expect(summarizeRun(state).headline).toBe("D-1 완주");
   });
 });

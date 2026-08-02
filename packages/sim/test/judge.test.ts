@@ -1,10 +1,14 @@
 import { describe, expect, it } from "vitest";
 import {
+  DISCIPLINE_FLOOR,
+  HYGIENE_FLOOR,
   LEADER_RELIEF_LIMIT,
   OFFICER_RELIEF_LIMIT,
   OFFICER_RELIEF_TRUST_THRESHOLD,
+  applyJudgement,
   judgeDay,
   step,
+  type Effect,
   type Quest,
   type RunState,
 } from "../src/index.js";
@@ -268,5 +272,87 @@ describe("런 종료", () => {
     const after = step(state, { type: "tick", elapsedMs: FULL_DAY }).state;
     expect(after.day).toBe(state.day);
     expect(after.status).toBe("discharged");
+  });
+});
+
+describe("C-1 — 결정타 기록 (firstConditionBreach)", () => {
+  // applyJudgement를 직접 부른다 — step의 endDay 파이프라인(applyDailyDiscipline·
+  // 시간대 정산)을 거치지 않아야 여기서 준 수치가 그대로 판정에 들어간다.
+
+  it("조건 C가 결정타면 그날 군기 수치와 함께 기록된다", () => {
+    const state = fullSquad({ config: { difficulty: "regular" } });
+    state.discipline = 30;
+    state.quests = [quest({ id: "a", status: "done" }), quest({ id: "b", status: "done" })];
+
+    const effects: Effect[] = [];
+    applyJudgement(state, effects);
+
+    expect(state.status).toBe("discharged");
+    const breach = state.firstConditionBreach.C;
+    expect(breach?.day).toBe(1);
+    expect(breach?.condition).toBe("C");
+    expect(breach?.value).toBe(30);
+    expect(breach?.threshold).toBe(DISCIPLINE_FLOOR);
+    expect(breach?.memberName).toBeNull();
+  });
+
+  it("이미 기록된 조건은 다시 걸려도 최초 수치를 유지한다", () => {
+    const state = fullSquad({ config: { difficulty: "relaxed" } });
+    state.discipline = 30;
+    state.quests = [quest({ id: "a", status: "done" }), quest({ id: "b", status: "done" })];
+    applyJudgement(state, []);
+
+    expect(state.status).toBe("running");
+    expect(state.firstConditionBreach.C?.day).toBe(1);
+    expect(state.firstConditionBreach.C?.value).toBe(30);
+
+    state.day = 2;
+    state.discipline = 10;
+    applyJudgement(state, []);
+
+    // 근신으로 넘어가도 최초 기록은 1일차 · 30 그대로다 — "언제부터 문제였는지"를
+    // 지운다면 다음 판 전략에 쓸모가 없다
+    expect(state.firstConditionBreach.C?.day).toBe(1);
+    expect(state.firstConditionBreach.C?.value).toBe(30);
+  });
+
+  it("조건 D는 위생 미달 인원과 그날 미완료한 세면 일과를 함께 짚는다", () => {
+    const state = fullSquad();
+    const member = state.members[0];
+    if (!member) throw new Error("분대원 없음");
+    member.stats.hygiene = 15;
+    state.quests = [
+      quest({
+        id: "wash",
+        kind: "care",
+        ownerId: member.id,
+        required: false,
+        label: "세면 · 양치",
+        status: "pending",
+      }),
+    ];
+
+    applyJudgement(state, []);
+
+    expect(state.status).toBe("discharged");
+    const breach = state.firstConditionBreach.D;
+    expect(breach?.day).toBe(1);
+    expect(breach?.memberId).toBe(member.id);
+    expect(breach?.memberName).toBe(member.name);
+    expect(breach?.value).toBe(15);
+    expect(breach?.threshold).toBe(HYGIENE_FLOOR);
+    expect(breach?.questLabel).toBe("세면 · 양치");
+  });
+
+  it("조건 D — 세면 일과가 없으면 결정타에 딸린 일과 이름도 없다", () => {
+    const state = fullSquad();
+    const member = state.members[0];
+    if (!member) throw new Error("분대원 없음");
+    member.stats.hygiene = 15;
+    state.quests = [];
+
+    applyJudgement(state, []);
+
+    expect(state.firstConditionBreach.D?.questLabel).toBeNull();
   });
 });

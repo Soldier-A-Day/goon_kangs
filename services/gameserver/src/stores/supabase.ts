@@ -125,6 +125,11 @@ function toRecord(row: RunRow & { run_members?: MemberRow[] }): RunRecord {
     discipline: row.discipline,
     hidden: row.hidden,
     failedAt: row.failed_at,
+    // C-1 — firstFailure·headline은 아직 sql/001_records.sql에 컬럼이 없어 저장하지
+    // 않는다(`append`도 그대로). 위 ending 파생값과 같은 "기록에 굳히지 않은 값" 취급 —
+    // DB 왕복에서는 표시용 기본값을 채운다. 컬럼 추가는 이 발주(C-1) 범위 밖이다.
+    firstFailure: null,
+    headline: "",
     members: (row.run_members ?? []).map((member) => ({
       name: member.name,
       role: member.role as never,

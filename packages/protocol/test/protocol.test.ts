@@ -78,6 +78,8 @@ describe("스냅샷 스키마", () => {
     members: [],
     quests: [],
     lastJudgement: null,
+    firstFailure: null,
+    headline: "D-1 진행 중",
   };
 
   it("정상 스냅샷을 통과시킨다", () => {
