@@ -122,6 +122,22 @@ const server = createServer(async (req, res) => {
       return end(res, 200, { ok: true });
     }
 
+    // 같은 방으로 다시 시작 — 퇴소한 분대가 방을 새로 만들 이유가 없다
+    if (req.method === "POST" && parts[0] === "rooms" && parts[1] && parts[2] === "restart") {
+      const room = store.get(parts[1]);
+      if (!room) return end(res, 404, { error: "roomNotFound" });
+
+      const token = url.searchParams.get("token") ?? "";
+      const resolved = await store.resolve(token);
+      if (!resolved || resolved.room.code !== room.code) {
+        return end(res, 401, { error: "invalidToken" });
+      }
+      // 방장만이 아니라 **누구나** 부를 수 있다. 진 판을 다시 하자는 것이고,
+      // 방장이 먼저 나가버린 방에서 아무도 못 누르면 그 방은 그냥 죽는다
+      if (!room.restart()) return end(res, 409, { error: "stillRunning" });
+      return end(res, 200, { ok: true, code: room.code });
+    }
+
     return end(res, 404, { error: "notFound" });
   } catch {
     return end(res, 500, { error: "internal" });

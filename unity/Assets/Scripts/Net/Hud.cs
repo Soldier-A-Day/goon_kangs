@@ -120,7 +120,7 @@ namespace SoldierADay.Net
             // **런이 끝났거나 붙지 못했으면 여기서 끝난다.**
             // 그 아래 HUD는 그릴 이유가 없고, 멈춘 화면을 그대로 두면
             // 플레이어는 퇴소된 줄도 모른 채 얼어붙은 부대를 본다
-            if (HudEnding.Draw(_theme, client, GoLobby))
+            if (HudEnding.Draw(_theme, client, () => boot?.RestartRun(), GoLobby))
             {
                 GUI.matrix = matrix;
                 return;

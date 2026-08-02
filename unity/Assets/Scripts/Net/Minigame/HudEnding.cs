@@ -18,7 +18,8 @@ namespace SoldierADay.Net
     public static class HudEnding
     {
         /// <summary>그렸으면 참 — 그 아래 HUD는 그릴 이유가 없다</summary>
-        public static bool Draw(HudTheme theme, GameClient client, System.Action onLobby)
+        public static bool Draw(HudTheme theme, GameClient client,
+                                System.Action onRestart, System.Action onLobby)
         {
             if (client == null) return false;
 
@@ -53,17 +54,42 @@ namespace SoldierADay.Net
             GUI.Label(new Rect(panel.x + 40f, panel.y + 192f, panel.width - 80f, 30f), hint,
                 theme.At(theme.Small, 14, HudTheme.Ink3, TextAnchor.MiddleCenter));
 
-            // 로비로 — 판이 마우스 조작이라 버튼도 마우스로 받는다
-            var button = new Rect(panel.center.x - 130f, panel.yMax - 96f, 260f, 52f);
-            var hot = button.Contains(BoardInput.Read().Mouse);
-            theme.Fill(button, hot ? HudTheme.AccentW : HudTheme.Paper3);
-            theme.Border(button, hot ? HudTheme.Accent : HudTheme.Rule, 2f);
-            GUI.Label(button, "로비로 — 다시 시작",
-                theme.At(theme.Heading, 19, hot ? HudTheme.Accent : HudTheme.Ink,
-                    TextAnchor.MiddleCenter));
+            // **같은 방으로 다시 한다.**
+            //
+            // 로비로 내보내면 방을 새로 만들고 초대 코드를 다시 뿌려야 한다 —
+            // 같이 하던 사람들이 그대로 있는데 같은 일을 두 번 하는 것이다.
+            // 코드도 토큰도 자리도 살아 있으므로 런만 갈아끼우면 된다.
+            //
+            // 연결이 거절된 경우는 다르다. 토큰이 죽어 있어 이 방에 말을 걸
+            // 수가 없으니 로비로 돌아가는 수밖에 없다.
+            var mouse = BoardInput.Read().Mouse;
+            var again = rejected == null;
 
-            if (hot && Input.GetMouseButtonDown(0)) onLobby?.Invoke();
+            if (again)
+            {
+                if (Button(theme, new Rect(panel.center.x - 260f, panel.yMax - 96f, 250f, 52f),
+                           "이 방에서 다시", HudTheme.Accent, mouse)) onRestart?.Invoke();
+                if (Button(theme, new Rect(panel.center.x + 10f, panel.yMax - 96f, 250f, 52f),
+                           "로비로 나가기", HudTheme.Rule, mouse)) onLobby?.Invoke();
+            }
+            else if (Button(theme, new Rect(panel.center.x - 130f, panel.yMax - 96f, 260f, 52f),
+                            "로비로 — 다시 들어가기", HudTheme.Alert, mouse))
+            {
+                onLobby?.Invoke();
+            }
+
             return true;
+        }
+
+        /// <summary>눌렸으면 참. 마우스가 위에 있으면 밝아진다</summary>
+        private static bool Button(HudTheme theme, Rect rect, string label, Color accent, Vector2 mouse)
+        {
+            var hot = rect.Contains(mouse);
+            theme.Fill(rect, hot ? HudTheme.AccentW : HudTheme.Paper3);
+            theme.Border(rect, hot ? accent : HudTheme.Rule, 2f);
+            GUI.Label(rect, label,
+                theme.At(theme.Heading, 19, hot ? accent : HudTheme.Ink, TextAnchor.MiddleCenter));
+            return hot && Input.GetMouseButtonDown(0);
         }
 
         private static Color Accent(string status) => status switch
@@ -95,7 +121,7 @@ namespace SoldierADay.Net
                      "1~3인 방은 대리가 필수를 메우지만 합동은 사람이 시작해야 한다"),
                 _ =>
                     ("퇴소", "점호 판정을 통과하지 못했다",
-                     "필수 일과를 다 끝내지 못하면 그날로 끝난다 — 조건 A"),
+                     "같은 방에서 다시 하면 인원도 코드도 그대로다 — 일과표만 새로 뽑힌다"),
             };
         }
     }

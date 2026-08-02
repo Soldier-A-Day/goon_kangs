@@ -97,6 +97,19 @@ namespace SoldierADay.Net
             yield return Post(url, "{}", _ => onDone(), onError);
         }
 
+        /// <summary>
+        /// 같은 방으로 다시 시작한다.
+        ///
+        /// 방을 새로 만들지 않는다 — 코드도 토큰도 자리도 그대로다. 퇴소한
+        /// 분대가 로비로 나가 방을 다시 만들고 초대 코드를 다시 뿌리는 것은
+        /// 같은 일을 두 번 하는 것이다.
+        /// </summary>
+        public IEnumerator RestartRun(string code, string token, Action onDone, Action<string> onError)
+        {
+            var url = $"{baseUrl}/rooms/{code}/restart?token={UnityWebRequest.EscapeURL(token)}";
+            yield return Post(url, "{}", _ => onDone(), onError);
+        }
+
         private static IEnumerator Post(
             string url, string body, Action<string> onDone, Action<string> onError)
         {

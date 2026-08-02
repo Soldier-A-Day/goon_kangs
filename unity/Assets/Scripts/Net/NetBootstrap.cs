@@ -39,6 +39,33 @@ namespace SoldierADay.Net
 
 
         private LobbyClient _lobby;
+        /// <summary>지금 붙어 있는 방. 다시 시작할 때 쓴다</summary>
+        private string _code = "";
+
+        /// <summary>
+        /// 같은 방으로 다시 시작한다 — 종료 화면의 버튼이 부른다.
+        ///
+        /// 성공하면 서버가 새 런의 스냅샷을 뿌리고, 그 순간 종료 화면이
+        /// 스스로 사라진다(`HudEnding`이 status를 보고 그린다).
+        /// </summary>
+        public void RestartRun()
+        {
+            if (_lobby == null || client == null || string.IsNullOrEmpty(_code)) return;
+            if (_restarting) return;
+            _restarting = true;
+            StartCoroutine(RestartRoutine());
+        }
+
+        private bool _restarting;
+
+        private IEnumerator RestartRoutine()
+        {
+            Status = "다시 시작 중";
+            yield return _lobby.RestartRun(_code, client.token,
+                () => { Status = "진행 중"; Detail = $"방 {_code}"; },
+                (reason) => { Status = "다시 시작 실패"; Detail = reason; });
+            _restarting = false;
+        }
 
         /// <summary>HUD가 읽는 연결 상태. 그리기는 Hud가 맡는다</summary>
         public string Status { get; private set; } = "시작 대기";
@@ -105,6 +132,7 @@ namespace SoldierADay.Net
             {
                 Status = "소켓 연결 중";
                 Detail = ReadParam(query, "code", "");
+                _code = Detail;
                 client.token = handoff;
                 client.Connect();
                 yield break;
@@ -120,6 +148,7 @@ namespace SoldierADay.Net
             if (ticket == null) yield break;
 
             Detail = $"방 {ticket.code} · 나 {ticket.memberId}";
+            _code = ticket.code;
             Status = "런 시작 중";
             var started = false;
             yield return _lobby.StartRun(ticket.code, ticket.token, () => started = true, Fail);

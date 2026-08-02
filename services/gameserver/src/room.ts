@@ -177,6 +177,48 @@ export class Room {
     return true;
   }
 
+  /**
+   * 같은 방으로 다시 시작한다.
+   *
+   * **방을 새로 만들지 않는다.** 코드도 토큰도 자리도 그대로 살아 있고,
+   * 바뀌는 것은 런뿐이다 — 퇴소한 분대가 로비로 나가 방을 다시 만들고
+   * 초대 코드를 다시 뿌리는 것은 같은 일을 두 번 하는 것이다.
+   *
+   * 끝난 런에서만 부른다. 진행 중인 런을 지울 수 있으면 그건 재시작이
+   * 아니라 사고다.
+   *
+   * 시드를 바꾼다 — 같은 시드면 기온 롤과 일과 배정이 통째로 같아서,
+   * 진 판을 외워서 다시 하는 것이 최적해가 된다.
+   */
+  restart(): boolean {
+    if (!this.run || this.run.status === "running") return false;
+
+    const members = this.run.members
+      .filter((m) => m.presence !== "npcVacant")
+      .map((m) => ({ id: m.id, name: m.name, role: m.role }));
+    if (members.length === 0) return false;
+
+    this.run = createRun({
+      runId: `run-${this.code}`,
+      seed: Math.floor(Math.random() * (2 ** 31 - 1)) + 1,
+      members,
+      config: this.config,
+    });
+
+    this.working.clear();
+    this.positions.clear();
+    this.skipVotes.clear();
+    this.leaderVotes.clear();
+    this.graceLeft.clear();
+    this.finishedReported = false;
+    this.sinceSnapshotMs = 0;
+
+    this.apply({ type: "beginDay" });
+    this.broadcastSnapshot(true);
+    this.flushEvents();
+    return true;
+  }
+
   /* ------------------------------------------------------------- 진행 */
 
   /** 서버 시계가 주입하는 시간. sim은 시계를 갖지 않는다. */
