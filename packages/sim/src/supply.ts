@@ -1,5 +1,6 @@
 import supplyTable from "../data/supply.json";
 import { disciplineBand } from "./discipline.js";
+import { supplyPointsMultiplier } from "./modifier.js";
 import type { Effect, Member, RunState, TempBand } from "./types.js";
 import { bandRule, weatherFor } from "./weather.js";
 
@@ -90,7 +91,10 @@ export function accrueSupplyPoints(state: RunState): void {
 
   // 12.0 우수분대(80+)는 보급 포인트 +20%
   const bonus = disciplineBand(state.discipline).supplyBonus ?? 0;
-  state.supplyPoints += Math.round(gained * (1 + bonus));
+  // C-3 보급 빠듯한 주간 — 이번 주만 획득량이 −10%다
+  state.supplyPoints += Math.round(
+    gained * (1 + bonus) * supplyPointsMultiplier(state.weeklyModifier),
+  );
 }
 
 /**

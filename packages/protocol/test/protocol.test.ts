@@ -66,6 +66,7 @@ describe("스냅샷 스키마", () => {
       delegationWindowMsLeft: 20000,
     },
     weather: { band: "normal" as const, label: "평시", feelsLike: 12, rain: false },
+    weeklyModifier: { id: "coldSnap" as const, name: "한파 주간" },
     discipline: { value: 60, band: "normal" },
     trust: { platoonLeader: 60, assistant: 60, sergeantMajor: 60 },
     radio: "ok" as const,

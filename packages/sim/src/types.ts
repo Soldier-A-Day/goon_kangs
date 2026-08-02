@@ -1,4 +1,5 @@
 import type { DelegationRecord } from "./delegation.js";
+import type { WeeklyModifierId } from "./modifier.js";
 import type { RngState } from "./rng.js";
 
 /* ---------------------------------------------------------------- 기본 열거 */
@@ -392,6 +393,12 @@ export interface RunState {
   readonly config: RunConfig;
   /** 런 시작 시 확정된 계절. 같은 18일이 두 가지 커리큘럼으로 갈린다 (5.0) */
   readonly season: "cold" | "hot";
+  /**
+   * C-3 주간 변조 — 시드에서 파생되는 "이번 주 상황" 1종. 같은 부대·같은 커리큘럼
+   * 이라도 연속 두 런의 하루가 다르게 느껴지도록 기온·보급·군기·훈련 중 한 축을
+   * 살짝 흔든다(`modifier.ts`). 계절처럼 런 내내 고정이다.
+   */
+  readonly weeklyModifier: WeeklyModifierId;
   status: RunStatus;
 
   /** 1부터 시작하는 일차 */

@@ -33,6 +33,17 @@ export const tempBandSchema = z.enum([
   "extremeHot",
 ]);
 /**
+ * C-3 주간 변조 4종 — 원본은 `packages/sim/src/modifier.ts`. 런 시드가 정하고
+ * 런 내내 고정이다("이번 주는 다르다"). 표시는 이번 발주 범위 밖이고, 화면이
+ * 나중에 이 id로 로비·수첩 문구를 고른다.
+ */
+export const weeklyModifierIdSchema = z.enum([
+  "coldSnap",
+  "tightSupply",
+  "inspection",
+  "trainingPush",
+]);
+/**
  * 4.3 구역 — **방 하나가 곧 구역이다.**
  *
  * 정의는 `packages/sim/data/zones.json`이 소유한다. 예전에는 8개뿐이라
@@ -615,6 +626,11 @@ export const snapshotSchema = z.object({
     /** 14.0 D-10 폭우. 밴드로는 표현되지 않는 악천후라 따로 보낸다 */
     rain: z.boolean(),
   }),
+  /**
+   * C-3 주간 변조 — 계절처럼 런 내내 고정이다. 화면이 알아야 "이번 주는 다르다"가
+   * 성립하므로 스냅샷에 싣는다. 노출 UI(로비·수첩)는 이 발주 범위 밖이다.
+   */
+  weeklyModifier: z.object({ id: weeklyModifierIdSchema, name: z.string() }),
   discipline: z.object({ value: z.number(), band: z.string() }),
   /**
    * 12.0 간부 신뢰도 3트랙 (DISC-02).
