@@ -381,13 +381,16 @@ describe("승급 심사 투영", () => {
       memberId: "p1",
       promoted: true,
       score: 22,
+      // E-2 — 승급 점수의 절반(신뢰보너스)이 예전엔 여기서 잘렸다. 이제는 그대로 흘려
+      // 승급 화면이 "복무점수+신뢰보너스"로 분해할 수 있다(WORKORDER.md E-2, 감사 목록 3)
+      trustBonus: 12,
     });
   });
 
-  it("conditionCritical은 아직 이 발주 범위 밖이라 계속 흘리지 않는다", () => {
+  it("conditionCritical도 더 이상 버리지 않는다 — 후송/강제취침 직전 신호다", () => {
     expect(
       projectEffect({ type: "conditionCritical", memberId: "p1", stat: "stamina" }),
-    ).toBeNull();
+    ).toEqual({ type: "conditionCritical", memberId: "p1", stat: "stamina" });
   });
 
   it("하달 거부 사유는 더 이상 버리지 않는다 — 화면이 왜 안 됐는지 말해야 한다", () => {

@@ -124,6 +124,17 @@ export const delegationRefusalSchema = z.enum([
   "unknownMember",
 ]);
 
+/**
+ * 6.2 컨디션 붕괴 임계 3종 (`packages/sim/src/condition.ts` `raiseCriticals`).
+ *
+ * **예전에는 이 값도 서버에서 아예 버려졌다**(`services/gameserver/src/snapshot.ts`
+ * `projectEffect` — "이 발주 범위 밖" 주석으로 묶여 있었다). 스태미나 0·탈수 2단계·
+ * 강제취침 임계는 후송·강제취침 직전 신호인데, 화면은 아무 예고 없이 결과만
+ * 보여줬다 — 감사 보고서 침묵 판정 1건(WORKORDER.md E단계). 이제는 흘려서
+ * 결과가 벌어지기 전에 화면이 먼저 말한다.
+ */
+export const conditionCriticalStatSchema = z.enum(["stamina", "hydration", "fatigue"]);
+
 /** 8.0 퀵 커맨드 8슬롯 — 타임 프레셔 구간의 유일한 채널이므로 프로토콜에 고정한다 */
 export const quickCommandSchema = z.enum([
   "assemble",
@@ -494,6 +505,19 @@ export const snapshotSchema = z.object({
     rain: z.boolean(),
   }),
   discipline: z.object({ value: z.number(), band: z.string() }),
+  /**
+   * 12.0 간부 신뢰도 3트랙 (DISC-02).
+   *
+   * **예전엔 스냅샷에 아예 없었다** — 승급 점수의 절반(`trustBonus`)이 네트워크에
+   * 실리지 않아 `bestOfficer`/`strictestOfficer`(sim `discipline.ts`)가 죽은
+   * 코드였다(WORKORDER.md E단계 감사 목록 3). 값 범위는 sim `discipline.json`
+   * `officers.max`(0~100)를 따른다.
+   */
+  trust: z.object({
+    platoonLeader: z.number(),
+    assistant: z.number(),
+    sergeantMajor: z.number(),
+  }),
   /** 8.0 무전 상태 — 미니맵 마커·핑 게이팅의 근거 (§7.1.3) */
   radio: radioStateSchema,
   supply: z.object({
@@ -567,6 +591,14 @@ export const serverEventSchema = z.discriminatedUnion("type", [
         to: rankSchema,
         score: z.number(),
         require: z.number(),
+        /**
+         * 저녁 개인정비를 대화에 쓴 선택이 심사에 반영된 몫 (`score`에 이미 합산됨).
+         *
+         * 계산식(`ranks.ts` trustBonus = min(trustMax, round(신뢰도 합 / trustDivisor)))은
+         * 서버 소관이라 클라에서 재계산하지 않는다 — 심사 시점 값을 그대로 실어
+         * `score = 복무점수 + trustBonus`로 승급 화면이 분해해 보여준다(WORKORDER.md E-2).
+         */
+        trustBonus: z.number(),
       }),
     ),
   }),
@@ -579,6 +611,12 @@ export const serverEventSchema = z.discriminatedUnion("type", [
     type: z.literal("delegationRefused"),
     reason: delegationRefusalSchema,
     questId: z.string(),
+  }),
+  /** 컨디션 붕괴 임계 — 되살린 침묵 판정. stat은 `conditionCriticalStatSchema` 3종 */
+  z.object({
+    type: z.literal("conditionCritical"),
+    memberId: z.string(),
+    stat: conditionCriticalStatSchema,
   }),
   z.object({ type: z.literal("hiddenUnlocked"), id: z.string(), label: z.string() }),
   z.object({ type: z.literal("runEnded"), status: z.string() }),

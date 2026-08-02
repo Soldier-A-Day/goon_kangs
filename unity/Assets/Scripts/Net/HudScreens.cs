@@ -1584,13 +1584,17 @@ namespace SoldierADay.Net
             foreach (var outcome in _rankReview.outcomes)
             {
                 var member = FindMember(snapshot, outcome.memberId);
-                var row = new Rect(panel.x + 40f, y, width, 56f);
+                // E-2 — 승급 점수의 절반(신뢰보너스)이 예전엔 화면에 없었다. 요구치
+                // 미달로 보이는 사람이 사실 신뢰보너스 덕에 통과선 근처였는지, 아니면
+                // 복무점수 자체가 부족했는지 구분이 안 됐다(감사 목록 3). 그래서 한
+                // 줄 더 늘려 분해한다 — 행 높이도 그만큼 키운다(56→74)
+                var row = new Rect(panel.x + 40f, y, width, 74f);
                 var mine = outcome.memberId == Client.MemberId;
 
                 theme.Fill(row, mine ? HudTheme.AccentW : HudTheme.Paper3);
                 if (mine) theme.Spine(row, HudTheme.Accent);
 
-                GUI.Label(new Rect(row.x + 20f, row.y, 200f, row.height),
+                GUI.Label(new Rect(row.x + 20f, row.y, 200f, 56f),
                     member != null ? member.name : outcome.memberId,
                     theme.At(theme.Heading, 19, HudTheme.Ink));
                 if (member != null)
@@ -1599,23 +1603,33 @@ namespace SoldierADay.Net
                         HudTheme.RoleTag(member.role), HudTheme.RoleColor(member.role), HudTheme.Paper);
                 }
 
-                GUI.Label(new Rect(row.x + 200f, row.y, 240f, row.height),
+                GUI.Label(new Rect(row.x + 200f, row.y, 240f, 56f),
                     $"{HudTheme.RankName(outcome.from)} → {HudTheme.RankName(outcome.to)}",
                     theme.At(theme.Body, 16, outcome.promoted ? HudTheme.Accent : HudTheme.Ink3));
 
                 theme.Bar(new Rect(row.x + 460f, row.y + 24f, 200f, 8f),
                     (float)(outcome.score / Mathf.Max(1f, (float)outcome.require)),
                     outcome.promoted ? HudTheme.Accent : HudTheme.Alert);
-                GUI.Label(new Rect(row.x + 670f, row.y, 120f, row.height),
+                GUI.Label(new Rect(row.x + 670f, row.y, 120f, 56f),
                     $"{outcome.score:0} / {outcome.require:0}",
                     theme.At(theme.Mono, 17, HudTheme.Ink, TextAnchor.MiddleRight));
 
-                GUI.Label(new Rect(row.xMax - 180f, row.y, 160f, row.height),
+                // 복무점수 + 신뢰보너스 두 줄 분해. trustBonus 계산식(ranks.ts
+                // GAINS.trustMax·trustDivisor)은 서버 소관이라 여기서 다시 계산하지
+                // 않는다 — 심사 시점에 실려 온 outcome.score·trustBonus를 그대로 뺄셈만
+                // 해서 보여준다("복무점수"는 score에서 이미 합산된 몫을 역산한 값이지
+                // 클라가 새로 매긴 점수가 아니다)
+                var serviceScore = outcome.score - outcome.trustBonus;
+                GUI.Label(new Rect(row.x + 460f, row.y + 36f, 330f, 20f),
+                    $"복무점수 {serviceScore:0} + 신뢰보너스 {outcome.trustBonus:0}",
+                    theme.At(theme.Label, 12, HudTheme.Ink3, TextAnchor.MiddleRight));
+
+                GUI.Label(new Rect(row.xMax - 180f, row.y, 160f, 56f),
                     outcome.promoted ? "승급" : "보류",
                     theme.At(theme.Heading, 19,
                         outcome.promoted ? HudTheme.Accent : HudTheme.Alert, TextAnchor.MiddleRight));
 
-                y += 60f;
+                y += 78f;
             }
 
             GUI.Label(new Rect(panel.x, panel.yMax - 44f, panel.width, 24f),
