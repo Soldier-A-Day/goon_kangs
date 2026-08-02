@@ -10,7 +10,7 @@ import {
   type Quest,
   type RunState,
 } from "../src/index.js";
-import { SECOND, beginDay, completeRequired, fullSquad, playDays } from "./helpers.js";
+import { SECOND, beginDay, completeRequired, fullSquad, playDays, toPhase } from "./helpers.js";
 
 function required(state: RunState, ownerId: string, id: string): Quest {
   const quest: Quest = {
@@ -21,12 +21,17 @@ function required(state: RunState, ownerId: string, id: string): Quest {
     ownerId,
     required: true,
     phase: "afternoon",
-    zone: "barracks",
+    zone: "Z01",
+    spot: null,
+    jointTotal: 0,
+    jointDone: 0,
     workMs: 10 * SECOND,
     workedMs: 0,
     minActors: 1,
     status: "pending",
     delegatedFrom: null,
+    minigame: null,
+    grade: null,
   };
   state.quests.push(quest);
   return quest;
@@ -304,21 +309,25 @@ describe("대리와 합동 퀘스트", () => {
     expect(proxies.every((m) => m.zone === joint.zone)).toBe(true);
   });
 
-  it("1인 방도 합동을 완수할 수 있다 — 다만 사람이 붙잡아야 한다", () => {
+  it("1인 방도 합동을 완수할 수 있다 — 사람이 조각을 채우면 대리가 나머지를 따라온다", () => {
     let state = beginDay(
       fullSquad({ members: [{ id: "p1", name: "김소총", role: "rifle" }] }),
     );
     const joint = state.quests.find((q) => q.kind === "joint");
     if (!joint) throw new Error("합동 없음");
 
+    // **그 일과의 시간대까지 간다.** 일과는 제 칸에서만 할 수 있고(4.0),
+    // 이 테스트는 전에 기상·점검 칸에서 오후 합동을 끝내고 있었다
+    state = toPhase(state, joint.phase);
+
     state = step(state, { type: "move", memberId: "p1", to: joint.zone }).state;
     state = step(state, { type: "tick", elapsedMs: 30 * SECOND }).state;
-    state = step(state, {
-      type: "work",
-      memberId: "p1",
-      questId: joint.id,
-      deltaMs: joint.workMs,
-    }).state;
+
+    // 합동은 판 하나를 인원이 나눠 채운다 (QST-01). 사람이 제 몫을 채우고,
+    // 대리는 시간으로 따라온다 — 그래야 1~3인 방이 성립한다 (ROLE-03)
+    for (let i = 0; i < joint.jointTotal; i += 1) {
+      state = step(state, { type: "jointStep", memberId: "p1", questId: joint.id }).state;
+    }
 
     expect(state.quests.find((q) => q.id === joint.id)?.status).toBe("done");
   });

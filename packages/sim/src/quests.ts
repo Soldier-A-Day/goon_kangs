@@ -1,8 +1,17 @@
 import questTable from "../data/quests.json";
-import { planFor, type DayPlan } from "./curriculum.js";
+import { UNLOCK, planFor, unlocked, type DayPlan } from "./curriculum.js";
 import { disciplineBand } from "./discipline.js";
 import { nextInt, sample, type RngState } from "./rng.js";
-import type { Member, PhaseId, Quest, RunState, TempBand, Zone } from "./types.js";
+import { trainingName, trainingPlace } from "./training.js";
+import type {
+  Member,
+  Minigame,
+  PhaseId,
+  Quest,
+  RunState,
+  TempBand,
+  Zone,
+} from "./types.js";
 
 interface QuestTemplate {
   readonly id: string;
@@ -12,20 +21,56 @@ interface QuestTemplate {
   readonly bands?: string;
   readonly required?: boolean;
   readonly bivouacOnly?: boolean;
+  /** 그 일이 벌어지는 물건. 맵 생성기가 그 구역에 놓았는지 굽는 자리에서 검사한다 */
+  readonly spot?: string;
+  /** 일과 69건은 전부 판을 갖는다. 없으면 시간만으로 완료된다 */
+  readonly minigame?: Minigame;
+}
+
+interface CareTemplate {
+  readonly id: string;
+  readonly label: string;
+  readonly zone: string;
+  readonly phase: string;
+  readonly workSeconds: number;
+  readonly recovery: Readonly<Record<string, number>>;
 }
 
 const COUNTS = questTable.counts;
+const CARE_POOL = questTable.care as readonly CareTemplate[];
 const ROLE_POOL = questTable.role as Record<string, readonly QuestTemplate[]>;
 const CHORE_POOL = questTable.chores as readonly QuestTemplate[];
 const SURPRISE_POOL = questTable.surprise as readonly QuestTemplate[];
 const JOINT = questTable.joint;
+const JOINT_BOARDS = (questTable.joint as { boards?: Record<string, Record<string, unknown>> })
+  .boards ?? {};
+
+/** 합동 판 정의에서 `steps`를 떼어낸다 — 그건 조각 수지 원형 파라미터가 아니다 */
+function jointBoard(spec: Record<string, unknown>): Minigame {
+  const out: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(spec)) {
+    if (key === "steps") continue;
+    out[key] = value;
+  }
+  return out as unknown as Minigame;
+}
 
 const COLD_BANDS: readonly TempBand[] = ["cold", "extremeCold"];
 const WARM_BANDS: readonly TempBand[] = ["warm", "hot", "extremeHot"];
 
 /** 필수가 배치되는 칸. 점호 칸에는 일과를 넣지 않는다 — 그 칸은 판정용이다. */
 const REQUIRED_PHASES: readonly PhaseId[] = ["morning", "afternoon"];
-const OPTIONAL_PHASES: readonly PhaseId[] = ["reveille", "afternoon", "personal"];
+/**
+ * 선택이 배치되는 칸.
+ *
+ * **일하는 칸은 둘뿐이다 — 오전(08:00)과 오후(14:00).**
+ *
+ * 나머지 셋은 몸을 되돌리는 칸이다(7.0). 기상 칸에서 씻고 물을 채우고,
+ * 중식 칸에서 먹고 쉬고, 개인정비 칸에서 다시 먹고 씻는다. 여기 일과가
+ * 섞이면 회복할 시간이 없어지고, 하루 여섯 칸이 전부 일하는 칸이 된다.
+ * 점호 칸은 판정용이라 애초에 아무것도 안 들어간다.
+ */
+const OPTIONAL_PHASES: readonly PhaseId[] = ["morning", "afternoon"];
 
 /**
  * 하루치 퀘스트 배정.
@@ -39,7 +84,12 @@ export function generateDayQuests(state: RunState): readonly [Quest[], RngState]
   const quests: Quest[] = [];
   let rng = state.rngState;
 
-  /* 1. 공통 일과 풀 — 분대 풀에서 나와 1인당 0~1건으로 분배된다 */
+  /* 1. 공통 일과 풀 — 분대 풀에서 나와 1인당 0~1건으로 분배된다.
+   *
+   * **D-2부터 열린다**(표 14-1). 첫날은 보직 일과만으로 하루가 돌아가야
+   * 조작을 익힐 여유가 생긴다 — D-1의 필수는 보직 2건뿐이라 공통이 없어도
+   * 하루가 성립한다.
+   */
   const [poolSize, afterSize] = nextInt(
     rng,
     COUNTS.chorePoolPerDay.min,
@@ -47,7 +97,9 @@ export function generateDayQuests(state: RunState): readonly [Quest[], RngState]
   );
   rng = afterSize;
 
-  const available = choresFor(state.weather.band, plan);
+  const available = unlocked(state.day, UNLOCK.chores)
+    ? choresFor(state.weather.band, plan)
+    : [];
   const [chosen, afterChores] = sample(rng, available, poolSize);
   rng = afterChores;
 
@@ -71,22 +123,34 @@ export function generateDayQuests(state: RunState): readonly [Quest[], RngState]
     const chore = choreByMember.get(member.id);
     const requiredChores = chore?.required === true ? 1 : 0;
 
-    // 훈련 체크포인트는 각각 필수 1건으로 센다 (TRN-02) — 훈련을 수행하는 것이 곧 필수 처리다
+    // 훈련 체크포인트는 각각 필수 1건으로 센다 (TRN-02) — 훈련을 수행하는 것이 곧 필수 처리다.
+    //
+    // **그날의 훈련장에서 벌어진다.** 예전에는 전부 부대 안 훈련장(Z50)이었는데,
+    // 그러면 사격도 화생방도 행군도 같은 자리에서 끝난다 — 훈련 맵 10종(§6.4)이
+    // 있어도 갈 이유가 없다. 장소가 다르면 그날의 동선이 달라진다(§6.1)
+    const place = trainingPlace(plan.training, state.day, state.weather.band);
+
     for (let i = 0; i < plan.required.trainingCheckpoints; i += 1) {
       quests.push({
         id: `d${state.day}-${member.id}-cp${i}`,
         kind: "role",
-        label: `${plan.training ?? "훈련"} ${i + 1}구간`,
+        label: `${trainingName(plan.training)} ${i + 1}구간`,
         training: plan.training,
         ownerId: member.id,
         required: true,
         phase: i < 2 ? "morning" : "afternoon",
-        zone: "trainingField",
+        zone: place?.zone ?? "Z50",
+        spot: null,
         workMs: 20_000,
         workedMs: 0,
         minActors: 1,
         status: "pending",
         delegatedFrom: null,
+        // 훈련 체크포인트는 §9.0의 코스가 따로 있다 — 일과 미니게임을 얹지 않는다
+        minigame: null,
+        grade: null,
+        jointTotal: 0,
+        jointDone: 0,
       });
     }
 
@@ -136,8 +200,49 @@ export function generateDayQuests(state: RunState): readonly [Quest[], RngState]
     }
   }
 
-  /* 3. 합동 퀘스트 — 요구 인원은 커리큘럼이 정한다 (표 14-1) */
+  /* 3. 회복 행동 — 중식 · 개인정비 칸. 사람마다 제 몫이 있다.
+   *
+   * 판정에 안 들어가므로 `required`는 언제나 false이고, 안 해도 아무도
+   * 뭐라 하지 않는다 — 다음 날 아침에 몸이 말한다(7.0).
+   */
+  // 숙영일에는 **부대 안 시설을 못 쓴다.** 세면장도 식당도 영내에 있고 분대는
+  // 숙영지에 있다. 그렇다고 이틀 내리 아무것도 못 먹고 못 씻으면 청결이 반드시
+  // 0으로 떨어지므로, 회복은 숙영지에서 야전식으로 한다 — 몫은 줄어든다.
+  // 숙영이 청결을 미는 압박(`bivouacHygienePenalty`)은 그 차액에서 나온다.
+  const bivouac = plan.training === "bivouac";
+  const camp = trainingPlace("bivouac", state.day, state.weather.band);
+
+  for (const member of active) {
+    for (const template of CARE_POOL) {
+      quests.push({
+        id: `d${state.day}-${member.id}-${template.id}`,
+        kind: "care",
+        label: bivouac ? `야전 ${template.label}` : template.label,
+        training: null,
+        ownerId: member.id,
+        required: false,
+        phase: template.phase as PhaseId,
+        zone: bivouac ? ((camp?.zone ?? template.zone) as Zone) : (template.zone as Zone),
+        spot: null,
+        workMs: template.workSeconds * 1000,
+        workedMs: 0,
+        minActors: 1,
+        status: "pending",
+        delegatedFrom: null,
+        // 회복은 일과가 아니다. 밥 먹는 데 판을 통과하라고 할 이유가 없다
+        minigame: null,
+        grade: null,
+        jointTotal: 0,
+        jointDone: 0,
+      });
+    }
+  }
+
+  /* 4. 합동 퀘스트 — 요구 인원은 커리큘럼이 정한다 (표 14-1) */
   if (plan.jointActors > 0 && plan.joint) {
+    const spec = JOINT_BOARDS[plan.joint];
+    const steps = spec ? Number(spec.steps ?? 0) : 0;
+    const board = spec ? jointBoard(spec) : null;
     quests.push({
       id: `d${state.day}-joint`,
       kind: "joint",
@@ -148,16 +253,52 @@ export function generateDayQuests(state: RunState): readonly [Quest[], RngState]
       required: false,
       phase: "afternoon",
       zone: jointZone(state.day),
+      spot: null,
       workMs: JOINT.workSeconds * 1000,
       workedMs: 0,
       minActors: plan.jointActors,
       status: "pending",
       delegatedFrom: null,
+      // 합동도 판이 있다. 다만 혼자 통과하는 판이 아니라 **인원이 나눠 채우는**
+      // 판이라, 완료는 `questCleared`가 아니라 조각 수로 결정된다
+      minigame: board ?? null,
+      grade: null,
+      jointTotal: board ? steps : 0,
+      jointDone: 0,
     });
   }
 
   return [quests, rng];
 }
+
+/**
+ * 회복 행동을 마쳤을 때의 몫.
+ *
+ * 값은 `quests.json`의 care 항목이 들고 있다 — 스탯 수치가 규칙이므로 서버에만
+ * 있어야 하고(ARCH-02), 화면은 완료 여부만 보고 그린다.
+ *
+ * 모르는 id면 빈 것을 돌려준다. 데이터에서 항목이 빠졌다고 완료가 막히면 안 된다.
+ */
+export function careRecovery(
+  questId: string,
+  bivouac = false,
+): Readonly<Record<string, number>> {
+  for (const template of CARE_POOL) {
+    if (!questId.endsWith(template.id)) continue;
+    if (!bivouac) return template.recovery;
+
+    // 야전판은 절반이다. 세면장 대신 수통물로 씻고 식당 대신 전투식량을 먹는다
+    const scaled: Record<string, number> = {};
+    for (const [key, amount] of Object.entries(template.recovery)) {
+      scaled[key] = Math.round(amount * CARE_BIVOUAC_RATIO);
+    }
+    return scaled;
+  }
+  return {};
+}
+
+/** 숙영지 회복 비율. 값 하나가 숙영 이틀의 난이도를 정한다 — 밸런싱 대상이다 */
+const CARE_BIVOUAC_RATIO = 0.54;
 
 /**
  * QST-02 돌발 퀘스트. 시간대 진입 시 확률 롤이며, 군기가 낮을수록 자주 터진다.
@@ -168,6 +309,9 @@ export function rollSurprise(
   phase: PhaseId,
 ): readonly [Quest | null, RngState] {
   if (phase === "rollcall") return [null, state.rngState];
+  // D-4부터 열린다 (표 14-1). 조작도 안 익은 첫 사흘에 일과를 끊고 들어오면
+  // 그건 압박이 아니라 사고다
+  if (!unlocked(state.day, UNLOCK.surprise)) return [null, state.rngState];
 
   const chance = surpriseChance(state.discipline);
   const [value, afterRoll] = nextInt(state.rngState, 0, 9999);
@@ -243,11 +387,16 @@ function toQuest(
     required: overrides.required,
     phase: overrides.phase,
     zone: template.zone as Zone,
+    spot: template.spot ?? null,
     workMs: template.workSeconds * 1000,
     workedMs: 0,
     minActors: 1,
     status: "pending",
     delegatedFrom: null,
+    minigame: template.minigame ?? null,
+    grade: null,
+    jointTotal: 0,
+    jointDone: 0,
   };
 }
 

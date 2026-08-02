@@ -1,4 +1,6 @@
 import { applyPhaseCondition, applySleep } from "./condition.js";
+import { refreshRadio } from "./radio.js";
+import { clearWarmth, tickWarmth, travelMultiplier, workMultiplier } from "./warmth.js";
 import {
   awardProxyScore,
   delegateChore,
@@ -9,6 +11,7 @@ import {
 import { applyDailyDiscipline } from "./discipline.js";
 import { applyDailyServiceScore, runReview } from "./ranks.js";
 import { checkHiddenQuests } from "./hidden.js";
+import { planFor } from "./curriculum.js";
 import { accrueSupplyPoints, fileClaim, runSupplyDay } from "./supply.js";
 import {
   applyForcedSleep,
@@ -20,11 +23,12 @@ import {
 } from "./evacuation.js";
 import { applyJudgement, checkDisband } from "./judge.js";
 import { PHASE_COUNT, phaseAt, phaseDurationMsFor } from "./phases.js";
-import { generateDayQuests, rollSurprise } from "./quests.js";
+import { careRecovery, generateDayQuests, rollSurprise } from "./quests.js";
 import { weatherFor } from "./weather.js";
-import { travelMs } from "./zones.js";
+import { isAdjacent, travelMs } from "./zones.js";
 import type {
   Effect,
+  Grade,
   Member,
   PhaseId,
   Quest,
@@ -60,10 +64,16 @@ export function step(state: RunState, event: SimEvent): StepResult {
       skipPhase(next, effects);
       break;
     case "move":
-      startMove(next, event.memberId, event.to);
+      startMove(next, event.memberId, event.to, event.onFoot === true);
       break;
     case "work":
       applyWork(next, event.memberId, event.questId, event.deltaMs);
+      break;
+    case "jointStep":
+      addJointStep(next, event.memberId, event.questId);
+      break;
+    case "questCleared":
+      clearQuest(next, event.memberId, event.questId, event.grade);
       break;
     case "delegateChore":
       delegateChore(next, event.fromId, event.toId, event.questId, effects);
@@ -99,6 +109,8 @@ function beginDay(state: RunState, effects: Effect[]): void {
   // 퀘스트 배정보다 먼저 확정되어야 한다.
   state.weather = weatherFor(state.seed, state.day, state.season);
   effects.push({ type: "weatherRolled", day: state.day, weather: state.weather });
+  // 밴드가 극혹한을 벗어났으면 보온 게이지와 동상을 여기서 한 번에 치운다
+  clearWarmth(state);
 
   // 보급은 아침에 도착한다. 판정 뒤로 미루면 보급일 당일의 조건 D를 막지 못해
   // "그날 극단 밴드가 뽑히면 손쓸 방법이 없는" 확정 사망이 생긴다 (SUP-01)
@@ -149,6 +161,13 @@ function applyTick(state: RunState, elapsedMs: number, effects: Effect[]): void 
     }
   }
 
+  // 5.0 보온 게이지는 **실시간 90초**라 시간대 정산에 얹을 수 없다.
+  // 여기서 ms 단위로 흘려야 한다
+  tickWarmth(state, elapsedMs, effects);
+
+  // 합동에서 대리가 채우는 제 몫 (ROLE-03)
+  tickJointProxies(state, elapsedMs);
+
   let remaining = elapsedMs;
 
   // 하달 창이 열려 있는 동안은 시간대 타이머가 멈춰 있다
@@ -189,6 +208,11 @@ function endPhase(state: RunState, effects: Effect[]): void {
     quest.status = "locked";
     locked.push(quest.id);
   }
+
+  // 8.0 무전 — 통신병의 참여 상태와 유지 일과는 시간대 경계에서만 바뀐다.
+  // `applyTick`에서 매 틱 세면 배치 시뮬이 퀘스트 배열을 수백만 번 훑는다
+  const radio = refreshRadio(state);
+  if (radio) effects.push({ type: "radioChanged", to: radio });
 
   // 컨디션은 시간대 단위로 정산된다 — 밴드 드레인이 몸으로 체감되는 지점이다 (7.0)
   applyPhaseCondition(state, phase.id, effects);
@@ -300,10 +324,30 @@ function endDay(state: RunState, effects: Effect[]): void {
  * 구역 이동. 도착 전까지는 상호작용이 불가능하므로, 목적지 zone을 즉시 반영하되
  * `travelRemainingMs`가 남아 있는 동안은 "이동 중"으로 취급한다.
  */
-function startMove(state: RunState, memberId: string, to: Zone): void {
+/**
+ * 구역 이동.
+ *
+ * 두 갈래다.
+ *
+ *   **걸어서** — 플레이어가 맵에서 실제로 경계를 넘었다. 시간은 이미 걷는 데
+ *   썼으므로 소요를 또 붙이지 않는다. 다만 **인접 구역인지 검증한다** — 안 그러면
+ *   순간이동으로 §6.1의 동선 비용을 통째로 건너뛸 수 있다.
+ *
+ *   **그 외** — NPC 대리와 헤드리스 시뮬(simrunner)에는 맵이 없다. 이쪽은 격자
+ *   거리로 계산한 소요를 그대로 문다.
+ */
+function startMove(state: RunState, memberId: string, to: Zone, onFoot: boolean): void {
   const member = state.members.find((m) => m.id === memberId);
   if (!member || member.zone === to) return;
-  member.travelRemainingMs = travelMs(member.zone, to);
+
+  if (onFoot && isAdjacent(member.zone, to)) {
+    member.travelRemainingMs = 0;
+    member.zone = to;
+    return;
+  }
+
+  // 5.0 동상 — 이동 속도 −30%. 같은 거리를 더 오래 걷는다
+  member.travelRemainingMs = travelMs(member.zone, to) * travelMultiplier(state, member);
   member.zone = to;
 }
 
@@ -317,25 +361,167 @@ function applyWork(
   const quest = state.quests.find((q) => q.id === questId);
   if (!member || !quest) return;
   if (quest.status === "done" || quest.status === "locked") return;
-  if (!canWork(member, quest)) return;
+  if (!canWork(state, member, quest)) return;
 
   // 합동 퀘스트는 요구 인원이 모이지 않으면 진행 게이지가 차오르지 않는다 (QST-01)
   if (quest.minActors > 1 && actorsAt(state, quest) < quest.minActors) return;
 
   quest.status = "active";
-  quest.workedMs = Math.min(quest.workMs, quest.workedMs + deltaMs);
-  if (quest.workedMs >= quest.workMs) {
-    quest.status = "done";
-    // 대행 점수는 하달자가 아니라 수행자에게 간다 (6.2 역전 경로 1)
-    awardProxyScore(state, quest);
+  // 5.0 동상 — 상호작용 실패율 +20%를 진척 감소로 옮긴다
+  quest.workedMs = Math.min(quest.workMs, quest.workedMs + deltaMs * workMultiplier(state, member));
+
+  // **판이 붙은 일과는 시간으로 끝나지 않는다.** 통과해야 끝나고(`clearQuest`),
+  // 못 통과한 채로 소요가 다 흘렀으면 그 자리에서 다시 시도한다. 계속 실패하면
+  // 시간대 종료로 잠긴다 — 잃은 시간이 곧 페널티다.
+  if (quest.minigame !== null) return;
+
+  if (quest.workedMs >= quest.workMs) complete(state, member, quest, null);
+}
+
+/**
+ * 미니게임 판 통과.
+ *
+ * **완료 시점을 클라만 아는 유일한 경로다.** 서버는 커버리지도 오답 횟수도 볼 수
+ * 없으므로 통과 자체는 받아들이되, `interact`가 통과하는 관문은 전부 그대로
+ * 통과시킨다 — 엉뚱한 구역, 남의 일과, 지난 시간대, 이동 중이면 여기서도 막힌다.
+ *
+ * 여기에 관문을 하나 더 건다: **붙잡고 있던 시간이 소요의 절반에 못 미치면
+ * 무시한다.** 원형은 깨끗이 통과해도 소요의 70~100%를 쓰도록 맞추므로 정상
+ * 플레이는 걸리지 않고, 조작된 클라가 하루를 즉시 끝내는 것만 걸린다.
+ */
+function clearQuest(
+  state: RunState,
+  memberId: string,
+  questId: string,
+  grade: Grade,
+): void {
+  const member = state.members.find((m) => m.id === memberId);
+  const quest = state.quests.find((q) => q.id === questId);
+  if (!member || !quest) return;
+  if (quest.status === "done" || quest.status === "locked") return;
+  // 판이 없는 일과는 통과를 선언할 것이 없다 — 시간이 끝낸다
+  if (quest.minigame === null) return;
+  if (!canWork(state, member, quest)) return;
+  if (quest.minActors > 1 && actorsAt(state, quest) < quest.minActors) return;
+  if (quest.workedMs < quest.workMs * CLEAR_MIN_RATIO) return;
+
+  quest.workedMs = quest.workMs;
+  complete(state, member, quest, grade);
+}
+
+/** 통과를 인정하는 최소 진척. 값 하나가 조작 여지의 크기를 정한다 — 밸런싱 대상이다 */
+const CLEAR_MIN_RATIO = 0.5;
+
+/**
+ * QST-01 합동 — 조각 하나를 채웠다.
+ *
+ * **한 명이 잘해서 캐리하는 구조를 물리적으로 막는다.** 요구 인원이 그 자리에
+ * 모이지 않으면 아무리 눌러도 조각이 올라가지 않는다 — 게이지가 안 차는 것이
+ * 곧 경고이고, 화면은 그것을 읽어 준다.
+ *
+ * 서버는 원형 로직을 모른다. 한 조각이 무엇인지(불일치 1건 · 물건 1개 · 구간
+ * 하나)는 판이 알고, 여기로는 "하나 채웠다"만 올라온다.
+ */
+function addJointStep(state: RunState, memberId: string, questId: string): void {
+  const member = state.members.find((m) => m.id === memberId);
+  const quest = state.quests.find((q) => q.id === questId);
+  if (!member || !quest || quest.kind !== "joint") return;
+  if (quest.status === "done" || quest.status === "locked") return;
+  if (quest.jointTotal <= 0) return;
+  if (!canWork(state, member, quest)) return;
+  // 요구 인원 미달이면 받지 않는다 (QST-01 "참여 인원이 요구치 미달이면
+  // 진행 게이지가 차오르지 않는다")
+  if (actorsAt(state, quest) < quest.minActors) return;
+
+  quest.status = "active";
+  quest.jointDone = Math.min(quest.jointTotal, quest.jointDone + 1);
+  if (quest.jointDone >= quest.jointTotal) {
+    quest.workedMs = quest.workMs;
+    // 합동에는 등급이 없다 — 분대가 같이 채운 것을 개인 등급으로 가를 수 없다
+    complete(state, member, quest, null);
   }
 }
 
-function canWork(member: Member, quest: Quest): boolean {
+/**
+ * 대리가 채우는 제 몫.
+ *
+ * ROLE-03이 1~3인 방을 성립시키려면 대리도 합동에 실제로 기여해야 한다.
+ * 다만 **사람보다 느리다** — 소요 시간을 꽉 채워야 한 사람 몫이고, 사람은
+ * 판을 돌려 그보다 빨리 채운다. "대리는 생존은 시켜주지만 성장은 시켜주지
+ * 않는다"가 여기서도 같다.
+ */
+function tickJointProxies(state: RunState, elapsedMs: number): void {
+  for (const quest of state.quests) {
+    if (quest.kind !== "joint" || quest.jointTotal <= 0) continue;
+    if (quest.status === "done" || quest.status === "locked") continue;
+    if (quest.phase !== phaseAt(state.phaseIndex).id) continue;
+    if (actorsAt(state, quest) < quest.minActors) continue;
+
+    const proxies = state.members.filter(
+      (m) =>
+        (m.presence === "npcVacant" || m.presence === "npcLeave") &&
+        m.zone === quest.zone &&
+        m.travelRemainingMs === 0,
+    ).length;
+    if (proxies === 0) continue;
+
+    // 한 사람 몫 = 전체 조각 / 요구 인원. 그것을 소요 시간에 걸쳐 채운다
+    const share = quest.jointTotal / Math.max(1, quest.minActors);
+    state.jointProxyMs += elapsedMs * proxies;
+    const earned = Math.floor((state.jointProxyMs / quest.workMs) * share);
+    if (earned <= 0) continue;
+
+    state.jointProxyMs -= (earned / share) * quest.workMs;
+    quest.status = "active";
+    quest.jointDone = Math.min(quest.jointTotal, quest.jointDone + earned);
+    if (quest.jointDone >= quest.jointTotal) {
+      quest.workedMs = quest.workMs;
+      quest.status = "done";
+    }
+  }
+}
+
+function complete(
+  state: RunState,
+  member: Member,
+  quest: Quest,
+  grade: Grade | null,
+): void {
+  quest.status = "done";
+  quest.grade = grade;
+  // 대행 점수는 하달자가 아니라 수행자에게 간다 (6.2 역전 경로 1)
+  awardProxyScore(state, quest);
+  // 회복 행동은 **그 자리에서** 몸으로 돌아온다. 시간대 종료를 기다리게 하면
+  // 밥을 먹은 것과 안 먹은 것이 그 칸 안에서 구분되지 않는다
+  if (quest.kind === "care") applyCare(state, member, quest.id);
+}
+
+function applyCare(state: RunState, member: Member, questId: string): void {
+  const recovery = careRecovery(questId, planFor(state.day).training === "bivouac");
+  for (const [key, amount] of Object.entries(recovery)) {
+    const stat = key as keyof Member["stats"];
+    member.stats[stat] = Math.min(100, Math.max(0, member.stats[stat] + amount));
+  }
+}
+
+function canWork(state: RunState, member: Member, quest: Quest): boolean {
   if (member.presence === "evacuated") return false;
   if (member.travelRemainingMs > 0) return false;
   if (member.zone !== quest.zone) return false;
   if (quest.ownerId !== null && quest.ownerId !== member.id) return false;
+
+  // **그 시간대에만 할 수 있다** (4.0).
+  //
+  // 이게 없어서 오후 일과를 오전에 끝낼 수 있었다. 그러면 하루가 시간대로
+  // 나뉜 의미가 사라진다 — 아침에 전부 해치우고 나머지를 흘려보내면 되고,
+  // 시간대 종료로 잠기는 규칙(`endPhase`)도 걸릴 일이 없다.
+  //
+  // 돌발은 예외다. 뜬 그 자리에서 처리하는 것이고, 시간대를 기다리라고 하면
+  // 돌발이 아니게 된다.
+  if (quest.kind !== "surprise" && quest.phase !== phaseAt(state.phaseIndex).id) {
+    return false;
+  }
+
   return true;
 }
 

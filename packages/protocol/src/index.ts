@@ -32,17 +32,69 @@ export const tempBandSchema = z.enum([
   "hot",
   "extremeHot",
 ]);
+/**
+ * 4.3 구역 — **방 하나가 곧 구역이다.**
+ *
+ * 정의는 `packages/sim/data/zones.json`이 소유한다. 예전에는 8개뿐이라
+ * 생활관·복도·세면장·행정반이 전부 `barracks` 하나였고, 그래서 세면장 일과를
+ * 생활관에 선 채로 끝낼 수 있었다.
+ */
 export const zoneSchema = z.enum([
-  "barracks",
-  "drillGround",
-  "storage",
-  "messHall",
-  "guardPost",
-  "trainingField",
-  "infirmary",
-  "boilerRoom",
+  "Z01",
+  "Z01b",
+  "Z01c",
+  "Z02",
+  "Z03",
+  "Z13",
+  "Z16",
+  "Z17",
+  "Z09",
+  "Z20",
+  "Z07",
+  "Z07b",
+  "Z21",
+  "Z05",
+  "Z06",
+  "Z04",
+  "Z22",
+  "Z08",
+  "Z10",
+  "Z11",
+  "Z12",
+  "Z12b",
+  "Z18",
+  "Z19",
+  "Z14",
+  "Z50",
+  "TR01",
+  "TR02",
+  "TR03",
+  "TR04",
+  "TR05",
+  "TR06",
+  "TR07",
+  "TR08",
+  "TR09",
+  "TR10",
 ]);
-export const questKindSchema = z.enum(["role", "chore", "joint", "surprise", "hidden"]);
+/**
+ * 8.0 무전 상태 3단계.
+ *
+ * **분대 공통 값이라 서버가 소유한다.** 클라이언트가 통신병의 상태를 보고 스스로
+ * 유도하면 사람마다 다른 화면을 보게 되고, "무전이 끊겼으니 모이자"는 합의 자체가
+ * 성립하지 않는다. 2D 탑다운에서는 이게 유일한 정보 차단 장치다(SAD-ART-001 §1.3).
+ */
+export const radioStateSchema = z.enum(["ok", "weak", "down"]);
+
+export const questKindSchema = z.enum([
+  "role",
+  "chore",
+  "joint",
+  "surprise",
+  "hidden",
+  // 회복 행동 — 밥·물·세면. 판정에 들어가지 않는다(sim types.ts QuestKind)
+  "care",
+]);
 export const questStatusSchema = z.enum(["pending", "active", "done", "failed", "locked"]);
 export const presenceSchema = z.enum([
   "player",
@@ -65,6 +117,18 @@ export const quickCommandSchema = z.enum([
 ]);
 export type QuickCommand = z.infer<typeof quickCommandSchema>;
 
+/**
+ * 일과 수행 등급.
+ *
+ * **통과 여부가 아니라 여유다.** 목표를 못 채우면 완료가 아니라 재시도이므로
+ * 등급에 "실패"가 없다 — 통과한 판을 얼마나 깨끗하게 했는가(남은 시간 · 실수
+ * 횟수)만 가른다. 복무 점수 차등에만 쓰이고 판정(조건 A)은 바꾸지 않는다.
+ *
+ * 양쪽에 다 나온다. 클라가 `questCleared`로 올리고, 스냅샷이 그대로 되비춘다.
+ */
+export const gradeSchema = z.enum(["A", "B", "C"]);
+export type Grade = z.infer<typeof gradeSchema>;
+
 /* ------------------------------------------------------- 클라이언트 → 서버 */
 
 /**
@@ -73,8 +137,47 @@ export type QuickCommand = z.infer<typeof quickCommandSchema>;
  */
 export const intentSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("ready"), value: z.boolean() }),
-  z.object({ type: z.literal("move"), to: zoneSchema }),
+  z.object({
+    type: z.literal("move"),
+    to: zoneSchema,
+    /**
+     * 걸어서 경계를 넘었는가.
+     *
+     * 2D 맵에서는 플레이어가 실제로 걸어서 구역을 옮기므로(SAD-ART-002) 이동
+     * 소요를 서버가 또 세면 이중 계산이 된다. 다만 서버는 **인접한 구역인지**
+     * 확인한다 — 안 그러면 순간이동으로 동선 비용을 통째로 건너뛸 수 있다.
+     */
+    onFoot: z.boolean().optional(),
+  }),
   z.object({ type: z.literal("interact"), questId: z.string(), active: z.boolean() }),
+  /**
+   * 미니게임 판을 통과했다.
+   *
+   * **여기 하나만 예외다.** 나머지 의도는 전부 "하고 있다"는 신고이고 완료는
+   * 서버가 세지만, 판이 붙은 일과는 완료 시점을 클라만 안다 — 서버는 커버리지도
+   * 오답 횟수도 볼 수 없다.
+   *
+   * 그래서 **거절할 수 있는 것은 그대로 거절한다.** 구역·시간대·소유자·이동
+   * 중·합동 인원은 `interact`와 똑같이 검증하고, 여기에 최소 시간 게이트를
+   * 하나 더 건다(`step.ts`) — 판이 소요의 절반도 안 지나 통과를 외치면 무시한다.
+   * 조작된 클라가 하루를 즉시 끝내는 것만 막고, 정상 플레이는 걸리지 않는다.
+   *
+   * 실패는 보내지 않는다. 판을 다시 여는 것은 순전히 클라 동작이고, 계속
+   * 실패하면 시간대 종료로 잠긴다 — 잃은 시간이 곧 페널티다.
+   */
+  z.object({
+    type: z.literal("questCleared"),
+    questId: z.string(),
+    grade: gradeSchema,
+  }),
+  /**
+   * QST-01 합동 — 판의 조각 하나를 채웠다.
+   *
+   * 합동은 혼자 통과하는 판이 아니라 **인원이 나눠 채우는 판**이다. 요구 인원이
+   * 그 자리에 모이지 않으면 서버가 받지 않는다 — 한 명이 잘해서 캐리하는 구조를
+   * 물리적으로 막는 것이 이 퀘스트의 목적이다.
+   */
+  z.object({ type: z.literal("jointStep"), questId: z.string() }),
   z.object({ type: z.literal("quickCommand"), command: quickCommandSchema }),
   z.object({ type: z.literal("chat"), text: z.string().max(200) }),
   z.object({ type: z.literal("voteSkip"), value: z.boolean() }),
@@ -124,7 +227,147 @@ export const memberViewSchema = z.object({
   choresReceived: z.number(),
   vetoUsedToday: z.boolean(),
   onGuardTonight: z.boolean(),
+  /**
+   * 5.0 보온 게이지 — 열원 접촉까지 남은 ms. 극혹한 밴드에서만 흐른다.
+   *
+   * 남은 시간만 주고 전체 길이는 주지 않는다. 클라가 비율을 그리려면 밴드 규칙을
+   * 알아야 하는데, 그건 서버 데이터 테이블에 있다(ARCH-02).
+   */
+  warmthRemainingMs: z.number(),
+  /** 동상 디버프 — 이동 −30%, 작업 −20%. 의무병만 해제할 수 있다 */
+  frostbitten: z.boolean(),
 });
+
+/* ---------------------------------------------------------------- 미니게임 */
+
+/**
+ * 일과 미니게임 원형 14종 (+ 랜덤 소환).
+ *
+ * 퀘스트마다 새 게임을 만들지 않는다 — **원형을 파라미터로 변주한다.** 같은
+ * `SCRUB`이라도 대상(타일·총열·차체)과 브러시 크기·오염 패턴이 다르면 다른 일로
+ * 읽히므로, 예산은 스킨과 파라미터에 쓰고 로직은 하나만 유지한다.
+ *
+ * `REACT`는 원래 단독으로 쓰지 않는다 — 다른 원형 위에 끼워 넣는 인터럽트
+ * 모디파이어(`interrupt`)다. 예외는 `간부 순찰` 하나뿐이다.
+ *
+ * `RANDOM`은 다른 구역의 미니게임 하나를 무작위로 불러온다 (`타 분대 지원 요청`).
+ */
+export const minigameTypeSchema = z.enum([
+  "SCRUB",
+  "PLACE",
+  "AUDIT",
+  "MASH",
+  "BALANCE",
+  "HOLD",
+  "TRACE",
+  "SORT",
+  "TIMING",
+  "SEQ",
+  "RHYTHM",
+  "TRACK",
+  "SEARCH",
+  "REACT",
+  "RANDOM",
+]);
+export type MinigameType = z.infer<typeof minigameTypeSchema>;
+
+/**
+ * 원형별 파라미터.
+ *
+ * **평평하다.** 스펙 초안은 `params: {...}`로 한 겹 감쌌지만, C# 생성기가
+ * 판별 union을 필드 합집합으로 펴면서 중첩 객체는 첫 variant의 모양만 가져간다
+ * (`tools/csharpgen/src/emit.ts` `buildUnion`). 감싸는 순간 Unity가 SCRUB 말고는
+ * 파라미터를 못 읽는다.
+ *
+ * 제한 시간은 여기 없다 — `workSeconds`가 곧 제한 시간이다. 두 곳에 두면
+ * 반드시 어긋난다.
+ */
+const board = <T extends string, P extends z.ZodRawShape>(type: T, params: P) =>
+  z.object({
+    type: z.literal(type),
+    /** 같은 원형을 다른 일로 읽히게 하는 스킨 이름 */
+    variant: z.string(),
+    /** 1~3. 야간·혹한기·피로도에서 런타임으로 +1 할 수 있다 */
+    difficulty: z.number().int().min(1).max(3),
+    /** 20초 이상 퀘스트의 2페이즈 */
+    phase2: minigameTypeSchema.optional(),
+    /** 진행 중인 판을 끊고 들어오는 모디파이어 */
+    interrupt: z.literal("REACT").optional(),
+    ...params,
+  });
+
+export const minigameSchema = z.discriminatedUnion("type", [
+  /** 오염 커버리지를 채운다. `supply`가 있으면 문지를 수 있는 총량이 제한된다 */
+  board("SCRUB", {
+    stains: z.number(),
+    brush: z.number(),
+    coverage: z.number(),
+    supply: z.number().optional(),
+  }),
+  /** 격자·실루엣에 맞춘다. `snapDeg`가 0이면 각도는 보지 않는다 */
+  board("PLACE", {
+    pieces: z.number(),
+    snapDeg: z.number(),
+    tolerance: z.number(),
+  }),
+  /** 목록과 실물을 대조해 불일치를 적발한다 */
+  board("AUDIT", {
+    entries: z.number(),
+    mismatches: z.number(),
+    strikes: z.number(),
+  }),
+  /** 연타로 게이지를 채운다. `stamina`가 1 미만이면 같은 일이 더 무겁다 */
+  board("MASH", { taps: z.number(), drain: z.number(), stamina: z.number() }),
+  /** 흔들림을 보정하며 구간을 완주한다 */
+  board("BALANCE", {
+    sway: z.number(),
+    segments: z.number(),
+    tolerance: z.number(),
+  }),
+  /** 바늘을 안전 범위에 붙잡는다. `slack`은 허용 이탈 누적(초) */
+  board("HOLD", {
+    bandMin: z.number(),
+    bandMax: z.number(),
+    drift: z.number(),
+    slack: z.number(),
+  }),
+  /** 노드를 돌려 시작에서 끝까지 잇는다 */
+  board("TRACE", {
+    nodes: z.number(),
+    branches: z.number(),
+    rotations: z.number(),
+  }),
+  /** 좌/우/폐기로 가른다. `ambiguous`는 판단이 갈리는 품목 수 */
+  board("SORT", {
+    items: z.number(),
+    bins: z.number(),
+    ambiguous: z.number(),
+    strikes: z.number(),
+  }),
+  /** 움직이는 바를 판정 구간에 세운다 */
+  board("TIMING", { hits: z.number(), window: z.number(), speed: z.number() }),
+  /** 제시된 순서를 재현한다. `steps`가 2 이상이면 자릿수가 점증한다 */
+  board("SEQ", { length: z.number(), steps: z.number(), show: z.number() }),
+  /** 박자에 맞춰 입력하고 콤보를 유지한다 */
+  board("RHYTHM", { beats: z.number(), bpm: z.number(), combo: z.number() }),
+  /** 움직이는 표적 위에 커서를 유지한다 */
+  board("TRACK", {
+    targets: z.number(),
+    speed: z.number(),
+    holdRatio: z.number(),
+  }),
+  /** 화면을 훑어 은닉 대상을 찾는다. `signal`은 근접 신호 반경 */
+  board("SEARCH", {
+    hidden: z.number(),
+    cells: z.number(),
+    signal: z.number(),
+  }),
+  /** 단발 QTE. 단독으로 쓰는 것은 `간부 순찰` 하나뿐이다 */
+  board("REACT", { window: z.number(), count: z.number() }),
+  /** 다른 구역의 미니게임 하나를 무작위 소환한다 */
+  board("RANDOM", {}),
+]);
+export type Minigame = z.infer<typeof minigameSchema>;
 
 export const questViewSchema = z.object({
   id: z.string(),
@@ -134,12 +377,44 @@ export const questViewSchema = z.object({
   required: z.boolean(),
   phase: phaseIdSchema,
   zone: zoneSchema,
+  /**
+   * 그 일이 벌어지는 물건 이름.
+   *
+   * 클라는 이 이름의 소품을 그 구역에서 찾아 표식을 세운다. 예전에는 일과
+   * **이름**을 보고 방 안의 아무 물건을 골랐고, 그래서 관물대 정돈과 복도
+   * 정돈이 같은 자리에서 벌어졌다 — 같은 사실은 한 곳에만 있어야 한다.
+   */
+  spot: z.string().nullable(),
   /** 0~1. 남은 ms가 아니라 비율만 준다 — 클라가 완료 시점을 스스로 정하지 못하게 */
   progress: z.number(),
+  /**
+   * 총 소요(초).
+   *
+   * 클라가 **판의 크기**를 정하는 데 쓴다 — 수거 일과에 물건을 몇 개 흩을지,
+   * 조작 판을 몇 번 맞춰야 하는지. 비율(`progress`)만으로는 20초짜리와 60초짜리가
+   * 화면에서 같은 분량이 되어, 무거운 일과가 무겁게 느껴지지 않는다.
+   *
+   * 완료 판정에는 쓰이지 않는다. 판을 다 채워도 완료를 선언하는 것은 서버다.
+   */
+  workSeconds: z.number(),
   status: questStatusSchema,
   minActors: z.number(),
   delegatedFrom: z.string().nullable(),
   training: z.string().nullable(),
+  /**
+   * 이 일과를 무엇으로 하는가.
+   *
+   * null이면 판이 없다 — 회복 행동·합동·훈련 체크포인트가 그렇고, 이쪽은
+   * 예전처럼 붙잡고 있는 시간만으로 완료된다. 미구현 원형이 진행을 막지 않게
+   * 하는 안전장치이기도 하다.
+   */
+  minigame: minigameSchema.nullable(),
+  /** 완료된 일과의 수행 등급. 아직 안 끝났으면 null */
+  grade: gradeSchema.nullable(),
+  /** 합동 판의 목표 조각 수. 합동이 아니면 0 */
+  jointTotal: z.number(),
+  /** 분대가 지금까지 채운 조각 — 남이 채운 것이 내 화면에도 보여야 협동이다 */
+  jointDone: z.number(),
 });
 
 export const snapshotSchema = z.object({
@@ -164,8 +439,12 @@ export const snapshotSchema = z.object({
     band: tempBandSchema,
     label: z.string(),
     feelsLike: z.number(),
+    /** 14.0 D-10 폭우. 밴드로는 표현되지 않는 악천후라 따로 보낸다 */
+    rain: z.boolean(),
   }),
   discipline: z.object({ value: z.number(), band: z.string() }),
+  /** 8.0 무전 상태 — 미니맵 마커·핑 게이팅의 근거 (§7.1.3) */
+  radio: radioStateSchema,
   supply: z.object({
     points: z.number(),
     isSupplyDay: z.boolean(),
@@ -204,6 +483,14 @@ export const serverEventSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("memberEvacuated"), memberId: z.string(), absorbed: z.boolean() }),
   z.object({ type: z.literal("memberReturned"), memberId: z.string(), asRecruit: z.boolean() }),
   z.object({ type: z.literal("memberLeft"), memberId: z.string() }),
+  z.object({ type: z.literal("frostbitten"), memberId: z.string() }),
+  z.object({
+    type: z.literal("frostbiteRelieved"),
+    memberId: z.string(),
+    /** 해제는 의무병만 할 수 있다 — 누가 풀었는지가 곧 근거다 (5.0) */
+    byId: z.string(),
+  }),
+  z.object({ type: z.literal("radioChanged"), radioState: radioStateSchema }),
   z.object({ type: z.literal("forcedSleep"), memberId: z.string() }),
   z.object({
     type: z.literal("supplyClaimed"),
@@ -240,7 +527,7 @@ export const serverEventSchema = z.discriminatedUnion("type", [
     command: quickCommandSchema,
     zone: zoneSchema,
   }),
-  z.object({ type: z.literal("chat"), memberId: z.string(), text: z.string(), radio: z.boolean() }),
+  z.object({ type: z.literal("chat"), memberId: z.string(), text: z.string(), viaRadio: z.boolean() }),
   z.object({ type: z.literal("log"), message: z.string() }),
 ]);
 export type ServerEvent = z.infer<typeof serverEventSchema>;

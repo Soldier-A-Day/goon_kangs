@@ -53,6 +53,22 @@ export default function PlayPage() {
     setSkipVoted(false);
   }, [snapshot?.phase.index, snapshot?.day]);
 
+  /**
+   * 판이 붙은 일과는 통과해야 끝난다 — 여기에는 판이 없다.
+   *
+   * 미니게임은 Unity에만 만든다. 이 화면은 M0 질문에 답하려고 남겨 둔 디버그
+   * 클라이언트라, 판을 여기에도 만들면 같은 게임을 두 번 만들게 된다. 대신
+   * 진척이 다 차면 B등급으로 통과를 대신 신고한다 — 안 그러면 이 화면으로는
+   * 일과를 하나도 끝낼 수 없어 하루 루프 자체를 볼 수 없다.
+   */
+  useEffect(() => {
+    if (!working || !snapshot) return;
+    const quest = snapshot.quests.find((q) => q.id === working);
+    if (!quest || quest.minigame === null || quest.progress < 1) return;
+    send({ type: "questCleared", questId: working, grade: "B" });
+    setWorking(null);
+  }, [working, snapshot, send]);
+
   function toggleWork(questId: string | null) {
     if (working && working !== questId) {
       send({ type: "interact", questId: working, active: false });

@@ -224,12 +224,31 @@ export class Room {
     switch (intent.type) {
       case "move":
         this.working.delete(memberId);
-        this.apply({ type: "move", memberId, to: intent.to });
+        this.apply({ type: "move", memberId, to: intent.to, onFoot: intent.onFoot });
         break;
 
       case "interact":
         if (intent.active) this.working.set(memberId, intent.questId);
         else this.working.delete(memberId);
+        break;
+
+      case "jointStep":
+        // 요구 인원 검증은 sim이 한다 — 같은 규칙을 두 곳에 두지 않는다
+        this.apply({ type: "jointStep", memberId, questId: intent.questId });
+        break;
+
+      case "questCleared":
+        // 자격 검증은 sim이 한다 — 구역·시간대·소유자·최소 진척이 전부 거기 있고,
+        // 여기서 또 보면 같은 규칙이 두 곳에 살게 된다 (ARCH-02)
+        this.working.delete(memberId);
+        this.apply({
+          type: "questCleared",
+          memberId,
+          questId: intent.questId,
+          grade: intent.grade,
+        });
+        // 완료는 다음 스냅샷을 기다리지 않는다 — 판을 통과한 순간 화면이 닫혀야 한다
+        this.broadcastSnapshot(true);
         break;
 
       case "delegateChore":
@@ -404,8 +423,10 @@ export class Room {
     const sender = this.run.members.find((m) => m.id === memberId);
     if (!sender) return;
 
-    const radio = sender.role === "comms";
-    const event: ServerEvent = { type: "chat", memberId, text, radio };
+    // 8.0 — 통신병이라고 무조건 무전이 되는 게 아니다. **무전이 살아 있어야** 한다.
+    // 두절 상태에서는 통신병도 근접 반경 안에서만 말이 닿는다
+    const radio = sender.role === "comms" && this.run.radio !== "down";
+    const event: ServerEvent = { type: "chat", memberId, text, viaRadio: radio };
 
     for (const member of this.run.members) {
       if (member.presence !== "player") continue;

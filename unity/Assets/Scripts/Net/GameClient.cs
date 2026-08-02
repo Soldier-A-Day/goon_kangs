@@ -26,6 +26,13 @@ namespace SoldierADay.Net
         public event Action<ServerEvent> EventReceived;
         public event Action<LobbyState> LobbyReceived;
 
+        /// <summary>
+        /// 내가 이동 의도를 보냈다. 스냅샷의 travelRemainingMs 는 "어디로"를
+        /// 담지 않으므로, 이동 연출이 목적지를 알 길은 이것뿐이다. 판정이 아니라
+        /// 기억이다 — 서버가 거절하면 잔여 시간이 오지 않고 연출도 없다.
+        /// </summary>
+        public event Action<string> MoveRequested;
+
         /// <summary>서버가 알려준 내 분대원 id. welcome에서 받는다.</summary>
         public string MemberId { get; private set; } = "";
 
@@ -58,9 +65,17 @@ namespace SoldierADay.Net
 
         /* ------------------------------------------------- 자주 쓰는 의도 */
 
-        public void Move(string zone)
+        /// <summary>
+        /// 구역 이동 의도.
+        ///
+        /// `onFoot`은 **맵에서 실제로 경계를 넘었다**는 신고다. 서버는 인접
+        /// 구역인지 확인하고(`zones.ts`) 맞으면 이동 소요를 붙이지 않는다 —
+        /// 걷는 데 이미 시간을 썼기 때문이다.
+        /// </summary>
+        public void Move(string zone, bool onFoot = false)
         {
-            Send(new Intent { type = IntentTypeValues.Move, to = zone });
+            Send(new Intent { type = IntentTypeValues.Move, to = zone, onFoot = onFoot });
+            MoveRequested?.Invoke(zone);
         }
 
         public void Interact(string questId, bool active)
@@ -71,6 +86,32 @@ namespace SoldierADay.Net
                 questId = questId,
                 active = active,
             });
+        }
+
+        /// <summary>
+        /// 미니게임 판을 통과했다.
+        ///
+        /// **완료 시점을 클라만 아는 유일한 경로다.** 서버는 커버리지도 오답
+        /// 횟수도 볼 수 없으므로 통과 자체는 받아들이되, `interact`가 통과하는
+        /// 관문은 전부 그대로 통과시킨다 — 엉뚱한 구역, 남의 일과, 지난 시간대,
+        /// 소요의 절반도 안 지난 통과는 여기서도 막힌다.
+        ///
+        /// 실패는 보내지 않는다. 판을 다시 여는 것은 순전히 클라 동작이다.
+        /// </summary>
+        public void ClearQuest(string questId, string grade)
+        {
+            Send(new Intent
+            {
+                type = IntentTypeValues.QuestCleared,
+                questId = questId,
+                grade = grade,
+            });
+        }
+
+        /// <summary>QST-01 합동 — 판의 조각 하나를 채웠다. 인원 미달이면 서버가 무시한다</summary>
+        public void JointStep(string questId)
+        {
+            Send(new Intent { type = IntentTypeValues.JointStep, questId = questId });
         }
 
         public void QuickCommand(string command)

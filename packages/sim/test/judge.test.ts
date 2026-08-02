@@ -11,12 +11,17 @@ function quest(overrides: Partial<Quest> = {}): Quest {
     ownerId: "p1",
     required: true,
     phase: "morning",
-    zone: "barracks",
+    zone: "Z01",
+    spot: null,
+    jointTotal: 0,
+    jointDone: 0,
     workMs: 10 * SECOND,
     workedMs: 0,
     minActors: 1,
     status: "pending",
     delegatedFrom: null,
+    minigame: null,
+    grade: null,
     ...overrides,
   };
 }

@@ -37,21 +37,69 @@ export type TempBand =
   | "extremeHot";
 
 /**
- * 4.3 구역 그래프 — 3D가 없어도 "동선이 멀다"(6.1)를 표현하기 위한 논리 위치.
- * Unity가 붙으면 좌표를 zone으로 매핑할 뿐 규칙은 바뀌지 않는다.
+ * 4.3 구역 — **방 하나가 곧 구역이다.**
+ *
+ * 정의는 `data/zones.json`에 있고 이 유니온은 그것과 일치해야 한다
+ * (`test/zones.test.ts`가 검사한다). 예전에는 8개뿐이라 생활관·복도·세면장·
+ * 행정반이 전부 `barracks` 하나였고, 그래서 세면장 일과를 생활관에 선 채로
+ * 끝낼 수 있었다.
  */
 export type Zone =
-  | "barracks"
-  | "drillGround"
-  | "storage"
-  | "messHall"
-  | "guardPost"
-  | "trainingField"
-  | "infirmary"
-  | "boilerRoom";
+  | "Z01"
+  | "Z01b"
+  | "Z01c"
+  | "Z02"
+  | "Z03"
+  | "Z13"
+  | "Z16"
+  | "Z17"
+  | "Z09"
+  | "Z20"
+  | "Z07"
+  | "Z07b"
+  | "Z21"
+  | "Z05"
+  | "Z06"
+  | "Z04"
+  | "Z22"
+  | "Z08"
+  | "Z10"
+  | "Z11"
+  | "Z12"
+  | "Z12b"
+  | "Z18"
+  | "Z19"
+  | "Z14"
+  | "Z50"
+  | "TR01"
+  | "TR02"
+  | "TR03"
+  | "TR04"
+  | "TR05"
+  | "TR06"
+  | "TR07"
+  | "TR08"
+  | "TR09"
+  | "TR10";
+
+/**
+ * 8.0 무전 상태 3단계.
+ *
+ * 분대 공통 값이다 — 사람마다 다르게 보이면 "모여야 정보가 전달된다"는 합의가
+ * 불가능해진다. 그래서 개인이 아니라 런이 들고 있다.
+ */
+export type RadioState = "ok" | "weak" | "down";
 
 /** 6.0 퀘스트 5종 */
-export type QuestKind = "role" | "chore" | "joint" | "surprise" | "hidden";
+/**
+ * 일과의 종류.
+ *
+ * `care`만 성격이 다르다 — **판정 대상이 아니다.** 밥·물·세면처럼 몸을 되돌리는
+ * 행동이고, 안 했다고 조건 A가 깨지거나 군기가 깎이지 않는다. 대신 안 하면
+ * 포만감·수분·청결로 갚는다(7.0). 그래서 조건 A·군기·복무 점수를 세는 자리마다
+ * 이 종류를 빼야 한다.
+ */
+export type QuestKind = "role" | "chore" | "joint" | "surprise" | "hidden" | "care";
 
 export type QuestStatus =
   | "pending"
@@ -122,9 +170,68 @@ export interface Member {
   rehabDaysLeft: number;
   /** 11.0 소지 장비. 표 5-1 필수 장비 판정과 피복 보온치 계산에 쓰인다 */
   inventory: string[];
+  /**
+   * 5.0 보온 게이지 — 열원 접촉까지 남은 ms. 극혹한 밴드에서만 흐른다.
+   * 0이 되면 동상이 붙고, 그때부터 이동과 작업이 실제로 느려진다.
+   */
+  warmthRemainingMs: number;
+  /** 동상 디버프. 열원에 다시 가도 안 풀리고 **의무병만** 해제할 수 있다 (5.0) */
+  frostbitten: boolean;
 }
 
 /* ----------------------------------------------------------------- 퀘스트 */
+
+/**
+ * 일과 미니게임 원형 14종 (+ 랜덤 소환).
+ *
+ * 정의는 `packages/sim/data/quests.json`이 소유하고 프로토콜이 되비춘다 —
+ * 이쪽이 원본인 이유는 제한 시간이 `workSeconds`이기 때문이다. 미니게임을
+ * 별도 파일로 빼면 소요와 제한 시간이 반드시 어긋난다.
+ */
+export type MinigameType =
+  | "SCRUB"
+  | "PLACE"
+  | "AUDIT"
+  | "MASH"
+  | "BALANCE"
+  | "HOLD"
+  | "TRACE"
+  | "SORT"
+  | "TIMING"
+  | "SEQ"
+  | "RHYTHM"
+  | "TRACK"
+  | "SEARCH"
+  | "REACT"
+  | "RANDOM";
+
+/**
+ * 일과 하나의 판.
+ *
+ * **sim은 파라미터를 읽지 않는다.** 판을 도는 것은 클라이언트이고, 여기서는
+ * 그대로 실어 나르기만 한다 — 그래서 원형별 모양을 union으로 가르지 않고
+ * 색인 서명으로 열어 둔다. 값의 모양을 검증하는 것은 프로토콜의 몫이다.
+ */
+export interface Minigame {
+  readonly type: MinigameType;
+  /** 같은 원형을 다른 일로 읽히게 하는 스킨 이름 */
+  readonly variant: string;
+  /** 1~3 */
+  readonly difficulty: number;
+  /** 20초 이상 퀘스트의 2페이즈 */
+  readonly phase2?: MinigameType;
+  /** 진행 중인 판을 끊고 들어오는 모디파이어 */
+  readonly interrupt?: "REACT";
+  readonly [param: string]: string | number | undefined;
+}
+
+/**
+ * 수행 등급 — 통과한 판을 얼마나 깨끗하게 했는가.
+ *
+ * 못 채우면 완료가 아니라 재시도이므로 "실패" 등급이 없다. 복무 점수 차등에만
+ * 쓰이고 하루 판정(조건 A)은 바꾸지 않는다 — C등급도 완료는 완료다.
+ */
+export type Grade = "A" | "B" | "C";
 
 export interface Quest {
   readonly id: string;
@@ -138,6 +245,14 @@ export interface Quest {
   readonly required: boolean;
   readonly phase: PhaseId;
   readonly zone: Zone;
+  /**
+   * 그 일이 벌어지는 물건 (`files-6` 목업의 수행 지점).
+   *
+   * "관물대 정돈"은 관물대 앞에서 하는 일이다. 예전에는 클라가 일과 **이름**을
+   * 보고 방 안의 아무 물건을 골랐고, 그래서 관물대 정돈과 복도 정돈이 같은
+   * 자리에서 벌어졌다. 판이 없는 일과(회복 · 합동 · 훈련)는 null이다.
+   */
+  readonly spot: string | null;
   /** 상호작용 소요 (이동 시간은 별도) */
   readonly workMs: number;
   workedMs: number;
@@ -146,6 +261,25 @@ export interface Quest {
   status: QuestStatus;
   /** 하달로 넘겨받은 것이면 넘긴 사람 id (수첩에 이름이 붙는다 — 15.0) */
   delegatedFrom: string | null;
+  /**
+   * 이 일과를 무엇으로 하는가. null이면 판이 없다.
+   *
+   * 판이 없는 일과는 붙잡고 있는 시간만으로 완료된다 — 회복 행동·합동·훈련
+   * 체크포인트가 그렇고, 아직 안 만든 원형도 여기로 떨어져 진행을 막지 않는다.
+   */
+  readonly minigame: Minigame | null;
+  /** 완료된 일과의 수행 등급. 판이 없거나 아직 안 끝났으면 null */
+  grade: Grade | null;
+  /**
+   * 합동 판의 목표 조각 수. 합동이 아니면 0.
+   *
+   * **판 하나를 인원이 나눠 채운다.** 서버는 원형 로직을 모르고 조각 수만
+   * 센다 — 한 조각을 채우는 것이 무엇인지(불일치 1건 · 물건 1개 · 구간 1개)는
+   * 원형이 알고, 채웠다는 신고만 올라온다.
+   */
+  readonly jointTotal: number;
+  /** 지금까지 분대가 채운 조각 */
+  jointDone: number;
 }
 
 /* ------------------------------------------------------------------ 판정 */
@@ -186,6 +320,13 @@ export interface WeatherState {
   readonly airTemp: number;
   readonly humidity: number;
   readonly windSpeed: number;
+  /**
+   * 폭우 — 14.0 D-10 "기상 악화(폭우 · 한파 · 폭염)"의 첫 갈래.
+   *
+   * 온도 밴드와 **따로 논다.** 폭우는 추워서 오는 것이 아니라 그날의 사건이고,
+   * 밴드로는 표현할 수 없다 — 15℃에 쏟아지는 비는 평시 밴드다.
+   */
+  readonly rain: boolean;
 }
 
 export interface RunState {
@@ -206,6 +347,8 @@ export interface RunState {
   carryoverMs: number;
 
   weather: WeatherState;
+  /** 8.0 무전 상태. 통신병의 참여 상태와 유지 일과가 정한다 (`radio.ts`) */
+  radio: RadioState;
   members: Member[];
   quests: Quest[];
 
@@ -242,6 +385,14 @@ export interface RunState {
   pendingClaim: string[];
   /** 달성한 히든 퀘스트 — 4개를 모으면 분대 기록 엔딩이 열린다 (META-02) */
   hiddenUnlocked: string[];
+  /**
+   * 합동에서 대리가 흘린 시간.
+   *
+   * 조각은 정수라 한 틱에 0.3개씩 채울 수가 없다. 떨어질 만큼 모일 때까지
+   * 여기 쌓아 둔다 — 이게 없으면 틱이 잘게 오는 서버에서 대리가 영영 기여를
+   * 못 한다.
+   */
+  jointProxyMs: number;
 
   judgements: Judgement[];
 }
@@ -262,8 +413,37 @@ export type SimEvent =
       readonly questId: string;
       readonly deltaMs: number;
     }
+  /**
+   * 합동 판의 조각 하나를 채웠다.
+   *
+   * 요구 인원이 그 구역에 모이지 않으면 받지 않는다 — 그게 강제 협동이다.
+   * 혼자 아무리 눌러도 조각이 올라가지 않는다.
+   */
+  | {
+      readonly type: "jointStep";
+      readonly memberId: string;
+      readonly questId: string;
+    }
+  /**
+   * 미니게임 판을 통과했다 — 판이 붙은 일과는 이것으로만 완료된다.
+   *
+   * 서버가 자격을 검증한 뒤에만 들어온다. sim은 여기서 한 번 더 본다:
+   * 붙잡고 있던 시간이 소요의 절반에 못 미치면 무시한다.
+   */
+  | {
+      readonly type: "questCleared";
+      readonly memberId: string;
+      readonly questId: string;
+      readonly grade: Grade;
+    }
   /** 구역 이동 시작 */
-  | { readonly type: "move"; readonly memberId: string; readonly to: Zone }
+  | {
+      readonly type: "move";
+      readonly memberId: string;
+      readonly to: Zone;
+      /** 걸어서 경계를 넘었는가. 인접 구역이면 이동 소요가 붙지 않는다 (`zones.ts`) */
+      readonly onFoot?: boolean;
+    }
   /** QST-04 하달 — 공통 일과를 하급자에게 넘긴다 */
   | {
       readonly type: "delegateChore";
@@ -334,6 +514,14 @@ export type Effect =
       readonly absorbed: boolean;
     }
   | { readonly type: "memberLeft"; readonly memberId: string }
+  | { readonly type: "frostbitten"; readonly memberId: string }
+  | {
+      readonly type: "frostbiteRelieved";
+      readonly memberId: string;
+      /** 5.0 — 해제는 의무병만 할 수 있다. 누가 풀었는지가 곧 근거다 */
+      readonly byId: string;
+    }
+  | { readonly type: "radioChanged"; readonly to: RadioState }
   | {
       readonly type: "memberReturned";
       readonly memberId: string;

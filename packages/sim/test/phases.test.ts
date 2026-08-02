@@ -15,12 +15,17 @@ function makeQuest(overrides: Partial<Quest> = {}): Quest {
     ownerId: "p1",
     required: true,
     phase: "reveille",
-    zone: "barracks",
+    zone: "Z01",
+    spot: null,
+    jointTotal: 0,
+    jointDone: 0,
     workMs: 10 * SECOND,
     workedMs: 0,
     minActors: 1,
     status: "pending",
     delegatedFrom: null,
+    minigame: null,
+    grade: null,
     ...overrides,
   };
 }
@@ -111,9 +116,9 @@ describe("TIME-01 시간대 엔진", () => {
 describe("이동과 상호작용", () => {
   it("이동 중에는 퀘스트를 진행할 수 없다", () => {
     let state = begin(fullSquad());
-    state.quests = [makeQuest({ zone: "storage" })];
+    state.quests = [makeQuest({ zone: "Z08" })];
 
-    state = step(state, { type: "move", memberId: "p1", to: "storage" }).state;
+    state = step(state, { type: "move", memberId: "p1", to: "Z08" }).state;
     state = step(state, {
       type: "work",
       memberId: "p1",
@@ -159,11 +164,11 @@ describe("이동과 상호작용", () => {
   it("합동 퀘스트는 인원이 모자라면 게이지가 차오르지 않는다", () => {
     let state = begin(fullSquad());
     state.quests = [
-      makeQuest({ kind: "joint", ownerId: null, minActors: 2, zone: "storage" }),
+      makeQuest({ kind: "joint", ownerId: null, minActors: 2, zone: "Z08" }),
     ];
 
     // p1만 창고에 있다
-    state = step(state, { type: "move", memberId: "p1", to: "storage" }).state;
+    state = step(state, { type: "move", memberId: "p1", to: "Z08" }).state;
     state = tick(state, 15 * SECOND);
     state = step(state, {
       type: "work",
@@ -174,7 +179,7 @@ describe("이동과 상호작용", () => {
     expect(state.quests[0]?.workedMs).toBe(0);
 
     // p2가 합류하면 진행된다
-    state = step(state, { type: "move", memberId: "p2", to: "storage" }).state;
+    state = step(state, { type: "move", memberId: "p2", to: "Z08" }).state;
     state = tick(state, 15 * SECOND);
     state = step(state, {
       type: "work",

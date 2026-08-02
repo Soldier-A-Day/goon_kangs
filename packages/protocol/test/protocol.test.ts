@@ -9,9 +9,9 @@ import {
 
 describe("의도 스키마", () => {
   it("알려진 의도만 통과시킨다", () => {
-    expect(parseIntent({ type: "move", to: "storage" })).toEqual({
+    expect(parseIntent({ type: "move", to: "Z08" })).toEqual({
       type: "move",
-      to: "storage",
+      to: "Z08",
     });
     expect(parseIntent({ type: "move", to: "moon" })).toBeNull();
     expect(parseIntent({ type: "granadeAttack" })).toBeNull();
@@ -22,13 +22,29 @@ describe("의도 스키마", () => {
     expect(parseIntent({ type: "chat", text: "가".repeat(201) })).toBeNull();
   });
 
-  it("클라이언트는 진척도나 판정을 보낼 수 없다", () => {
+  it("클라이언트는 진척도를 보낼 수 없다", () => {
+    // 얼마나 했는지는 서버가 센다. 클라가 이 값을 보낼 수 있으면 시간을
+    // 흘리지 않고도 하루가 끝난다.
     const keys = intentSchema.options.flatMap((option) =>
       Object.keys(option.shape as Record<string, unknown>),
     );
     expect(keys).not.toContain("progress");
     expect(keys).not.toContain("passed");
     expect(keys).not.toContain("workedMs");
+  });
+
+  it("판 통과와 등급은 보낼 수 있다 — 서버가 볼 수 없는 유일한 것이다", () => {
+    // 커버리지도 오답 횟수도 선을 타고 오지 않는다. 그래서 통과 여부만은
+    // 클라가 말하고, 서버는 그것을 **거절할 수 있는 자리**로 막는다
+    // (구역 · 시간대 · 소유자 · 최소 진척 — `step.ts`의 `clearQuest`).
+    expect(parseIntent({ type: "questCleared", questId: "q1", grade: "A" })).toEqual({
+      type: "questCleared",
+      questId: "q1",
+      grade: "A",
+    });
+    expect(parseIntent({ type: "questCleared", questId: "q1", grade: "S" })).toBeNull();
+    // 실패는 보내지 않는다 — 판을 다시 여는 것은 순전히 클라 동작이다
+    expect(parseIntent({ type: "questCleared", questId: "q1", grade: "F" })).toBeNull();
   });
 });
 
@@ -49,8 +65,9 @@ describe("스냅샷 스키마", () => {
       durationMs: 60000,
       delegationWindowMsLeft: 20000,
     },
-    weather: { band: "normal" as const, label: "평시", feelsLike: 12 },
+    weather: { band: "normal" as const, label: "평시", feelsLike: 12, rain: false },
     discipline: { value: 60, band: "normal" },
+    radio: "ok" as const,
     supply: { points: 12, isSupplyDay: false, pendingClaim: [] },
     reliefsRemaining: 3,
     leaderId: null,

@@ -2,94 +2,1394 @@
   "_source": "SAD-GDD-001 6.0 퀘스트 시스템 · 표 3-1 · 표 6-1 · 표 6-2 · QST-02",
   "_note": "workSeconds는 상호작용 소요이며 이동 시간은 포함하지 않는다. 공통 일과가 짧은데도 비싼 이유는 동선이 멀기 때문이다(6.1) — 그 비용은 구역 그래프가 만든다.",
   "counts": {
-    "roleQuestsPerDay": { "min": 3, "max": 5 },
-    "chorePoolPerDay": { "min": 2, "max": 4 },
+    "roleQuestsPerDay": {
+      "min": 3,
+      "max": 5
+    },
+    "chorePoolPerDay": {
+      "min": 2,
+      "max": 4
+    },
     "surpriseBaseChance": 0.18,
     "surpriseMaxChance": 0.4,
     "surpriseDisciplinePivot": 60
   },
   "role": {
     "rifle": [
-      { "id": "rifle-clean", "label": "총기 수입", "zone": "barracks", "workSeconds": 20 },
-      { "id": "rifle-ammo", "label": "탄약 수령", "zone": "storage", "workSeconds": 18 },
-      { "id": "rifle-guard", "label": "야간 경계근무", "zone": "guardPost", "workSeconds": 25 },
-      { "id": "rifle-watch", "label": "사주경계", "zone": "drillGround", "workSeconds": 22 },
-      { "id": "rifle-drill", "label": "제식 훈련", "zone": "drillGround", "workSeconds": 20 },
-      { "id": "rifle-patrol", "label": "울타리 순찰", "zone": "guardPost", "workSeconds": 24 }
+      {
+        "id": "rifle-clean",
+        "label": "총기 수입",
+        "zone": "Z01",
+        "spot": "수입 깔개",
+        "workSeconds": 20,
+        "minigame": {
+          "type": "SCRUB",
+          "variant": "barrel",
+          "difficulty": 3,
+          "phase2": "PLACE",
+          "stains": 5,
+          "brush": 20,
+          "coverage": 0.95
+        }
+      },
+      {
+        "id": "rifle-ammo",
+        "label": "탄약 수령",
+        "zone": "Z19",
+        "spot": "운반 적재대",
+        "workSeconds": 18,
+        "minigame": {
+          "type": "BALANCE",
+          "variant": "ammocan",
+          "difficulty": 2,
+          "sway": 1.1,
+          "segments": 4,
+          "tolerance": 0.28
+        }
+      },
+      {
+        "id": "rifle-guard",
+        "label": "경계근무",
+        "zone": "Z12",
+        "spot": "감시창",
+        "workSeconds": 25,
+        "minigame": {
+          "type": "TRACK",
+          "variant": "post",
+          "difficulty": 3,
+          "targets": 3,
+          "speed": 0.5,
+          "holdRatio": 0.72
+        }
+      },
+      {
+        "id": "rifle-watch",
+        "label": "사주경계",
+        "zone": "Z11",
+        "spot": "관측 지점",
+        "workSeconds": 22,
+        "minigame": {
+          "type": "TRACK",
+          "variant": "sector",
+          "difficulty": 3,
+          "targets": 3,
+          "speed": 0.55,
+          "holdRatio": 0.7
+        }
+      },
+      {
+        "id": "rifle-drill",
+        "label": "제식 훈련",
+        "zone": "Z11",
+        "spot": "대열 정렬선",
+        "workSeconds": 20,
+        "minigame": {
+          "type": "RHYTHM",
+          "variant": "cadence",
+          "difficulty": 2,
+          "beats": 24,
+          "bpm": 84,
+          "combo": 14
+        }
+      },
+      {
+        "id": "rifle-patrol",
+        "label": "울타리 순찰",
+        "zone": "Z12b",
+        "spot": "철조망",
+        "workSeconds": 24,
+        "minigame": {
+          "type": "SEARCH",
+          "variant": "wirecut",
+          "difficulty": 3,
+          "hidden": 4,
+          "cells": 32,
+          "signal": 0.16
+        }
+      },
+      {
+        "id": "rifle-gate",
+        "label": "정문 출입 통제",
+        "zone": "Z18",
+        "spot": "검문대",
+        "workSeconds": 20,
+        "minigame": {
+          "type": "SORT",
+          "variant": "idcheck",
+          "difficulty": 2,
+          "items": 14,
+          "bins": 2,
+          "ambiguous": 4,
+          "strikes": 3
+        }
+      },
+      {
+        "id": "rifle-ammocount",
+        "label": "탄약 재고 확인",
+        "zone": "Z19",
+        "spot": "재물 대장",
+        "workSeconds": 18,
+        "minigame": {
+          "type": "AUDIT",
+          "variant": "tally",
+          "difficulty": 2,
+          "entries": 14,
+          "mismatches": 4,
+          "strikes": 3
+        }
+      }
     ],
     "comms": [
-      { "id": "comms-antenna", "label": "안테나 설치", "zone": "drillGround", "workSeconds": 24 },
-      { "id": "comms-battery", "label": "무전기 배터리 교체", "zone": "storage", "workSeconds": 16 },
-      { "id": "comms-code", "label": "암호 코드 갱신", "zone": "barracks", "workSeconds": 20 },
-      { "id": "comms-sched", "label": "정시 교신", "zone": "guardPost", "workSeconds": 18 },
-      { "id": "comms-line", "label": "유선 가설 점검", "zone": "trainingField", "workSeconds": 22 },
-      { "id": "comms-log", "label": "교신 일지 정리", "zone": "barracks", "workSeconds": 15 }
+      {
+        "id": "comms-antenna",
+        "label": "안테나 설치",
+        "zone": "Z11",
+        "spot": "안테나 마스트",
+        "workSeconds": 24,
+        "minigame": {
+          "type": "TRACE",
+          "variant": "feedline",
+          "difficulty": 3,
+          "phase2": "TIMING",
+          "nodes": 12,
+          "branches": 2,
+          "rotations": 6
+        }
+      },
+      {
+        "id": "comms-battery",
+        "label": "무전기 배터리 교체",
+        "zone": "Z08",
+        "spot": "배터리함",
+        "workSeconds": 16,
+        "minigame": {
+          "type": "PLACE",
+          "variant": "polarity",
+          "difficulty": 2,
+          "pieces": 4,
+          "snapDeg": 180,
+          "tolerance": 0.06
+        }
+      },
+      {
+        "id": "comms-code",
+        "label": "암호 코드 갱신",
+        "zone": "Z06",
+        "spot": "무전 콘솔",
+        "workSeconds": 20,
+        "minigame": {
+          "type": "SEQ",
+          "variant": "cipher",
+          "difficulty": 2,
+          "length": 6,
+          "steps": 3,
+          "show": 3
+        }
+      },
+      {
+        "id": "comms-sched",
+        "label": "정시 교신",
+        "zone": "Z12",
+        "spot": "인수인계대",
+        "workSeconds": 18,
+        "minigame": {
+          "type": "SEQ",
+          "variant": "procedure",
+          "difficulty": 2,
+          "length": 6,
+          "steps": 1,
+          "show": 3
+        }
+      },
+      {
+        "id": "comms-line",
+        "label": "유선 가설 점검",
+        "zone": "Z50",
+        "spot": "장애물",
+        "workSeconds": 22,
+        "minigame": {
+          "type": "TRACE",
+          "variant": "fieldwire",
+          "difficulty": 3,
+          "nodes": 16,
+          "branches": 3,
+          "rotations": 8
+        }
+      },
+      {
+        "id": "comms-log",
+        "label": "교신 일지 정리",
+        "zone": "Z06",
+        "spot": "일지 보드",
+        "workSeconds": 15,
+        "minigame": {
+          "type": "AUDIT",
+          "variant": "timelog",
+          "difficulty": 2,
+          "entries": 12,
+          "mismatches": 4,
+          "strikes": 3
+        }
+      },
+      {
+        "id": "comms-gatephone",
+        "label": "초소 전화 점검",
+        "zone": "Z12",
+        "spot": "초소 전화",
+        "workSeconds": 16,
+        "minigame": {
+          "type": "TRACE",
+          "variant": "break",
+          "difficulty": 2,
+          "nodes": 8,
+          "branches": 0,
+          "rotations": 4
+        }
+      }
     ],
     "medic": [
-      { "id": "medic-stock", "label": "의약품 재고 정리", "zone": "infirmary", "workSeconds": 18 },
-      { "id": "medic-evac", "label": "환자 후송", "zone": "infirmary", "workSeconds": 24 },
-      { "id": "medic-hygiene", "label": "위생 점검", "zone": "barracks", "workSeconds": 20 },
-      { "id": "medic-water", "label": "식수 검수", "zone": "messHall", "workSeconds": 16 },
-      { "id": "medic-mess", "label": "배식 감독", "zone": "messHall", "workSeconds": 22 },
-      { "id": "medic-check", "label": "환자 발생 점검", "zone": "barracks", "workSeconds": 18 }
+      {
+        "id": "medic-stock",
+        "label": "의약품 재고 정리",
+        "zone": "Z05",
+        "spot": "약품장",
+        "workSeconds": 18,
+        "minigame": {
+          "type": "SORT",
+          "variant": "expiry",
+          "difficulty": 2,
+          "items": 16,
+          "bins": 3,
+          "ambiguous": 4,
+          "strikes": 3
+        }
+      },
+      {
+        "id": "medic-evac",
+        "label": "환자 후송",
+        "zone": "Z05",
+        "spot": "들것 거치대",
+        "workSeconds": 24,
+        "minigame": {
+          "type": "BALANCE",
+          "variant": "litter",
+          "difficulty": 3,
+          "interrupt": "REACT",
+          "sway": 1.0,
+          "segments": 6,
+          "tolerance": 0.2
+        }
+      },
+      {
+        "id": "medic-hygiene",
+        "label": "위생 점검",
+        "zone": "Z03",
+        "spot": "바닥 배수구",
+        "workSeconds": 20,
+        "minigame": {
+          "type": "AUDIT",
+          "variant": "checklist",
+          "difficulty": 2,
+          "entries": 16,
+          "mismatches": 5,
+          "strikes": 3
+        }
+      },
+      {
+        "id": "medic-water",
+        "label": "식수 검수",
+        "zone": "Z07b",
+        "spot": "시약대",
+        "workSeconds": 16,
+        "minigame": {
+          "type": "TIMING",
+          "variant": "reagent",
+          "difficulty": 2,
+          "hits": 4,
+          "window": 0.1,
+          "speed": 0.8
+        }
+      },
+      {
+        "id": "medic-mess",
+        "label": "배식 감독",
+        "zone": "Z07",
+        "spot": "배식대",
+        "workSeconds": 22,
+        "minigame": {
+          "type": "AUDIT",
+          "variant": "portion",
+          "difficulty": 3,
+          "phase2": "TIMING",
+          "entries": 12,
+          "mismatches": 4,
+          "strikes": 3
+        }
+      },
+      {
+        "id": "medic-check",
+        "label": "환자 발생 점검",
+        "zone": "Z01",
+        "spot": "침상",
+        "workSeconds": 18,
+        "minigame": {
+          "type": "SEARCH",
+          "variant": "bunk",
+          "difficulty": 2,
+          "hidden": 3,
+          "cells": 20,
+          "signal": 0.2
+        }
+      },
+      {
+        "id": "medic-gym",
+        "label": "체력단련 안전 점검",
+        "zone": "Z17",
+        "spot": "케이블 머신",
+        "workSeconds": 14,
+        "minigame": {
+          "type": "AUDIT",
+          "variant": "cable",
+          "difficulty": 1,
+          "entries": 10,
+          "mismatches": 3,
+          "strikes": 3
+        }
+      }
     ],
     "admin": [
-      { "id": "admin-board", "label": "일과표 게시", "zone": "barracks", "workSeconds": 15 },
-      { "id": "admin-report", "label": "인원 보고", "zone": "barracks", "workSeconds": 16 },
-      { "id": "admin-supply", "label": "보급 청구", "zone": "storage", "workSeconds": 22 },
-      { "id": "admin-heater", "label": "난방기 점검", "zone": "boilerRoom", "workSeconds": 24 },
-      { "id": "admin-tools", "label": "공구 정리", "zone": "storage", "workSeconds": 18 },
-      { "id": "admin-fuel", "label": "발전기 급유", "zone": "boilerRoom", "workSeconds": 20 }
+      {
+        "id": "admin-board",
+        "label": "일과표 게시",
+        "zone": "Z04",
+        "spot": "일과표 게시판",
+        "workSeconds": 15,
+        "minigame": {
+          "type": "PLACE",
+          "variant": "schedule",
+          "difficulty": 2,
+          "pieces": 7,
+          "snapDeg": 0,
+          "tolerance": 0.08
+        }
+      },
+      {
+        "id": "admin-report",
+        "label": "인원 보고",
+        "zone": "Z04",
+        "spot": "인원 대장",
+        "workSeconds": 16,
+        "minigame": {
+          "type": "AUDIT",
+          "variant": "headcount",
+          "difficulty": 2,
+          "entries": 10,
+          "mismatches": 3,
+          "strikes": 3
+        }
+      },
+      {
+        "id": "admin-supply",
+        "label": "보급 청구",
+        "zone": "Z08",
+        "spot": "청구 데스크",
+        "workSeconds": 22,
+        "minigame": {
+          "type": "AUDIT",
+          "variant": "requisition",
+          "difficulty": 3,
+          "phase2": "PLACE",
+          "entries": 14,
+          "mismatches": 4,
+          "strikes": 3
+        }
+      },
+      {
+        "id": "admin-heater",
+        "label": "난방기 점검",
+        "zone": "Z14",
+        "spot": "압력계",
+        "workSeconds": 24,
+        "minigame": {
+          "type": "HOLD",
+          "variant": "pressure",
+          "difficulty": 3,
+          "phase2": "HOLD",
+          "bandMin": 0.45,
+          "bandMax": 0.7,
+          "drift": 0.4,
+          "slack": 2.0
+        }
+      },
+      {
+        "id": "admin-tools",
+        "label": "공구 정리",
+        "zone": "Z10",
+        "spot": "섀도보드",
+        "workSeconds": 18,
+        "minigame": {
+          "type": "PLACE",
+          "variant": "shadow",
+          "difficulty": 2,
+          "pieces": 10,
+          "snapDeg": 90,
+          "tolerance": 0.1
+        }
+      },
+      {
+        "id": "admin-fuel",
+        "label": "비상 발전기 급유",
+        "zone": "Z14",
+        "spot": "비상 발전기",
+        "workSeconds": 20,
+        "minigame": {
+          "type": "HOLD",
+          "variant": "refuel",
+          "difficulty": 2,
+          "bandMin": 0.55,
+          "bandMax": 0.82,
+          "drift": 0.36,
+          "slack": 1.5
+        }
+      },
+      {
+        "id": "admin-gen",
+        "label": "차량 급유",
+        "zone": "Z10",
+        "spot": "유량계",
+        "workSeconds": 18,
+        "minigame": {
+          "type": "HOLD",
+          "variant": "vehiclefuel",
+          "difficulty": 2,
+          "bandMin": 0.6,
+          "bandMax": 0.85,
+          "drift": 0.32,
+          "slack": 1.5
+        }
+      }
     ]
   },
   "chores": [
-    { "id": "chore-floor", "label": "생활관 바닥 청소", "zone": "barracks", "workSeconds": 15, "bands": "all" },
-    { "id": "chore-toilet", "label": "화장실 청소", "zone": "barracks", "workSeconds": 18, "bands": "all" },
-    { "id": "chore-hall", "label": "복도 정돈", "zone": "barracks", "workSeconds": 12, "bands": "all" },
-    { "id": "chore-trash", "label": "쓰레기 분리 배출", "zone": "messHall", "workSeconds": 14, "bands": "all" },
-    { "id": "chore-leftover", "label": "잔반 처리", "zone": "messHall", "workSeconds": 16, "bands": "all" },
-    { "id": "chore-carry", "label": "물자 운반 (창고→부서)", "zone": "storage", "workSeconds": 20, "bands": "all" },
-    { "id": "chore-laundry", "label": "세탁물 수령·배분", "zone": "barracks", "workSeconds": 15, "bands": "all" },
-    { "id": "chore-dish", "label": "식기 세척 보조", "zone": "messHall", "workSeconds": 18, "bands": "all" },
-    { "id": "chore-locker", "label": "관물대 정돈 점검", "zone": "barracks", "workSeconds": 12, "bands": "all" },
-    { "id": "chore-flag", "label": "태극기 게양·강하", "zone": "drillGround", "workSeconds": 10, "bands": "all" },
-    { "id": "chore-post", "label": "초소 주변 정리", "zone": "guardPost", "workSeconds": 16, "bands": "all" },
-
-    { "id": "chore-snow", "label": "제설", "zone": "drillGround", "workSeconds": 20, "bands": "coldOrBelow", "required": true },
-    { "id": "chore-sand", "label": "결빙 구간 모래 살포", "zone": "drillGround", "workSeconds": 18, "bands": "coldOrBelow", "required": true },
-    { "id": "chore-boiler", "label": "보일러실 순찰", "zone": "boilerRoom", "workSeconds": 16, "bands": "coldOrBelow", "required": true },
-    { "id": "chore-pipe", "label": "수도 동파 점검", "zone": "boilerRoom", "workSeconds": 18, "bands": "coldOrBelow", "required": true },
-    { "id": "chore-fuelcan", "label": "난로 유류통 운반", "zone": "storage", "workSeconds": 20, "bands": "coldOrBelow", "required": true },
-
-    { "id": "chore-weed", "label": "제초", "zone": "drillGround", "workSeconds": 20, "bands": "warmOrAbove", "required": true },
-    { "id": "chore-drain", "label": "배수로 정비", "zone": "drillGround", "workSeconds": 18, "bands": "warmOrAbove", "required": true },
-    { "id": "chore-shade", "label": "그늘막 설치 보조", "zone": "trainingField", "workSeconds": 16, "bands": "warmOrAbove", "required": true },
-    { "id": "chore-water", "label": "급수통 보충", "zone": "messHall", "workSeconds": 14, "bands": "warmOrAbove", "required": true },
-    { "id": "chore-spray", "label": "방역 소독 보조", "zone": "barracks", "workSeconds": 16, "bands": "warmOrAbove", "required": true },
-
-    { "id": "chore-firewood", "label": "땔감 수집", "zone": "trainingField", "workSeconds": 20, "bands": "all", "bivouacOnly": true },
-    { "id": "chore-fieldmess", "label": "취사장 정리", "zone": "trainingField", "workSeconds": 18, "bands": "all", "bivouacOnly": true },
-    { "id": "chore-tentdrain", "label": "텐트 주변 배수", "zone": "trainingField", "workSeconds": 16, "bands": "all", "bivouacOnly": true }
+    {
+      "id": "chore-floor",
+      "label": "생활관 바닥 청소",
+      "zone": "Z01",
+      "spot": "침상",
+      "workSeconds": 15,
+      "bands": "all",
+      "minigame": {
+        "type": "SCRUB",
+        "variant": "floor",
+        "difficulty": 2,
+        "stains": 7,
+        "brush": 22,
+        "coverage": 0.9
+      }
+    },
+    {
+      "id": "chore-toilet",
+      "label": "화장실 청소",
+      "zone": "Z03",
+      "spot": "변기칸",
+      "workSeconds": 18,
+      "bands": "all",
+      "minigame": {
+        "type": "SCRUB",
+        "variant": "stall",
+        "difficulty": 2,
+        "stains": 9,
+        "brush": 26,
+        "coverage": 0.9
+      }
+    },
+    {
+      "id": "chore-hall",
+      "label": "복도 정돈",
+      "zone": "Z02",
+      "spot": "청소도구함",
+      "workSeconds": 12,
+      "bands": "all",
+      "minigame": {
+        "type": "PLACE",
+        "variant": "line",
+        "difficulty": 1,
+        "pieces": 7,
+        "snapDeg": 0,
+        "tolerance": 0.15
+      }
+    },
+    {
+      "id": "chore-trash",
+      "label": "쓰레기 분리 배출",
+      "zone": "Z07",
+      "spot": "분리수거함",
+      "workSeconds": 14,
+      "bands": "all",
+      "minigame": {
+        "type": "SORT",
+        "variant": "recycle",
+        "difficulty": 1,
+        "items": 14,
+        "bins": 3,
+        "ambiguous": 3,
+        "strikes": 3
+      }
+    },
+    {
+      "id": "chore-leftover",
+      "label": "잔반 처리",
+      "zone": "Z07",
+      "spot": "퇴식구",
+      "workSeconds": 16,
+      "bands": "all",
+      "minigame": {
+        "type": "BALANCE",
+        "variant": "bin",
+        "difficulty": 2,
+        "sway": 1.0,
+        "segments": 4,
+        "tolerance": 0.3
+      }
+    },
+    {
+      "id": "chore-carry",
+      "label": "물자 운반 (창고→부서)",
+      "zone": "Z08",
+      "spot": "물자 선반",
+      "workSeconds": 20,
+      "bands": "all",
+      "minigame": {
+        "type": "BALANCE",
+        "variant": "stack",
+        "difficulty": 2,
+        "sway": 1.2,
+        "segments": 5,
+        "tolerance": 0.26
+      }
+    },
+    {
+      "id": "chore-laundry",
+      "label": "세탁물 수령·배분",
+      "zone": "Z13",
+      "spot": "세탁물 수령대",
+      "workSeconds": 15,
+      "bands": "all",
+      "minigame": {
+        "type": "SORT",
+        "variant": "nametag",
+        "difficulty": 2,
+        "items": 16,
+        "bins": 4,
+        "ambiguous": 2,
+        "strikes": 3
+      }
+    },
+    {
+      "id": "chore-dish",
+      "label": "식기 세척 보조",
+      "zone": "Z07b",
+      "spot": "세척 컨베이어",
+      "workSeconds": 18,
+      "bands": "all",
+      "minigame": {
+        "type": "SCRUB",
+        "variant": "conveyor",
+        "difficulty": 2,
+        "stains": 8,
+        "brush": 30,
+        "coverage": 0.85
+      }
+    },
+    {
+      "id": "chore-locker",
+      "label": "관물대 정돈 점검",
+      "zone": "Z01",
+      "spot": "관물대",
+      "workSeconds": 12,
+      "bands": "all",
+      "minigame": {
+        "type": "PLACE",
+        "variant": "locker",
+        "difficulty": 1,
+        "pieces": 6,
+        "snapDeg": 90,
+        "tolerance": 0.12
+      }
+    },
+    {
+      "id": "chore-flag",
+      "label": "태극기 게양·강하",
+      "zone": "Z11",
+      "spot": "국기 게양대",
+      "workSeconds": 10,
+      "bands": "all",
+      "minigame": {
+        "type": "RHYTHM",
+        "variant": "halyard",
+        "difficulty": 1,
+        "beats": 12,
+        "bpm": 60,
+        "combo": 8
+      }
+    },
+    {
+      "id": "chore-post",
+      "label": "초소 주변 정리",
+      "zone": "Z12",
+      "spot": "모래주머니",
+      "workSeconds": 16,
+      "bands": "all",
+      "minigame": {
+        "type": "PLACE",
+        "variant": "sandbag",
+        "difficulty": 2,
+        "pieces": 9,
+        "snapDeg": 0,
+        "tolerance": 0.14
+      }
+    },
+    {
+      "id": "chore-snow",
+      "label": "제설",
+      "zone": "Z11",
+      "spot": "대열 정렬선",
+      "workSeconds": 20,
+      "bands": "coldOrBelow",
+      "required": true,
+      "minigame": {
+        "type": "MASH",
+        "variant": "snow",
+        "difficulty": 2,
+        "taps": 40,
+        "drain": 0.026,
+        "stamina": 1.0
+      }
+    },
+    {
+      "id": "chore-sand",
+      "label": "결빙 구간 모래 살포",
+      "zone": "Z11",
+      "spot": "모래함",
+      "workSeconds": 18,
+      "bands": "coldOrBelow",
+      "required": true,
+      "minigame": {
+        "type": "SCRUB",
+        "variant": "sand",
+        "difficulty": 2,
+        "stains": 5,
+        "brush": 44,
+        "coverage": 0.85,
+        "supply": 1.2
+      }
+    },
+    {
+      "id": "chore-boiler",
+      "label": "보일러실 순찰",
+      "zone": "Z14",
+      "spot": "보일러 본체",
+      "workSeconds": 16,
+      "bands": "coldOrBelow",
+      "required": true,
+      "minigame": {
+        "type": "SEARCH",
+        "variant": "seep",
+        "difficulty": 2,
+        "hidden": 3,
+        "cells": 24,
+        "signal": 0.22
+      }
+    },
+    {
+      "id": "chore-pipe",
+      "label": "수도 동파 점검",
+      "zone": "Z14",
+      "spot": "배관 분기",
+      "workSeconds": 18,
+      "bands": "coldOrBelow",
+      "required": true,
+      "minigame": {
+        "type": "AUDIT",
+        "variant": "pipetemp",
+        "difficulty": 2,
+        "entries": 14,
+        "mismatches": 4,
+        "strikes": 3
+      }
+    },
+    {
+      "id": "chore-fuelcan",
+      "label": "난로 유류통 운반",
+      "zone": "Z08",
+      "spot": "유류통",
+      "workSeconds": 20,
+      "bands": "coldOrBelow",
+      "required": true,
+      "minigame": {
+        "type": "BALANCE",
+        "variant": "fuelcan",
+        "difficulty": 2,
+        "sway": 0.75,
+        "segments": 5,
+        "tolerance": 0.16
+      }
+    },
+    {
+      "id": "chore-weed",
+      "label": "제초",
+      "zone": "Z11",
+      "spot": "나무",
+      "workSeconds": 20,
+      "bands": "warmOrAbove",
+      "required": true,
+      "minigame": {
+        "type": "MASH",
+        "variant": "weed",
+        "difficulty": 2,
+        "taps": 38,
+        "drain": 0.024,
+        "stamina": 1.0
+      }
+    },
+    {
+      "id": "chore-drain",
+      "label": "배수로 정비",
+      "zone": "Z11",
+      "spot": "배수로",
+      "workSeconds": 18,
+      "bands": "warmOrAbove",
+      "required": true,
+      "minigame": {
+        "type": "TRACE",
+        "variant": "ditch",
+        "difficulty": 2,
+        "nodes": 12,
+        "branches": 2,
+        "rotations": 6
+      }
+    },
+    {
+      "id": "chore-shade",
+      "label": "그늘막 설치 보조",
+      "zone": "Z50",
+      "spot": "그늘막 팩",
+      "workSeconds": 16,
+      "bands": "warmOrAbove",
+      "required": true,
+      "minigame": {
+        "type": "TIMING",
+        "variant": "peg",
+        "difficulty": 2,
+        "hits": 3,
+        "window": 0.14,
+        "speed": 0.9
+      }
+    },
+    {
+      "id": "chore-water",
+      "label": "급수통 보충",
+      "zone": "Z07b",
+      "spot": "급수 정수 설비",
+      "workSeconds": 14,
+      "bands": "warmOrAbove",
+      "required": true,
+      "minigame": {
+        "type": "HOLD",
+        "variant": "waterlevel",
+        "difficulty": 1,
+        "bandMin": 0.72,
+        "bandMax": 0.9,
+        "drift": 0.3,
+        "slack": 1.5
+      }
+    },
+    {
+      "id": "chore-spray",
+      "label": "방역 소독 보조",
+      "zone": "Z03",
+      "spot": "약제함",
+      "workSeconds": 16,
+      "bands": "warmOrAbove",
+      "required": true,
+      "minigame": {
+        "type": "SCRUB",
+        "variant": "spray",
+        "difficulty": 2,
+        "stains": 6,
+        "brush": 34,
+        "coverage": 0.85,
+        "supply": 1.35
+      }
+    },
+    {
+      "id": "chore-firewood",
+      "label": "땔감 수집",
+      "zone": "Z50",
+      "spot": "모탕",
+      "workSeconds": 20,
+      "bands": "all",
+      "bivouacOnly": true,
+      "minigame": {
+        "type": "TIMING",
+        "variant": "split",
+        "difficulty": 2,
+        "hits": 5,
+        "window": 0.12,
+        "speed": 0.85
+      }
+    },
+    {
+      "id": "chore-fieldmess",
+      "label": "취사장 정리",
+      "zone": "Z50",
+      "spot": "야전 취사도구",
+      "workSeconds": 18,
+      "bands": "all",
+      "bivouacOnly": true,
+      "minigame": {
+        "type": "PLACE",
+        "variant": "fieldkit",
+        "difficulty": 2,
+        "pieces": 9,
+        "snapDeg": 0,
+        "tolerance": 0.12
+      }
+    },
+    {
+      "id": "chore-tentdrain",
+      "label": "텐트 주변 배수",
+      "zone": "Z50",
+      "spot": "텐트",
+      "workSeconds": 16,
+      "bands": "all",
+      "bivouacOnly": true,
+      "minigame": {
+        "type": "TRACE",
+        "variant": "ditch",
+        "difficulty": 2,
+        "nodes": 10,
+        "branches": 1,
+        "rotations": 5
+      }
+    },
+    {
+      "id": "chore-shower",
+      "label": "세면장 청소",
+      "zone": "Z03",
+      "spot": "거울",
+      "workSeconds": 16,
+      "bands": "all",
+      "minigame": {
+        "type": "SCRUB",
+        "variant": "mirror",
+        "difficulty": 2,
+        "stains": 6,
+        "brush": 28,
+        "coverage": 0.9
+      }
+    },
+    {
+      "id": "chore-dry",
+      "label": "건조대 정리",
+      "zone": "Z13",
+      "spot": "건조대",
+      "workSeconds": 12,
+      "bands": "all",
+      "minigame": {
+        "type": "PLACE",
+        "variant": "spacing",
+        "difficulty": 1,
+        "pieces": 8,
+        "snapDeg": 0,
+        "tolerance": 0.1
+      }
+    },
+    {
+      "id": "chore-pc",
+      "label": "사이버지식방 정돈",
+      "zone": "Z16",
+      "spot": "단말",
+      "workSeconds": 12,
+      "bands": "all",
+      "minigame": {
+        "type": "PLACE",
+        "variant": "chairs",
+        "difficulty": 1,
+        "pieces": 6,
+        "snapDeg": 0,
+        "tolerance": 0.14
+      }
+    },
+    {
+      "id": "chore-gym",
+      "label": "체력단련장 정리",
+      "zone": "Z17",
+      "spot": "덤벨 거치대",
+      "workSeconds": 14,
+      "bands": "all",
+      "minigame": {
+        "type": "PLACE",
+        "variant": "weights",
+        "difficulty": 1,
+        "pieces": 8,
+        "snapDeg": 0,
+        "tolerance": 0.1
+      }
+    },
+    {
+      "id": "chore-armory",
+      "label": "무기고 재물 조사",
+      "zone": "Z09",
+      "spot": "재물 대장",
+      "workSeconds": 18,
+      "bands": "all",
+      "minigame": {
+        "type": "AUDIT",
+        "variant": "serial",
+        "difficulty": 2,
+        "entries": 16,
+        "mismatches": 4,
+        "strikes": 3
+      }
+    },
+    {
+      "id": "chore-gate",
+      "label": "위병소 출입 기록 정리",
+      "zone": "Z18",
+      "spot": "출입 대장",
+      "workSeconds": 14,
+      "bands": "all",
+      "minigame": {
+        "type": "AUDIT",
+        "variant": "logbook",
+        "difficulty": 1,
+        "entries": 12,
+        "mismatches": 3,
+        "strikes": 3
+      }
+    },
+    {
+      "id": "chore-vehicle",
+      "label": "차량 외부 세척",
+      "zone": "Z10",
+      "spot": "고압 세척기",
+      "workSeconds": 20,
+      "bands": "all",
+      "minigame": {
+        "type": "SCRUB",
+        "variant": "hose",
+        "difficulty": 2,
+        "stains": 10,
+        "brush": 40,
+        "coverage": 0.9
+      }
+    }
   ],
   "surprise": [
-    { "id": "sur-inspection", "label": "불시 점호", "zone": "barracks", "workSeconds": 15 },
-    { "id": "sur-patient", "label": "환자 발생", "zone": "infirmary", "workSeconds": 20 },
-    { "id": "sur-truck", "label": "보급 트럭 도착", "zone": "storage", "workSeconds": 24 },
-    { "id": "sur-lecture", "label": "정신교육 소집", "zone": "barracks", "workSeconds": 18 },
-    { "id": "sur-leak", "label": "누수 · 정전", "zone": "boilerRoom", "workSeconds": 22 },
-    { "id": "sur-lost", "label": "분실 장비 수색", "zone": "drillGround", "workSeconds": 25 },
-    { "id": "sur-officer", "label": "간부 순찰", "zone": "drillGround", "workSeconds": 14 },
-    { "id": "sur-help", "label": "타 분대 지원 요청", "zone": "trainingField", "workSeconds": 22 },
-    { "id": "sur-extra", "label": "제초 · 제설 추가", "zone": "drillGround", "workSeconds": 20 }
+    {
+      "id": "sur-inspection",
+      "label": "불시 점호",
+      "zone": "Z01",
+      "spot": "관물대",
+      "workSeconds": 15,
+      "minigame": {
+        "type": "RHYTHM",
+        "variant": "countoff",
+        "difficulty": 2,
+        "beats": 16,
+        "bpm": 72,
+        "combo": 10
+      }
+    },
+    {
+      "id": "sur-patient",
+      "label": "환자 발생",
+      "zone": "Z05",
+      "spot": "처치대",
+      "workSeconds": 20,
+      "minigame": {
+        "type": "SEQ",
+        "variant": "firstaid",
+        "difficulty": 2,
+        "length": 4,
+        "steps": 1,
+        "show": 3
+      }
+    },
+    {
+      "id": "sur-truck",
+      "label": "보급 트럭 도착",
+      "zone": "Z08",
+      "spot": "하역 출입구",
+      "workSeconds": 24,
+      "minigame": {
+        "type": "MASH",
+        "variant": "unload",
+        "difficulty": 3,
+        "taps": 46,
+        "drain": 0.03,
+        "stamina": 1.0
+      }
+    },
+    {
+      "id": "sur-lecture",
+      "label": "정신교육 소집",
+      "zone": "Z16",
+      "spot": "집합 좌석",
+      "workSeconds": 18,
+      "minigame": {
+        "type": "HOLD",
+        "variant": "drowsy",
+        "difficulty": 2,
+        "bandMin": 0.35,
+        "bandMax": 0.75,
+        "drift": 0.34,
+        "slack": 2.0
+      }
+    },
+    {
+      "id": "sur-leak",
+      "label": "누수 · 정전",
+      "zone": "Z14",
+      "spot": "차단 밸브",
+      "workSeconds": 22,
+      "minigame": {
+        "type": "TRACE",
+        "variant": "breaker",
+        "difficulty": 3,
+        "interrupt": "REACT",
+        "nodes": 12,
+        "branches": 2,
+        "rotations": 6
+      }
+    },
+    {
+      "id": "sur-lost",
+      "label": "분실 장비 수색",
+      "zone": "Z11",
+      "spot": "관측 지점",
+      "workSeconds": 25,
+      "minigame": {
+        "type": "SEARCH",
+        "variant": "grid",
+        "difficulty": 3,
+        "hidden": 4,
+        "cells": 36,
+        "signal": 0.18
+      }
+    },
+    {
+      "id": "sur-officer",
+      "label": "간부 순찰",
+      "zone": "Z11",
+      "spot": "국기 게양대",
+      "workSeconds": 14,
+      "minigame": {
+        "type": "REACT",
+        "variant": "salute",
+        "difficulty": 1,
+        "window": 1.4,
+        "count": 3
+      }
+    },
+    {
+      "id": "sur-help",
+      "label": "타 분대 지원 요청",
+      "zone": "Z50",
+      "spot": "강단",
+      "workSeconds": 22,
+      "minigame": {
+        "type": "RANDOM",
+        "variant": "summon",
+        "difficulty": 3
+      }
+    },
+    {
+      "id": "sur-extra",
+      "label": "제초 · 제설 추가",
+      "zone": "Z11",
+      "spot": "배수로",
+      "workSeconds": 20,
+      "minigame": {
+        "type": "MASH",
+        "variant": "extra",
+        "difficulty": 2,
+        "taps": 38,
+        "drain": 0.024,
+        "stamina": 0.7
+      }
+    }
   ],
   "joint": {
     "workSeconds": 40,
     "zoneByDay": {
-      "default": "drillGround",
-      "storage": [4, 14],
-      "trainingField": [8, 9, 10, 12, 13, 15, 16, 17],
-      "guardPost": [7],
-      "barracks": [1, 18]
+      "default": "Z11",
+      "Z08": [
+        4,
+        14
+      ],
+      "Z50": [
+        8,
+        9,
+        10,
+        12,
+        13,
+        15,
+        16,
+        17
+      ],
+      "Z12": [
+        7
+      ],
+      "Z01": [
+        1,
+        18
+      ]
+    },
+    "_boardNote": "합동은 **판 하나를 인원이 나눠 채운다.** `steps`가 목표 조각 수이고, 한 조각을 채울 때마다 클라가 `jointStep`을 보낸다. 서버는 원형 로직을 모르고 조각 수만 센다 — 요구 인원이 그 구역에 모이지 않으면 조각이 올라가지 않는다(QST-01). 조각 수를 인원보다 훨씬 크게 잡는 이유는, 한 사람이 다 채울 수 있으면 협동이 아니라 대기가 되기 때문이다.",
+    "boards": {
+      "내무실 정돈": {
+        "type": "PLACE",
+        "variant": "squadlocker",
+        "difficulty": 1,
+        "steps": 8,
+        "pieces": 8,
+        "snapDeg": 90,
+        "tolerance": 0.14
+      },
+      "탄약고 수령": {
+        "type": "BALANCE",
+        "variant": "ammoline",
+        "difficulty": 2,
+        "steps": 8,
+        "sway": 1.1,
+        "segments": 8,
+        "tolerance": 0.26
+      },
+      "사격 제원 전달 통신 → 소총": {
+        "type": "SEQ",
+        "variant": "firecall",
+        "difficulty": 2,
+        "steps": 8,
+        "length": 4,
+        "show": 3
+      },
+      "창고 재물조사": {
+        "type": "AUDIT",
+        "variant": "stocktake",
+        "difficulty": 2,
+        "steps": 9,
+        "entries": 18,
+        "mismatches": 9,
+        "strikes": 4
+      },
+      "제독소 운용": {
+        "type": "TRACE",
+        "variant": "decon",
+        "difficulty": 3,
+        "steps": 9,
+        "nodes": 16,
+        "branches": 3,
+        "rotations": 9
+      },
+      "초소 교대 인수인계": {
+        "type": "SEQ",
+        "variant": "handover",
+        "difficulty": 2,
+        "steps": 8,
+        "length": 4,
+        "show": 3
+      },
+      "낙오자 부축 · 급수 관리": {
+        "type": "BALANCE",
+        "variant": "carrymate",
+        "difficulty": 3,
+        "steps": 12,
+        "sway": 1.2,
+        "segments": 12,
+        "tolerance": 0.22
+      },
+      "텐트 설치 행정 주도": {
+        "type": "TIMING",
+        "variant": "tentpeg",
+        "difficulty": 2,
+        "steps": 9,
+        "hits": 9,
+        "window": 0.13,
+        "speed": 0.9
+      },
+      "배수로 또는 난로 유지": {
+        "type": "HOLD",
+        "variant": "keepwarm",
+        "difficulty": 3,
+        "steps": 12,
+        "bandMin": 0.5,
+        "bandMax": 0.74,
+        "drift": 0.36,
+        "slack": 2.0
+      },
+      "차량 정비 행정 주도": {
+        "type": "PLACE",
+        "variant": "toolshare",
+        "difficulty": 2,
+        "steps": 8,
+        "pieces": 8,
+        "snapDeg": 90,
+        "tolerance": 0.11
+      },
+      "릴레이 통과": {
+        "type": "MASH",
+        "variant": "relay",
+        "difficulty": 3,
+        "steps": 12,
+        "taps": 48,
+        "drain": 0.028,
+        "stamina": 1.0
+      },
+      "전원 완주 필수": {
+        "type": "MASH",
+        "variant": "finishall",
+        "difficulty": 3,
+        "steps": 12,
+        "taps": 52,
+        "drain": 0.03,
+        "stamina": 0.85
+      },
+      "보급 트럭 하역": {
+        "type": "MASH",
+        "variant": "unloadline",
+        "difficulty": 2,
+        "steps": 9,
+        "taps": 45,
+        "drain": 0.026,
+        "stamina": 1.0
+      },
+      "보온 라인 / 급수 라인 구축": {
+        "type": "TRACE",
+        "variant": "warmline",
+        "difficulty": 3,
+        "steps": 12,
+        "nodes": 18,
+        "branches": 4,
+        "rotations": 10
+      },
+      "대민지원 편성": {
+        "type": "SORT",
+        "variant": "civilaid",
+        "difficulty": 2,
+        "steps": 9,
+        "items": 18,
+        "bins": 3,
+        "ambiguous": 5,
+        "strikes": 4
+      },
+      "전 보직 순차 연계": {
+        "type": "SEQ",
+        "variant": "rolechain",
+        "difficulty": 3,
+        "steps": 12,
+        "length": 6,
+        "show": 3
+      },
+      "최종 점호": {
+        "type": "RHYTHM",
+        "variant": "finalcall",
+        "difficulty": 3,
+        "steps": 12,
+        "beats": 28,
+        "bpm": 76,
+        "combo": 12
+      }
     }
-  }
+  },
+  "_zoneNote": "zone은 구역(=방) id다. 정의는 packages/sim/data/zones.json에 있다. 예전에는 서버 8구역과 아트 25방이 따로 있어서 둘이 어긋났는데, 방을 곧 구역으로 삼으면서 하나가 됐다.",
+  "_careNote": "7.0 회복 수단(표 7-1). **일과가 아니다** — 판정(조건 A)에도 군기에도 복무 점수에도 들어가지 않는다. 기상·중식·개인정비 세 칸에서 몸을 되돌리는 행동이고, 안 하면 스탯으로 갚는다. 예전에는 이 회복이 시간대 종료에 자동으로 들어갔는데(condition.json phaseRecovery), 그러면 밥과 세면이 화면에서 아무 일도 아니게 되고 그 칸들이 빈 칸이 된다.",
+  "care": [
+    {
+      "id": "care-reveille-wash",
+      "label": "세면 · 양치",
+      "zone": "Z03",
+      "phase": "reveille",
+      "workSeconds": 10,
+      "recovery": {
+        "hygiene": 26,
+        "mental": 2
+      }
+    },
+    {
+      "id": "care-reveille-water",
+      "label": "수통 급수",
+      "zone": "Z03",
+      "phase": "reveille",
+      "workSeconds": 6,
+      "recovery": {
+        "hydration": 24
+      }
+    },
+    {
+      "id": "care-lunch-meal",
+      "label": "중식 배식",
+      "zone": "Z07",
+      "phase": "lunch",
+      "workSeconds": 10,
+      "recovery": {
+        "satiety": 38,
+        "mental": 3
+      }
+    },
+    {
+      "id": "care-lunch-water",
+      "label": "수통 급수",
+      "zone": "Z07",
+      "phase": "lunch",
+      "workSeconds": 6,
+      "recovery": {
+        "hydration": 30
+      }
+    },
+    {
+      "id": "care-lunch-rest",
+      "label": "휴식",
+      "zone": "Z01",
+      "phase": "lunch",
+      "workSeconds": 12,
+      "recovery": {
+        "mental": 10,
+        "fatigue": -12
+      }
+    },
+    {
+      "id": "care-personal-meal",
+      "label": "석식 배식",
+      "zone": "Z07",
+      "phase": "personal",
+      "workSeconds": 10,
+      "recovery": {
+        "satiety": 38,
+        "mental": 3
+      }
+    },
+    {
+      "id": "care-personal-wash",
+      "label": "세면 · 샤워",
+      "zone": "Z03",
+      "phase": "personal",
+      "workSeconds": 14,
+      "recovery": {
+        "hygiene": 40,
+        "mental": 4
+      }
+    },
+    {
+      "id": "care-personal-water",
+      "label": "수통 보충",
+      "zone": "Z03",
+      "phase": "personal",
+      "workSeconds": 6,
+      "recovery": {
+        "hydration": 22
+      }
+    }
+  ]
 }

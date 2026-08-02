@@ -41,6 +41,14 @@ namespace SoldierADay.Protocol
         public const string ExtremeHot = "extremeHot";
     }
 
+    /// <summary>SnapshotRadio 이 가질 수 있는 값. 서버가 값을 추가해도 깨지지 않도록 enum이 아니라 상수로 둔다.</summary>
+    public static class SnapshotRadioValues
+    {
+        public const string Ok = "ok";
+        public const string Weak = "weak";
+        public const string Down = "down";
+    }
+
     /// <summary>SnapshotMembersItemRole 이 가질 수 있는 값. 서버가 값을 추가해도 깨지지 않도록 enum이 아니라 상수로 둔다.</summary>
     public static class SnapshotMembersItemRoleValues
     {
@@ -72,14 +80,42 @@ namespace SoldierADay.Protocol
     /// <summary>SnapshotMembersItemZone 이 가질 수 있는 값. 서버가 값을 추가해도 깨지지 않도록 enum이 아니라 상수로 둔다.</summary>
     public static class SnapshotMembersItemZoneValues
     {
-        public const string Barracks = "barracks";
-        public const string DrillGround = "drillGround";
-        public const string Storage = "storage";
-        public const string MessHall = "messHall";
-        public const string GuardPost = "guardPost";
-        public const string TrainingField = "trainingField";
-        public const string Infirmary = "infirmary";
-        public const string BoilerRoom = "boilerRoom";
+        public const string Z01 = "Z01";
+        public const string Z01b = "Z01b";
+        public const string Z01c = "Z01c";
+        public const string Z02 = "Z02";
+        public const string Z03 = "Z03";
+        public const string Z13 = "Z13";
+        public const string Z16 = "Z16";
+        public const string Z17 = "Z17";
+        public const string Z09 = "Z09";
+        public const string Z20 = "Z20";
+        public const string Z07 = "Z07";
+        public const string Z07b = "Z07b";
+        public const string Z21 = "Z21";
+        public const string Z05 = "Z05";
+        public const string Z06 = "Z06";
+        public const string Z04 = "Z04";
+        public const string Z22 = "Z22";
+        public const string Z08 = "Z08";
+        public const string Z10 = "Z10";
+        public const string Z11 = "Z11";
+        public const string Z12 = "Z12";
+        public const string Z12b = "Z12b";
+        public const string Z18 = "Z18";
+        public const string Z19 = "Z19";
+        public const string Z14 = "Z14";
+        public const string Z50 = "Z50";
+        public const string TR01 = "TR01";
+        public const string TR02 = "TR02";
+        public const string TR03 = "TR03";
+        public const string TR04 = "TR04";
+        public const string TR05 = "TR05";
+        public const string TR06 = "TR06";
+        public const string TR07 = "TR07";
+        public const string TR08 = "TR08";
+        public const string TR09 = "TR09";
+        public const string TR10 = "TR10";
     }
 
     /// <summary>SnapshotQuestsItemKind 이 가질 수 있는 값. 서버가 값을 추가해도 깨지지 않도록 enum이 아니라 상수로 둔다.</summary>
@@ -90,6 +126,7 @@ namespace SoldierADay.Protocol
         public const string Joint = "joint";
         public const string Surprise = "surprise";
         public const string Hidden = "hidden";
+        public const string Care = "care";
     }
 
     /// <summary>SnapshotQuestsItemPhase 이 가질 수 있는 값. 서버가 값을 추가해도 깨지지 않도록 enum이 아니라 상수로 둔다.</summary>
@@ -106,14 +143,42 @@ namespace SoldierADay.Protocol
     /// <summary>SnapshotQuestsItemZone 이 가질 수 있는 값. 서버가 값을 추가해도 깨지지 않도록 enum이 아니라 상수로 둔다.</summary>
     public static class SnapshotQuestsItemZoneValues
     {
-        public const string Barracks = "barracks";
-        public const string DrillGround = "drillGround";
-        public const string Storage = "storage";
-        public const string MessHall = "messHall";
-        public const string GuardPost = "guardPost";
-        public const string TrainingField = "trainingField";
-        public const string Infirmary = "infirmary";
-        public const string BoilerRoom = "boilerRoom";
+        public const string Z01 = "Z01";
+        public const string Z01b = "Z01b";
+        public const string Z01c = "Z01c";
+        public const string Z02 = "Z02";
+        public const string Z03 = "Z03";
+        public const string Z13 = "Z13";
+        public const string Z16 = "Z16";
+        public const string Z17 = "Z17";
+        public const string Z09 = "Z09";
+        public const string Z20 = "Z20";
+        public const string Z07 = "Z07";
+        public const string Z07b = "Z07b";
+        public const string Z21 = "Z21";
+        public const string Z05 = "Z05";
+        public const string Z06 = "Z06";
+        public const string Z04 = "Z04";
+        public const string Z22 = "Z22";
+        public const string Z08 = "Z08";
+        public const string Z10 = "Z10";
+        public const string Z11 = "Z11";
+        public const string Z12 = "Z12";
+        public const string Z12b = "Z12b";
+        public const string Z18 = "Z18";
+        public const string Z19 = "Z19";
+        public const string Z14 = "Z14";
+        public const string Z50 = "Z50";
+        public const string TR01 = "TR01";
+        public const string TR02 = "TR02";
+        public const string TR03 = "TR03";
+        public const string TR04 = "TR04";
+        public const string TR05 = "TR05";
+        public const string TR06 = "TR06";
+        public const string TR07 = "TR07";
+        public const string TR08 = "TR08";
+        public const string TR09 = "TR09";
+        public const string TR10 = "TR10";
     }
 
     /// <summary>SnapshotQuestsItemStatus 이 가질 수 있는 값. 서버가 값을 추가해도 깨지지 않도록 enum이 아니라 상수로 둔다.</summary>
@@ -124,6 +189,54 @@ namespace SoldierADay.Protocol
         public const string Done = "done";
         public const string Failed = "failed";
         public const string Locked = "locked";
+    }
+
+    /// <summary>SnapshotQuestsItemMinigameType 이 가질 수 있는 값. 서버가 값을 추가해도 깨지지 않도록 enum이 아니라 상수로 둔다.</summary>
+    public static class SnapshotQuestsItemMinigameTypeValues
+    {
+        public const string SCRUB = "SCRUB";
+        public const string PLACE = "PLACE";
+        public const string AUDIT = "AUDIT";
+        public const string MASH = "MASH";
+        public const string BALANCE = "BALANCE";
+        public const string HOLD = "HOLD";
+        public const string TRACE = "TRACE";
+        public const string SORT = "SORT";
+        public const string TIMING = "TIMING";
+        public const string SEQ = "SEQ";
+        public const string RHYTHM = "RHYTHM";
+        public const string TRACK = "TRACK";
+        public const string SEARCH = "SEARCH";
+        public const string REACT = "REACT";
+        public const string RANDOM = "RANDOM";
+    }
+
+    /// <summary>SnapshotQuestsItemMinigamePhase2 이 가질 수 있는 값. 서버가 값을 추가해도 깨지지 않도록 enum이 아니라 상수로 둔다.</summary>
+    public static class SnapshotQuestsItemMinigamePhase2Values
+    {
+        public const string SCRUB = "SCRUB";
+        public const string PLACE = "PLACE";
+        public const string AUDIT = "AUDIT";
+        public const string MASH = "MASH";
+        public const string BALANCE = "BALANCE";
+        public const string HOLD = "HOLD";
+        public const string TRACE = "TRACE";
+        public const string SORT = "SORT";
+        public const string TIMING = "TIMING";
+        public const string SEQ = "SEQ";
+        public const string RHYTHM = "RHYTHM";
+        public const string TRACK = "TRACK";
+        public const string SEARCH = "SEARCH";
+        public const string REACT = "REACT";
+        public const string RANDOM = "RANDOM";
+    }
+
+    /// <summary>SnapshotQuestsItemGrade 이 가질 수 있는 값. 서버가 값을 추가해도 깨지지 않도록 enum이 아니라 상수로 둔다.</summary>
+    public static class SnapshotQuestsItemGradeValues
+    {
+        public const string A = "A";
+        public const string B = "B";
+        public const string C = "C";
     }
 
     /// <summary>SnapshotLastJudgementFailedAt 이 가질 수 있는 값. 서버가 값을 추가해도 깨지지 않도록 enum이 아니라 상수로 둔다.</summary>
@@ -147,6 +260,9 @@ namespace SoldierADay.Protocol
         public const string MemberEvacuated = "memberEvacuated";
         public const string MemberReturned = "memberReturned";
         public const string MemberLeft = "memberLeft";
+        public const string Frostbitten = "frostbitten";
+        public const string FrostbiteRelieved = "frostbiteRelieved";
+        public const string RadioChanged = "radioChanged";
         public const string ForcedSleep = "forcedSleep";
         public const string SupplyClaimed = "supplyClaimed";
         public const string RankReviewed = "rankReviewed";
@@ -192,6 +308,14 @@ namespace SoldierADay.Protocol
         public const string D = "D";
     }
 
+    /// <summary>ServerEventRadioState 이 가질 수 있는 값. 서버가 값을 추가해도 깨지지 않도록 enum이 아니라 상수로 둔다.</summary>
+    public static class ServerEventRadioStateValues
+    {
+        public const string Ok = "ok";
+        public const string Weak = "weak";
+        public const string Down = "down";
+    }
+
     /// <summary>ServerEventOutcomesItemFrom 이 가질 수 있는 값. 서버가 값을 추가해도 깨지지 않도록 enum이 아니라 상수로 둔다.</summary>
     public static class ServerEventOutcomesItemFromValues
     {
@@ -226,14 +350,42 @@ namespace SoldierADay.Protocol
     /// <summary>ServerEventZone 이 가질 수 있는 값. 서버가 값을 추가해도 깨지지 않도록 enum이 아니라 상수로 둔다.</summary>
     public static class ServerEventZoneValues
     {
-        public const string Barracks = "barracks";
-        public const string DrillGround = "drillGround";
-        public const string Storage = "storage";
-        public const string MessHall = "messHall";
-        public const string GuardPost = "guardPost";
-        public const string TrainingField = "trainingField";
-        public const string Infirmary = "infirmary";
-        public const string BoilerRoom = "boilerRoom";
+        public const string Z01 = "Z01";
+        public const string Z01b = "Z01b";
+        public const string Z01c = "Z01c";
+        public const string Z02 = "Z02";
+        public const string Z03 = "Z03";
+        public const string Z13 = "Z13";
+        public const string Z16 = "Z16";
+        public const string Z17 = "Z17";
+        public const string Z09 = "Z09";
+        public const string Z20 = "Z20";
+        public const string Z07 = "Z07";
+        public const string Z07b = "Z07b";
+        public const string Z21 = "Z21";
+        public const string Z05 = "Z05";
+        public const string Z06 = "Z06";
+        public const string Z04 = "Z04";
+        public const string Z22 = "Z22";
+        public const string Z08 = "Z08";
+        public const string Z10 = "Z10";
+        public const string Z11 = "Z11";
+        public const string Z12 = "Z12";
+        public const string Z12b = "Z12b";
+        public const string Z18 = "Z18";
+        public const string Z19 = "Z19";
+        public const string Z14 = "Z14";
+        public const string Z50 = "Z50";
+        public const string TR01 = "TR01";
+        public const string TR02 = "TR02";
+        public const string TR03 = "TR03";
+        public const string TR04 = "TR04";
+        public const string TR05 = "TR05";
+        public const string TR06 = "TR06";
+        public const string TR07 = "TR07";
+        public const string TR08 = "TR08";
+        public const string TR09 = "TR09";
+        public const string TR10 = "TR10";
     }
 
     /// <summary>ServerMessageType 이 가질 수 있는 값. 서버가 값을 추가해도 깨지지 않도록 enum이 아니라 상수로 둔다.</summary>
@@ -286,6 +438,14 @@ namespace SoldierADay.Protocol
         public const string ExtremeHot = "extremeHot";
     }
 
+    /// <summary>ServerMessageRadio 이 가질 수 있는 값. 서버가 값을 추가해도 깨지지 않도록 enum이 아니라 상수로 둔다.</summary>
+    public static class ServerMessageRadioValues
+    {
+        public const string Ok = "ok";
+        public const string Weak = "weak";
+        public const string Down = "down";
+    }
+
     /// <summary>ServerMessageMembersItemRole 이 가질 수 있는 값. 서버가 값을 추가해도 깨지지 않도록 enum이 아니라 상수로 둔다.</summary>
     public static class ServerMessageMembersItemRoleValues
     {
@@ -317,14 +477,42 @@ namespace SoldierADay.Protocol
     /// <summary>ServerMessageMembersItemZone 이 가질 수 있는 값. 서버가 값을 추가해도 깨지지 않도록 enum이 아니라 상수로 둔다.</summary>
     public static class ServerMessageMembersItemZoneValues
     {
-        public const string Barracks = "barracks";
-        public const string DrillGround = "drillGround";
-        public const string Storage = "storage";
-        public const string MessHall = "messHall";
-        public const string GuardPost = "guardPost";
-        public const string TrainingField = "trainingField";
-        public const string Infirmary = "infirmary";
-        public const string BoilerRoom = "boilerRoom";
+        public const string Z01 = "Z01";
+        public const string Z01b = "Z01b";
+        public const string Z01c = "Z01c";
+        public const string Z02 = "Z02";
+        public const string Z03 = "Z03";
+        public const string Z13 = "Z13";
+        public const string Z16 = "Z16";
+        public const string Z17 = "Z17";
+        public const string Z09 = "Z09";
+        public const string Z20 = "Z20";
+        public const string Z07 = "Z07";
+        public const string Z07b = "Z07b";
+        public const string Z21 = "Z21";
+        public const string Z05 = "Z05";
+        public const string Z06 = "Z06";
+        public const string Z04 = "Z04";
+        public const string Z22 = "Z22";
+        public const string Z08 = "Z08";
+        public const string Z10 = "Z10";
+        public const string Z11 = "Z11";
+        public const string Z12 = "Z12";
+        public const string Z12b = "Z12b";
+        public const string Z18 = "Z18";
+        public const string Z19 = "Z19";
+        public const string Z14 = "Z14";
+        public const string Z50 = "Z50";
+        public const string TR01 = "TR01";
+        public const string TR02 = "TR02";
+        public const string TR03 = "TR03";
+        public const string TR04 = "TR04";
+        public const string TR05 = "TR05";
+        public const string TR06 = "TR06";
+        public const string TR07 = "TR07";
+        public const string TR08 = "TR08";
+        public const string TR09 = "TR09";
+        public const string TR10 = "TR10";
     }
 
     /// <summary>ServerMessageQuestsItemKind 이 가질 수 있는 값. 서버가 값을 추가해도 깨지지 않도록 enum이 아니라 상수로 둔다.</summary>
@@ -335,6 +523,7 @@ namespace SoldierADay.Protocol
         public const string Joint = "joint";
         public const string Surprise = "surprise";
         public const string Hidden = "hidden";
+        public const string Care = "care";
     }
 
     /// <summary>ServerMessageQuestsItemPhase 이 가질 수 있는 값. 서버가 값을 추가해도 깨지지 않도록 enum이 아니라 상수로 둔다.</summary>
@@ -351,14 +540,42 @@ namespace SoldierADay.Protocol
     /// <summary>ServerMessageQuestsItemZone 이 가질 수 있는 값. 서버가 값을 추가해도 깨지지 않도록 enum이 아니라 상수로 둔다.</summary>
     public static class ServerMessageQuestsItemZoneValues
     {
-        public const string Barracks = "barracks";
-        public const string DrillGround = "drillGround";
-        public const string Storage = "storage";
-        public const string MessHall = "messHall";
-        public const string GuardPost = "guardPost";
-        public const string TrainingField = "trainingField";
-        public const string Infirmary = "infirmary";
-        public const string BoilerRoom = "boilerRoom";
+        public const string Z01 = "Z01";
+        public const string Z01b = "Z01b";
+        public const string Z01c = "Z01c";
+        public const string Z02 = "Z02";
+        public const string Z03 = "Z03";
+        public const string Z13 = "Z13";
+        public const string Z16 = "Z16";
+        public const string Z17 = "Z17";
+        public const string Z09 = "Z09";
+        public const string Z20 = "Z20";
+        public const string Z07 = "Z07";
+        public const string Z07b = "Z07b";
+        public const string Z21 = "Z21";
+        public const string Z05 = "Z05";
+        public const string Z06 = "Z06";
+        public const string Z04 = "Z04";
+        public const string Z22 = "Z22";
+        public const string Z08 = "Z08";
+        public const string Z10 = "Z10";
+        public const string Z11 = "Z11";
+        public const string Z12 = "Z12";
+        public const string Z12b = "Z12b";
+        public const string Z18 = "Z18";
+        public const string Z19 = "Z19";
+        public const string Z14 = "Z14";
+        public const string Z50 = "Z50";
+        public const string TR01 = "TR01";
+        public const string TR02 = "TR02";
+        public const string TR03 = "TR03";
+        public const string TR04 = "TR04";
+        public const string TR05 = "TR05";
+        public const string TR06 = "TR06";
+        public const string TR07 = "TR07";
+        public const string TR08 = "TR08";
+        public const string TR09 = "TR09";
+        public const string TR10 = "TR10";
     }
 
     /// <summary>ServerMessageQuestsItemStatus 이 가질 수 있는 값. 서버가 값을 추가해도 깨지지 않도록 enum이 아니라 상수로 둔다.</summary>
@@ -369,6 +586,54 @@ namespace SoldierADay.Protocol
         public const string Done = "done";
         public const string Failed = "failed";
         public const string Locked = "locked";
+    }
+
+    /// <summary>ServerMessageQuestsItemMinigameType 이 가질 수 있는 값. 서버가 값을 추가해도 깨지지 않도록 enum이 아니라 상수로 둔다.</summary>
+    public static class ServerMessageQuestsItemMinigameTypeValues
+    {
+        public const string SCRUB = "SCRUB";
+        public const string PLACE = "PLACE";
+        public const string AUDIT = "AUDIT";
+        public const string MASH = "MASH";
+        public const string BALANCE = "BALANCE";
+        public const string HOLD = "HOLD";
+        public const string TRACE = "TRACE";
+        public const string SORT = "SORT";
+        public const string TIMING = "TIMING";
+        public const string SEQ = "SEQ";
+        public const string RHYTHM = "RHYTHM";
+        public const string TRACK = "TRACK";
+        public const string SEARCH = "SEARCH";
+        public const string REACT = "REACT";
+        public const string RANDOM = "RANDOM";
+    }
+
+    /// <summary>ServerMessageQuestsItemMinigamePhase2 이 가질 수 있는 값. 서버가 값을 추가해도 깨지지 않도록 enum이 아니라 상수로 둔다.</summary>
+    public static class ServerMessageQuestsItemMinigamePhase2Values
+    {
+        public const string SCRUB = "SCRUB";
+        public const string PLACE = "PLACE";
+        public const string AUDIT = "AUDIT";
+        public const string MASH = "MASH";
+        public const string BALANCE = "BALANCE";
+        public const string HOLD = "HOLD";
+        public const string TRACE = "TRACE";
+        public const string SORT = "SORT";
+        public const string TIMING = "TIMING";
+        public const string SEQ = "SEQ";
+        public const string RHYTHM = "RHYTHM";
+        public const string TRACK = "TRACK";
+        public const string SEARCH = "SEARCH";
+        public const string REACT = "REACT";
+        public const string RANDOM = "RANDOM";
+    }
+
+    /// <summary>ServerMessageQuestsItemGrade 이 가질 수 있는 값. 서버가 값을 추가해도 깨지지 않도록 enum이 아니라 상수로 둔다.</summary>
+    public static class ServerMessageQuestsItemGradeValues
+    {
+        public const string A = "A";
+        public const string B = "B";
+        public const string C = "C";
     }
 
     /// <summary>ServerMessageLastJudgementFailedAt 이 가질 수 있는 값. 서버가 값을 추가해도 깨지지 않도록 enum이 아니라 상수로 둔다.</summary>
@@ -392,6 +657,9 @@ namespace SoldierADay.Protocol
         public const string MemberEvacuated = "memberEvacuated";
         public const string MemberReturned = "memberReturned";
         public const string MemberLeft = "memberLeft";
+        public const string Frostbitten = "frostbitten";
+        public const string FrostbiteRelieved = "frostbiteRelieved";
+        public const string RadioChanged = "radioChanged";
         public const string ForcedSleep = "forcedSleep";
         public const string SupplyClaimed = "supplyClaimed";
         public const string RankReviewed = "rankReviewed";
@@ -437,6 +705,14 @@ namespace SoldierADay.Protocol
         public const string D = "D";
     }
 
+    /// <summary>ServerMessageItemsItemRadioState 이 가질 수 있는 값. 서버가 값을 추가해도 깨지지 않도록 enum이 아니라 상수로 둔다.</summary>
+    public static class ServerMessageItemsItemRadioStateValues
+    {
+        public const string Ok = "ok";
+        public const string Weak = "weak";
+        public const string Down = "down";
+    }
+
     /// <summary>ServerMessageItemsItemOutcomesItemFrom 이 가질 수 있는 값. 서버가 값을 추가해도 깨지지 않도록 enum이 아니라 상수로 둔다.</summary>
     public static class ServerMessageItemsItemOutcomesItemFromValues
     {
@@ -471,14 +747,42 @@ namespace SoldierADay.Protocol
     /// <summary>ServerMessageItemsItemZone 이 가질 수 있는 값. 서버가 값을 추가해도 깨지지 않도록 enum이 아니라 상수로 둔다.</summary>
     public static class ServerMessageItemsItemZoneValues
     {
-        public const string Barracks = "barracks";
-        public const string DrillGround = "drillGround";
-        public const string Storage = "storage";
-        public const string MessHall = "messHall";
-        public const string GuardPost = "guardPost";
-        public const string TrainingField = "trainingField";
-        public const string Infirmary = "infirmary";
-        public const string BoilerRoom = "boilerRoom";
+        public const string Z01 = "Z01";
+        public const string Z01b = "Z01b";
+        public const string Z01c = "Z01c";
+        public const string Z02 = "Z02";
+        public const string Z03 = "Z03";
+        public const string Z13 = "Z13";
+        public const string Z16 = "Z16";
+        public const string Z17 = "Z17";
+        public const string Z09 = "Z09";
+        public const string Z20 = "Z20";
+        public const string Z07 = "Z07";
+        public const string Z07b = "Z07b";
+        public const string Z21 = "Z21";
+        public const string Z05 = "Z05";
+        public const string Z06 = "Z06";
+        public const string Z04 = "Z04";
+        public const string Z22 = "Z22";
+        public const string Z08 = "Z08";
+        public const string Z10 = "Z10";
+        public const string Z11 = "Z11";
+        public const string Z12 = "Z12";
+        public const string Z12b = "Z12b";
+        public const string Z18 = "Z18";
+        public const string Z19 = "Z19";
+        public const string Z14 = "Z14";
+        public const string Z50 = "Z50";
+        public const string TR01 = "TR01";
+        public const string TR02 = "TR02";
+        public const string TR03 = "TR03";
+        public const string TR04 = "TR04";
+        public const string TR05 = "TR05";
+        public const string TR06 = "TR06";
+        public const string TR07 = "TR07";
+        public const string TR08 = "TR08";
+        public const string TR09 = "TR09";
+        public const string TR10 = "TR10";
     }
 
     /// <summary>LobbyStateSeatsItemRole 이 가질 수 있는 값. 서버가 값을 추가해도 깨지지 않도록 enum이 아니라 상수로 둔다.</summary>
@@ -496,6 +800,8 @@ namespace SoldierADay.Protocol
         public const string Ready = "ready";
         public const string Move = "move";
         public const string Interact = "interact";
+        public const string QuestCleared = "questCleared";
+        public const string JointStep = "jointStep";
         public const string QuickCommand = "quickCommand";
         public const string Chat = "chat";
         public const string VoteSkip = "voteSkip";
@@ -509,14 +815,50 @@ namespace SoldierADay.Protocol
     /// <summary>IntentTo 이 가질 수 있는 값. 서버가 값을 추가해도 깨지지 않도록 enum이 아니라 상수로 둔다.</summary>
     public static class IntentToValues
     {
-        public const string Barracks = "barracks";
-        public const string DrillGround = "drillGround";
-        public const string Storage = "storage";
-        public const string MessHall = "messHall";
-        public const string GuardPost = "guardPost";
-        public const string TrainingField = "trainingField";
-        public const string Infirmary = "infirmary";
-        public const string BoilerRoom = "boilerRoom";
+        public const string Z01 = "Z01";
+        public const string Z01b = "Z01b";
+        public const string Z01c = "Z01c";
+        public const string Z02 = "Z02";
+        public const string Z03 = "Z03";
+        public const string Z13 = "Z13";
+        public const string Z16 = "Z16";
+        public const string Z17 = "Z17";
+        public const string Z09 = "Z09";
+        public const string Z20 = "Z20";
+        public const string Z07 = "Z07";
+        public const string Z07b = "Z07b";
+        public const string Z21 = "Z21";
+        public const string Z05 = "Z05";
+        public const string Z06 = "Z06";
+        public const string Z04 = "Z04";
+        public const string Z22 = "Z22";
+        public const string Z08 = "Z08";
+        public const string Z10 = "Z10";
+        public const string Z11 = "Z11";
+        public const string Z12 = "Z12";
+        public const string Z12b = "Z12b";
+        public const string Z18 = "Z18";
+        public const string Z19 = "Z19";
+        public const string Z14 = "Z14";
+        public const string Z50 = "Z50";
+        public const string TR01 = "TR01";
+        public const string TR02 = "TR02";
+        public const string TR03 = "TR03";
+        public const string TR04 = "TR04";
+        public const string TR05 = "TR05";
+        public const string TR06 = "TR06";
+        public const string TR07 = "TR07";
+        public const string TR08 = "TR08";
+        public const string TR09 = "TR09";
+        public const string TR10 = "TR10";
+    }
+
+    /// <summary>IntentGrade 이 가질 수 있는 값. 서버가 값을 추가해도 깨지지 않도록 enum이 아니라 상수로 둔다.</summary>
+    public static class IntentGradeValues
+    {
+        public const string A = "A";
+        public const string B = "B";
+        public const string C = "C";
     }
 
     /// <summary>IntentCommand 이 가질 수 있는 값. 서버가 값을 추가해도 깨지지 않도록 enum이 아니라 상수로 둔다.</summary>
@@ -544,6 +886,7 @@ namespace SoldierADay.Protocol
         public SnapshotPhase phase;
         public SnapshotWeather weather;
         public SnapshotDiscipline discipline;
+        public string radio;
         public SnapshotSupply supply;
         public double reliefsRemaining;
         public string leaderId;
@@ -570,6 +913,7 @@ namespace SoldierADay.Protocol
         public string band;
         public string label;
         public double feelsLike;
+        public bool rain;
     }
 
     [Serializable]
@@ -604,6 +948,8 @@ namespace SoldierADay.Protocol
         public double choresReceived;
         public bool vetoUsedToday;
         public bool onGuardTonight;
+        public double warmthRemainingMs;
+        public bool frostbitten;
     }
 
     [Serializable]
@@ -627,11 +973,112 @@ namespace SoldierADay.Protocol
         public bool required;
         public string phase;
         public string zone;
+        public string spot;
         public double progress;
+        public double workSeconds;
         public string status;
         public double minActors;
         public string delegatedFrom;
         public string training;
+        public SnapshotQuestsItemMinigame minigame;
+        public string grade;
+        public double jointTotal;
+        public double jointDone;
+    }
+
+    [Serializable]
+    public class SnapshotQuestsItemMinigame
+    {
+        // 선택적 — variant에 따라 없을 수 있다
+        public string type;
+        // 선택적 — variant에 따라 없을 수 있다
+        public string variant;
+        // 선택적 — variant에 따라 없을 수 있다
+        public int difficulty;
+        // 선택적 — variant에 따라 없을 수 있다
+        public string phase2;
+        // 선택적 — variant에 따라 없을 수 있다
+        public string interrupt;
+        // 선택적 — variant에 따라 없을 수 있다
+        public double stains;
+        // 선택적 — variant에 따라 없을 수 있다
+        public double brush;
+        // 선택적 — variant에 따라 없을 수 있다
+        public double coverage;
+        // 선택적 — variant에 따라 없을 수 있다
+        public double supply;
+        // 선택적 — variant에 따라 없을 수 있다
+        public double pieces;
+        // 선택적 — variant에 따라 없을 수 있다
+        public double snapDeg;
+        // 선택적 — variant에 따라 없을 수 있다
+        public double tolerance;
+        // 선택적 — variant에 따라 없을 수 있다
+        public double entries;
+        // 선택적 — variant에 따라 없을 수 있다
+        public double mismatches;
+        // 선택적 — variant에 따라 없을 수 있다
+        public double strikes;
+        // 선택적 — variant에 따라 없을 수 있다
+        public double taps;
+        // 선택적 — variant에 따라 없을 수 있다
+        public double drain;
+        // 선택적 — variant에 따라 없을 수 있다
+        public double stamina;
+        // 선택적 — variant에 따라 없을 수 있다
+        public double sway;
+        // 선택적 — variant에 따라 없을 수 있다
+        public double segments;
+        // 선택적 — variant에 따라 없을 수 있다
+        public double bandMin;
+        // 선택적 — variant에 따라 없을 수 있다
+        public double bandMax;
+        // 선택적 — variant에 따라 없을 수 있다
+        public double drift;
+        // 선택적 — variant에 따라 없을 수 있다
+        public double slack;
+        // 선택적 — variant에 따라 없을 수 있다
+        public double nodes;
+        // 선택적 — variant에 따라 없을 수 있다
+        public double branches;
+        // 선택적 — variant에 따라 없을 수 있다
+        public double rotations;
+        // 선택적 — variant에 따라 없을 수 있다
+        public double items;
+        // 선택적 — variant에 따라 없을 수 있다
+        public double bins;
+        // 선택적 — variant에 따라 없을 수 있다
+        public double ambiguous;
+        // 선택적 — variant에 따라 없을 수 있다
+        public double hits;
+        // 선택적 — variant에 따라 없을 수 있다
+        public double window;
+        // 선택적 — variant에 따라 없을 수 있다
+        public double speed;
+        // 선택적 — variant에 따라 없을 수 있다
+        public double length;
+        // 선택적 — variant에 따라 없을 수 있다
+        public double steps;
+        // 선택적 — variant에 따라 없을 수 있다
+        public double show;
+        // 선택적 — variant에 따라 없을 수 있다
+        public double beats;
+        // 선택적 — variant에 따라 없을 수 있다
+        public double bpm;
+        // 선택적 — variant에 따라 없을 수 있다
+        public double combo;
+        // 선택적 — variant에 따라 없을 수 있다
+        public double targets;
+        // 선택적 — variant에 따라 없을 수 있다
+        public double holdRatio;
+        // 선택적 — variant에 따라 없을 수 있다
+        public double hidden;
+        // 선택적 — variant에 따라 없을 수 있다
+        public double cells;
+        // 선택적 — variant에 따라 없을 수 있다
+        public double signal;
+        // 선택적 — variant에 따라 없을 수 있다
+        public double count;
     }
 
     [Serializable]
@@ -674,6 +1121,10 @@ namespace SoldierADay.Protocol
         // 선택적 — variant에 따라 없을 수 있다
         public bool asRecruit;
         // 선택적 — variant에 따라 없을 수 있다
+        public string byId;
+        // 선택적 — variant에 따라 없을 수 있다
+        public string radioState;
+        // 선택적 — variant에 따라 없을 수 있다
         public string[] items;
         // 선택적 — variant에 따라 없을 수 있다
         public double pointsLeft;
@@ -700,7 +1151,7 @@ namespace SoldierADay.Protocol
         // 선택적 — variant에 따라 없을 수 있다
         public string text;
         // 선택적 — variant에 따라 없을 수 있다
-        public bool radio;
+        public bool viaRadio;
         // 선택적 — variant에 따라 없을 수 있다
         public string message;
     }
@@ -750,6 +1201,8 @@ namespace SoldierADay.Protocol
         // 선택적 — variant에 따라 없을 수 있다
         public ServerMessageDiscipline discipline;
         // 선택적 — variant에 따라 없을 수 있다
+        public string radio;
+        // 선택적 — variant에 따라 없을 수 있다
         public ServerMessageSupply supply;
         // 선택적 — variant에 따라 없을 수 있다
         public double reliefsRemaining;
@@ -794,6 +1247,7 @@ namespace SoldierADay.Protocol
         public string band;
         public string label;
         public double feelsLike;
+        public bool rain;
     }
 
     [Serializable]
@@ -828,6 +1282,8 @@ namespace SoldierADay.Protocol
         public double choresReceived;
         public bool vetoUsedToday;
         public bool onGuardTonight;
+        public double warmthRemainingMs;
+        public bool frostbitten;
     }
 
     [Serializable]
@@ -851,11 +1307,112 @@ namespace SoldierADay.Protocol
         public bool required;
         public string phase;
         public string zone;
+        public string spot;
         public double progress;
+        public double workSeconds;
         public string status;
         public double minActors;
         public string delegatedFrom;
         public string training;
+        public ServerMessageQuestsItemMinigame minigame;
+        public string grade;
+        public double jointTotal;
+        public double jointDone;
+    }
+
+    [Serializable]
+    public class ServerMessageQuestsItemMinigame
+    {
+        // 선택적 — variant에 따라 없을 수 있다
+        public string type;
+        // 선택적 — variant에 따라 없을 수 있다
+        public string variant;
+        // 선택적 — variant에 따라 없을 수 있다
+        public int difficulty;
+        // 선택적 — variant에 따라 없을 수 있다
+        public string phase2;
+        // 선택적 — variant에 따라 없을 수 있다
+        public string interrupt;
+        // 선택적 — variant에 따라 없을 수 있다
+        public double stains;
+        // 선택적 — variant에 따라 없을 수 있다
+        public double brush;
+        // 선택적 — variant에 따라 없을 수 있다
+        public double coverage;
+        // 선택적 — variant에 따라 없을 수 있다
+        public double supply;
+        // 선택적 — variant에 따라 없을 수 있다
+        public double pieces;
+        // 선택적 — variant에 따라 없을 수 있다
+        public double snapDeg;
+        // 선택적 — variant에 따라 없을 수 있다
+        public double tolerance;
+        // 선택적 — variant에 따라 없을 수 있다
+        public double entries;
+        // 선택적 — variant에 따라 없을 수 있다
+        public double mismatches;
+        // 선택적 — variant에 따라 없을 수 있다
+        public double strikes;
+        // 선택적 — variant에 따라 없을 수 있다
+        public double taps;
+        // 선택적 — variant에 따라 없을 수 있다
+        public double drain;
+        // 선택적 — variant에 따라 없을 수 있다
+        public double stamina;
+        // 선택적 — variant에 따라 없을 수 있다
+        public double sway;
+        // 선택적 — variant에 따라 없을 수 있다
+        public double segments;
+        // 선택적 — variant에 따라 없을 수 있다
+        public double bandMin;
+        // 선택적 — variant에 따라 없을 수 있다
+        public double bandMax;
+        // 선택적 — variant에 따라 없을 수 있다
+        public double drift;
+        // 선택적 — variant에 따라 없을 수 있다
+        public double slack;
+        // 선택적 — variant에 따라 없을 수 있다
+        public double nodes;
+        // 선택적 — variant에 따라 없을 수 있다
+        public double branches;
+        // 선택적 — variant에 따라 없을 수 있다
+        public double rotations;
+        // 선택적 — variant에 따라 없을 수 있다
+        public double items;
+        // 선택적 — variant에 따라 없을 수 있다
+        public double bins;
+        // 선택적 — variant에 따라 없을 수 있다
+        public double ambiguous;
+        // 선택적 — variant에 따라 없을 수 있다
+        public double hits;
+        // 선택적 — variant에 따라 없을 수 있다
+        public double window;
+        // 선택적 — variant에 따라 없을 수 있다
+        public double speed;
+        // 선택적 — variant에 따라 없을 수 있다
+        public double length;
+        // 선택적 — variant에 따라 없을 수 있다
+        public double steps;
+        // 선택적 — variant에 따라 없을 수 있다
+        public double show;
+        // 선택적 — variant에 따라 없을 수 있다
+        public double beats;
+        // 선택적 — variant에 따라 없을 수 있다
+        public double bpm;
+        // 선택적 — variant에 따라 없을 수 있다
+        public double combo;
+        // 선택적 — variant에 따라 없을 수 있다
+        public double targets;
+        // 선택적 — variant에 따라 없을 수 있다
+        public double holdRatio;
+        // 선택적 — variant에 따라 없을 수 있다
+        public double hidden;
+        // 선택적 — variant에 따라 없을 수 있다
+        public double cells;
+        // 선택적 — variant에 따라 없을 수 있다
+        public double signal;
+        // 선택적 — variant에 따라 없을 수 있다
+        public double count;
     }
 
     [Serializable]
@@ -898,6 +1455,10 @@ namespace SoldierADay.Protocol
         // 선택적 — variant에 따라 없을 수 있다
         public bool asRecruit;
         // 선택적 — variant에 따라 없을 수 있다
+        public string byId;
+        // 선택적 — variant에 따라 없을 수 있다
+        public string radioState;
+        // 선택적 — variant에 따라 없을 수 있다
         public string[] items;
         // 선택적 — variant에 따라 없을 수 있다
         public double pointsLeft;
@@ -924,7 +1485,7 @@ namespace SoldierADay.Protocol
         // 선택적 — variant에 따라 없을 수 있다
         public string text;
         // 선택적 — variant에 따라 없을 수 있다
-        public bool radio;
+        public bool viaRadio;
         // 선택적 — variant에 따라 없을 수 있다
         public string message;
     }
@@ -969,9 +1530,13 @@ namespace SoldierADay.Protocol
         // 선택적 — variant에 따라 없을 수 있다
         public string to;
         // 선택적 — variant에 따라 없을 수 있다
+        public bool onFoot;
+        // 선택적 — variant에 따라 없을 수 있다
         public string questId;
         // 선택적 — variant에 따라 없을 수 있다
         public bool active;
+        // 선택적 — variant에 따라 없을 수 있다
+        public string grade;
         // 선택적 — variant에 따라 없을 수 있다
         public string command;
         // 선택적 — variant에 따라 없을 수 있다

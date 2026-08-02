@@ -10,12 +10,12 @@ import {
   type RunState,
   type TempBand,
 } from "../src/index.js";
-import { beginDay, fullSquad } from "./helpers.js";
+import { beginDay, fullSquad, SECOND, toPhase } from "./helpers.js";
 
 function stateAt(day: number, band: TempBand = "normal", seed = 1): RunState {
   const state = fullSquad({ seed });
   state.day = day;
-  state.weather = { band, feelsLike: 12, airTemp: 12, humidity: 50, windSpeed: 0 };
+  state.weather = { band, feelsLike: 12, airTemp: 12, humidity: 50, windSpeed: 0, rain: false };
   state.rngState = createRngState(seed * 31 + day);
   return state;
 }
@@ -253,5 +253,110 @@ describe("하루 시작", () => {
     const a = generateDayQuests(stateAt(5))[0];
     const b = generateDayQuests(stateAt(5))[0];
     expect(JSON.stringify(a)).toBe(JSON.stringify(b));
+  });
+});
+
+describe("시간대 게이팅", () => {
+  it("오후 일과는 오전에 못 한다 — 그 칸에서만 진척이 쌓인다", () => {
+    // 4.0이 하루를 6칸으로 나눈 이유가 이것이다. 아무 때나 할 수 있으면
+    // 아침에 전부 해치우고 나머지를 흘려보내면 되고, 시간대 종료로 잠기는
+    // 규칙(`endPhase`)도 걸릴 일이 없다.
+    let state = beginDay(fullSquad());
+    const afternoon = state.quests.find(
+      (q) => q.phase === "afternoon" && q.ownerId !== null && q.kind !== "surprise",
+    );
+    if (!afternoon) throw new Error("오후 일과 없음");
+
+    state = toPhase(state, "morning");
+    state = step(state, { type: "move", memberId: afternoon.ownerId!, to: afternoon.zone }).state;
+    state = step(state, { type: "tick", elapsedMs: 30 * SECOND }).state;
+    state = step(state, {
+      type: "work",
+      memberId: afternoon.ownerId!,
+      questId: afternoon.id,
+      deltaMs: afternoon.workMs,
+    }).state;
+
+    expect(state.quests.find((q) => q.id === afternoon.id)?.workedMs).toBe(0);
+
+    // 오후가 되면 된다
+    state = toPhase(state, "afternoon");
+    state = step(state, { type: "move", memberId: afternoon.ownerId!, to: afternoon.zone }).state;
+    state = step(state, { type: "tick", elapsedMs: 30 * SECOND }).state;
+    state = step(state, {
+      type: "work",
+      memberId: afternoon.ownerId!,
+      questId: afternoon.id,
+      deltaMs: afternoon.workMs,
+    }).state;
+
+    // 완료가 아니라 **진척**을 본다. 판이 붙은 일과는 시간이 다 흘러도 끝나지
+    // 않고 통과해야 끝난다(`clearQuest`) — 이 테스트가 보는 것은 그 칸에서만
+    // 시간이 쌓이는가이므로, 완료로 확인하면 규칙 두 개를 한 번에 보게 된다
+    expect(state.quests.find((q) => q.id === afternoon.id)?.workedMs).toBe(afternoon.workMs);
+  });
+});
+
+describe("7.0 회복 행동", () => {
+  it("기상·중식·개인정비 칸에만 붙고, 일과는 그 세 칸에 배정되지 않는다", () => {
+    const state = beginDay(fullSquad());
+    const rest: string[] = ["reveille", "lunch", "personal"];
+
+    const care = state.quests.filter((q) => q.kind === "care");
+    expect(care.length).toBeGreaterThan(0);
+    for (const quest of care) {
+      expect(rest).toContain(quest.phase);
+    }
+
+    // 그 세 칸에는 회복 행동 말고 아무것도 없다 — 몸을 되돌리는 칸이다.
+    // 일하는 칸은 오전·오후 둘뿐이고, 점호는 판정용이다
+    const work = state.quests.filter((q) => q.kind !== "care" && rest.includes(q.phase));
+    expect(work).toEqual([]);
+  });
+
+  it("판정에 들어가지 않는다 — 필수가 아니고 하달 대상도 아니다", () => {
+    const state = beginDay(fullSquad());
+    for (const quest of state.quests.filter((q) => q.kind === "care")) {
+      expect(quest.required).toBe(false);
+      expect(quest.minActors).toBe(1);
+      expect(quest.ownerId).not.toBeNull();
+    }
+  });
+
+  it("해내면 그 자리에서 스탯이 돌아온다", () => {
+    let state = toPhase(beginDay(fullSquad()), "personal");
+    const wash = state.quests.find(
+      (q) =>
+        q.kind === "care" &&
+        q.ownerId === "p1" &&
+        q.phase === "personal" &&
+        q.label.includes("세면"),
+    );
+    expect(wash).toBeDefined();
+
+    // 씻기 전에 청결을 떨어뜨려 둔다 — 100에서는 회복이 상한에 잘려 안 보인다
+    state.members[0]!.stats.hygiene = 40;
+
+    state = step(state, { type: "move", memberId: "p1", to: wash!.zone }).state;
+    state = step(state, { type: "tick", elapsedMs: 30 * SECOND }).state;
+    state = step(state, {
+      type: "work",
+      memberId: "p1",
+      questId: wash!.id,
+      deltaMs: wash!.workMs,
+    }).state;
+
+    expect(state.quests.find((q) => q.id === wash!.id)?.status).toBe("done");
+    expect(state.members.find((m) => m.id === "p1")!.stats.hygiene).toBeGreaterThan(40);
+  });
+
+  it("안 해도 군기가 깎이지 않는다 — 몸으로 갚는다", () => {
+    const state = beginDay(fullSquad());
+    const care = state.quests.filter((q) => q.kind === "care");
+    // 선택 미완료 페널티의 대상 집합에서 빠져 있는지 본다
+    const counted = care.some(
+      (q) => !q.required && q.kind !== "joint" && q.kind !== "care",
+    );
+    expect(counted).toBe(false);
   });
 });

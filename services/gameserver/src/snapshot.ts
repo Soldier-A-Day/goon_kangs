@@ -40,11 +40,14 @@ export function projectSnapshot(state: RunState, seq: number): Snapshot {
       band: state.weather.band,
       label: bandRule(state.weather.band).label,
       feelsLike: state.weather.feelsLike,
+      rain: state.weather.rain,
     },
     discipline: {
       value: Math.round(state.discipline),
       band: disciplineBand(state.discipline).id,
     },
+    // 8.0 — 분대 공통 값이라 멤버가 아니라 스냅샷 최상위에 있다
+    radio: state.radio,
     supply: {
       points: state.supplyPoints,
       isSupplyDay: isSupplyDay(state.day),
@@ -74,6 +77,9 @@ export function projectSnapshot(state: RunState, seq: number): Snapshot {
       choresReceived: member.choresReceived,
       vetoUsedToday: member.vetoUsedToday,
       onGuardTonight: state.nightGuardIds.includes(member.id),
+      // 5.0 보온 게이지. 극혹한이 아니면 0이고 클라는 그때 이 UI를 띄우지 않는다
+      warmthRemainingMs: Math.round(member.warmthRemainingMs),
+      frostbitten: member.frostbitten,
     })),
     quests: state.quests.map((quest) => ({
       id: quest.id,
@@ -83,11 +89,25 @@ export function projectSnapshot(state: RunState, seq: number): Snapshot {
       required: quest.required,
       phase: quest.phase,
       zone: quest.zone,
+      spot: quest.spot,
       progress: quest.workMs === 0 ? 1 : Math.min(1, quest.workedMs / quest.workMs),
+      workSeconds: Math.round(quest.workMs / 1000),
       status: quest.status,
       minActors: quest.minActors,
       delegatedFrom: quest.delegatedFrom,
       training: quest.training,
+      /**
+       * 판 정의는 그대로 내보낸다 — 판을 도는 것이 클라이고, 여기에 판정은 없다.
+       *
+       * sim의 `Minigame`은 파라미터를 색인 서명으로 열어 둔 느슨한 타입이라
+       * 프로토콜의 원형별 union에 그대로 들어가지 않는다. 좁혀 주는 것은 타입이
+       * 아니라 데이터 테스트다 — `quests.json`의 69건이 전부 `minigameSchema`를
+       * 통과하는지 `test/minigame-data.test.ts`가 매번 확인한다.
+       */
+      minigame: quest.minigame as Snapshot["quests"][number]["minigame"],
+      grade: quest.grade,
+      jointTotal: quest.jointTotal,
+      jointDone: quest.jointDone,
     })),
     lastJudgement: last
       ? {
@@ -147,6 +167,12 @@ export function projectEffect(effect: Effect): ServerEvent | null {
       };
     case "memberLeft":
       return { type: "memberLeft", memberId: effect.memberId };
+    case "frostbitten":
+      return { type: "frostbitten", memberId: effect.memberId };
+    case "frostbiteRelieved":
+      return { type: "frostbiteRelieved", memberId: effect.memberId, byId: effect.byId };
+    case "radioChanged":
+      return { type: "radioChanged", radioState: effect.to };
     case "forcedSleep":
       return { type: "forcedSleep", memberId: effect.memberId };
     case "supplyClaimed":
