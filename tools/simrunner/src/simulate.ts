@@ -1,12 +1,17 @@
 import {
+  careRecovery,
   createRngState,
   createRun,
+  planFor,
   roll,
   step,
   type Grade,
   type JudgementCondition,
+  type Member,
+  type Quest,
   type RngState,
   type RunConfig,
+  type RunState,
   type RunStatus,
 } from "@sad/sim";
 
@@ -72,6 +77,14 @@ export function simulateRun(
     for (const quest of state.quests) {
       if (quest.status === "done") continue;
 
+      if (quest.kind === "care") {
+        // 회복 행동은 판정 대상이 아니지만 안 하면 청결·포만감이 바닥나
+        // 조건 D(청결≥20)를 깨고, 포만감 고갈은 체력을 깎아 후송(조건 C 붕괴로 번짐)까지
+        // 이어진다. 정확도 굴림 없이 항상 처리한다 — 밥 먹고 씻는 데 실수란 없다.
+        applyCareQuest(state, quest);
+        continue;
+      }
+
       if (quest.kind === "joint") {
         // 협동 실패 모델은 아직 없다 — 합동은 항상 완수한 것으로 둔다
         quest.workedMs = quest.workMs;
@@ -111,6 +124,31 @@ export function simulateRun(
     failedAt: last?.failedAt ?? null,
     reliefsUsed: state.judgements.reduce((sum, j) => sum + j.reliefsUsed, 0),
   };
+}
+
+/**
+ * 회복 행동(kind === "care") 처리.
+ *
+ * sim의 실제 완료 경로(`step.ts`의 `complete` → `applyCare`)는 `work`/`questCleared`
+ * 이벤트를 거쳐야만 돈다. 봇은 하루치를 한 번에 처리하는 단순 모델이라 그 경로를
+ * 타지 않으므로, 여기서 `careRecovery`(공개 API)로 몫을 그대로 계산해 스탯에 적용한다 —
+ * `packages/sim`의 회복표를 다시 베끼지 않고 그 함수를 그대로 부른다.
+ *
+ * 클램프(0~100)는 `condition.ts`의 `clampStats`와 같은 규칙이다.
+ */
+function applyCareQuest(state: RunState, quest: Quest): void {
+  const member = state.members.find((m: Member) => m.id === quest.ownerId);
+  if (!member) return;
+
+  const bivouac = planFor(state.day).training === "bivouac";
+  const recovery = careRecovery(quest.id, bivouac);
+  for (const [key, amount] of Object.entries(recovery)) {
+    const stat = key as keyof Member["stats"];
+    member.stats[stat] = Math.min(100, Math.max(0, member.stats[stat] + amount));
+  }
+
+  quest.workedMs = quest.workMs;
+  quest.status = "done";
 }
 
 /** 기본 분포 — 대부분 B, 셋 중 하나쯤 A, 가끔 C */
