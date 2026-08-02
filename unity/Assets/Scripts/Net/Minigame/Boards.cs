@@ -12,6 +12,13 @@ namespace SoldierADay.Net
     /// </summary>
     public static class Boards
     {
+        // `STILL`·`DODGE`(A-5 2차)는 `packages/protocol/src/index.ts`의
+        // `minigameTypeSchema`에는 이미 있지만, `Generated/Protocol.cs`는 이
+        // 워크트리에서 재생성하지 않는다(발주 범위 밖 — 병합 시 중앙에서
+        // `npm run codegen:csharp` 한 번으로 맞춘다). 그래서 아래
+        // `SnapshotQuestsItemMinigameTypeValues.STILL`·`.DODGE`는 이 워크트리
+        // 안에서는 아직 없는 멤버라 컴파일이 안 맞는 것이 정상이다 — 병합
+        // 후 재생성되면 맞물린다(`ScrubBoard`의 `GradesOnTimeout` 선례와 같다).
         public static Board Create(string type) => type switch
         {
             SnapshotQuestsItemMinigameTypeValues.SCRUB => new ScrubBoard(),
@@ -28,6 +35,8 @@ namespace SoldierADay.Net
             SnapshotQuestsItemMinigameTypeValues.TRACK => new TrackBoard(),
             SnapshotQuestsItemMinigameTypeValues.SEARCH => new SearchBoard(),
             SnapshotQuestsItemMinigameTypeValues.REACT => new ReactBoard(),
+            SnapshotQuestsItemMinigameTypeValues.STILL => new StillBoard(),
+            SnapshotQuestsItemMinigameTypeValues.DODGE => new DodgeBoard(),
             SnapshotQuestsItemMinigameTypeValues.RANDOM => new RandomBoard(),
             _ => new PendingBoard(),
         };
@@ -67,6 +76,8 @@ namespace SoldierADay.Net
             // 이미 쓰여 아틀라스에 있으므로 "수색"으로 바꿔 같은 문제를 피한다
             SnapshotQuestsItemMinigameTypeValues.SEARCH => "수색",
             SnapshotQuestsItemMinigameTypeValues.REACT => "즉시 반응",
+            SnapshotQuestsItemMinigameTypeValues.STILL => "부동자세",
+            SnapshotQuestsItemMinigameTypeValues.DODGE => "회피",
             SnapshotQuestsItemMinigameTypeValues.RANDOM => "지원 요청",
             _ => "일과",
         };

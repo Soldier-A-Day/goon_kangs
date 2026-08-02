@@ -32,6 +32,12 @@ namespace SoldierADay.Net
 
         public InterruptBoard(Board inner) => _inner = inner;
 
+        // 시간초과 판정은 안쪽 판에 완전히 위임한다(A-5 2차 관통 수리). 이
+        // 래퍼가 스스로 `Elapsed >= Limit`을 판정해 버리면, 안쪽 판이 같은
+        // 프레임에 `GradesOnTimeout`으로 이미 통과시킨 결과와 경쟁하게 된다
+        // — `JointBoard`가 이미 쓰는 것과 같은 위임이다.
+        protected override bool TimesOut => false;
+
         public override string Instruction =>
             _open > 0f ? "[SPACE] 지금!" : _inner.Instruction;
 
@@ -93,6 +99,10 @@ namespace SoldierADay.Net
 
             var state = _inner.Tick(dt, passthrough);
             Fill = _inner.Fill;
+            // 안쪽 판이 시간초과로 끝났으면 그 사실도 그대로 옮긴다 — 안 옮기면
+            // `Grade()`가 시간초과 전용 잣대(Fill 기준) 대신 실수·잔여율로
+            // 매겨져, 안쪽 판이 이미 통과시킨 결과와 등급이 어긋난다
+            TimedOut = _inner.TimedOut;
 
             while (Mistakes < _inner.Mistakes + _missed) Miss();
 

@@ -428,7 +428,7 @@ export const memberViewSchema = z.object({
 /* ---------------------------------------------------------------- 미니게임 */
 
 /**
- * 일과 미니게임 원형 14종 (+ 랜덤 소환).
+ * 일과 미니게임 원형 16종 (+ 랜덤 소환).
  *
  * 퀘스트마다 새 게임을 만들지 않는다 — **원형을 파라미터로 변주한다.** 같은
  * `SCRUB`이라도 대상(타일·총열·차체)과 브러시 크기·오염 패턴이 다르면 다른 일로
@@ -438,6 +438,9 @@ export const memberViewSchema = z.object({
  * 모디파이어(`interrupt`)다. 예외는 `간부 순찰` 하나뿐이다.
  *
  * `RANDOM`은 다른 구역의 미니게임 하나를 무작위로 불러온다 (`타 분대 지원 요청`).
+ *
+ * `STILL`(부동자세)·`DODGE`(회피)는 A-5 2차 추가다 — 각각 입력을 참는 판단과
+ * 좌우 레인 회피다.
  */
 export const minigameTypeSchema = z.enum([
   "SCRUB",
@@ -454,6 +457,8 @@ export const minigameTypeSchema = z.enum([
   "TRACK",
   "SEARCH",
   "REACT",
+  "STILL",
+  "DODGE",
   "RANDOM",
 ]);
 export type MinigameType = z.infer<typeof minigameTypeSchema>;
@@ -551,6 +556,16 @@ export const minigameSchema = z.discriminatedUnion("type", [
   }),
   /** 단발 QTE. 단독으로 쓰는 것은 `간부 순찰` 하나뿐이다 */
   board("REACT", { window: z.number(), count: z.number() }),
+  /**
+   * 부동자세 — 입력을 참는 유일한 원형(A-5 2차). `window`는 마지막 진짜
+   * "해산" 신호의 반응 창(초), `count`는 그 전에 지나가는 미끼 구령 횟수다
+   */
+  board("STILL", { window: z.number(), count: z.number() }),
+  /**
+   * 좌우 레인 회피(A-5 2차). `speed`는 낙하 속도, `count`는 통과에 필요한
+   * 회피 횟수다
+   */
+  board("DODGE", { speed: z.number(), count: z.number() }),
   /** 다른 구역의 미니게임 하나를 무작위 소환한다 */
   board("RANDOM", {}),
 ]);

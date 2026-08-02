@@ -994,12 +994,11 @@
       "spot": "관물대",
       "workSeconds": 15,
       "minigame": {
-        "type": "RHYTHM",
-        "variant": "countoff",
+        "type": "STILL",
+        "variant": "formation",
         "difficulty": 2,
-        "beats": 16,
-        "bpm": 72,
-        "combo": 10
+        "window": 2.5,
+        "count": 1
       }
     },
     {
@@ -1024,12 +1023,11 @@
       "spot": "하역 출입구",
       "workSeconds": 24,
       "minigame": {
-        "type": "MASH",
+        "type": "DODGE",
         "variant": "unload",
         "difficulty": 3,
-        "taps": 46,
-        "drain": 0.03,
-        "stamina": 1.0
+        "speed": 0.6,
+        "count": 10
       }
     },
     {
@@ -1039,13 +1037,11 @@
       "spot": "집합 좌석",
       "workSeconds": 18,
       "minigame": {
-        "type": "HOLD",
+        "type": "STILL",
         "variant": "drowsy",
         "difficulty": 2,
-        "bandMin": 0.35,
-        "bandMax": 0.75,
-        "drift": 0.34,
-        "slack": 2.0
+        "window": 3,
+        "count": 2
       }
     },
     {

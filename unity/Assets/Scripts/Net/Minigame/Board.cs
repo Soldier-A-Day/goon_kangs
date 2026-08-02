@@ -122,8 +122,15 @@ namespace SoldierADay.Net
         /// `GradesOnTimeout` 판이 시간 안에 끝내지 못하고 Fill로 통과했을 때,
         /// 또는 Fill이 절반도 안 돼 재시도로 넘어갔을 때 켜진다. 시간 안에
         /// 끝낸 통과·실수로 인한 즉시 실패와는 결과 화면 문구가 달라야 한다.
+        ///
+        /// setter가 `protected`인 이유(A-5 2차 — InterruptBoard TimedOut 관통
+        /// 수리): `InterruptBoard`·`RaceBoard` 같은 래퍼는 안쪽 판의 Clear·
+        /// Fail을 자기 것으로 다시 선언하는데, 그 순간 이 값을 안쪽 판에서
+        /// 그대로 옮겨 오지 않으면 래퍼 자신의 타임아웃 여부가 항상 false로
+        /// 남아 `Grade()`가 엉뚱한 잣대(실수·잔여율)로 등급을 매긴다. 값을
+        /// 옮기는 것은 각 래퍼의 몫이라 여기서는 그 통로만 연다.
         /// </summary>
-        public bool TimedOut { get; private set; }
+        public bool TimedOut { get; protected set; }
 
         /// <summary>
         /// 0~1. 성공/실수 플래시 세기 — 지수 감쇠. `HudMinigame`이 본문 위에 겹쳐 그린다.

@@ -218,11 +218,14 @@ export interface Member {
 /* ----------------------------------------------------------------- 퀘스트 */
 
 /**
- * 일과 미니게임 원형 14종 (+ 랜덤 소환).
+ * 일과 미니게임 원형 16종 (+ 랜덤 소환).
  *
  * 정의는 `packages/sim/data/quests.json`이 소유하고 프로토콜이 되비춘다 —
  * 이쪽이 원본인 이유는 제한 시간이 `workSeconds`이기 때문이다. 미니게임을
  * 별도 파일로 빼면 소요와 제한 시간이 반드시 어긋난다.
+ *
+ * `STILL`·`DODGE`는 A-5 2차에서 추가됐다(설계안 §A-5 2차). `STILL`은 입력을
+ * 참는 유일한 원형이고, `DODGE`는 좌우 레인 회피다.
  */
 export type MinigameType =
   | "SCRUB"
@@ -239,6 +242,8 @@ export type MinigameType =
   | "TRACK"
   | "SEARCH"
   | "REACT"
+  | "STILL"
+  | "DODGE"
   | "RANDOM";
 
 /**

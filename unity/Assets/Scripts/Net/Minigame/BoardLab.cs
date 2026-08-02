@@ -30,10 +30,15 @@ namespace SoldierADay.Net
     public static class BoardLab
     {
         /// <summary>
-        /// 원형 14종. `RANDOM`은 이 중 하나를 무작위로 불러오는 메타 판이라
+        /// 원형 16종. `RANDOM`은 이 중 하나를 무작위로 불러오는 메타 판이라
         /// (`RandomBoard`) 그 자체로는 재미가 없어 뺐다. 합동(`JointBoard`)도
         /// 원형이 아니라 "누가 채우는가"를 씌우는 겉이라 뺐다 — 안쪽 원형은
-        /// 여기서 이미 잰다.
+        /// 여기서 이미 잰다. `RaceBoard`(A-5 2차)도 같은 이유로 뺐다 — 목록의
+        /// 원형이 아니라 `[G]`로 지금 고른 원형 위에 씌우는 겉이다.
+        ///
+        /// `STILL`·`DODGE`(A-5 2차)는 `Generated/Protocol.cs`가 아직 이
+        /// 워크트리에서 재생성되지 않아 `SnapshotQuestsItemMinigameTypeValues`에
+        /// 두 상수가 없다 — `Boards.Create`와 같은 이유로 병합 후 맞물린다.
         /// </summary>
         private static readonly string[] Types =
         {
@@ -51,6 +56,8 @@ namespace SoldierADay.Net
             SnapshotQuestsItemMinigameTypeValues.TRACK,
             SnapshotQuestsItemMinigameTypeValues.SEARCH,
             SnapshotQuestsItemMinigameTypeValues.REACT,
+            SnapshotQuestsItemMinigameTypeValues.STILL,
+            SnapshotQuestsItemMinigameTypeValues.DODGE,
         };
 
         private static bool _open;
@@ -58,6 +65,9 @@ namespace SoldierADay.Net
         private static int _difficulty = 2;
         private static bool _fast;
         private static int _seed;
+
+        /// <summary>`[G]` — 지금 고른 원형을 `RaceBoard`(고스트 대결)로 씌워서 연다</summary>
+        private static bool _race;
 
         private static Board _board;
         private static bool _awaitingResult;
@@ -123,6 +133,9 @@ namespace SoldierADay.Net
             if (Input.GetKeyDown(KeyCode.Alpha2) || Input.GetKeyDown(KeyCode.Keypad2)) SetDifficulty(2);
             if (Input.GetKeyDown(KeyCode.Alpha3) || Input.GetKeyDown(KeyCode.Keypad3)) SetDifficulty(3);
             if (Input.GetKeyDown(KeyCode.T)) _fast = !_fast;
+            // A-5 2차 — 지금 고른 원형을 `RaceBoard`로 씌워서 고스트 페이스와
+            // 나란히 본다. `quests.json`에는 안 묶인 실험대 전용 진입이다
+            if (Input.GetKeyDown(KeyCode.G)) { _race = !_race; OpenBoard(); }
 
             // 화살표(↑↓)는 안 쓴다 — `LocalPlayer`가 `Vertical` 축(↑↓ · W/S)으로
             // 이동하는데, 실험대는 판이 열려도 그 입력을 막지 않는다(§소유권 —
@@ -162,9 +175,18 @@ namespace SoldierADay.Net
             // 씨앗에 실행 카운터를 넣는다. 실전(`QuestPlay.Restart`)은 재시도마다
             // **같은** 씨앗을 써서 같은 판을 다시 내지만(§익힘), 실험대는 반대로
             // 한 원형을 여러 배치로 훑어봐야 파라미터가 맞는지 감이 온다
-            _board = Boards.Open(spec, limit, $"lab:{type}:{_difficulty}:{_seed}");
+            var questId = $"lab:{type}:{_difficulty}:{_seed}";
+            _board = _race ? OpenRace(spec, limit, questId) : Boards.Open(spec, limit, questId);
             _awaitingResult = true;
             _started = false;
+        }
+
+        /// <summary>`RaceBoard`로 씌워서 연다(`[G]`) — 인터럽트 겉은 얹지 않는다, 비교 연출만 본다</summary>
+        private static Board OpenRace(SnapshotQuestsItemMinigame spec, float limit, string questId)
+        {
+            var board = new RaceBoard();
+            board.Begin(spec, limit, questId);
+            return board;
         }
 
         /// <summary>
@@ -333,6 +355,22 @@ namespace SoldierADay.Net
                     else if (d == 3) { spec.window = 0.85; spec.count = 5; limit = 18; }
                     else { spec.window = 1.1; spec.count = 4; limit = 16; }
                     break;
+
+                // A-5 2차 — `quests.json`의 두 STILL 실측(불시 점호·정신교육 소집)이
+                // 전부 난이도2다. 1·3은 그 값을 좌우로 미룬 추정치다
+                case SnapshotQuestsItemMinigameTypeValues.STILL:
+                    if (d == 1) { spec.window = 3.5; spec.count = 1; limit = 14; }
+                    else if (d == 3) { spec.window = 2.2; spec.count = 2; limit = 20; }
+                    else { spec.window = 3.0; spec.count = 2; limit = 17; }
+                    break;
+
+                // A-5 2차 — `quests.json`의 DODGE 실측(보급 트럭 도착)은 난이도3 ·
+                // speed 0.6 · count 10. 1·2는 그 값에서 손으로 낮춘 추정치다
+                case SnapshotQuestsItemMinigameTypeValues.DODGE:
+                    if (d == 1) { spec.speed = 0.35; spec.count = 6; limit = 16; }
+                    else if (d == 3) { spec.speed = 0.6; spec.count = 10; limit = 24; }
+                    else { spec.speed = 0.48; spec.count = 8; limit = 20; }
+                    break;
             }
 
             return (spec, limit);
@@ -370,6 +408,10 @@ namespace SoldierADay.Net
                     return $"hidden {s.hidden:0} · cells {s.cells:0} · signal {s.signal:0.00}";
                 case SnapshotQuestsItemMinigameTypeValues.REACT:
                     return $"window {s.window:0.00} · count {s.count:0}";
+                case SnapshotQuestsItemMinigameTypeValues.STILL:
+                    return $"window {s.window:0.00} · count {s.count:0} (미끼 구령 수)";
+                case SnapshotQuestsItemMinigameTypeValues.DODGE:
+                    return $"speed {s.speed:0.00} · count {s.count:0} (목표 회피 수)";
                 default:
                     return "";
             }
@@ -394,8 +436,8 @@ namespace SoldierADay.Net
             GUI.Label(new Rect(panel.x + 16f, panel.y + 8f, 500f, 32f),
                 "BoardLab — 미니게임 실험대  [F9]",
                 theme.At(theme.Title, 22, HudTheme.Ink));
-            GUI.Label(new Rect(panel.xMax - 760f, panel.y + 14f, 744f, 24f),
-                "[ [ ] ] 원형  ·  [1][2][3] 난이도  ·  [R] 재시작  ·  [T] 배속 ×1/×4",
+            GUI.Label(new Rect(panel.xMax - 900f, panel.y + 14f, 884f, 24f),
+                "[ [ ] ] 원형  ·  [1][2][3] 난이도  ·  [R] 재시작  ·  [T] 배속 ×1/×4  ·  [G] 고스트 대결",
                 theme.At(theme.Label, 13, HudTheme.Ink2, TextAnchor.MiddleRight));
 
             var top = panel.y + headerH + 16f;
@@ -461,7 +503,8 @@ namespace SoldierADay.Net
             var chip = new Rect(area.x + 10f, area.y + 8f, 92f, 24f);
             theme.Chip(chip, Boards.Name(type), HudTheme.AccentW, HudTheme.Accent);
             GUI.Label(new Rect(chip.xMax + 10f, area.y + 6f, area.width - 220f, 28f),
-                $"{type}  ·  d{_difficulty}  ·  제한 {_board.Limit:0}초{(_fast ? "  (×4 배속)" : "")}",
+                $"{type}  ·  d{_difficulty}  ·  제한 {_board.Limit:0}초" +
+                $"{(_fast ? "  (×4 배속)" : "")}{(_race ? "  ·  고스트 대결 [G]" : "")}",
                 theme.At(theme.Body, 16, HudTheme.Ink2));
 
             var footH = 54f;
