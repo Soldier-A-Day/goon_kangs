@@ -62,7 +62,10 @@ namespace SoldierADay.Net
             SnapshotQuestsItemMinigameTypeValues.SEQ => "순서 입력",
             SnapshotQuestsItemMinigameTypeValues.RHYTHM => "박자",
             SnapshotQuestsItemMinigameTypeValues.TRACK => "조준 유지",
-            SnapshotQuestsItemMinigameTypeValues.SEARCH => "탐색",
+            // 비트맵 폰트 아틀라스에 '탐' 글자가 빠져 있어 "탐색"이 화면에는 "색"으로만
+            // 보였다. '수'·'색'은 SearchBoard의 Status("발견 n/m · 수색 pct%")에서
+            // 이미 쓰여 아틀라스에 있으므로 "수색"으로 바꿔 같은 문제를 피한다
+            SnapshotQuestsItemMinigameTypeValues.SEARCH => "수색",
             SnapshotQuestsItemMinigameTypeValues.REACT => "즉시 반응",
             SnapshotQuestsItemMinigameTypeValues.RANDOM => "지원 요청",
             _ => "일과",

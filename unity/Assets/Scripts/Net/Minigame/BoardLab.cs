@@ -184,9 +184,13 @@ namespace SoldierADay.Net
 
             if (!_started)
             {
-                if (Input.GetMouseButtonDown(0) || Input.GetKeyDown(KeyCode.Space))
-                    _started = true;
-                else return;
+                if (Input.GetMouseButtonDown(0) || Input.GetKeyDown(KeyCode.Space)) _started = true;
+                // 시작 입력이 들어온 바로 그 프레임에도 아래 `_board.Tick`까지 흘려
+                // 보내면, "시작하는" 클릭이 판의 **첫 입력**으로 새어 들어간다
+                // (SEARCH는 그 자리를 헛짚은 Miss로, AUDIT은 첫 줄 오답으로 잡힌다).
+                // 시작 클릭은 시작만 하는 것이지 판에 대한 입력이 아니므로, 이번
+                // 프레임은 여기서 끝내고 판은 다음 프레임부터 돈다
+                return;
             }
 
             if (_board.State != BoardState.Running)
@@ -308,11 +312,14 @@ namespace SoldierADay.Net
                     break;
 
                 case SnapshotQuestsItemMinigameTypeValues.TRACK:
-                    // `variant == "post"`일 때만 졸음(반경 축소)이 겹친다 — 난이도
-                    // 3에서만 켜서 그 갈래도 실험대에서 확인할 수 있게 한다
-                    if (d == 1) { spec.speed = 0.35; spec.holdRatio = 0.60; spec.variant = "sector"; limit = 16; }
-                    else if (d == 3) { spec.speed = 0.50; spec.holdRatio = 0.72; spec.variant = "post"; limit = 25; }
-                    else { spec.speed = 0.45; spec.holdRatio = 0.66; spec.variant = "sector"; limit = 20; }
+                    // 풍선 터트리기로 재설계되면서 실제로 읽는 파라미터는 `targets`
+                    // 하나뿐이다. quests.json의 두 실측 항목(사주경계·경계근무) 모두
+                    // 난이도3 · targets=3 — 그 값을 그대로 쓰고, 낮은 난이도의 targets는
+                    // 감으로 줄인 추정치다. 옛 조준 유지 시절의 speed·holdRatio·variant는
+                    // TrackBoard가 더 이상 읽지 않아 여기서도 채우지 않는다
+                    if (d == 1) { spec.targets = 2; limit = 16; }
+                    else if (d == 3) { spec.targets = 4; limit = 25; }
+                    else { spec.targets = 3; limit = 20; }
                     break;
 
                 case SnapshotQuestsItemMinigameTypeValues.SEARCH:
@@ -358,7 +365,7 @@ namespace SoldierADay.Net
                 case SnapshotQuestsItemMinigameTypeValues.RHYTHM:
                     return $"beats {s.beats:0} · bpm {s.bpm:0} · combo {s.combo:0}";
                 case SnapshotQuestsItemMinigameTypeValues.TRACK:
-                    return $"speed {s.speed:0.00} · holdRatio {s.holdRatio:0.00} · variant {s.variant}";
+                    return $"targets {s.targets:0} (풍선 개수)";
                 case SnapshotQuestsItemMinigameTypeValues.SEARCH:
                     return $"hidden {s.hidden:0} · cells {s.cells:0} · signal {s.signal:0.00}";
                 case SnapshotQuestsItemMinigameTypeValues.REACT:
