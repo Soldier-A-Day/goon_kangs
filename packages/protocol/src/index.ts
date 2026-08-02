@@ -149,6 +149,34 @@ export const quickCommandSchema = z.enum([
 export type QuickCommand = z.infer<typeof quickCommandSchema>;
 
 /**
+ * B-3 정형 문구 소통(quick-phrase) 8종.
+ *
+ * `quickCommandSchema`(8.0)는 타임 프레셔 구간에서 쓰는 전술 지시어다. 이쪽은
+ * **언제든 쓰는 사회적 문구**라 어휘가 다르다 — 자유 채팅의 트롤링 없이 같은 방
+ * 사람에게 말을 거는 유일한 통로가 되려면 요청·응답·위치·정서가 고루 있어야
+ * "말을 건 느낌"이 나고, 정형 문구뿐이라 트롤링할 말이 없다(WORKORDER.md B-3).
+ */
+export const quickPhraseSchema = z.enum([
+  /** 요청 — "손 좀 빌려주십시오" */
+  "assist",
+  /** 위치 예고 — "먼저 갑니다" */
+  "goingFirst",
+  /** 위치 — "집합" */
+  "gather",
+  /** 위치 — "여기다" */
+  "here",
+  /** 정서 — "고맙다" */
+  "thanks",
+  /** 응답 — "지금 간다" */
+  "comingNow",
+  /** 정서(경보) — "위험하다" */
+  "danger",
+  /** 정서·응답 — "잘했다" */
+  "wellDone",
+]);
+export type QuickPhrase = z.infer<typeof quickPhraseSchema>;
+
+/**
  * 일과 수행 등급.
  *
  * **통과 여부가 아니라 여유다.** 목표를 못 채우면 완료가 아니라 재시도이므로
@@ -222,6 +250,14 @@ export const intentSchema = z.discriminatedUnion("type", [
    */
   z.object({ type: z.literal("position"), x: z.number(), y: z.number() }),
   z.object({ type: z.literal("quickCommand"), command: quickCommandSchema }),
+  /**
+   * B-3 quick-phrase 발화.
+   *
+   * 스팸 가드(같은 사람 2초 쿨다운)는 서버가 건다(`room.ts`) — 규칙은 서버에
+   * 있어야 한다(ARCH-02). 쿨다운에 걸리면 서버는 그냥 무시하고 아무 이벤트도
+   * 내보내지 않는다 — 실패를 굳이 알릴 필요 없는, 눌러도 무해한 거부다.
+   */
+  z.object({ type: z.literal("quickPhrase"), phrase: quickPhraseSchema }),
   z.object({ type: z.literal("chat"), text: z.string().max(200) }),
   z.object({ type: z.literal("voteSkip"), value: z.boolean() }),
   z.object({
@@ -625,6 +661,21 @@ export const serverEventSchema = z.discriminatedUnion("type", [
     memberId: z.string(),
     command: quickCommandSchema,
     zone: zoneSchema,
+  }),
+  /**
+   * B-3 quick-phrase 발화 브로드캐스트. 발화자(`memberId`)를 포함해 전 인원에 나간다.
+   *
+   * `auto`가 있으면 사람이 누른 게 아니라 상황이 자동 발화시킨 것이다 — 합동 판을
+   * 열고 있는 동안 "손 좀 빌려주십시오"가 30초마다 나가는 맛보기 1종(§4항).
+   * 화면에 보이는 말풍선은 수동 발화와 같다 — 구분값은 로그·향후 다른 연출을
+   * 위한 여지일 뿐, 지금 클라는 굳이 다르게 그리지 않아도 된다.
+   */
+  z.object({
+    type: z.literal("quickPhrase"),
+    memberId: z.string(),
+    phrase: quickPhraseSchema,
+    zone: zoneSchema,
+    auto: z.boolean().optional(),
   }),
   z.object({ type: z.literal("chat"), memberId: z.string(), text: z.string(), viaRadio: z.boolean() }),
   z.object({ type: z.literal("log"), message: z.string() }),

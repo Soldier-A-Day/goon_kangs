@@ -31,6 +31,18 @@ export const SKIP_QUORUM_RATIO = 3 / 4;
  */
 export const DISCONNECT_GRACE_MS = 30_000;
 
+/**
+ * B-3 quick-phrase 스팸 가드.
+ *
+ * 정형 문구라 내용으로 트롤링은 못 해도 연타로 도배는 할 수 있다 — 그건
+ * 서버가 막는다(ARCH-02: 규칙은 서버에). 같은 사람이 이 시간 안에 다시
+ * 보내면 조용히 버린다.
+ */
+export const QUICK_PHRASE_COOLDOWN_MS = 2_000;
+
+/** B-3 상황 자동 말풍선 맛보기 — 합동 판을 열고 있는 동안 "손 좀 빌려주십시오" 주기 */
+export const JOINT_AUTO_PHRASE_MS = 30_000;
+
 export interface Seat {
   readonly role: Role;
   memberId: string | null;
@@ -70,6 +82,10 @@ export class Room {
   private readonly skipVotes = new Set<string>();
   /** 끊겼지만 아직 유예 중인 사람 → 남은 유예 ms */
   private readonly graceLeft = new Map<string, number>();
+  /** B-3 quick-phrase 스팸 가드 — 사람 → 다음 발화까지 남은 쿨다운 ms */
+  private readonly quickPhraseCooldown = new Map<string, number>();
+  /** B-3 합동 판 자동 말풍선 — 사람 → 다음 자동 발화까지 남은 ms */
+  private readonly jointPhraseCooldown = new Map<string, number>();
   private readonly leaderVotes = new Map<string, string>();
 
   /** 런이 끝났을 때 기록을 남길 곳. 서버가 주입한다 */
@@ -210,6 +226,8 @@ export class Room {
     this.skipVotes.clear();
     this.leaderVotes.clear();
     this.graceLeft.clear();
+    this.quickPhraseCooldown.clear();
+    this.jointPhraseCooldown.clear();
     this.finishedReported = false;
     this.sinceSnapshotMs = 0;
 
@@ -234,8 +252,15 @@ export class Room {
       this.apply({ type: "work", memberId, questId, deltaMs: elapsedMs });
     }
 
+    // B-3 상황 자동 말풍선 맛보기 — 합동 판을 붙잡고 있는 동안 "손 좀 빌려주십시오"가
+    // 30초마다 나간다. 처음 붙잡는 순간엔 쿨다운이 없어 즉시 한 번 나가고, 손을
+    // 놓으면(다른 일과로 넘어가거나 이동) 카운트가 그 자리에서 멈춘다 — 다시 잡을 때
+    // 남은 시간부터 이어지므로 들락날락으로 도배할 수 없다.
+    this.tickJointAutoPhrase(elapsedMs);
+
     this.apply({ type: "tick", elapsedMs });
     this.expireGraces(elapsedMs);
+    this.expireQuickPhraseCooldowns(elapsedMs);
 
     this.sinceSnapshotMs += elapsedMs;
     if (this.sinceSnapshotMs >= 1000 / SNAPSHOT_HZ) {
@@ -358,6 +383,19 @@ export class Room {
         });
         break;
 
+      case "quickPhrase":
+        // B-3 스팸 가드 — 쿨다운에 걸려 있으면 조용히 버린다. 규칙은 서버에
+        // 있어야 하므로(ARCH-02) 여기서 막지 클라를 믿지 않는다.
+        if ((this.quickPhraseCooldown.get(memberId) ?? 0) > 0) break;
+        this.quickPhraseCooldown.set(memberId, QUICK_PHRASE_COOLDOWN_MS);
+        this.pendingEvents.push({
+          type: "quickPhrase",
+          memberId,
+          phrase: intent.phrase,
+          zone: member.zone,
+        });
+        break;
+
       case "chat":
         this.relayChat(memberId, intent.text);
         break;
@@ -458,6 +496,49 @@ export class Room {
       this.graceLeft.delete(memberId);
       this.apply({ type: "leaveRun", memberId });
       this.broadcastSnapshot(true);
+    }
+  }
+
+  /** B-3 quick-phrase 스팸 가드 쿨다운을 흘려보낸다 — 다 되면 다시 보낼 수 있다 */
+  private expireQuickPhraseCooldowns(elapsedMs: number): void {
+    if (this.quickPhraseCooldown.size === 0) return;
+
+    for (const [memberId, left] of [...this.quickPhraseCooldown]) {
+      const remaining = left - elapsedMs;
+      if (remaining > 0) this.quickPhraseCooldown.set(memberId, remaining);
+      else this.quickPhraseCooldown.delete(memberId);
+    }
+  }
+
+  /**
+   * B-3 상황 자동 말풍선 맛보기 — 합동 판을 붙잡고 있는 사람은 30초마다
+   * "손 좀 빌려주십시오"를 자동으로 발화한다. `quickPhrase` 쿨다운(2초)과는
+   * 별개 타이머다 — 사람이 손으로 문구를 눌러도 이 자동 발화 주기는 안 바뀐다.
+   */
+  private tickJointAutoPhrase(elapsedMs: number): void {
+    if (!this.run) return;
+
+    for (const [memberId, questId] of this.working) {
+      const quest = this.run.quests.find((q) => q.id === questId);
+      if (!quest || quest.kind !== "joint") continue;
+
+      const left = (this.jointPhraseCooldown.get(memberId) ?? 0) - elapsedMs;
+      if (left > 0) {
+        this.jointPhraseCooldown.set(memberId, left);
+        continue;
+      }
+
+      const member = this.run.members.find((m) => m.id === memberId);
+      if (member) {
+        this.pendingEvents.push({
+          type: "quickPhrase",
+          memberId,
+          phrase: "assist",
+          zone: member.zone,
+          auto: true,
+        });
+      }
+      this.jointPhraseCooldown.set(memberId, JOINT_AUTO_PHRASE_MS);
     }
   }
 
