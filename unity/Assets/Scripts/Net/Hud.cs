@@ -131,6 +131,11 @@ namespace SoldierADay.Net
                 return;
             }
 
+            // **끊김은 화면이 말해야 한다.** `Latest` 스냅샷은 끊긴 뒤에도 마지막
+            // 값을 유지하므로, 이 배너가 없으면 재접속하는 동안 화면은 멀쩡한
+            // 부대를 그대로 그린다 — 움직임만 안 먹는 화면은 고장으로 읽힌다.
+            DrawConnectionBanner();
+
             // 월드 위에 겹치는 것부터 — 이름표·말풍선은 UI 패널보다 뒤여야 한다
             DrawWorldOverlay(snapshot);
 
@@ -398,6 +403,40 @@ namespace SoldierADay.Net
 
         private readonly List<(string name, Vector2 at)> _compass =
             new List<(string, Vector2)>();
+
+        /* ─────────────────────────────────────── 연결 상태 배너 */
+
+        /// <summary>
+        /// 재접속 중·재접속 실패를 화면 상단 중앙에 띄운다.
+        ///
+        /// 시간대 바 바로 위다 — 화면에서 가장 먼저 읽히는 줄이고, 게임을
+        /// 가리지 않는다. 재접속 중에는 몇 차 시도인지까지 적는다. "재접속 중"
+        /// 한 마디만 있으면 언제까지 기다려야 하는지 알 수 없고, 모르는 기다림은
+        /// 곧 새로고침이다 — 새로고침하면 백오프가 처음부터 다시 시작된다.
+        /// </summary>
+        private void DrawConnectionBanner()
+        {
+            if (boot == null) return;
+
+            string text = null;
+            var color = HudTheme.Heat;
+            if (boot.Reconnecting)
+            {
+                text = $"무전 재접속 중 ({boot.ReconnectAttempt}/4차) — 자리를 지키십시오";
+            }
+            else if (boot.Status == "연결 끊김")
+            {
+                // 네 번 다 실패했다. 이제 기다림이 아니라 선택이 필요하다
+                text = "연결이 끊겼습니다 — 새로고침으로 다시 붙을 수 있습니다";
+                color = HudTheme.Alert;
+            }
+            if (text == null) return;
+
+            var rect = new Rect(HudTheme.ViewWidth * 0.5f - 320f, 8f, 640f, 34f);
+            _theme.Fill(rect, HudTheme.Paper, 0.94f);
+            _theme.Spine(rect, color);
+            GUI.Label(rect, text, _theme.At(_theme.Body, 15, color, TextAnchor.MiddleCenter));
+        }
 
         /* ─────────────────────────────────────── §7.1.1 상단 시간대 바 */
 

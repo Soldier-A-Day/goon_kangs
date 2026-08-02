@@ -1039,6 +1039,8 @@ namespace SoldierADay.EditorTools
             play.client = client;
             play.interactor = interactor;
             play.player = local;
+            // 판이 열리고 닫힐 때 짧은 페이드(A-2). 안 물리면 조용히 컷으로 돌아간다
+            play.effects = screenFx;
 
             // ── §9.0 훈련 ──
             var lane = net.AddComponent<LaneRun>();
