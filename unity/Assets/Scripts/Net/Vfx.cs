@@ -45,21 +45,36 @@ namespace SoldierADay.Net
         public ParticleSystem decon;
         public ParticleSystem steam;
 
-        /// <summary>§9.1 `VFX_Dust` "온난 이상, **이동 시**"</summary>
-        private bool _moving;
-        private Vector3 _lastAt;
-
         /// <summary>완료 링을 두 번 띄우지 않으려고 기억한다</summary>
         private readonly HashSet<string> _celebrated = new HashSet<string>();
+
+        /// <summary>§9.1 `VFX_Dust` 버스트 조건 — 최근 스냅샷의 "온난 이상" 여부를 기억해 둔다.
+        /// `Apply`는 스냅샷(10Hz)마다, `HandleStepContact`는 걷기 애니메이션 프레임마다
+        /// 오므로 주기가 다르다 — 그래서 D-3 #6부터는 값을 캐시만 하고 방출은 안 한다</summary>
+        private bool _warm;
+
+        /// <summary>`follow`(내 캐릭터)의 리그. 걷기 접지 이벤트를 구독하고 완료 팝을 부른다</summary>
+        private CharacterRig _followRig;
 
         private void OnEnable()
         {
             if (client != null) client.SnapshotReceived += Apply;
+            _followRig = follow != null ? follow.GetComponent<CharacterRig>() : null;
+            if (_followRig != null) _followRig.StepContact += HandleStepContact;
         }
 
         private void OnDisable()
         {
             if (client != null) client.SnapshotReceived -= Apply;
+            if (_followRig != null) _followRig.StepContact -= HandleStepContact;
+        }
+
+        /// <summary>D-3 #6 — 걷기 접지 순간의 먼지 버스트. `CharacterRig`의 몸 스쿼시와
+        /// 같은 프레임에서 온다(같은 신호가 발원지). 연속 방출이던 것을 여기로 옮겼다</summary>
+        private void HandleStepContact()
+        {
+            if (!_warm) return;
+            Puff(dust, follow != null ? follow.position : transform.position);
         }
 
         private void Apply(Snapshot snapshot)
@@ -96,7 +111,12 @@ namespace SoldierADay.Net
             // §9.1 `VFX_SweatDrop` "수분 ≤ 50"
             Emit(sweat, me.stats.hydration <= 50);
 
-            Emit(dust, warm && _moving);
+            // D-3 #6 — 먼지는 더 이상 연속 방출이 아니다. 걷기 접지 프레임(다리가 땅을
+            // 짚는 순간)에 `CharacterRig.StepContact`가 오면 `HandleStepContact`가
+            // `Puff()`로 그 순간에만 뿌린다. 방출기 자체는 계속 꺼둔다 — 켜는 건
+            // `Puff()`의 `Emit(count)`뿐이라 이 `Emit(dust, false)`는 안전장치다
+            _warm = warm;
+            Emit(dust, false);
 
             // 완료 링 — 방금 끝난 일과에만. 스냅샷은 10Hz라 같은 완료를
             // 계속 보내오므로, 한 번 띄운 것은 기억해 둔다
@@ -107,7 +127,9 @@ namespace SoldierADay.Net
                 if (quest.status != SnapshotQuestsItemStatusValues.Done) continue;
                 if (quest.ownerId != client.MemberId) continue;
                 if (!_celebrated.Add(quest.id)) continue;
-                Burst(questComplete, follow != null ? follow.position : transform.position);
+                var at = follow != null ? follow.position : transform.position;
+                Burst(questComplete, at);
+                _followRig?.PunchScale();   // D-3 #4 — 링만 터지고 몸은 무반응이던 것을 고친다
             }
         }
 
@@ -121,12 +143,7 @@ namespace SoldierADay.Net
         {
             if (follow == null) return;
 
-            // 이동 여부는 발밑으로 본다. 서버의 `travelRemainingMs`는 메뉴 이동용이라
-            // 걸어 다니는 동안에는 0이고, 먼지는 걸을 때 나야 한다
             var at = follow.position;
-            _moving = (at - _lastAt).sqrMagnitude > 0.0004f;
-            _lastAt = at;
-
             foreach (var system in new[] { breath, sweat })
             {
                 if (system == null) continue;
@@ -151,6 +168,18 @@ namespace SoldierADay.Net
             if (system == null) return;
             system.transform.position = at;
             system.Play();
+        }
+
+        /// <summary>
+        /// D-3 #6 — `Burst`와 달리 `Play()`(지속 이펙트 시작)가 아니라 `Emit(count)`로
+        /// 알갱이 몇 개만 즉시 뿌린다. 걸음마다 반복되는 이벤트라 `Play()`를 쓰면 방출기의
+        /// 지속시간·루프 설정에 따라 겹쳐 쌓일 수 있어, 알갱이 수를 코드에서 못박는다.
+        /// </summary>
+        private static void Puff(ParticleSystem system, Vector3 at, int count = 6)
+        {
+            if (system == null) return;
+            system.transform.position = at;
+            system.Emit(count);
         }
 
         /// <summary>§7.10 화생방 제독소 · 사격장 격발 — 훈련 씬이 부른다</summary>
