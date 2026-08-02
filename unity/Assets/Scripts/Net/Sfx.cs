@@ -32,8 +32,14 @@ namespace SoldierADay.Net
         private int _next;
         private bool _unlocked;
 
-        /// <summary>키 하나로 짧은 효과음 재생. 없는 키·잠긴 상태면 조용히 무시한다</summary>
-        public static void Play(string key, float volume = 1f)
+        /// <summary>
+        /// 키 하나로 짧은 효과음 재생. 없는 키·잠긴 상태면 조용히 무시한다.
+        ///
+        /// `pitch`는 새 오디오 자산을 안 만들고도 같은 클립에 변주를 준다 — 예를
+        /// 들어 `TraceBoard`의 관 회전음은 확정음(`tap`)과 같은 클립을 살짝 높여
+        /// 쓴다. 짧은 딸깍음이라 피치를 올려도 어색하지 않고, 자산 폭발을 막는다.
+        /// </summary>
+        public static void Play(string key, float volume = 1f, float pitch = 1f)
         {
             var self = Instance;
             if (!self._unlocked && !self.TryUnlock())
@@ -42,7 +48,7 @@ namespace SoldierADay.Net
                 return;
             }
 
-            self.PlayClip(key, volume);
+            self.PlayClip(key, volume, pitch);
         }
 
         private static Sfx Instance
@@ -90,13 +96,13 @@ namespace SoldierADay.Net
             return true;
         }
 
-        private void PlayClip(string key, float volume)
+        private void PlayClip(string key, float volume, float pitch)
         {
             if (!_clips.TryGetValue(key, out var clip) || clip == null) return;
 
             var src = _pool[_next];
             _next = (_next + 1) % _pool.Length;
-            src.pitch = 1f;
+            src.pitch = pitch;
             src.PlayOneShot(clip, Mathf.Clamp01(volume));
         }
     }

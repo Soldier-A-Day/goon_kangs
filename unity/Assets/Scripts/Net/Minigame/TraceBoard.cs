@@ -27,6 +27,12 @@ namespace SoldierADay.Net
         private int _turns;
         private Rect _area;
 
+        /// <summary>칸마다 마지막으로 돌린 시각(`Time.time`) — 회전 트윈의 기준</summary>
+        private float[] _rotSince;
+
+        /// <summary>회전 트윈 길이(초). 즉시 스냅되면 손맛이 없다</summary>
+        private const float RotateDuration = 0.1f;
+
         public override string Instruction => "관을 눌러 돌리고 끝까지 이어라";
 
         public override string Status
@@ -47,6 +53,11 @@ namespace SoldierADay.Net
             _live = new bool[_cols * _rows];
             _onPath = new bool[_cols * _rows];
             _turns = 0;
+
+            // 트윈이 끝난 상태(각 0°)로 시작한다 — `Time.time - RotateDuration`은
+            // 항상 과거이므로 `Draw`가 처음 그릴 때부터 경과율이 1이다
+            _rotSince = new float[_cols * _rows];
+            for (var i = 0; i < _rotSince.Length; i += 1) _rotSince[i] = -RotateDuration;
 
             // 시작과 끝은 마주 보는 변에 둔다 — 어디서 어디로인지가 판을 열자마자 읽혀야 한다
             _start = Rng.Next(_rows) * _cols;
@@ -178,6 +189,10 @@ namespace SoldierADay.Net
 
                 _pipe[i] = Rotate(_pipe[i]);
                 _turns += 1;
+                // 논리는 즉시 바뀐다 — 트윈은 `Draw`가 이 시각을 기준으로
+                // 그려 보이는 것일 뿐, 판정은 이번 프레임에 이미 끝나 있다
+                _rotSince[i] = Time.time;
+                Sfx.Play("tap", 0.8f, 1.15f);
                 Flow();
 
                 // 필요 이상으로 돌리면 손이 헤맨 것이다. `rotations`의 두 배까지 봐준다
@@ -221,6 +236,21 @@ namespace SoldierADay.Net
                 }
 
                 var lit = _live[i];
+
+                // **회전 무게감.** 논리(`_pipe`·`Flow`)는 클릭 즉시 바뀌었지만,
+                // 화면은 −90°에서 0°로 `RotateDuration`초에 걸쳐 이징한다 —
+                // 즉시 스냅되면 관에 무게가 없다. `OnGUI`는 한 프레임에 여러 번
+                // (Layout·Repaint) 불리므로 여기서 델타를 누적하지 않고, 돌린
+                // 시각(`_rotSince[i]`, `Time.time` 기록)을 기준으로 매번 다시
+                // 계산한다 — `PlaceBoard`가 각을 도는 물건을 그리는 것과 같은
+                // `GUIUtility.RotateAroundPivot` 자리다.
+                var t = Mathf.Clamp01((Time.time - _rotSince[i]) / RotateDuration);
+                var eased = 1f - (1f - t) * (1f - t) * (1f - t);
+                var angle = Mathf.Lerp(-90f, 0f, eased);
+
+                var matrix = GUI.matrix;
+                GUIUtility.RotateAroundPivot(angle, cell.center);
+
                 theme.Fill(cell, lit ? HudTheme.AccentW : HudTheme.Paper);
                 theme.Border(cell, lit ? HudTheme.Accent : HudTheme.Rule2);
 
@@ -237,6 +267,8 @@ namespace SoldierADay.Net
                     theme.Fill(new Rect(c.x - w * 0.5f, c.y, w, cell.yMax - c.y), color);
                 if ((_pipe[i] & 8) != 0)
                     theme.Fill(new Rect(cell.x, c.y - w * 0.5f, c.x - cell.x, w), color);
+
+                GUI.matrix = matrix;
             }
 
             // 시작과 끝 — 어디서 어디로인지
