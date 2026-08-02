@@ -53,6 +53,16 @@ namespace SoldierADay.Net
             var board = play.Board;
             if (board == null) return;
 
+            // 감쇠·결과 애니메이션 시계 — `Tick`과 분리되어 있다. 판이 멈춘
+            // (Cleared·Failed) 뒤에도 `QuestPlay`가 더 이상 `Tick`을 안 불러도
+            // 여기서는 매 프레임 도니까 플래시가 얼어붙지 않는다.
+            //
+            // **`Repaint`에서만 흘린다.** `OnGUI`는 프레임당 Layout·Repaint·
+            // 입력 이벤트로 여러 번 불린다(`RealProbe`·`HeapProbe`와 같은
+            // 자리) — 게이트 없이 매번 `Time.deltaTime`을 더하면 마우스를
+            // 움직일 때마다 감쇠가 빨라진다
+            if (Event.current.type == EventType.Repaint) board.Present(Time.deltaTime);
+
             var panel = Panel;
 
             // 월드를 덮는다. 판이 열린 동안은 걷지 못하므로 시선을 한 곳에 모은다
@@ -72,9 +82,25 @@ namespace SoldierADay.Net
             DrawTime(theme, panel, board);
 
             board.Draw(theme, Body);
+            DrawFlash(theme, Body, board);
 
             DrawFooter(theme, panel, board);
             DrawResult(theme, panel, play);
+        }
+
+        /// <summary>
+        /// 성공/실수 색 플래시 — 본문 위에 겹쳐 그린다.
+        ///
+        /// `Board.Clear`/`Miss`/`Fail`이 베이스에서 `FlashT`를 채우므로, 이
+        /// 한 곳만 그리면 14종 전체가 배선 없이 같은 반응을 받는다. 예전에
+        /// `RhythmBoard` 등 3종만 원형 안에서 각자 그리던 것과 다른 지점이다.
+        /// </summary>
+        private static void DrawFlash(HudTheme theme, Rect body, Board board)
+        {
+            if (board.FlashT <= 0f) return;
+            var color = board.FlashSuccess ? HudTheme.Accent : HudTheme.Alert;
+            // 알파 0.35 → 0, `Board.Present`가 이미 지수 감쇠시킨 `FlashT`를 그대로 곱한다
+            theme.Fill(body, color, 0.35f * board.FlashT);
         }
 
         private static void DrawHeader(HudTheme theme, Rect panel, QuestPlay play)
@@ -156,8 +182,20 @@ namespace SoldierADay.Net
             theme.Border(rect, hot ? accent : HudTheme.Rule, 2f);
             GUI.Label(rect, label,
                 theme.At(theme.Body, 17, hot ? accent : HudTheme.Ink, TextAnchor.MiddleCenter));
-            return hot && Input.GetMouseButtonDown(0);
+            var clicked = hot && Input.GetMouseButtonDown(0);
+            // 확정 = 관인을 찍는 소리. 저장소에서 실제로 눌리는 첫 버튼이다
+            if (clicked) Sfx.Play("tap");
+            return clicked;
         }
+
+        /// <summary>등장 스케일 팝. 150ms, 1.15 → 1.0</summary>
+        private const float PopDuration = 0.15f;
+
+        /// <summary>실수 패널 흔들림 — 3프레임(≈50ms) 진폭 4px, 지수 감쇠</summary>
+        private const float ShakeWindow = 0.05f;
+        private const float ShakeTau = 0.018f;
+        private const float ShakeHz = 30f;
+        private const float ShakeAmp = 4f;
 
         private static void DrawResult(HudTheme theme, Rect panel, QuestPlay play)
         {
@@ -166,6 +204,23 @@ namespace SoldierADay.Net
 
             var cleared = board.State == BoardState.Cleared;
             var box = new Rect(panel.center.x - 200f, panel.center.y - 74f, 400f, 148f);
+
+            // **실수 패널 흔들림.** 월드 카메라가 아니라 패널 Rect 오프셋이다 —
+            // IMGUI라 카메라를 흔들어도 화면이 안 흔들린다. 접근성 `screenShake`
+            // 토글이 꺼져 있으면 흔들지 않는다. 성공에는 흔들림이 없다(팝만).
+            if (!cleared && Accessibility.ScreenShake && board.ResultAge < ShakeWindow)
+            {
+                var decay = Mathf.Exp(-board.ResultAge / ShakeTau);
+                box.x += Mathf.Sin(board.ResultAge * ShakeHz * Mathf.PI * 2f) * ShakeAmp * decay;
+            }
+
+            // **등장 스케일 팝.** `PlaceBoard`가 `GUIUtility.RotateAroundPivot`로
+            // 각을 그리는 것과 같은 자리 — 여기서는 돌리는 대신 늘렸다 줄인다.
+            var matrix = GUI.matrix;
+            var popT = Mathf.Clamp01(board.ResultAge / PopDuration);
+            var eased = 1f - (1f - popT) * (1f - popT) * (1f - popT);
+            var scale = Mathf.Lerp(1.15f, 1f, eased);
+            GUIUtility.ScaleAroundPivot(new Vector2(scale, scale), box.center);
 
             theme.Fill(box, cleared ? HudTheme.AccentW : HudTheme.AlertW, 0.96f);
             theme.Border(box, cleared ? HudTheme.Accent : HudTheme.Alert, 2f);
@@ -179,6 +234,7 @@ namespace SoldierADay.Net
                 GUI.Label(new Rect(box.x, box.yMax - 34f, box.width, 24f),
                     play.Settling ? "일과를 마무리하는 중" : "복무 점수에 반영된다",
                     theme.At(theme.Small, 14, HudTheme.Ink3, TextAnchor.MiddleCenter));
+                GUI.matrix = matrix;
                 return;
             }
 
@@ -197,6 +253,8 @@ namespace SoldierADay.Net
                 "다시  [E]", HudTheme.Accent);
             play.Quit = Button(theme, new Rect(box.center.x + 8f, box.yMax - 58f, 144f, 44f),
                 "그만  [ESC]", HudTheme.Rule);
+
+            GUI.matrix = matrix;
         }
     }
 }
