@@ -135,6 +135,30 @@ export const delegationRefusalSchema = z.enum([
  */
 export const conditionCriticalStatSchema = z.enum(["stamina", "hydration", "fatigue"]);
 
+/**
+ * DISC-01 하루 정산 항목 6종 (`packages/sim/src/discipline.ts` `applyDailyDiscipline`).
+ *
+ * **예전에는 군기 정산이 최종값 한 줄(`to`·`band`)로만 나갔다** — 왜 올랐는지 왜
+ * 깎였는지가 화면에서 안 보였다(WORKORDER.md E-2 잔여, 숨김의 원칙 위반: "게이지가
+ * 줄었으면 왜 줄었는지 말한다"). 스탯 6종이 이미 쓰는 "무엇으로 몇 점" 델타 틀을
+ * 군기에도 그대로 적용한다. `packages/sim/data/discipline.json`의 gains/losses
+ * 키와 1:1 대응.
+ *
+ * **Unity 참고**: `Generated/Protocol.cs`는 이 발주에서 재생성하지 않는다(WORKORDER.md
+ * 명시 제약). 그래서 이 필드는 지금 당장은 Unity가 못 읽는다 — 대신
+ * `disciplineChanged`와 같은 정산에서 `log` 이펙트로 같은 내용을 사람이 읽는 문장으로
+ * 병행 전송한다(`discipline.ts` `formatDisciplineDeltaLog`). 코드 생성이 이 스키마를
+ * 따라잡으면 `deltas` 쪽이 정식 경로가 된다.
+ */
+export const disciplineDeltaReasonSchema = z.enum([
+  "onTimeCompletion",
+  "jointFlawless",
+  "surpriseSuccess",
+  "noInjuryDay",
+  "optionalMissed",
+  "npcProxy",
+]);
+
 /** 8.0 퀵 커맨드 8슬롯 — 타임 프레셔 구간의 유일한 채널이므로 프로토콜에 고정한다 */
 export const quickCommandSchema = z.enum([
   "assemble",
@@ -558,7 +582,15 @@ export const serverEventSchema = z.discriminatedUnion("type", [
     /** 판정 **후** 남은 구제권. 0이면 다음 미달은 곧바로 런 종료다 */
     reliefsRemaining: z.number(),
   }),
-  z.object({ type: z.literal("disciplineChanged"), to: z.number(), band: z.string() }),
+  z.object({
+    type: z.literal("disciplineChanged"),
+    /** WORKORDER.md E-2 잔여 — 정산 전 값. 항목별 델타와 함께 보여야 "왜 이렇게 됐는지" 읽힌다 */
+    from: z.number(),
+    to: z.number(),
+    band: z.string(),
+    /** 항목별(무엇으로 몇 점) 델타 — `disciplineDeltaReasonSchema` 참고 */
+    deltas: z.array(z.object({ reason: disciplineDeltaReasonSchema, value: z.number() })),
+  }),
   z.object({ type: z.literal("memberEvacuated"), memberId: z.string(), absorbed: z.boolean() }),
   z.object({ type: z.literal("memberReturned"), memberId: z.string(), asRecruit: z.boolean() }),
   z.object({ type: z.literal("memberLeft"), memberId: z.string() }),

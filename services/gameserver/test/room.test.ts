@@ -398,6 +398,33 @@ describe("승급 심사 투영", () => {
       projectEffect({ type: "delegationRefused", reason: "rankTooLow", questId: "c1" }),
     ).toEqual({ type: "delegationRefused", reason: "rankTooLow", questId: "c1" });
   });
+
+  // WORKORDER.md E-2 잔여 — 군기 정산도 최종값 한 줄이 아니라 항목별 델타로 나가야 한다
+  it("군기 정산은 최종값 한 줄이 아니라 항목별 델타와 함께 나간다", () => {
+    expect(
+      projectEffect({
+        type: "disciplineChanged",
+        from: 60,
+        to: 78,
+        band: "normal",
+        deltas: [
+          { reason: "onTimeCompletion", value: 5 },
+          { reason: "jointFlawless", value: 12 },
+          { reason: "noInjuryDay", value: 6 },
+        ],
+      }),
+    ).toEqual({
+      type: "disciplineChanged",
+      from: 60,
+      to: 78,
+      band: "normal",
+      deltas: [
+        { reason: "onTimeCompletion", value: 5 },
+        { reason: "jointFlawless", value: 12 },
+        { reason: "noInjuryDay", value: 6 },
+      ],
+    });
+  });
 });
 
 describe("17.0 이어하기와 기록", () => {

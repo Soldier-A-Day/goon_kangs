@@ -80,6 +80,9 @@ namespace SoldierADay.Net
             if (client == null) return;
             client.EventReceived += OnEvent;
             client.SnapshotReceived += OnSnapshot;
+            // E-3 — 오늘의 기록(수첩 탭). OnEvent의 토스트 스위치와 별개로 구독해
+            // 기존 case를 하나도 건드리지 않는다(WORKORDER.md E-3 제약, 병합 충돌 최소화)
+            client.EventReceived += CollectJournal;
         }
 
         private void OnDisable()
@@ -87,6 +90,7 @@ namespace SoldierADay.Net
             if (client == null) return;
             client.EventReceived -= OnEvent;
             client.SnapshotReceived -= OnSnapshot;
+            client.EventReceived -= CollectJournal;
         }
 
         private void OnSnapshot(Snapshot snapshot) => _screens.OnSnapshot(snapshot);
@@ -1952,6 +1956,165 @@ namespace SoldierADay.Net
                 }
                 return id;
             }
+        }
+
+        /* ═══════════════════════════════════════════ E-3 오늘의 기록(수첩 탭) */
+
+        /// <summary>수첩 "오늘의 기록" 탭(HudScreens)이 표시하는 한 줄.</summary>
+        public readonly struct JournalEntry
+        {
+            public readonly string clock;
+            public readonly string phase;
+            public readonly string tag;
+            public readonly string text;
+            public readonly Color color;
+
+            public JournalEntry(string clock, string phase, string tag, string text, Color color)
+            {
+                this.clock = clock;
+                this.phase = phase;
+                this.tag = tag;
+                this.text = text;
+                this.color = color;
+            }
+        }
+
+        private readonly List<JournalEntry> _journal = new List<JournalEntry>();
+        private double _journalDay = -1d;
+
+        /// <summary>수첩 "오늘의 기록" 탭이 읽는다. 최신이 [0](시간순, 최신 위)</summary>
+        public IReadOnlyList<JournalEntry> Journal => _journal;
+
+        /// <summary>
+        /// WORKORDER.md E-3 — 그날 이펙트를 시간순 일지로 쌓는다. RimWorld식 일지처럼
+        /// "이미 벌어진 일"만 담는다(숨김의 원칙: 판정·소모된 자원·손해 원인은 전부
+        /// 싣는다). 서버에 저장하지 않는 세션 로컬 리스트라 재접속하면 유실된다 —
+        /// 알려진 제한이다.
+        ///
+        /// `OnEvent`의 토스트 스위치와 완전히 별개로 구독된다(OnEnable 참고). 이유는
+        /// 이 파일을 C-1b도 같이 만지기 때문 — 기존 case 안에 훅을 심으면 그쪽 수정과
+        /// 충돌하기 쉽다. 별도 메서드로 붙이면 서로의 변경이 겹치지 않는다.
+        /// </summary>
+        private void CollectJournal(ServerEvent item)
+        {
+            if (item == null) return;
+
+            // 하루가 바뀌면 통째로 비운다 — "오늘의" 기록이지 어제 것이 아니다
+            var day = client?.Latest?.day ?? _journalDay;
+            if (day != _journalDay)
+            {
+                _journal.Clear();
+                _journalDay = day;
+            }
+
+            string tag;
+            string text;
+            var color = HudTheme.Ink2;
+
+            switch (item.type)
+            {
+                case ServerEventTypeValues.DisciplineChanged:
+                    tag = "군기";
+                    text = $"{item.to:0} · {item.band}";
+                    color = HudTheme.Alert;
+                    break;
+
+                case ServerEventTypeValues.MemberEvacuated:
+                    tag = "후송";
+                    text = $"{NameOf(item.memberId)} 실려 나감";
+                    color = HudTheme.Alert;
+                    break;
+
+                case ServerEventTypeValues.MemberReturned:
+                    tag = "복귀";
+                    text = item.asRecruit ? $"{NameOf(item.memberId)}, 이병으로" : $"{NameOf(item.memberId)} 복귀";
+                    color = item.asRecruit ? HudTheme.Alert : HudTheme.Accent;
+                    break;
+
+                case ServerEventTypeValues.ConditionCritical:
+                    tag = "위기";
+                    text = ConditionCriticalText(item.stat, NameOf(item.memberId));
+                    color = HudTheme.Alert;
+                    break;
+
+                case ServerEventTypeValues.DelegationRefused:
+                    tag = "하달 거부";
+                    text = $"{QuestLabel(item.questId)} — {HudTheme.DelegationRefusalText(item.reason)}";
+                    color = HudTheme.Heat;
+                    break;
+
+                case ServerEventTypeValues.SupplyClaimed:
+                    tag = "보급";
+                    text = SupplySummary(item.items);
+                    color = HudTheme.Accent;
+                    break;
+
+                case ServerEventTypeValues.RankReviewed:
+                    tag = "승급";
+                    text = RankReviewSummary(item.outcomes);
+                    color = HudTheme.Accent;
+                    break;
+
+                case ServerEventTypeValues.DayJudged:
+                    tag = "판정";
+                    text = item.passed
+                        ? "통과" + (item.reliefsUsed > 0d ? $" — 구제권 {item.reliefsUsed:0}장 사용" : "")
+                        : $"미달 — 조건 {item.failedAt}";
+                    color = item.passed ? HudTheme.Accent : HudTheme.Alert;
+                    break;
+
+                case ServerEventTypeValues.FrostbiteRelieved:
+                    tag = "동상 해제";
+                    text = $"{NameOf(item.memberId)} — 의무병 {NameOf(item.byId)}";
+                    color = HudTheme.Accent;
+                    break;
+
+                case ServerEventTypeValues.ForcedSleep:
+                    tag = "강제 취침";
+                    text = NameOf(item.memberId);
+                    color = HudTheme.Heat;
+                    break;
+
+                case ServerEventTypeValues.ChoreReassigned:
+                    tag = "재배정";
+                    text = $"분대장이 {NameOf(item.toId)}에게 — {QuestLabel(item.questId)}";
+                    color = HudTheme.Heat;
+                    break;
+
+                case ServerEventTypeValues.Log:
+                    // "delegationWindowClosed"는 화면 신호가 아니라 delegation.ts 내부
+                    // 코드 문자열이다(Hud.cs OnEvent의 Log case와 같은 필터)
+                    if (item.message == "delegationWindowClosed") return;
+                    // E-2 잔여 — 군기 정산 항목별 델타(discipline.ts
+                    // formatDisciplineDeltaLog)가 이 case로 들어온다. 태그·색을
+                    // 군기 계열로 맞춰 위 DisciplineChanged 항목과 나란히 읽히게 한다
+                    tag = item.message != null && item.message.StartsWith("군기 정산") ? "군기" : "경고";
+                    text = item.message;
+                    color = tag == "군기" ? HudTheme.Alert : HudTheme.Heat;
+                    break;
+
+                default:
+                    return;
+            }
+
+            var clock = client?.Latest?.phase?.clock ?? "";
+            var phaseLabel = HudTheme.PhaseLabel(client?.Latest?.phase?.id);
+            _journal.Insert(0, new JournalEntry(clock, phaseLabel, tag, text, color));
+            // 하루는 유한하다 — 안전판으로만 자른다
+            if (_journal.Count > 200) _journal.RemoveAt(_journal.Count - 1);
+        }
+
+        /// <summary>E-3 — 승급 심사 요약. 전체 표는 승급 화면이 이미 보여주므로
+        /// 일지에는 몇 명이 올랐는지만 한 줄로 남긴다</summary>
+        private static string RankReviewSummary(ServerEventOutcomesItem[] outcomes)
+        {
+            if (outcomes == null || outcomes.Length == 0) return "";
+            var promoted = 0;
+            foreach (var outcome in outcomes)
+            {
+                if (outcome != null && outcome.promoted) promoted += 1;
+            }
+            return promoted > 0 ? $"{promoted}명 승급" : "승급 없음";
         }
     }
 }

@@ -168,7 +168,15 @@ export function projectEffect(effect: Effect): ServerEvent | null {
         reliefsRemaining: effect.reliefsRemaining,
       };
     case "disciplineChanged":
-      return { type: "disciplineChanged", to: effect.to, band: effect.band };
+      // WORKORDER.md E-2 잔여 — 예전에는 최종값(to·band)만 나가 정산 근거가 안 보였다.
+      // sim이 이미 항목별로 계산해 둔 것을 그대로 흘린다(추가만, 규칙 수치는 그대로).
+      return {
+        type: "disciplineChanged",
+        from: effect.from,
+        to: effect.to,
+        band: effect.band,
+        deltas: effect.deltas.map((d) => ({ reason: d.reason, value: d.value })),
+      };
     case "memberEvacuated":
       return {
         type: "memberEvacuated",

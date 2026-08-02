@@ -416,6 +416,23 @@ export interface RunState {
 
 /* ---------------------------------------------------------- 이벤트 / 결과 */
 
+/**
+ * DISC-01 하루 정산 항목 6종. `discipline.json` gains/losses 키와 1:1 대응한다
+ * (WORKORDER.md E-2 잔여 — "스탯 6종이 이미 쓰는 델타 틀" 재사용).
+ */
+export type DisciplineDeltaReason =
+  | "onTimeCompletion"
+  | "jointFlawless"
+  | "surpriseSuccess"
+  | "noInjuryDay"
+  | "optionalMissed"
+  | "npcProxy";
+
+export interface DisciplineDeltaEntry {
+  readonly reason: DisciplineDeltaReason;
+  readonly value: number;
+}
+
 export type SimEvent =
   /** 서버가 주입하는 시간. sim은 시계를 갖지 않는다. */
   | { readonly type: "tick"; readonly elapsedMs: number }
@@ -512,6 +529,13 @@ export type Effect =
       readonly from: number;
       readonly to: number;
       readonly band: string;
+      /**
+       * WORKORDER.md E-2 잔여 — 예전엔 최종값 한 줄만 나가 "왜 그렇게 됐는지"가
+       * 안 보였다(숨김의 원칙 위반). `applyDailyDiscipline`(discipline.ts)이 그날
+       * 정산에서 실제로 반영한 항목만 담는다 — 클램프(0~상한) **전** 규칙 수치라
+       * 합이 `to - from`과 다를 수 있다(항목은 맞고 총량은 상한이 깎은 것).
+       */
+      readonly deltas: readonly DisciplineDeltaEntry[];
     }
   | {
       readonly type: "conditionCritical";
