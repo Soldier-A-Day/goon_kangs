@@ -574,8 +574,14 @@ namespace SoldierADay.Net
 
         private void DrawMinimap(Snapshot snapshot)
         {
-            // 목업 실측: 220×220 @ (1652, 48) — 오른쪽 가장자리에서 잰다
-            var rect = new Rect(HudTheme.RightOf(1652f, 220f), 48f, 220f, 220f);
+            // 미니맵·수첩 요약을 우상단에 한 덩어리로 붙인다(§7.1.3+§7.1.4 재배치).
+            //
+            // 폭은 **수첩 쪽(280) 기준으로 통일했다** — 반대로 수첩을 미니맵 폭(220)에
+            // 맞추면 `DrawNotebookSummary`의 행이 라벨 120px + 값 140px 고정폭이라
+            // 220에서는 이미 여백 없이 겹치던 것이 더 잘려 보인다. 미니맵은 내용이
+            // `DrawSectorPlan`에서 컨테이너에 맞춰 자동으로 프레이밍되므로 넓혀도 안전하다.
+            // x는 기존 수첩과 같은 1592(오른쪽 끝 1872 = 1920 - SafeMargin 48)를 그대로 쓴다.
+            var rect = new Rect(HudTheme.RightOf(1592f, 280f), 48f, 280f, 220f);
             _theme.Fill(rect, HudTheme.Paper, 0.94f);
             _theme.Border(rect, HudTheme.Rule);
 
@@ -984,9 +990,21 @@ namespace SoldierADay.Net
 
         private void DrawNotebookSummary(Snapshot snapshot)
         {
-            // 목업 실측: 280×120 @ (1592, 640) — 오른쪽 가장자리에서 잰다
+            // 미니맵 바로 아래 붙인다(§7.1.3+§7.1.4). 폭 280은 `DrawMinimap`과
+            // 통일한 값 — 근거는 그쪽 주석 참고. x도 같은 RightOf(1592, 280)를 써서
+            // 오른쪽 변을 정확히 맞춘다.
+            //
+            // y는 더 이상 BottomOf(화면 아래 기준)로 재지 않는다 — 그러면 화면비가
+            // 바뀔 때 미니맵과 수첩이 서로 다른 기준(위/아래)으로 움직여 간격이
+            // 벌어지거나 겹칠 수 있다. 대신 미니맵 하단(48 + 220)에서 곧장 이어 붙인다.
+            //
+            // 간격 4px: 토스트 목록의 76-64=12px(따로 노는 항목들 간격)보다 좁게 잡아
+            // "각자인데 붙어 있다"가 아니라 "한 덩어리인데 두 판"으로 읽히게 한다.
+            const float minimapY = 48f;
+            const float minimapHeight = 220f;
+            const float panelGap = 4f;
             var rect = new Rect(HudTheme.RightOf(1592f, 280f),
-                                HudTheme.BottomOf(640f, 120f), 280f, 120f);
+                                minimapY + minimapHeight + panelGap, 280f, 120f);
 
             var counts = HudScreens.CountQuests(snapshot, client.MemberId);
             var left = counts.requiredTotal - counts.requiredDone;
