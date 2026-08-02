@@ -17,13 +17,14 @@ describe("ARCH-02 — 단일 정의에서 C#을 생성한다", () => {
     }
   });
 
-  it("의도 17종의 판별자가 전부 상수로 남는다", () => {
+  it("의도 19종의 판별자가 전부 상수로 남는다", () => {
     // 하달 창 조기 종료 신고(delegationDone)가 15번째로 늘었고, 이제 구제권을
-    // 발동형으로 바꾸며(B-4) useRelief · useOfficerRelief가 16 · 17번째로 늘었다
+    // 발동형으로 바꾸며(B-4) useRelief · useOfficerRelief가 늘고, B-2 rescue와
+    // B-3 quickPhrase가 같은 배치로 합류해 19종이 됐다
     // (packages/protocol/src/index.ts intentSchema)
     const intent = schemas.Intent;
     const variants = intent?.anyOf ?? intent?.oneOf ?? [];
-    expect(variants.length).toBe(17);
+    expect(variants.length).toBe(19);
 
     for (const variant of variants) {
       const literal = variant.properties?.type?.const;

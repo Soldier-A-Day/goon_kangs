@@ -118,6 +118,13 @@ namespace SoldierADay.Protocol
         public const string TR10 = "TR10";
     }
 
+    /// <summary>SnapshotMembersItemCrisisStat 이 가질 수 있는 값. 서버가 값을 추가해도 깨지지 않도록 enum이 아니라 상수로 둔다.</summary>
+    public static class SnapshotMembersItemCrisisStatValues
+    {
+        public const string Stamina = "stamina";
+        public const string Hydration = "hydration";
+    }
+
     /// <summary>SnapshotQuestsItemKind 이 가질 수 있는 값. 서버가 값을 추가해도 깨지지 않도록 enum이 아니라 상수로 둔다.</summary>
     public static class SnapshotQuestsItemKindValues
     {
@@ -239,6 +246,13 @@ namespace SoldierADay.Protocol
         public const string C = "C";
     }
 
+    /// <summary>SnapshotQuestsItemJointRolesItemRole 이 가질 수 있는 값. 서버가 값을 추가해도 깨지지 않도록 enum이 아니라 상수로 둔다.</summary>
+    public static class SnapshotQuestsItemJointRolesItemRoleValues
+    {
+        public const string Watch = "watch";
+        public const string Operate = "operate";
+    }
+
     /// <summary>SnapshotLastJudgementFailedAt 이 가질 수 있는 값. 서버가 값을 추가해도 깨지지 않도록 enum이 아니라 상수로 둔다.</summary>
     public static class SnapshotLastJudgementFailedAtValues
     {
@@ -274,9 +288,14 @@ namespace SoldierADay.Protocol
         public const string ConditionCritical = "conditionCritical";
         public const string HiddenUnlocked = "hiddenUnlocked";
         public const string RunEnded = "runEnded";
+        public const string CrisisStarted = "crisisStarted";
+        public const string CrisisRescued = "crisisRescued";
         public const string QuickCommand = "quickCommand";
+        public const string QuickPhrase = "quickPhrase";
         public const string Chat = "chat";
         public const string Log = "log";
+        public const string ReliefGranted = "reliefGranted";
+        public const string ReliefRefused = "reliefRefused";
     }
 
     /// <summary>ServerEventPhase 이 가질 수 있는 값. 서버가 값을 추가해도 깨지지 않도록 enum이 아니라 상수로 둔다.</summary>
@@ -412,6 +431,26 @@ namespace SoldierADay.Protocol
         public const string TR10 = "TR10";
     }
 
+    /// <summary>ServerEventPhrase 이 가질 수 있는 값. 서버가 값을 추가해도 깨지지 않도록 enum이 아니라 상수로 둔다.</summary>
+    public static class ServerEventPhraseValues
+    {
+        public const string Assist = "assist";
+        public const string GoingFirst = "goingFirst";
+        public const string Gather = "gather";
+        public const string Here = "here";
+        public const string Thanks = "thanks";
+        public const string ComingNow = "comingNow";
+        public const string Danger = "danger";
+        public const string WellDone = "wellDone";
+    }
+
+    /// <summary>ServerEventBy 이 가질 수 있는 값. 서버가 값을 추가해도 깨지지 않도록 enum이 아니라 상수로 둔다.</summary>
+    public static class ServerEventByValues
+    {
+        public const string Leader = "leader";
+        public const string Officer = "officer";
+    }
+
     /// <summary>ServerMessageType 이 가질 수 있는 값. 서버가 값을 추가해도 깨지지 않도록 enum이 아니라 상수로 둔다.</summary>
     public static class ServerMessageTypeValues
     {
@@ -539,6 +578,13 @@ namespace SoldierADay.Protocol
         public const string TR10 = "TR10";
     }
 
+    /// <summary>ServerMessageMembersItemCrisisStat 이 가질 수 있는 값. 서버가 값을 추가해도 깨지지 않도록 enum이 아니라 상수로 둔다.</summary>
+    public static class ServerMessageMembersItemCrisisStatValues
+    {
+        public const string Stamina = "stamina";
+        public const string Hydration = "hydration";
+    }
+
     /// <summary>ServerMessageQuestsItemKind 이 가질 수 있는 값. 서버가 값을 추가해도 깨지지 않도록 enum이 아니라 상수로 둔다.</summary>
     public static class ServerMessageQuestsItemKindValues
     {
@@ -660,6 +706,13 @@ namespace SoldierADay.Protocol
         public const string C = "C";
     }
 
+    /// <summary>ServerMessageQuestsItemJointRolesItemRole 이 가질 수 있는 값. 서버가 값을 추가해도 깨지지 않도록 enum이 아니라 상수로 둔다.</summary>
+    public static class ServerMessageQuestsItemJointRolesItemRoleValues
+    {
+        public const string Watch = "watch";
+        public const string Operate = "operate";
+    }
+
     /// <summary>ServerMessageLastJudgementFailedAt 이 가질 수 있는 값. 서버가 값을 추가해도 깨지지 않도록 enum이 아니라 상수로 둔다.</summary>
     public static class ServerMessageLastJudgementFailedAtValues
     {
@@ -695,9 +748,14 @@ namespace SoldierADay.Protocol
         public const string ConditionCritical = "conditionCritical";
         public const string HiddenUnlocked = "hiddenUnlocked";
         public const string RunEnded = "runEnded";
+        public const string CrisisStarted = "crisisStarted";
+        public const string CrisisRescued = "crisisRescued";
         public const string QuickCommand = "quickCommand";
+        public const string QuickPhrase = "quickPhrase";
         public const string Chat = "chat";
         public const string Log = "log";
+        public const string ReliefGranted = "reliefGranted";
+        public const string ReliefRefused = "reliefRefused";
     }
 
     /// <summary>ServerMessageItemsItemPhase 이 가질 수 있는 값. 서버가 값을 추가해도 깨지지 않도록 enum이 아니라 상수로 둔다.</summary>
@@ -833,6 +891,26 @@ namespace SoldierADay.Protocol
         public const string TR10 = "TR10";
     }
 
+    /// <summary>ServerMessageItemsItemPhrase 이 가질 수 있는 값. 서버가 값을 추가해도 깨지지 않도록 enum이 아니라 상수로 둔다.</summary>
+    public static class ServerMessageItemsItemPhraseValues
+    {
+        public const string Assist = "assist";
+        public const string GoingFirst = "goingFirst";
+        public const string Gather = "gather";
+        public const string Here = "here";
+        public const string Thanks = "thanks";
+        public const string ComingNow = "comingNow";
+        public const string Danger = "danger";
+        public const string WellDone = "wellDone";
+    }
+
+    /// <summary>ServerMessageItemsItemBy 이 가질 수 있는 값. 서버가 값을 추가해도 깨지지 않도록 enum이 아니라 상수로 둔다.</summary>
+    public static class ServerMessageItemsItemByValues
+    {
+        public const string Leader = "leader";
+        public const string Officer = "officer";
+    }
+
     /// <summary>LobbyStateSeatsItemRole 이 가질 수 있는 값. 서버가 값을 추가해도 깨지지 않도록 enum이 아니라 상수로 둔다.</summary>
     public static class LobbyStateSeatsItemRoleValues
     {
@@ -852,6 +930,7 @@ namespace SoldierADay.Protocol
         public const string JointStep = "jointStep";
         public const string Position = "position";
         public const string QuickCommand = "quickCommand";
+        public const string QuickPhrase = "quickPhrase";
         public const string Chat = "chat";
         public const string VoteSkip = "voteSkip";
         public const string DelegateChore = "delegateChore";
@@ -860,6 +939,9 @@ namespace SoldierADay.Protocol
         public const string LeaderReassign = "leaderReassign";
         public const string VoteLeader = "voteLeader";
         public const string FileClaim = "fileClaim";
+        public const string Rescue = "rescue";
+        public const string UseRelief = "useRelief";
+        public const string UseOfficerRelief = "useOfficerRelief";
     }
 
     /// <summary>IntentTo 이 가질 수 있는 값. 서버가 값을 추가해도 깨지지 않도록 enum이 아니라 상수로 둔다.</summary>
@@ -924,6 +1006,19 @@ namespace SoldierADay.Protocol
         public const string Hurry = "hurry";
     }
 
+    /// <summary>IntentPhrase 이 가질 수 있는 값. 서버가 값을 추가해도 깨지지 않도록 enum이 아니라 상수로 둔다.</summary>
+    public static class IntentPhraseValues
+    {
+        public const string Assist = "assist";
+        public const string GoingFirst = "goingFirst";
+        public const string Gather = "gather";
+        public const string Here = "here";
+        public const string Thanks = "thanks";
+        public const string ComingNow = "comingNow";
+        public const string Danger = "danger";
+        public const string WellDone = "wellDone";
+    }
+
     [Serializable]
     public class Snapshot
     {
@@ -940,6 +1035,8 @@ namespace SoldierADay.Protocol
         public string radio;
         public SnapshotSupply supply;
         public double reliefsRemaining;
+        public double leaderReliefsRemaining;
+        public double officerReliefsRemaining;
         public string leaderId;
         public SnapshotMembersItem[] members;
         public SnapshotQuestsItem[] quests;
@@ -1009,6 +1106,9 @@ namespace SoldierADay.Protocol
         public bool onGuardTonight;
         public double warmthRemainingMs;
         public bool frostbitten;
+        public string crisisStat;
+        public double crisisMsLeft;
+        public double rescueProgress;
         public double x;
         public double y;
     }
@@ -1045,6 +1145,7 @@ namespace SoldierADay.Protocol
         public string grade;
         public double jointTotal;
         public double jointDone;
+        public SnapshotQuestsItemJointRolesItem[] jointRoles;
     }
 
     [Serializable]
@@ -1143,6 +1244,13 @@ namespace SoldierADay.Protocol
     }
 
     [Serializable]
+    public class SnapshotQuestsItemJointRolesItem
+    {
+        public string memberId;
+        public string role;
+    }
+
+    [Serializable]
     public class SnapshotLastJudgement
     {
         public double day;
@@ -1214,15 +1322,29 @@ namespace SoldierADay.Protocol
         // 선택적 — variant에 따라 없을 수 있다
         public string status;
         // 선택적 — variant에 따라 없을 수 있다
+        public double crisisMs;
+        // 선택적 — variant에 따라 없을 수 있다
+        public string rescuerId;
+        // 선택적 — variant에 따라 없을 수 있다
         public string command;
         // 선택적 — variant에 따라 없을 수 있다
         public string zone;
+        // 선택적 — variant에 따라 없을 수 있다
+        public string phrase;
+        // 선택적 — variant에 따라 없을 수 있다
+        public bool auto;
         // 선택적 — variant에 따라 없을 수 있다
         public string text;
         // 선택적 — variant에 따라 없을 수 있다
         public bool viaRadio;
         // 선택적 — variant에 따라 없을 수 있다
         public string message;
+        // 선택적 — variant에 따라 없을 수 있다
+        public string by;
+        // 선택적 — variant에 따라 없을 수 있다
+        public double leaderReliefsRemaining;
+        // 선택적 — variant에 따라 없을 수 있다
+        public double officerReliefsRemaining;
     }
 
     [Serializable]
@@ -1278,6 +1400,10 @@ namespace SoldierADay.Protocol
         public ServerMessageSupply supply;
         // 선택적 — variant에 따라 없을 수 있다
         public double reliefsRemaining;
+        // 선택적 — variant에 따라 없을 수 있다
+        public double leaderReliefsRemaining;
+        // 선택적 — variant에 따라 없을 수 있다
+        public double officerReliefsRemaining;
         // 선택적 — variant에 따라 없을 수 있다
         public string leaderId;
         // 선택적 — variant에 따라 없을 수 있다
@@ -1364,6 +1490,9 @@ namespace SoldierADay.Protocol
         public bool onGuardTonight;
         public double warmthRemainingMs;
         public bool frostbitten;
+        public string crisisStat;
+        public double crisisMsLeft;
+        public double rescueProgress;
         public double x;
         public double y;
     }
@@ -1400,6 +1529,7 @@ namespace SoldierADay.Protocol
         public string grade;
         public double jointTotal;
         public double jointDone;
+        public ServerMessageQuestsItemJointRolesItem[] jointRoles;
     }
 
     [Serializable]
@@ -1498,6 +1628,13 @@ namespace SoldierADay.Protocol
     }
 
     [Serializable]
+    public class ServerMessageQuestsItemJointRolesItem
+    {
+        public string memberId;
+        public string role;
+    }
+
+    [Serializable]
     public class ServerMessageLastJudgement
     {
         public double day;
@@ -1569,15 +1706,29 @@ namespace SoldierADay.Protocol
         // 선택적 — variant에 따라 없을 수 있다
         public string status;
         // 선택적 — variant에 따라 없을 수 있다
+        public double crisisMs;
+        // 선택적 — variant에 따라 없을 수 있다
+        public string rescuerId;
+        // 선택적 — variant에 따라 없을 수 있다
         public string command;
         // 선택적 — variant에 따라 없을 수 있다
         public string zone;
+        // 선택적 — variant에 따라 없을 수 있다
+        public string phrase;
+        // 선택적 — variant에 따라 없을 수 있다
+        public bool auto;
         // 선택적 — variant에 따라 없을 수 있다
         public string text;
         // 선택적 — variant에 따라 없을 수 있다
         public bool viaRadio;
         // 선택적 — variant에 따라 없을 수 있다
         public string message;
+        // 선택적 — variant에 따라 없을 수 있다
+        public string by;
+        // 선택적 — variant에 따라 없을 수 있다
+        public double leaderReliefsRemaining;
+        // 선택적 — variant에 따라 없을 수 있다
+        public double officerReliefsRemaining;
     }
 
     [Serializable]
@@ -1635,6 +1786,8 @@ namespace SoldierADay.Protocol
         // 선택적 — variant에 따라 없을 수 있다
         public string command;
         // 선택적 — variant에 따라 없을 수 있다
+        public string phrase;
+        // 선택적 — variant에 따라 없을 수 있다
         public string text;
         // 선택적 — variant에 따라 없을 수 있다
         public string toId;
@@ -1642,5 +1795,7 @@ namespace SoldierADay.Protocol
         public string candidateId;
         // 선택적 — variant에 따라 없을 수 있다
         public string[] items;
+        // 선택적 — variant에 따라 없을 수 있다
+        public string targetId;
     }
 }
