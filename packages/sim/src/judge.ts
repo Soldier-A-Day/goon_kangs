@@ -18,6 +18,13 @@ export const PARTIAL_SUCCESS_RATIO = 0.7;
  * 구제권이며 총량은 3회다(분대장 우선순위 지정 2 + 간부 구제권 1) — 완주율 목표 15~25%에서
  * 역산한 값이므로 이 숫자를 바꾸면 10.0의 밸런스가 통째로 흔들린다.
  *
+ * **자동 상쇄는 없다(B-4).** 분대장 몫은 여기 닿기도 전에 이미 끝나 있다 —
+ * `relief.ts` `useRelief`가 판정보다 먼저 대상 퀘스트를 필수→선택으로 강등해
+ * shortfall 자체를 줄여 놓는다. 간부 몫만 이 함수가 직접 본다: 그날 저녁
+ * 개인정비에 발동됐는지(`state.officerReliefArmedToday`)를 읽고, 발동됐고
+ * 실제로 미달이 있을 때만 1건을 상쇄한다. 발동 여부를 "결정"하지는 않는다 —
+ * 결정은 `useOfficerRelief`의 몫이고, 여기는 그 결과만 반영한다.
+ *
  * 순수 함수다. 상태를 바꾸지 않고 판정만 계산한다.
  */
 export function judgeDay(state: RunState): Judgement {
@@ -26,8 +33,8 @@ export function judgeDay(state: RunState): Judgement {
   const shortfall = countShortfall(state);
 
   // 구제는 조건 A의 미완료 필수에만 쓴다 — 군기나 복장은 구제 대상이 아니다
-  const reliefsUsed = Math.min(shortfall, state.reliefsRemaining);
-  const conditionA = shortfall - reliefsUsed <= 0;
+  const officerReliefUsed = state.officerReliefArmedToday && shortfall > 0 ? 1 : 0;
+  const conditionA = shortfall - officerReliefUsed <= 0;
 
   const jointPassed = state.quests
     .filter((q) => q.kind === "joint")
@@ -56,8 +63,9 @@ export function judgeDay(state: RunState): Judgement {
     requiredDone,
     jointPassed,
     discipline: state.discipline,
-    // 판정이 실패로 끝나면 구제권은 소모되지 않는다 — 살리지 못한 구제는 쓰지 않은 것이다
-    reliefsUsed: failedAt === null ? reliefsUsed : 0,
+    // 판정이 실패로 끝나면 구제권은 소모되지 않는다 — 살리지 못한 구제는 쓰지 않은 것이다.
+    // (분대장 몫은 여기 잡히지 않는다 — 발동 시점에 이미 소모됐다)
+    reliefsUsed: failedAt === null ? officerReliefUsed : 0,
   };
 }
 
@@ -105,7 +113,11 @@ function firstFailure(results: Record<JudgementCondition, boolean>): JudgementCo
 export function applyJudgement(state: RunState, effects: Effect[]): void {
   const judgement = judgeDay(state);
   state.judgements.push(judgement);
-  state.reliefsRemaining -= judgement.reliefsUsed;
+  // 간부 몫만 여기서 뗀다 — 분대장 몫은 발동 시점(relief.ts useRelief)에 이미
+  // reliefsRemaining을 갱신해 놓았다. reliefsUsed가 0이면(발동 안 했거나, 발동했어도
+  // 그날 미달이 없었으면) 총량은 그대로다.
+  state.officerReliefsRemaining -= judgement.reliefsUsed;
+  state.reliefsRemaining = state.leaderReliefsRemaining + state.officerReliefsRemaining;
   // 차감을 먼저 반영한 뒤에 실어 보낸다 — 이펙트에는 반드시 판정 "후" 잔여만 나간다
   effects.push({ type: "dayJudged", judgement, reliefsRemaining: state.reliefsRemaining });
 

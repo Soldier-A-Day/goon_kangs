@@ -158,6 +158,18 @@ describe("META-02 엔딩 분기", () => {
     expect(resolveEnding(state).id).toBe("normal");
   });
 
+  it("B-4 — 분대장 우선순위 지정을 쓴 런도 모범 전역이 아니다", () => {
+    // 이 사용은 판정 기록(judgements[].reliefsUsed)에 안 남는다 — 발동 시점에
+    // 이미 소모돼 있기 때문이다. leaderReliefsRemaining을 안 보면 이 런이
+    // "구제 0회"로 잘못 인정된다
+    const state = cleared();
+    state.discipline = 85;
+    for (const member of state.members) member.rank = "sergeant";
+    state.leaderReliefsRemaining -= 1;
+
+    expect(resolveEnding(state).id).toBe("normal");
+  });
+
   it("경고가 있으면 간신히 전역", () => {
     const state = cleared();
     state.warnings = 1;

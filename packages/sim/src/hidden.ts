@@ -1,4 +1,5 @@
 import hiddenTable from "../data/hidden.json";
+import { LEADER_RELIEF_LIMIT } from "./relief.js";
 import { RANK_ORDER, type Effect, type Rank, type RunState } from "./types.js";
 
 export interface HiddenQuestDef {
@@ -101,7 +102,12 @@ export interface EndingResult {
 export function resolveEnding(state: RunState): EndingResult {
   const hiddenCount = state.hiddenUnlocked.length;
   const evacuations = state.members.reduce((sum, m) => sum + m.evacuations, 0);
-  const reliefsUsed = state.judgements.reduce((sum, j) => sum + j.reliefsUsed, 0);
+  // B-4 — `judgement.reliefsUsed`는 이제 간부 몫만 센다. 분대장 몫(우선순위 지정)은
+  // 판정 전에 이미 소모되므로 판정 기록에 안 남는다 — "구제 0회"를 참칭하지 않으려면
+  // leaderReliefsRemaining이 시작값 그대로인지도 같이 봐야 한다.
+  const officerReliefsUsed = state.judgements.reduce((sum, j) => sum + j.reliefsUsed, 0);
+  const leaderReliefsUsed = LEADER_RELIEF_LIMIT - state.leaderReliefsRemaining;
+  const reliefsUsed = officerReliefsUsed + leaderReliefsUsed;
   const trustTotal =
     state.trust.platoonLeader + state.trust.assistant + state.trust.sergeantMajor;
 

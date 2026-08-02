@@ -71,6 +71,8 @@ describe("스냅샷 스키마", () => {
     radio: "ok" as const,
     supply: { points: 12, isSupplyDay: false, pendingClaim: [] },
     reliefsRemaining: 3,
+    leaderReliefsRemaining: 2,
+    officerReliefsRemaining: 1,
     leaderId: null,
     members: [],
     quests: [],

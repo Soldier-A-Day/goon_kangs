@@ -485,6 +485,24 @@ namespace SoldierADay.Net
             _ => "하달이 거부됐다",
         };
 
+        /// <summary>
+        /// B-4 — 구제 발동 거부 사유 7종을 문구로. `packages/sim/src/relief.ts`의
+        /// `ReliefRefusal` enum과 순서·값을 맞춘다. 자동 상쇄를 걷어내며 새로 생긴
+        /// 침묵 판정 후보다 — 발동 버튼을 눌렀는데 왜 안 됐는지 말이 없으면
+        /// "썼는지도 몰랐다"가 "왜 안 되는지 몰랐다"로 이름만 바뀐다.
+        /// </summary>
+        public static string ReliefRefusalText(string reason) => reason switch
+        {
+            "notLeader" => "분대장만 발동할 수 있다",
+            "limitReached" => "이번 몫을 다 썼다",
+            "notEligibleQuest" => "봐줄 대상이 아니다 — 필수이고 아직 안 끝난 것만 된다",
+            "notPersonalPhase" => "저녁 개인정비 시간에만 발동할 수 있다",
+            "alreadyArmed" => "오늘은 이미 발동했다",
+            "trustTooLow" => "최고 신뢰도 간부도 아직 문턱에 못 미친다",
+            "unknownMember" => "대상을 찾을 수 없다",
+            _ => "구제가 거부됐다",
+        };
+
         public static string PhaseLabel(string phase) => phase switch
         {
             "reveille" => "기상 · 점검",

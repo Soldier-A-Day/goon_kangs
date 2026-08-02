@@ -10,8 +10,14 @@ import type { RunState } from "./types.js";
  * 곧장 `NaN`으로 굳혀 해금이 영영 안 열리는 조용한 손상이 된다 — "반쯤 맞는
  * 상태로 되살리는 것이 가장 나쁘다"는 원칙 그대로, 버전을 올려 옛 스냅샷은
  * 복구하지 않고 새로 시작하게 한다.
+ *
+ * 3 — B-4가 구제권을 자동 상쇄에서 발동형으로 바꾸며 `leaderReliefsRemaining`·
+ * `officerReliefsRemaining`·`officerReliefArmedToday`를 새 필수 필드로 추가했다.
+ * 옛 스냅샷을 그대로 복구하면 이 값들이 `undefined`가 되고, `relief.ts`의
+ * `-= 1`이 그걸 `NaN`으로 굳혀 구제 총량이 영영 계산 불가능해진다 — 이번에도
+ * 같은 원칙: 버전을 올려 옛 스냅샷은 복구하지 않는다.
  */
-export const SAVE_VERSION = 2;
+export const SAVE_VERSION = 3;
 
 export interface RunSave {
   readonly version: number;

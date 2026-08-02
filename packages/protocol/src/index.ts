@@ -125,6 +125,24 @@ export const delegationRefusalSchema = z.enum([
 ]);
 
 /**
+ * 10.0 B-4 — 구제 발동 거부 사유 7종 (`packages/sim/src/relief.ts` `ReliefRefusal`).
+ *
+ * 자동 상쇄가 사라진 자리를 발동형이 메우며 새로 생긴 침묵 판정 후보다 — 발동
+ * 버튼을 눌렀는데 왜 안 됐는지 화면이 말하지 못하면 "썼는지도 몰랐다"와 같은
+ * 신고가 "왜 안 되는지 몰랐다"로 이름만 바뀌어 돌아온다. 그래서 처음부터
+ * 이펙트(`reliefRefused`)에 실어 보낸다(E단계 원칙).
+ */
+export const reliefRefusalSchema = z.enum([
+  "notLeader",
+  "limitReached",
+  "notEligibleQuest",
+  "notPersonalPhase",
+  "alreadyArmed",
+  "trustTooLow",
+  "unknownMember",
+]);
+
+/**
  * 6.2 컨디션 붕괴 임계 3종 (`packages/sim/src/condition.ts` `raiseCriticals`).
  *
  * **예전에는 이 값도 서버에서 아예 버려졌다**(`services/gameserver/src/snapshot.ts`
@@ -298,6 +316,17 @@ export const intentSchema = z.discriminatedUnion("type", [
    * 신고만 보낸다.
    */
   z.object({ type: z.literal("rescue"), targetId: z.string(), active: z.boolean() }),
+  /**
+   * 10.0 B-4 — 분대장 우선순위 지정. 위기에 놓인 필수 퀘스트 1개를 필수→선택으로
+   * 봐준다. 분대장만 보낼 수 있고, 자격 검증은 sim이 한다(`relief.ts` useRelief).
+   */
+  z.object({ type: z.literal("useRelief"), questId: z.string() }),
+  /**
+   * 10.0 B-4 — 간부 구제 발동. 저녁 개인정비 시간에만 통하고, 신뢰도 최고
+   * 간부의 신뢰도가 문턱 이상이어야 한다 — 자격 검증은 sim이 한다
+   * (`relief.ts` useOfficerRelief).
+   */
+  z.object({ type: z.literal("useOfficerRelief") }),
 ]);
 export type Intent = z.infer<typeof intentSchema>;
 
@@ -608,7 +637,18 @@ export const snapshotSchema = z.object({
     /** 행정병이 제출해둔 청구서 */
     pendingClaim: z.array(z.string()),
   }),
+  /** 10.0 구제 총량 3회 — leaderReliefsRemaining + officerReliefsRemaining의 합. 화면 1차 표시용 */
   reliefsRemaining: z.number(),
+  /**
+   * 10.0 B-4 — 분대장 몫(런당 2). 판정 전 "우선순위 지정" 버튼을 켤지 말지는
+   * 이 값과 `leaderId === 내 memberId`로 클라가 결정한다.
+   */
+  leaderReliefsRemaining: z.number(),
+  /**
+   * 10.0 B-4 — 간부 몫(런당 1). 저녁 개인정비 화면의 "간부 구제" 버튼 노출 조건 중
+   * 하나다 — 나머지 조건(문턱 신뢰도)은 `trust`로 클라가 계산한다.
+   */
+  officerReliefsRemaining: z.number(),
   leaderId: z.string().nullable(),
   members: z.array(memberViewSchema),
   quests: z.array(questViewSchema),
@@ -635,7 +675,15 @@ export const serverEventSchema = z.discriminatedUnion("type", [
     day: z.number(),
     passed: z.boolean(),
     failedAt: z.enum(["A", "B", "C", "D"]).nullable(),
-    /** 이 판정에서 구제권을 몇 건 썼는가 — 0이면 구제 없이 통과했다는 뜻이다 */
+    /**
+     * 이 판정에서 구제권을 몇 건 썼는가 — 0이면 구제 없이 통과했다는 뜻이다.
+     *
+     * **폐기 표시(B-4)**: 자동 상쇄가 있던 시절에는 분대장·간부 몫을 합쳐 셌지만,
+     * 이제는 간부 몫만 여기 잡힌다 — 분대장 몫은 판정 전에 `reliefGranted`
+     * (`by: "leader"`)로 이미 통지가 나갔다. 화면이 "오늘 구제로 뭘 얼마나
+     * 썼는지" 전체 그림을 그리려면 그날의 `reliefGranted` 이펙트들과 이 값을
+     * 같이 봐야 한다.
+     */
     reliefsUsed: z.number(),
     /** 판정 **후** 남은 구제권. 0이면 다음 미달은 곧바로 런 종료다 */
     reliefsRemaining: z.number(),
@@ -746,6 +794,26 @@ export const serverEventSchema = z.discriminatedUnion("type", [
   }),
   z.object({ type: z.literal("chat"), memberId: z.string(), text: z.string(), viaRadio: z.boolean() }),
   z.object({ type: z.literal("log"), message: z.string() }),
+  /**
+   * 10.0 B-4 — 구제 발동 성공. `questId`는 분대장 구제일 때만 채워진다 — 간부
+   * 구제는 그날 전체에 걸리므로 대상 퀘스트가 없다(null).
+   */
+  z.object({
+    type: z.literal("reliefGranted"),
+    by: z.enum(["leader", "officer"]),
+    questId: z.string().nullable(),
+    leaderReliefsRemaining: z.number(),
+    officerReliefsRemaining: z.number(),
+  }),
+  /**
+   * 10.0 B-4 — 구제 발동 거부. 되살린 침묵 판정 — reason은 `reliefRefusalSchema` 7종
+   */
+  z.object({
+    type: z.literal("reliefRefused"),
+    by: z.enum(["leader", "officer"]),
+    reason: reliefRefusalSchema,
+    questId: z.string().nullable(),
+  }),
 ]);
 export type ServerEvent = z.infer<typeof serverEventSchema>;
 

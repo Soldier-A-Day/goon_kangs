@@ -1,6 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { judgeDay, step, type Quest, type RunState } from "../src/index.js";
-import { FULL_DAY, SECOND, beginDay, fullSquad, playDays, withQuests } from "./helpers.js";
+import {
+  LEADER_RELIEF_LIMIT,
+  OFFICER_RELIEF_LIMIT,
+  OFFICER_RELIEF_TRUST_THRESHOLD,
+  judgeDay,
+  step,
+  type Quest,
+  type RunState,
+} from "../src/index.js";
+import { FULL_DAY, SECOND, beginDay, fullSquad, playDays, toPhase, withQuests } from "./helpers.js";
 
 function quest(overrides: Partial<Quest> = {}): Quest {
   return {
@@ -93,42 +101,104 @@ describe("JDG-01 판정 조건", () => {
     const state = fullSquad();
     state.quests = [quest({ id: "a" })];
     state.discipline = 0;
-    state.reliefsRemaining = 0;
     expect(judgeDay(state).failedAt).toBe("A");
   });
 });
 
-describe("구제권 (총량 3회)", () => {
-  it("미완료 필수 1건은 구제로 메워지고 구제권이 하나 줄어든다", () => {
+/**
+ * B-4 — 구제권을 자동 상쇄에서 발동형으로.
+ *
+ * `relief.ts`(발동 자격·거부 사유)의 단위 테스트는 `relief.test.ts`에 있다. 여기서는
+ * judge.ts가 더 이상 스스로 아무것도 결정하지 않는다는 것 — 분대장 몫은 판정에
+ * 닿기도 전에 이미 끝나 있고, 간부 몫은 `officerReliefArmedToday`를 읽기만
+ * 한다는 것 — 을 검증한다.
+ */
+describe("구제권 (총량 3회 — 발동형)", () => {
+  it("자동 상쇄는 없다 — 아무도 발동하지 않으면 미완료 필수 1건도 런을 끝낸다", () => {
     let state = fullSquad();
-    state = playDay(state, [quest({ id: "a", status: "done" }), quest({ id: "b" })]);
-
-    expect(state.status).toBe("running");
-    expect(state.day).toBe(2);
-    expect(state.reliefsRemaining).toBe(2);
-    expect(state.judgements[0]?.reliefsUsed).toBe(1);
-  });
-
-  it("구제권이 없으면 필수 1건 미달로 런이 끝난다", () => {
-    let state = fullSquad();
-    state.reliefsRemaining = 0;
     state = playDay(state, [quest({ id: "a" })]);
 
     expect(state.status).toBe("discharged");
     expect(state.judgements[0]?.failedAt).toBe("A");
+    expect(state.judgements[0]?.reliefsUsed).toBe(0);
+    // 총량은 안 건드렸으니 그대로다 — 쓰지 않은 구제는 줄지 않는다
+    expect(state.reliefsRemaining).toBe(LEADER_RELIEF_LIMIT + OFFICER_RELIEF_LIMIT);
   });
 
-  it("구제로도 못 메우면 구제권을 소모하지 않는다", () => {
+  it("분대장이 판정 전에 필수를 봐주면 그 몫만큼 판정을 통과한다", () => {
+    let state = withQuests(beginDay(fullSquad()), [
+      quest({ id: "a", status: "done" }),
+      quest({ id: "b" }),
+    ]);
+    state.leaderId = "p1";
+    state = step(state, { type: "useRelief", leaderId: "p1", questId: "b" }).state;
+    state = step(state, { type: "tick", elapsedMs: FULL_DAY }).state;
+
+    expect(state.status).toBe("running");
+    expect(state.day).toBe(2);
+    expect(state.leaderReliefsRemaining).toBe(LEADER_RELIEF_LIMIT - 1);
+    expect(state.reliefsRemaining).toBe(LEADER_RELIEF_LIMIT - 1 + OFFICER_RELIEF_LIMIT);
+    // 분대장 몫은 발동 시점에 이미 소모됐다 — 판정의 reliefsUsed는 간부 몫만 잡는다
+    expect(state.judgements[0]?.reliefsUsed).toBe(0);
+  });
+
+  it("간부 구제가 저녁 개인정비에 발동되면 그날 미달 1건을 상쇄하고 총량이 준다", () => {
+    let state = withQuests(beginDay(fullSquad()), [
+      quest({ id: "a", status: "done" }),
+      quest({ id: "b" }),
+    ]);
+    state = toPhase(state, "personal");
+    state.trust.sergeantMajor = OFFICER_RELIEF_TRUST_THRESHOLD;
+
+    const granted = step(state, { type: "useOfficerRelief", memberId: "p1" });
+    expect(granted.effects.some((e) => e.type === "reliefGranted")).toBe(true);
+    state = granted.state;
+
+    state = step(state, { type: "skipPhase" }).state; // 개인정비 종료 → 점호 칸
+    state = step(state, { type: "skipPhase" }).state; // 점호 종료 → 판정
+
+    expect(state.status).toBe("running");
+    expect(state.day).toBe(2);
+    expect(state.officerReliefsRemaining).toBe(OFFICER_RELIEF_LIMIT - 1);
+    expect(state.reliefsRemaining).toBe(LEADER_RELIEF_LIMIT + OFFICER_RELIEF_LIMIT - 1);
+    expect(state.judgements[0]?.reliefsUsed).toBe(1);
+  });
+
+  it("간부 구제가 발동된 날은 조건 A의 미달 1건을 상쇄한다 (판정 순수 함수 단위)", () => {
     const state = fullSquad();
+    state.officerReliefArmedToday = true;
+    state.quests = [quest({ id: "a", status: "done" }), quest({ id: "b" })];
+
+    const judgement = judgeDay(state);
+    expect(judgement.passed).toBe(true);
+    expect(judgement.reliefsUsed).toBe(1);
+  });
+
+  it("발동됐어도 그날 미달이 없으면 소모되지 않는다", () => {
+    const state = fullSquad();
+    state.officerReliefArmedToday = true;
+    state.quests = [quest({ id: "a", status: "done" })];
+
+    const judgement = judgeDay(state);
+    expect(judgement.passed).toBe(true);
+    expect(judgement.reliefsUsed).toBe(0);
+  });
+
+  it("발동돼도 미달이 여러 건이면 판정은 실패하고 그 몫은 소모되지 않는다", () => {
+    const state = fullSquad();
+    state.officerReliefArmedToday = true;
     state.quests = [quest({ id: "a" }), quest({ id: "b" }), quest({ id: "c" }), quest({ id: "d" })];
+
     const judgement = judgeDay(state);
     expect(judgement.passed).toBe(false);
     expect(judgement.reliefsUsed).toBe(0);
   });
 
-  it("구제는 조건 A에만 쓰이고 군기는 구제하지 못한다", () => {
+  it("간부 구제는 조건 A에만 쓰이고 군기는 구제하지 못한다", () => {
     const state = fullSquad();
+    state.officerReliefArmedToday = true;
     state.discipline = 10;
+
     expect(judgeDay(state).failedAt).toBe("C");
     expect(judgeDay(state).reliefsUsed).toBe(0);
   });
@@ -137,14 +207,12 @@ describe("구제권 (총량 3회)", () => {
 describe("난이도", () => {
   it("정규 — 1회 미달로 즉시 종료된다", () => {
     let state = fullSquad({ config: { difficulty: "regular" } });
-    state.reliefsRemaining = 0;
     state = playDay(state, [quest({ id: "a" })]);
     expect(state.status).toBe("discharged");
   });
 
   it("완화 — 1차는 경고, 3차에 종료된다", () => {
     let state = fullSquad({ config: { difficulty: "relaxed" } });
-    state.reliefsRemaining = 0;
 
     state = playDay(state, [quest({ id: "a" })]);
     expect(state.status).toBe("running");
@@ -163,7 +231,6 @@ describe("난이도", () => {
 describe("런 종료", () => {
   it("완화 난이도라도 마지막 날 판정을 놓치면 전역하지 못한다", () => {
     let state = fullSquad({ config: { difficulty: "relaxed" } });
-    state.reliefsRemaining = 0;
     state.day = 18;
     state = playDay(state, [quest({ id: "a" })]);
 
@@ -196,7 +263,6 @@ describe("런 종료", () => {
 
   it("런이 끝난 뒤의 이벤트는 상태를 바꾸지 않는다", () => {
     let state = fullSquad();
-    state.reliefsRemaining = 0;
     state = playDay(state, [quest({ id: "a" })]);
 
     const after = step(state, { type: "tick", elapsedMs: FULL_DAY }).state;

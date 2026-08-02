@@ -348,6 +348,25 @@ namespace SoldierADay.Net
                 $"D-{snapshot.day:00} · {HudTheme.PhaseLabel(snapshot.phase?.id)} · " +
                 $"잔여 {Remaining(snapshot)} · 구제권 {snapshot.reliefsRemaining:0}장");
 
+            // B-4 — 간부 구제. 저녁 개인정비 시간에만, 몫이 남아 있을 때만 뜬다.
+            // 신뢰도 문턱은 여기서 재보지 않는다 — 클라가 sim의 OFFICER_RELIEF_TRUST_THRESHOLD를
+            // 다시 베끼면 값이 어긋날 여지가 생긴다. 자격 없이 눌러도 서버가
+            // reliefRefused(trustTooLow)로 돌려주고 Hud.cs 토스트가 이유를 말한다.
+            if (snapshot != null && snapshot.phase?.id == "personal" && snapshot.officerReliefsRemaining > 0d)
+            {
+                var officer = new Rect(panel.xMax - 500f, panel.y + 16f, 210f, 32f);
+                theme.Fill(officer, HudTheme.Paper);
+                theme.Border(officer, HudTheme.Heat, 2f);
+                GUI.Label(officer, $"간부 구제 발동 ({snapshot.officerReliefsRemaining:0}장)",
+                    theme.At(theme.Small, 14, HudTheme.Heat, TextAnchor.MiddleCenter));
+
+                if (Event.current.type == EventType.MouseDown && officer.Contains(Event.current.mousePosition))
+                {
+                    Client.Send(new Intent { type = IntentTypeValues.UseOfficerRelief });
+                    Event.current.Use();
+                }
+            }
+
             // §7.2 "남은 필수 카운터 — 헤더 우측, 72px 초대형 숫자"
             var counter = new Rect(panel.xMax - 164f, panel.y + 14f, 132f, 58f);
             var counterColor = left == 0 ? HudTheme.Accent : left <= 2 ? HudTheme.Ink : HudTheme.Alert;
@@ -677,6 +696,30 @@ namespace SoldierADay.Net
                 {
                     theme.Bar(new Rect(row.x + 36f, row.yMax - 6f, 300f, 6f),
                         (float)quest.progress, HudTheme.Heat);
+                }
+
+                // B-4 — 분대장 우선순위 지정. "내 필수"에만 붙는다 — 판정 전에
+                // 미완료 필수를 골라 필수→선택으로 봐주는 결단이라, 이미 끝났거나
+                // (closed) 몫이 없으면 버튼을 아예 지운다. 자격·대상 검증은
+                // 서버(sim relief.ts useRelief)가 한다 — 여기서는 뻔한 경우만
+                // 미리 거른다. 거부는 서버가 이펙트로 돌려주면 Hud.cs 토스트가 말한다.
+                if (title == "내 필수" && !closed && snapshot != null &&
+                    Client.MemberId == snapshot.leaderId && snapshot.leaderReliefsRemaining > 0d)
+                {
+                    // 구역 이름표(xMax-220) 왼쪽 여백에 끼운다 — 목록 폭이 좁아서
+                    // 새 열을 만들 자리가 없다. minActors 배지(x+340)와도 겹치지 않는다:
+                    // "내 필수"는 개인 소유 필수만 모으므로(합동은 required가 항상 false다)
+                    // 실전에서 두 요소가 같은 줄에 같이 뜨는 경우가 없다.
+                    var relief = new Rect(row.xMax - 336f, row.y + 6f, 108f, 28f);
+                    theme.Fill(relief, HudTheme.Paper);
+                    theme.Border(relief, HudTheme.Heat);
+                    GUI.Label(relief, "구제 발동", theme.At(theme.Small, 13, HudTheme.Heat, TextAnchor.MiddleCenter));
+
+                    if (Event.current.type == EventType.MouseDown && relief.Contains(Event.current.mousePosition))
+                    {
+                        Client.Send(new Intent { type = IntentTypeValues.UseRelief, questId = quest.id });
+                        Event.current.Use();
+                    }
                 }
 
                 GUI.color = previous;
@@ -1407,7 +1450,13 @@ namespace SoldierADay.Net
 
             // 구제권은 조건 A에만 붙는다(judge.ts) — 통과했어도 대가를 치른 통과라
             // 초록(Accent)으로 두면 "다 잘했다"로 읽힌다. 주황(Heat)으로 구분하고,
-            // 그마저 다 썼으면(reliefsRemaining == 0) 실패색(Alert)까지 끌어와 강하게 읽히게 한다
+            // 그마저 다 썼으면(reliefsRemaining == 0) 실패색(Alert)까지 끌어와 강하게 읽히게 한다.
+            //
+            // B-4 — 자동 상쇄가 사라지며 `reliefsUsed`의 뜻이 바뀌었다: 이제 여기 잡히는
+            // 것은 **간부 구제가 저녁에 발동됐고 그 상쇄가 실제로 통과를 만들어낸 경우**
+            // 뿐이다. 분대장 우선순위 지정은 판정보다 먼저 끝나 있어서(퀘스트가 이미
+            // 필수→선택이 된 채로 들어온다) 여기 줄에 잡히지 않는다 — 그 결단은
+            // 발동 그 순간의 토스트(Hud.cs OnEvent reliefGranted)가 이미 말했다.
             var reliefsUsed = _judgement.reliefsUsed;
             var reliefsRemaining = _judgement.reliefsRemaining;
             var reliefExhausted = !failed && reliefsUsed > 0d && reliefsRemaining <= 0d;
@@ -1452,12 +1501,13 @@ namespace SoldierADay.Net
 
                     if (isReliefRow)
                     {
-                        // 구제권을 몇 장 썼고 몇 장 남았는지 — 다 소진했으면 다음 미달이
-                        // 곧 런의 끝이라는 것까지 이 줄에서 못 박는다
+                        // B-4 — "자동으로 메워졌다"가 아니라 "간부가 발동했다"로 읽히게
+                        // 문구를 갱신한다. 다 소진했으면 다음 미달이 곧 런의 끝이라는
+                        // 것까지 이 줄에서 못 박는다
                         GUI.Label(new Rect(row.x + 72f, row.y + baseHeight, 1040f, noteHeight),
                             reliefExhausted
-                                ? $"구제권 {reliefsUsed:0}장 사용 — 구제 소진, 다음 미달은 즉시 퇴소"
-                                : $"구제권 {reliefsUsed:0}장 사용 (남은 구제 {reliefsRemaining:0})",
+                                ? "간부 구제 발동 — 미달 1건 상쇄, 구제 소진 — 다음 미달은 즉시 퇴소"
+                                : $"간부 구제 발동 — 미달 1건 상쇄 (총 잔여 구제 {reliefsRemaining:0}장)",
                             theme.At(theme.Small, 14, reliefTone));
                     }
                 }
