@@ -12,6 +12,14 @@ namespace SoldierADay.Net
     ///
     /// 어긋남은 한 자리 차이로 만든다. 무기고 재물 조사가 "숫자 한 자리 차이"인
     /// 것이 설계안의 지시이고, 그래야 대조가 훑기가 아니라 읽기가 된다.
+    ///
+    /// ── 약 12%는 깨끗한 판이다 ────────────────────────────────────────────
+    /// 예전에는 어긋난 줄이 판마다 반드시 있었다. 그러면 "정말 이상이 없는가"라는
+    /// 질문 자체가 없어진다 — 찾을 때까지 찍으면 언젠가는 맞는다. `Papers,
+    /// Please` 계열의 진짜 긴장은 "없다"고 스스로 판단해 서명하는 순간에 있다.
+    /// 그래서 시드 고정 `Rng`로 약 12% 확률로 mismatch 0건인 판을 만들고, 그
+    /// 판에도 "이상 없음 보고" 버튼을 상시 둔다(깨끗한 판에만 버튼을 두면 버튼의
+    /// 존재 자체가 답을 누설한다 — §과업 2).
     /// </summary>
     public sealed class AuditBoard : Board
     {
@@ -25,7 +33,12 @@ namespace SoldierADay.Net
             public bool Wrong;
         }
 
+        /// <summary>"이상 없음 보고" 버튼 한 줄 높이 + 위아래 여백</summary>
+        private const float ReportAreaH = 52f;
+        private const float ReportBtnH = 40f;
+
         private Row[] _rows;
+        private bool _clean;
         private int _found;
         private int _need;
         private int _strikes;
@@ -33,19 +46,28 @@ namespace SoldierADay.Net
         private int _columns = 1;
         private Rect _area;
 
-        public override string Instruction => "대장과 다른 줄을 찍어라";
+        public override string Instruction =>
+            "대장과 다른 줄을 찍어라 — 정말 없으면 '이상 없음'";
 
+        // **총수는 어디에도 새지 않는다.** 예전 `적발 {_found}/{_need}`는 어긋난
+        // 판에서도 목표 총수를 미리 알려줬다 — 그러면 다 찾기 전에도 "몇 개
+        // 남았다"가 세어져서 깨끗한 판과 구분이 됐다. 깨끗한 판·어긋난 판이
+        // 화면에서 똑같이 보이도록 목표 수는 빼고 지금까지 찍은 수만 보여준다.
         public override string Status =>
-            $"적발 {_found}/{_need}  ·  오답 {_strikes}/{_limit}";
+            $"적발 {_found}  ·  오답 {_strikes}/{_limit}";
 
         protected override void Setup()
         {
             var count = Mathf.Clamp(ParamInt("entries", 12), 4, 20);
-            _need = Mathf.Clamp(ParamInt("mismatches", 3), 1, count);
             _limit = Mathf.Max(1, ParamInt("strikes", 3));
             _found = 0;
             _strikes = 0;
             _columns = count > 10 ? 2 : 1;
+
+            // 깨끗한 판인지 먼저 굴린다 — 같은 questId는 재시도에도 같은 값이
+            // 나온다(`Rng`가 questId로 시드 고정된 것을 `Board.Begin`이 보장한다).
+            _clean = Rng.NextDouble() < 0.12;
+            _need = _clean ? 0 : Mathf.Clamp(ParamInt("mismatches", 3), 1, count);
 
             _rows = new Row[count];
             for (var i = 0; i < count; i += 1)
@@ -59,7 +81,7 @@ namespace SoldierADay.Net
                 };
             }
 
-            // 어긋난 줄을 고른다
+            // 어긋난 줄을 고른다 (`_need`가 0이면, 즉 깨끗한 판이면 그냥 안 돈다)
             var picked = 0;
             while (picked < _need)
             {
@@ -113,20 +135,43 @@ namespace SoldierADay.Net
                 if (_strikes >= _limit) Fail();
                 return;
             }
+
+            // "이상 없음 보고" — 깨끗한 판이면 정답, 어긋남이 남아 있으면 오답
+            // 1회다(줄을 잘못 짚은 것과 같은 대가). 버튼과 줄은 영역이 겹치지
+            // 않으니 순서는 상관없다(§과업 5) — 위 줄 순회에서 못 맞았을 때만 온다
+            if (!ReportRect().Contains(input.Mouse)) return;
+
+            if (_clean)
+            {
+                Fill = 1f;
+                Clear();
+                return;
+            }
+
+            _strikes += 1;
+            Miss();
+            if (_strikes >= _limit) Fail();
         }
 
+        /// <summary>줄 영역. 하단 `ReportAreaH`만큼은 버튼 몫이라 여기서 뺀다</summary>
         private Rect RowRect(int index)
         {
             var perColumn = Mathf.CeilToInt((float)_rows.Length / _columns);
             var column = index / perColumn;
             var line = index % perColumn;
             var width = _area.width / _columns;
-            var height = Mathf.Min(34f, _area.height / perColumn);
+            var rowsHeight = Mathf.Max(0f, _area.height - ReportAreaH);
+            var height = Mathf.Min(34f, rowsHeight / perColumn);
             return new Rect(_area.x + column * width + 6f,
                             _area.y + line * height,
                             width - 12f,
                             height - 3f);
         }
+
+        /// <summary>판 하단에 상시 고정된 "이상 없음 보고" 버튼 자리</summary>
+        private Rect ReportRect() =>
+            new Rect(_area.x + 6f, _area.yMax - ReportBtnH - 6f,
+                     _area.width - 12f, ReportBtnH);
 
         public override void Draw(HudTheme theme, Rect body)
         {
@@ -172,7 +217,25 @@ namespace SoldierADay.Net
                 }
             }
 
+            DrawReportButton(theme);
             theme.Border(body, HudTheme.Rule);
+        }
+
+        /// <summary>
+        /// "이상 없음 보고" 버튼. 깨끗한 판에만 그리면 버튼의 존재 자체가
+        /// 답을 누설하므로 전 판에 똑같이 그린다. 마우스는 여기서 직접
+        /// 읽는다 — `HudMinigame`의 결과창 버튼(`Retry`·`Quit`)과 같은
+        /// 방식이다. 실제 클릭 판정은 `Advance`가 `input.Pressed`로 한다.
+        /// </summary>
+        private void DrawReportButton(HudTheme theme)
+        {
+            var rect = ReportRect();
+            var hot = rect.Contains(BoardInput.Read().Mouse);
+            theme.Fill(rect, hot ? HudTheme.AccentW : HudTheme.Paper3);
+            theme.Border(rect, hot ? HudTheme.Accent : HudTheme.Rule3);
+            GUI.Label(rect, "이상 없음 보고",
+                theme.At(theme.Body, 16, hot ? HudTheme.Accent : HudTheme.Ink2,
+                    TextAnchor.MiddleCenter));
         }
     }
 }
