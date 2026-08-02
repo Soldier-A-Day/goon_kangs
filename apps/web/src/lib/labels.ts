@@ -125,6 +125,8 @@ export const KIND_LABELS: Record<QuestKind, string> = {
   joint: "합동",
   surprise: "돌발",
   hidden: "히든",
+  /** 7.0 회복 행동 — 밥·물·세면. 일과가 아니라서 판정에도 복무 점수에도 안 들어간다 */
+  care: "회복",
 };
 
 /** 온도 밴드는 색 외에 아이콘·텍스트로도 구분한다 — 색각 이상 대응 (15.0 접근성) */
