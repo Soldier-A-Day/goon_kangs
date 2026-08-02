@@ -164,11 +164,30 @@ namespace SoldierADay.Net
             // 한 원형을 여러 배치로 훑어봐야 파라미터가 맞는지 감이 온다
             _board = Boards.Open(spec, limit, $"lab:{type}:{_difficulty}:{_seed}");
             _awaitingResult = true;
+            _started = false;
         }
+
+        /// <summary>
+        /// 첫 입력 전에는 판이 흐르지 않는다.
+        ///
+        /// 판은 열리는 순간부터 제한 시간을 세는데, 실험대에서는 목록을 훑고
+        /// 지시문을 읽는 시간이 그 위에 얹힌다 — 배치 판(제한 14초)은 읽는
+        /// 동안 죽어서 "클릭이 안 된다"로 보였다. 계기 유지에서 잡은 것과
+        /// 같은 병을 판마다 고치는 대신 실험대가 한 번에 막는다.
+        /// 실전은 E를 눌러 여는 순간이 곧 시작 의지라 이 문제가 없다.
+        /// </summary>
+        private static bool _started;
 
         private static void TickBoard()
         {
             if (_board == null) return;
+
+            if (!_started)
+            {
+                if (Input.GetMouseButtonDown(0) || Input.GetKeyDown(KeyCode.Space))
+                    _started = true;
+                else return;
+            }
 
             if (_board.State != BoardState.Running)
             {
@@ -451,6 +470,15 @@ namespace SoldierADay.Net
                 _board.Instruction, theme.At(theme.Small, 15, HudTheme.Ink));
             GUI.Label(new Rect(area.x + 10f, footY + 22f, area.width - 20f, 20f),
                 _board.Status, theme.At(theme.Label, 13, HudTheme.Ink3));
+
+            if (!_started && _board.State == BoardState.Running)
+            {
+                var ready = new Rect(area.center.x - 180f, area.center.y - 28f, 360f, 56f);
+                theme.Fill(ready, HudTheme.Paper, 0.95f);
+                theme.Border(ready, HudTheme.Accent, 2f);
+                GUI.Label(ready, "클릭하면 시작 — 시간은 그때부터 흐른다",
+                    theme.At(theme.Heading, 18, HudTheme.Accent, TextAnchor.MiddleCenter));
+            }
 
             if (_board.State != BoardState.Running)
             {
