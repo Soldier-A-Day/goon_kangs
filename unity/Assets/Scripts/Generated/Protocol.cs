@@ -224,6 +224,8 @@ namespace SoldierADay.Protocol
         public const string TRACK = "TRACK";
         public const string SEARCH = "SEARCH";
         public const string REACT = "REACT";
+        public const string STILL = "STILL";
+        public const string DODGE = "DODGE";
         public const string RANDOM = "RANDOM";
     }
 
@@ -244,6 +246,8 @@ namespace SoldierADay.Protocol
         public const string TRACK = "TRACK";
         public const string SEARCH = "SEARCH";
         public const string REACT = "REACT";
+        public const string STILL = "STILL";
+        public const string DODGE = "DODGE";
         public const string RANDOM = "RANDOM";
     }
 
@@ -396,6 +400,7 @@ namespace SoldierADay.Protocol
         public const string ReceiverLimit = "receiverLimit";
         public const string AlreadyDelegated = "alreadyDelegated";
         public const string UnknownMember = "unknownMember";
+        public const string ReceiverRookie = "receiverRookie";
     }
 
     /// <summary>ServerEventStat 이 가질 수 있는 값. 서버가 값을 추가해도 깨지지 않도록 enum이 아니라 상수로 둔다.</summary>
@@ -713,6 +718,8 @@ namespace SoldierADay.Protocol
         public const string TRACK = "TRACK";
         public const string SEARCH = "SEARCH";
         public const string REACT = "REACT";
+        public const string STILL = "STILL";
+        public const string DODGE = "DODGE";
         public const string RANDOM = "RANDOM";
     }
 
@@ -733,6 +740,8 @@ namespace SoldierADay.Protocol
         public const string TRACK = "TRACK";
         public const string SEARCH = "SEARCH";
         public const string REACT = "REACT";
+        public const string STILL = "STILL";
+        public const string DODGE = "DODGE";
         public const string RANDOM = "RANDOM";
     }
 
@@ -885,6 +894,7 @@ namespace SoldierADay.Protocol
         public const string ReceiverLimit = "receiverLimit";
         public const string AlreadyDelegated = "alreadyDelegated";
         public const string UnknownMember = "unknownMember";
+        public const string ReceiverRookie = "receiverRookie";
     }
 
     /// <summary>ServerMessageItemsItemStat 이 가질 수 있는 값. 서버가 값을 추가해도 깨지지 않도록 enum이 아니라 상수로 둔다.</summary>
@@ -1096,6 +1106,7 @@ namespace SoldierADay.Protocol
         public double reliefsRemaining;
         public double leaderReliefsRemaining;
         public double officerReliefsRemaining;
+        public double hygieneFloor;
         public string leaderId;
         public SnapshotMembersItem[] members;
         public SnapshotQuestsItem[] quests;
@@ -1497,6 +1508,8 @@ namespace SoldierADay.Protocol
         public double leaderReliefsRemaining;
         // 선택적 — variant에 따라 없을 수 있다
         public double officerReliefsRemaining;
+        // 선택적 — variant에 따라 없을 수 있다
+        public double hygieneFloor;
         // 선택적 — variant에 따라 없을 수 있다
         public string leaderId;
         // 선택적 — variant에 따라 없을 수 있다
