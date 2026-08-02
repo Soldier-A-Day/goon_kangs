@@ -1,6 +1,13 @@
 import { humanCount } from "./run.js";
-import { hasRequiredGear } from "./supply.js";
-import type { Effect, Judgement, JudgementCondition, Quest, RunState } from "./types.js";
+import { hasRequiredGear, missingGear } from "./supply.js";
+import type {
+  ConditionBreach,
+  Effect,
+  Judgement,
+  JudgementCondition,
+  Quest,
+  RunState,
+} from "./types.js";
 
 /** 10.0 조건 C — 분대 군기 하한 */
 export const DISCIPLINE_FLOOR = 40;
@@ -100,6 +107,90 @@ function firstFailure(results: Record<JudgementCondition, boolean>): JudgementCo
 }
 
 /**
+ * `condition`이 오늘 결정타로 지목된 근거 수치를 짚는다. 판정을 다시 계산하지 않고
+ * `applyJudgement`가 이미 확정한 `failedAt`을 옆에서 설명만 한다(C-1) — 이 함수가
+ * 반환하는 값은 어떤 판정도 바꾸지 않는다.
+ */
+function describeBreach(
+  state: RunState,
+  condition: JudgementCondition,
+): Omit<ConditionBreach, "day" | "condition"> {
+  switch (condition) {
+    case "A": {
+      const required = state.quests.filter((q) => q.required);
+      const pending = required.find((q) => q.status !== "done");
+      return {
+        value: required.filter((q) => q.status === "done").length,
+        threshold: required.length,
+        memberId: pending?.ownerId ?? null,
+        memberName: memberName(state, pending?.ownerId ?? null),
+        questLabel: pending?.label ?? null,
+      };
+    }
+
+    case "B": {
+      const joint = state.quests.filter((q) => q.kind === "joint");
+      const uncleared = joint.find((q) => !isJointCleared(q));
+      return {
+        value: joint.filter((q) => isJointCleared(q)).length,
+        threshold: joint.length,
+        memberId: null,
+        memberName: null,
+        questLabel: uncleared?.label ?? null,
+      };
+    }
+
+    case "C":
+      return {
+        value: Math.round(state.discipline),
+        threshold: DISCIPLINE_FLOOR,
+        memberId: null,
+        memberName: null,
+        questLabel: null,
+      };
+
+    case "D": {
+      const target = state.members.find(
+        (m) =>
+          m.presence === "player" &&
+          (m.stats.hygiene < HYGIENE_FLOOR || !hasRequiredGear(m, state.weather.band)),
+      );
+      if (!target) {
+        return { value: 0, threshold: HYGIENE_FLOOR, memberId: null, memberName: null, questLabel: null };
+      }
+
+      const hygieneShort = target.stats.hygiene < HYGIENE_FLOOR;
+      // 위생 미달이면 그날 세면류 회복 행동을 안 했는지를 함께 짚는다 — 판정 규칙이
+      // 아니라 "무엇을 안 했길래 이렇게 됐나"를 보여주는 부가 정보다
+      const careUndone = hygieneShort
+        ? state.quests.find(
+            (q) =>
+              q.kind === "care" &&
+              q.ownerId === target.id &&
+              q.label.includes("세면") &&
+              q.status !== "done",
+          )
+        : undefined;
+
+      return {
+        value: hygieneShort
+          ? Math.round(target.stats.hygiene)
+          : missingGear(target, state.weather.band).length,
+        threshold: hygieneShort ? HYGIENE_FLOOR : 0,
+        memberId: target.id,
+        memberName: target.name,
+        questLabel: careUndone?.label ?? null,
+      };
+    }
+  }
+}
+
+function memberName(state: RunState, memberId: string | null): string | null {
+  if (!memberId) return null;
+  return state.members.find((m) => m.id === memberId)?.name ?? null;
+}
+
+/**
  * 판정 결과를 런에 반영한다. 하루 마감(step.ts endDay)에서만 호출된다.
  */
 export function applyJudgement(state: RunState, effects: Effect[]): void {
@@ -108,6 +199,17 @@ export function applyJudgement(state: RunState, effects: Effect[]): void {
   state.reliefsRemaining -= judgement.reliefsUsed;
   // 차감을 먼저 반영한 뒤에 실어 보낸다 — 이펙트에는 반드시 판정 "후" 잔여만 나간다
   effects.push({ type: "dayJudged", judgement, reliefsRemaining: state.reliefsRemaining });
+
+  // C-1 — 이 조건이 "그날의 결정타"로 처음 지목된 순간만 남긴다. 구제·경고로
+  // 그날은 살아남아도 지우지 않는다 — 나중에 같은 조건으로 런이 끝나면
+  // "이게 며칠 전부터 문제였다"를 말할 수 있어야 한다.
+  if (judgement.failedAt !== null && !state.firstConditionBreach[judgement.failedAt]) {
+    state.firstConditionBreach[judgement.failedAt] = {
+      day: state.day,
+      condition: judgement.failedAt,
+      ...describeBreach(state, judgement.failedAt),
+    };
+  }
 
   if (judgement.passed) {
     if (state.day >= state.config.totalDays) {

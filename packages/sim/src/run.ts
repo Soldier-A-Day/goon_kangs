@@ -113,6 +113,7 @@ export function createRun(options: CreateRunOptions): RunState {
     hiddenUnlocked: [],
     jointProxyMs: 0,
     judgements: [],
+    firstConditionBreach: {},
   };
 }
 

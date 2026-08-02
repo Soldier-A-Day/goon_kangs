@@ -307,6 +307,25 @@ export interface Judgement {
   readonly reliefsUsed: number;
 }
 
+/**
+ * 조건 A~D 중 하나가 "그날의 결정타"로 지목된 순간의 수치 스냅샷 (C-1).
+ *
+ * 판정 규칙(`judgeDay`)은 그대로 두고 결과를 옆에서 받아 적기만 한다 — 다음 판 전략을
+ * 세우려면 "무엇이 부족했는가"뿐 아니라 "얼마나·누가·언제부터"가 필요하다.
+ */
+export interface ConditionBreach {
+  readonly day: number;
+  readonly condition: JudgementCondition;
+  /** 조건마다 다른 실측치 — A/B는 완료 건수, C는 군기, D는 위생(또는 미보유 장비 수) */
+  readonly value: number;
+  /** value가 넘거나 못 미쳐야 하는 기준선 */
+  readonly threshold: number;
+  readonly memberId: string | null;
+  readonly memberName: string | null;
+  /** 결정타와 엮인 일과 — A는 미완료 필수, B는 미달 합동, D는 그날 안 한 세면류 회복 행동 */
+  readonly questLabel: string | null;
+}
+
 /* -------------------------------------------------------------------- 런 */
 
 export type Difficulty = "regular" | "relaxed";
@@ -412,6 +431,13 @@ export interface RunState {
   jointProxyMs: number;
 
   judgements: Judgement[];
+  /**
+   * 조건 A~D가 처음으로 "그날의 결정타"로 지목된 순간을 조건별로 하나씩만 쥔다 (C-1).
+   *
+   * 구제·경고로 그날은 살아남아도 기록은 지우지 않는다 — 런이 결국 같은 조건으로
+   * 끝나면 퇴소 화면이 "이게 며칠 전부터 문제였다"를 말할 수 있어야 한다.
+   */
+  firstConditionBreach: Partial<Record<JudgementCondition, ConditionBreach>>;
 }
 
 /* ---------------------------------------------------------- 이벤트 / 결과 */

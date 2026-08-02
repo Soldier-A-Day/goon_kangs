@@ -539,6 +539,35 @@ export const snapshotSchema = z.object({
       requiredTotal: z.number(),
     })
     .nullable(),
+  /**
+   * C-1 — 조건 A~D 중 하나가 "그날의 결정타"로 **처음** 지목된 순간의 수치.
+   *
+   * `lastJudgement.failedAt`이 마지막 날의 실패 원인만 보여주는 데 비해, 이쪽은
+   * 그 원인이 **언제부터** 문제였는지를 짚는다 — 구제·경고로 살아남은 이전 날도
+   * 포함해서 최초 발생일을 고정한다(`packages/sim/src/judge.ts` `firstConditionBreach`).
+   * 런이 실패로 끝나지 않았으면 null이다.
+   */
+  firstFailure: z
+    .object({
+      condition: z.enum(["A", "B", "C", "D"]),
+      day: z.number(),
+      /** 조건마다 다른 실측치 — A/B는 완료 건수, C는 군기, D는 위생(또는 미보유 장비 수) */
+      value: z.number(),
+      /** value가 넘거나 못 미쳐야 하는 기준선 */
+      threshold: z.number(),
+      memberId: z.string().nullable(),
+      memberName: z.string().nullable(),
+      /** 결정타와 엮인 일과 — A는 미완료 필수, B는 미달 합동, D는 그날 안 한 세면류 회복 행동 */
+      questLabel: z.string().nullable(),
+    })
+    .nullable(),
+  /**
+   * 런 요약 헤드라인 — "한파 속 물자 부족 D-5 완주" 형식 (C-1).
+   *
+   * 성공·실패 어느 쪽에도 붙는다 — 실패 전용 장치가 아니다(`packages/sim/src/persist.ts`
+   * `buildHeadline`).
+   */
+  headline: z.string(),
 });
 export type Snapshot = z.infer<typeof snapshotSchema>;
 

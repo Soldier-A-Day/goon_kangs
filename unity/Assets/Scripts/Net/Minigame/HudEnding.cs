@@ -37,32 +37,45 @@ namespace SoldierADay.Net
             // C-1 — 실패 조건(A~D)과 소대장 대사를 한 줄 더 넣느라 패널을 키웠다
             // (380→420). 다른 종료 화면(전역·해산·연결 끊김)은 그 줄이 비어 있을
             // 뿐 레이아웃은 그대로다.
+            //
+            // C-1(런 요약 헤드라인) — 상단에 한 줄을 더 얹느라 다시 키웠다(420→460).
+            // "한파 속 물자 부족 D-5 완주" 형식으로 성공·실패 모두에 붙는다 — 실패
+            // 전용 장치가 아니다(WORKORDER.md C-1).
             var panel = new Rect(HudTheme.ViewWidth * 0.5f - 380f,
-                                 HudTheme.ViewHeight * 0.5f - 210f, 760f, 420f);
+                                 HudTheme.ViewHeight * 0.5f - 230f, 760f, 460f);
             theme.Fill(panel, HudTheme.Paper2);
             theme.Border(panel, rejected != null ? HudTheme.Alert : Accent(status), 2f);
 
             var (title, line, quote, hint) = Words(rejected, status, client.Latest);
 
-            GUI.Label(new Rect(panel.x, panel.y + 44f, panel.width, 40f),
+            GUI.Label(new Rect(panel.x, panel.y + 44f, panel.width, 24f),
                 rejected != null ? "연결 끊김" : "런 종료",
                 theme.At(theme.Label, 13, HudTheme.Ink2, TextAnchor.MiddleCenter));
 
-            GUI.Label(new Rect(panel.x, panel.y + 82f, panel.width, 60f), title,
+            // 연결이 끊긴 화면에는 헤드라인이 없다 — 그 사건은 "이번 판이 무엇이었나"가
+            // 아니라 "서버에 말을 걸 수 없다"는 얘기라 별개다.
+            var headline = rejected == null ? client.Latest?.headline : null;
+            if (!string.IsNullOrEmpty(headline))
+            {
+                GUI.Label(new Rect(panel.x, panel.y + 68f, panel.width, 32f), headline,
+                    theme.At(theme.Heading, 22, Accent(status), TextAnchor.MiddleCenter));
+            }
+
+            GUI.Label(new Rect(panel.x, panel.y + 122f, panel.width, 60f), title,
                 theme.At(theme.Display, 44, rejected != null ? HudTheme.Alert : Accent(status),
                     TextAnchor.MiddleCenter));
 
-            GUI.Label(new Rect(panel.x + 40f, panel.y + 156f, panel.width - 80f, 30f), line,
+            GUI.Label(new Rect(panel.x + 40f, panel.y + 196f, panel.width - 80f, 30f), line,
                 theme.At(theme.Body, 17, HudTheme.Ink, TextAnchor.MiddleCenter));
 
-            GUI.Label(new Rect(panel.x + 40f, panel.y + 192f, panel.width - 80f, 30f), hint,
+            GUI.Label(new Rect(panel.x + 40f, panel.y + 232f, panel.width - 80f, 30f), hint,
                 theme.At(theme.Small, 14, HudTheme.Ink3, TextAnchor.MiddleCenter));
 
             // C-1b — 조건별 소대장 대사. 실패 원인 위에 소대장이 한마디 얹는다
             // ("할 일을 남겼다. 부대는 그걸 안 봐준다." 등 4종, 조건 A~D에 고정).
             if (!string.IsNullOrEmpty(quote))
             {
-                GUI.Label(new Rect(panel.x + 40f, panel.y + 228f, panel.width - 80f, 28f), quote,
+                GUI.Label(new Rect(panel.x + 40f, panel.y + 268f, panel.width - 80f, 28f), quote,
                     theme.At(theme.Body, 15, HudTheme.Ink2, TextAnchor.MiddleCenter));
             }
 
@@ -168,9 +181,14 @@ namespace SoldierADay.Net
         ///
         /// **스냅샷에 실려 오는 값만 쓴다.** A는 `requiredDone`/`requiredTotal`,
         /// B는 합동 퀘스트의 `jointDone`/`jointTotal`(둘 다 이미 있는 퀘스트
-        /// 필드), C는 `discipline.value`·`band`, D는 각자의 `missingGear` 배열 —
+        /// 필드), C는 `discipline.value`·`band`, D는 `firstFailure`의 위생 실측치 —
         /// 전부 스냅샷이 이미 들고 있다. 위생 판정 문턱(20)처럼 서버 규칙에만
         /// 있고 프로토콜에 안 실린 수치는 여기서 지어내지 않는다(ARCH-02).
+        ///
+        /// `firstFailure`(C-1)는 이 조건이 **처음** 결정타로 지목된 날을 함께
+        /// 들고 온다 — 최종 실패일보다 이르면 "그날부터"를 덧붙여 "다 3일 전부터
+        /// 삐걱댔다"를 한 줄로 보여준다("D조건: 위생 18/20 — 3일차 세면장 미완료가
+        /// 결정타" 같은 문구가 여기서 나온다).
         /// </summary>
         private static (string, string) FailureDetail(Snapshot snapshot)
         {
@@ -178,11 +196,14 @@ namespace SoldierADay.Net
             if (j == null || string.IsNullOrEmpty(j.failedAt))
                 return ("점호 판정을 통과하지 못했다", "");
 
+            var f = snapshot.firstFailure;
+            var since = SinceClause(f, j);
+
             switch (j.failedAt)
             {
                 case SnapshotLastJudgementFailedAtValues.A:
                     return (
-                        $"A조건(필수 일과) 미달 — {j.requiredDone:0} / {j.requiredTotal:0}건 완료",
+                        $"A조건(필수 일과) 미달 — {j.requiredDone:0} / {j.requiredTotal:0}건 완료{since}",
                         "\"할 일을 남겼다. 부대는 그걸 안 봐준다.\"");
 
                 case SnapshotLastJudgementFailedAtValues.B:
@@ -190,7 +211,7 @@ namespace SoldierADay.Net
                     var joint = HudScreens.FindJoint(snapshot);
                     var detail = joint != null ? $" — {joint.jointDone:0} / {joint.jointTotal:0}건" : "";
                     return (
-                        $"B조건(합동 일과) 미달{detail}",
+                        $"B조건(합동 일과) 미달{detail}{since}",
                         "\"혼자 잘해서 되는 게 아니라고 했다.\"");
                 }
 
@@ -200,31 +221,65 @@ namespace SoldierADay.Net
                         ? $"{snapshot.discipline.value:0} · {snapshot.discipline.band}"
                         : "—";
                     return (
-                        $"C조건(군기) 미달 — 군기 {disc}",
+                        $"C조건(군기) 미달 — 군기 {disc}{since}",
                         "\"기본이 안 됐다.\"");
                 }
 
                 case SnapshotLastJudgementFailedAtValues.D:
-                {
-                    var bits = new System.Collections.Generic.List<string>();
-                    if (snapshot.members != null)
-                    {
-                        foreach (var m in snapshot.members)
-                        {
-                            if (m == null || m.presence != SnapshotMembersItemPresenceValues.Player) continue;
-                            if (m.missingGear != null && m.missingGear.Length > 0)
-                                bits.Add($"{m.name} 미보유 {m.missingGear.Length}건");
-                        }
-                    }
-                    var detail = bits.Count > 0 ? string.Join(" · ", bits) : "청결 또는 필수 장비 기준 미달";
                     return (
-                        $"D조건(복장·위생) 미달 — {detail}",
+                        $"D조건(복장·위생) 미달 — {DGearDetail(snapshot, f)}",
                         "\"왜 미리 말 안 했나.\"");
-                }
 
                 default:
                     return ("점호 판정을 통과하지 못했다", "");
             }
+        }
+
+        /// <summary>
+        /// 조건 D의 결정타 문구. `firstFailure`가 위생 실측치와 인원을 들고 오면
+        /// "김소총 위생 15/20 — 3일차 '세면 · 양치' 미완료가 결정타"처럼 조립하고,
+        /// (구 스냅샷 등으로) 없으면 예전처럼 `missingGear` 배열로 되짚는다.
+        ///
+        /// `threshold`가 0이면 sim이 위생이 아니라 미보유 장비 건수를 실은 것이다
+        /// (`judge.ts`의 `describeBreach` D분기 — 위생은 기준선이 20이라 절대 0이
+        /// 될 수 없으므로 이 둘은 구분된다).
+        /// </summary>
+        private static string DGearDetail(Snapshot snapshot, SnapshotFirstFailure f)
+        {
+            if (f != null && !string.IsNullOrEmpty(f.memberName))
+            {
+                var quest = string.IsNullOrEmpty(f.questLabel)
+                    ? ""
+                    : $" — {f.day:0}일차 \"{f.questLabel}\" 미완료가 결정타";
+                var measure = f.threshold > 0
+                    ? $"위생 {f.value:0}/{f.threshold:0}"
+                    : $"장비 미보유 {f.value:0}건";
+                return $"{f.memberName} {measure}{quest}";
+            }
+
+            var bits = new System.Collections.Generic.List<string>();
+            if (snapshot.members != null)
+            {
+                foreach (var m in snapshot.members)
+                {
+                    if (m == null || m.presence != SnapshotMembersItemPresenceValues.Player) continue;
+                    if (m.missingGear != null && m.missingGear.Length > 0)
+                        bits.Add($"{m.name} 미보유 {m.missingGear.Length}건");
+                }
+            }
+            return bits.Count > 0 ? string.Join(" · ", bits) : "청결 또는 필수 장비 기준 미달";
+        }
+
+        /// <summary>
+        /// 결정타 조건이 최종 실패일보다 먼저 걸린 적이 있으면 "· N일차부터"를
+        /// 덧붙인다 — 구제·경고로 살아남은 하루가 있었다는 뜻이라 다음 판 전략에
+        /// "언제부터 손을 놨는지"를 알려준다.
+        /// </summary>
+        private static string SinceClause(SnapshotFirstFailure f, SnapshotLastJudgement j)
+        {
+            if (f == null || j == null) return "";
+            if (f.day < j.day) return $" · {f.day:0}일차부터";
+            return "";
         }
     }
 }

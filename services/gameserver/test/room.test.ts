@@ -102,6 +102,37 @@ describe("스냅샷", () => {
     fourPlayers(h.room);
     expect(h.lastSnapshot()).toBeUndefined();
   });
+
+  it("C-1 — 진행 중에도 헤드라인이 붙고, 실패 전이면 결정타는 비어 있다", () => {
+    const h = harness();
+    fourPlayers(h.room);
+    h.room.start();
+
+    const snapshot = h.lastSnapshot();
+    expect(snapshot?.headline).toContain("D-1");
+    expect(snapshot?.headline).toContain("진행 중");
+    expect(snapshot?.firstFailure).toBeNull();
+  });
+
+  it("C-1 — 퇴소하면 스냅샷에 결정타 조건·수치·헤드라인이 함께 실린다", () => {
+    const h = harness();
+    fourPlayers(h.room);
+    h.room.start();
+    if (!h.room.run) throw new Error("런 없음");
+
+    // 필수를 남긴 채 하루를 넘겨 조건 A로 퇴소시킨다
+    h.room.run.reliefsRemaining = 0;
+    let guard = 0;
+    while (h.room.run.status === "running" && guard++ < 200) {
+      h.room.tick(5_000);
+    }
+
+    const snapshot = h.lastSnapshot();
+    expect(snapshot?.status).toBe("discharged");
+    expect(snapshot?.firstFailure?.condition).toBe(snapshot?.lastJudgement?.failedAt);
+    expect(snapshot?.firstFailure?.day).toBe(snapshot?.lastJudgement?.day);
+    expect(snapshot?.headline).toContain("퇴소");
+  });
 });
 
 describe("진행", () => {

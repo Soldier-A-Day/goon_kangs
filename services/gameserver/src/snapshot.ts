@@ -1,5 +1,6 @@
 import {
   bandRule,
+  buildHeadline,
   disciplineBand,
   isSupplyDay,
   missingGear,
@@ -132,6 +133,13 @@ export function projectSnapshot(
           requiredTotal: last.requiredTotal,
         }
       : null,
+    // C-1 — 마지막 판정이 실패했으면 그 조건이 "처음" 결정타로 지목된 순간을 함께 싣는다.
+    // sim이 조건별로 하나씩만 쥐고 있으므로(`firstConditionBreach`) 여기서는 그대로 흘린다.
+    firstFailure:
+      last && !last.passed && last.failedAt
+        ? (state.firstConditionBreach[last.failedAt] ?? null)
+        : null,
+    headline: buildHeadline(state),
   };
 }
 
