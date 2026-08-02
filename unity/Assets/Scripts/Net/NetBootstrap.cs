@@ -94,6 +94,23 @@ namespace SoldierADay.Net
                 client.LobbyReceived += OnLobby;
             }
 
+            // **로비가 이미 방을 잡아줬으면 그대로 붙는다.**
+            //
+            // 웹 로비(Next.js)가 방을 만들고 시작까지 마친 뒤 세션 토큰을 준다.
+            // 그 상태에서 Unity가 또 방을 만들면 **혼자 있는 새 방**으로 들어가고,
+            // 같이 하려던 사람들과 영영 못 만난다 — 화면은 정상으로 보이므로
+            // 원인을 찾을 길이 없는 종류의 고장이다.
+            var handoff = ReadParam(query, "token", "");
+            if (!string.IsNullOrEmpty(handoff))
+            {
+                Status = "소켓 연결 중";
+                Detail = ReadParam(query, "code", "");
+                client.token = handoff;
+                client.Connect();
+                yield break;
+            }
+
+            // 토큰이 없을 때만 스스로 방을 만든다 — 에디터와 단독 실행용이다
             if (!autoStart) yield break;
 
             LobbyClient.Ticket ticket = null;

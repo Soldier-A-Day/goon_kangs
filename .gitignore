@@ -71,3 +71,6 @@ unity/Build/
 # 블록아웃은 생성물이다 — 생성기(tools/blockout, BlockoutCharacter.cs)가 원본이다.
 # 예산이 바뀌면 다시 뽑으면 되고, 무엇이 왜 그 폴리 수인지는 코드에만 남는다.
 unity/mono_crash.*.json
+
+# Unity WebGL 번들 — 빌드해서 나르는 것이지 저장하는 것이 아니다
+apps/web/public/game/

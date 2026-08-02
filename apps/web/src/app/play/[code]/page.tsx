@@ -2,281 +2,157 @@
 
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import type { Intent, Session } from "@sad/protocol";
-import { ConditionRings } from "@/components/hud/ConditionRings";
-import { DelegationWindow } from "@/components/hud/DelegationWindow";
-import { EventLog } from "@/components/hud/EventLog";
-import { Notebook } from "@/components/hud/Notebook";
-import { PhaseBar } from "@/components/hud/PhaseBar";
-import { ChatBar } from "@/components/hud/ChatBar";
-import { QuickBar } from "@/components/hud/QuickBar";
-import { SupplyPanel } from "@/components/hud/SupplyPanel";
-import { ZoneMap } from "@/components/hud/ZoneMap";
-import { RANK_LABELS, ZONE_LABELS } from "@/lib/labels";
+import { useEffect, useRef, useState } from "react";
+import { HTTP_BASE, WS_BASE } from "@/lib/api";
 import { loadSession } from "@/lib/session";
-import { useGameSocket, useSmoothClock } from "@/lib/useGameSocket";
 
 /**
- * DOM 디버그 클라이언트.
+ * 게임 화면 — Unity WebGL.
  *
- * Unity 자리에 들어가는 임시 클라이언트지만 버릴 코드가 아니다 — 15.0 HUD가 여기서 만들어지고,
- * Unity는 3D 뷰포트만 가져간다. M0 질문에 답하는 것이 목적이다:
- * 이동 + 붙잡기 + 판정만 있는 상태에서 하루 루프가 긴장을 만드는가?
+ * 여기 있던 DOM 클라이언트는 걷어냈다. 그건 Unity가 없던 시절 "이동 + 붙잡기 +
+ * 판정만 있는 상태에서 하루 루프가 긴장을 만드는가"에 답하려고 세운 임시
+ * 화면이었고, 그 질문에는 이미 답이 나왔다. **화면이 둘이면 규칙도 둘이 된다** —
+ * 미니게임 원형 14종은 Unity에만 있으므로 DOM 쪽은 판을 통과할 방법이 없다.
+ *
+ * ── 로비가 잡아준 방에 붙는다 ────────────────────────────────────────────
+ * 웹 로비가 방을 만들고 시작까지 마친 뒤 세션 토큰을 준다. 그 토큰을 쿼리로
+ * 넘기면 Unity(`NetBootstrap`)가 **방을 새로 만들지 않고** 그대로 접속한다.
+ * 안 넘기면 Unity가 혼자 있는 새 방을 만들어 들어가는데, 화면은 정상으로
+ * 보이므로 같이 하려던 사람들과 왜 못 만나는지 알 길이 없다.
+ *
+ * ── 번들은 저장소에 없다 ─────────────────────────────────────────────────
+ * `node tools/webgl-sync.mjs`가 `unity/Build/web`을 `public/game/`으로 나른다.
+ * 브로틀리 헤더는 `next.config.ts`가 붙인다.
  */
+const LOADER = "/game/Build/web.loader.js";
+
+declare global {
+  interface Window {
+    createUnityInstance?: (
+      canvas: HTMLCanvasElement,
+      config: Record<string, unknown>,
+      onProgress?: (progress: number) => void,
+    ) => Promise<{ Quit: () => Promise<void> }>;
+  }
+}
+
 export default function PlayPage() {
   const params = useParams<{ code: string }>();
   const router = useRouter();
   const code = (params.code ?? "").toUpperCase();
 
-  const [session, setSession] = useState<Session | null>(null);
-  const [working, setWorking] = useState<string | null>(null);
-  const [skipVoted, setSkipVoted] = useState(false);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [progress, setProgress] = useState(0);
+  const [failed, setFailed] = useState<string | null>(null);
 
   useEffect(() => {
-    const stored = loadSession();
-    if (!stored || stored.code !== code) {
+    const session = loadSession();
+    if (!session || session.code !== code) {
       router.replace("/lobby?mode=join");
       return;
     }
-    setSession(stored);
+
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    // 서버 주소와 토큰을 쿼리로 넘긴다. WebGL에는 커맨드라인 인자가 없어
+    // 통로가 URL뿐이고, 빌드를 다시 하지 않고 로컬·원격을 바꿔 붙일 수 있다
+    const query = new URLSearchParams({
+      token: session.token,
+      code: session.code,
+      http: HTTP_BASE,
+      ws: WS_BASE,
+    });
+    if (typeof window !== "undefined") {
+      window.history.replaceState(null, "", `${window.location.pathname}?${query}`);
+    }
+
+    let instance: { Quit: () => Promise<void> } | null = null;
+    let dead = false;
+
+    const script = document.createElement("script");
+    script.src = LOADER;
+    script.onerror = () =>
+      setFailed("번들을 못 찾았다 — `node tools/webgl-sync.mjs`로 빌드를 옮겨야 한다");
+    script.onload = () => {
+      if (dead || !window.createUnityInstance) return;
+      window
+        .createUnityInstance(
+          canvas,
+          {
+            dataUrl: "/game/Build/web.data.br",
+            frameworkUrl: "/game/Build/web.framework.js.br",
+            codeUrl: "/game/Build/web.wasm.br",
+            streamingAssetsUrl: "/game/StreamingAssets",
+            companyName: "SoldierADay",
+            productName: "SOLDIER : A DAY",
+            productVersion: "1.0",
+            // 픽셀 퍼펙트 카메라가 정수배로 올리는데 여기서 DPR까지 곱하면
+            // 배율이 정수가 아니게 되어 격자가 어긋난다 (§2.1)
+            devicePixelRatio: 1,
+          },
+          (value) => setProgress(value),
+        )
+        .then((made) => {
+          if (dead) {
+            void made.Quit();
+            return;
+          }
+          instance = made;
+          canvas.focus();
+        })
+        .catch((message: unknown) => setFailed(String(message)));
+    };
+    document.body.appendChild(script);
+
+    return () => {
+      dead = true;
+      script.remove();
+      void instance?.Quit();
+    };
   }, [code, router]);
 
-  const { status, snapshot, events, send, memberId } = useGameSocket(session?.token ?? null);
-  const elapsed = useSmoothClock(snapshot);
-
-  const myId = memberId ?? session?.memberId ?? null;
-
-  // 시간대가 바뀌면 붙잡고 있던 것과 투표를 놓는다 — 서버도 칸 경계에서 잠근다
-  useEffect(() => {
-    setWorking(null);
-    setSkipVoted(false);
-  }, [snapshot?.phase.index, snapshot?.day]);
-
-  /**
-   * 판이 붙은 일과는 통과해야 끝난다 — 여기에는 판이 없다.
-   *
-   * 미니게임은 Unity에만 만든다. 이 화면은 M0 질문에 답하려고 남겨 둔 디버그
-   * 클라이언트라, 판을 여기에도 만들면 같은 게임을 두 번 만들게 된다. 대신
-   * 진척이 다 차면 B등급으로 통과를 대신 신고한다 — 안 그러면 이 화면으로는
-   * 일과를 하나도 끝낼 수 없어 하루 루프 자체를 볼 수 없다.
-   */
-  useEffect(() => {
-    if (!working || !snapshot) return;
-    const quest = snapshot.quests.find((q) => q.id === working);
-    if (!quest || quest.minigame === null || quest.progress < 1) return;
-    send({ type: "questCleared", questId: working, grade: "B" });
-    setWorking(null);
-  }, [working, snapshot, send]);
-
-  function toggleWork(questId: string | null) {
-    if (working && working !== questId) {
-      send({ type: "interact", questId: working, active: false });
-    }
-    setWorking(questId);
-    if (questId) send({ type: "interact", questId, active: true });
-  }
-
-  if (!session || !snapshot || !myId) {
-    return (
-      <main className="flex flex-1 items-center justify-center p-14 text-ink-2">
-        {status === "closed" || status === "error"
-          ? "서버와 연결이 끊겼다."
-          : "부대로 이동 중…"}
-      </main>
-    );
-  }
-
-  const me = snapshot.members.find((m) => m.id === myId);
-  if (!me) {
-    return <main className="p-14 text-ink-2">분대에서 자리를 찾지 못했다.</main>;
-  }
-
-  if (snapshot.status !== "running") {
-    return <RunEnded snapshot={snapshot} code={code} />;
-  }
-
-  const delegating = snapshot.phase.delegationWindowMsLeft > 0;
+  const loading = progress < 1 && !failed;
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <PhaseBar snapshot={snapshot} elapsedMs={elapsed} />
+    <main className="relative flex min-h-screen flex-col bg-paper">
+      <canvas
+        ref={canvasRef}
+        id="unity-canvas"
+        tabIndex={1}
+        className="h-screen w-screen outline-none"
+        onMouseDown={() => canvasRef.current?.focus()}
+      />
 
-      <main className="mx-auto grid w-full max-w-6xl flex-1 gap-4 px-4 py-4 lg:grid-cols-[1fr_22rem]">
-        <div className="flex min-w-0 flex-col gap-4">
-          {delegating && (
-            <DelegationWindow snapshot={snapshot} memberId={myId} onSend={send} />
-          )}
-
-          <ZoneMap
-            snapshot={snapshot}
-            memberId={myId}
-            workingQuestId={working}
-            onSend={send}
-            onToggleWork={toggleWork}
-          />
-
-          <QuickBar
-            snapshot={snapshot}
-            onSend={send}
-            skipVoted={skipVoted}
-            onToggleSkip={() => {
-              const next = !skipVoted;
-              setSkipVoted(next);
-              send({ type: "voteSkip", value: next });
-            }}
-          />
-
-          <ChatBar snapshot={snapshot} memberId={myId} onSend={send} />
-
-          <SupplyPanel snapshot={snapshot} memberId={myId} onSend={send} />
-
-          <Squad snapshot={snapshot} myId={myId} onSend={send} />
+      {loading && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-6 bg-paper">
+          <div className="text-[0.8125rem] tracking-[0.2em] text-accent">
+            SOLDIER : A DAY
+          </div>
+          <div className="h-1 w-80 bg-paper-3">
+            <div
+              className="h-full bg-accent transition-[width] duration-150"
+              style={{ width: `${Math.round(progress * 100)}%` }}
+            />
+          </div>
+          <div className="text-[1.0625rem] text-ink-2">
+            번들 내려받는 중 {Math.round(progress * 100)}%
+          </div>
         </div>
+      )}
 
-        <aside className="flex min-h-0 flex-col gap-4">
-          <ConditionRings member={me} />
-          <Notebook
-            snapshot={snapshot}
-            memberId={myId}
-            onSend={send}
-            onFocus={(quest) => {
-              if (quest.zone !== me.zone) send({ type: "move", to: quest.zone });
-            }}
-          />
-          <EventLog events={events} snapshot={snapshot} />
-        </aside>
-      </main>
-    </div>
-  );
-}
-
-/**
- * 3.0 ROLE-02 분대장.
- *
- * 계급과 별개다 — 계급은 성과로, 분대장은 투표로 정해진다. 이병 분대장도 가능하며
- * 그때 "계급이 높은 사람과 지휘권을 가진 사람이 다를 때 오히려 대화가 필요해지는 구조"가 생긴다.
- * 4인이라 2:2 동수가 나올 수 있고, 그때는 현직이 유지된다.
- */
-function Squad({
-  snapshot,
-  myId,
-  onSend,
-}: {
-  snapshot: ReturnType<typeof useGameSocket>["snapshot"] & object;
-  myId: string;
-  onSend: (intent: Intent) => void;
-}) {
-  return (
-    <section className="flex flex-col gap-2 border border-rule bg-paper-3 p-3">
-      <div className="flex items-baseline justify-between">
-        <span className="label">분대</span>
-        <span className="label">
-          {snapshot.leaderId
-            ? `분대장 ${snapshot.members.find((m) => m.id === snapshot.leaderId)?.name ?? "?"}`
-            : "분대장 미선출 — 과반이 모여야 정해진다"}
-        </span>
-      </div>
-      <ul className="grid gap-px bg-rule sm:grid-cols-2">
-        {snapshot.members.map((member) => {
-          const proxy = member.presence !== "player";
-          const remaining = snapshot.quests.filter(
-            (q) => q.ownerId === member.id && q.required && q.status !== "done",
-          ).length;
-
-          return (
-            <li
-              key={member.id}
-              className="flex items-center justify-between gap-2 bg-paper px-3 py-2"
-            >
-              <span className="flex min-w-0 flex-col">
-                <span className="flex items-baseline gap-2">
-                  <b className="truncate text-sm font-bold">{member.name}</b>
-                  <span className="label">{RANK_LABELS[member.rank]}</span>
-                  {member.id === myId && <span className="label text-accent">나</span>}
-                </span>
-                <span className="text-[0.6875rem] text-ink-2">
-                  {proxy ? "NPC 대리" : ZONE_LABELS[member.zone]}
-                  {member.onGuardTonight && " · 오늘 경계"}
-                </span>
-              </span>
-              <span className="flex shrink-0 items-center gap-2">
-                {!proxy && member.id !== snapshot.leaderId && (
-                  <button
-                    type="button"
-                    onClick={() =>
-                      onSend({ type: "voteLeader", candidateId: member.id })
-                    }
-                    className="border border-rule px-2 py-[2px] text-[0.6875rem] text-ink-2 hover:bg-paper-2"
-                  >
-                    분대장 추천
-                  </button>
-                )}
-                {member.id === snapshot.leaderId && (
-                  <span className="label" style={{ color: "var(--accent)" }}>
-                    분대장
-                  </span>
-                )}
-                <span
-                  className="font-mono text-sm font-bold tabular-nums"
-                  style={{ color: remaining === 0 ? "var(--accent)" : "var(--alert)" }}
-                >
-                  {remaining}
-                </span>
-              </span>
-            </li>
-          );
-        })}
-      </ul>
-    </section>
-  );
-}
-
-function RunEnded({
-  snapshot,
-  code,
-}: {
-  snapshot: NonNullable<ReturnType<typeof useGameSocket>["snapshot"]>;
-  code: string;
-}) {
-  const cleared = snapshot.status === "cleared";
-  const judgement = snapshot.lastJudgement;
-
-  return (
-    <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col justify-center gap-6 px-6 py-14">
-      <span className="label">{code}</span>
-      <h1
-        className="text-4xl font-extrabold tracking-tight"
-        style={{ color: cleared ? "var(--accent)" : "var(--alert)" }}
-      >
-        {cleared ? "전역" : snapshot.status === "disbanded" ? "분대 해체" : "퇴소"}
-      </h1>
-
-      <p className="text-ink-2">
-        {snapshot.day}일차까지 버텼다.
-        {judgement && !judgement.passed && (
-          <>
-            {" "}
-            마지막 점호는 <b className="text-ink">조건 {judgement.failedAt}</b>에서
-            무너졌다 — 필수 {judgement.requiredDone}/{judgement.requiredTotal}.
-          </>
-        )}
-      </p>
-
-      <div className="flex flex-wrap gap-4">
-        <Link
-          href={`/ledger/run-${code}`}
-          className="text-accent underline underline-offset-4"
-        >
-          하달 장부 보기
-        </Link>
-        <Link href="/records" className="text-accent underline underline-offset-4">
-          분대 기록
-        </Link>
-        <Link href="/" className="text-ink-2 underline underline-offset-4">
-          처음으로
-        </Link>
-      </div>
+      {failed && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-paper p-14 text-center">
+          <div className="text-[1.375rem] font-bold text-alert">게임을 못 띄웠다</div>
+          <p className="max-w-xl text-[1.0625rem] text-ink-2">{failed}</p>
+          <Link
+            href="/lobby"
+            className="mt-2 border border-rule px-6 py-3 text-[1.0625rem] text-ink hover:border-accent"
+          >
+            로비로
+          </Link>
+        </div>
+      )}
     </main>
   );
 }
