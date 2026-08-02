@@ -1,0 +1,178 @@
+<svg viewBox="0 0 1920 1080" xmlns="http://www.w3.org/2000/svg" font-family="Pretendard, 'Apple SD Gothic Neo', 'Malgun Gothic', 'Noto Sans KR', sans-serif">
+<defs>
+  <radialGradient id="dim" cx="50%" cy="50%" r="40%">
+    <stop offset="0%" stop-color="#0B0D08" stop-opacity="0.72"/>
+    <stop offset="100%" stop-color="#0B0D08" stop-opacity="0.42"/>
+  </radialGradient>
+</defs>
+
+<!-- 월드 -->
+<rect width="1920" height="1080" fill="#4A5560"/>
+<g stroke="#414C57" opacity="0.6">
+  <path d="M96 0V1080M288 0V1080M480 0V1080M672 0V1080M864 0V1080M1056 0V1080M1248 0V1080M1440 0V1080M1632 0V1080M1824 0V1080"/>
+  <path d="M0 96H1920M0 288H1920M0 480H1920M0 672H1920M0 864H1920"/>
+</g>
+<g fill="#C3D1DA" opacity="0.85"><rect x="0" y="768" width="480" height="192"/><rect x="1440" y="576" width="480" height="192"/><rect x="672" y="864" width="480" height="120"/></g>
+<rect x="0" y="96" width="576" height="384" fill="#2B333B"/><rect x="0" y="96" width="576" height="60" fill="#212930"/>
+<rect x="576" y="480" width="1344" height="96" fill="#5A646E"/>
+<path d="M1344 672 L1440 528 L1536 672 Z" fill="#55603C"/>
+<rect width="1920" height="1080" fill="#A8C4DC" opacity="0.18"/>
+<rect width="1920" height="1080" fill="url(#dim)"/>
+
+<!-- 다른 분대원 -->
+<g opacity="0.75">
+  <g transform="translate(1380,600)"><rect x="10" y="0" width="26" height="6" fill="#3D4629"/><rect x="6" y="6" width="34" height="12" fill="#55603C"/><rect x="6" y="18" width="34" height="4" fill="#3D4629"/><rect x="10" y="22" width="26" height="16" fill="#C9A183"/><rect x="0" y="40" width="46" height="46" fill="#6E7A50"/><rect x="8" y="86" width="12" height="24" fill="#33352E"/><rect x="26" y="86" width="12" height="24" fill="#33352E"/></g>
+  <g transform="translate(320,700)"><rect x="10" y="0" width="26" height="6" fill="#3D4629"/><rect x="6" y="6" width="34" height="12" fill="#55603C"/><rect x="6" y="18" width="34" height="4" fill="#3D4629"/><rect x="10" y="22" width="26" height="16" fill="#C9A183"/><rect x="0" y="40" width="46" height="46" fill="#6E7A50"/><rect x="8" y="86" width="12" height="24" fill="#33352E"/><rect x="26" y="86" width="12" height="24" fill="#33352E"/></g>
+</g>
+
+<!-- 플레이어 -->
+<g transform="translate(936,660) scale(1.4)">
+  <rect x="10" y="0" width="26" height="6" fill="#3D4629"/><rect x="6" y="6" width="34" height="12" fill="#55603C"/>
+  <rect x="6" y="18" width="34" height="4" fill="#3D4629"/><rect x="10" y="22" width="26" height="16" fill="#C9A183"/>
+  <rect x="0" y="40" width="46" height="46" fill="#6E7A50"/><rect x="0" y="40" width="8" height="14" fill="#EEF1E8"/>
+  <rect x="8" y="86" width="12" height="24" fill="#33352E"/><rect x="26" y="86" width="12" height="24" fill="#33352E"/>
+</g>
+
+<!-- ============ 라디얼 (지름 360 @ 중앙 960,540) ============ -->
+<circle cx="960" cy="540" r="180" fill="#12150F" opacity="0.9"/>
+<circle cx="960" cy="540" r="180" fill="none" stroke="#333A2B" stroke-width="2"/>
+<circle cx="960" cy="540" r="62" fill="#12150F"/>
+<circle cx="960" cy="540" r="62" fill="none" stroke="#333A2B"/>
+<!-- 분할선 -->
+<g stroke="#262C1F" stroke-width="1.5">
+  <path d="M960 478 V360 M960 602 V720 M898 540 H780 M1022 540 H1140"/>
+  <path d="M916 496 L833 413 M1004 496 L1087 413 M916 584 L833 667 M1004 584 L1087 667"/>
+</g>
+<text x="960" y="534" fill="#99A18D" font-size="12" text-anchor="middle" letter-spacing="1.6" font-family="ui-monospace, Menlo, monospace">HOLD</text>
+<text x="960" y="556" fill="#DFE2D6" font-size="22" font-weight="800" text-anchor="middle" font-family="ui-monospace, Menlo, monospace">Q</text>
+
+<!-- 슬롯 : 8방향, 아이콘 96×96 -->
+<!-- ↑ 1 집합 -->
+<g transform="translate(912,382)">
+  <rect width="96" height="96" fill="#12150F" opacity="0.0"/>
+  <g stroke="#9AB06F" stroke-width="4" fill="none" transform="translate(24,20)">
+    <path d="M24 30 V6"/><path d="M17 13 l7 -7 l7 7"/>
+    <path d="M8 42 l12 -10 M40 42 l-12 -10"/>
+  </g>
+  <text x="48" y="88" fill="#9AB06F" font-size="17" font-weight="700" text-anchor="middle">집합</text>
+  <text x="48" y="-8" fill="#5A6053" font-size="12" text-anchor="middle" font-family="ui-monospace, Menlo, monospace">1</text>
+</g>
+<!-- ↗ 2 대기 -->
+<g transform="translate(1046,448)">
+  <g stroke="#99A18D" stroke-width="4" fill="none" transform="translate(24,16)">
+    <path d="M12 34 V14 a4 4 0 0 1 8 0 V8 a4 4 0 0 1 8 0 v6 a4 4 0 0 1 8 0 v20 a10 10 0 0 1 -24 6 Z"/>
+  </g>
+  <text x="48" y="88" fill="#99A18D" font-size="17" font-weight="700" text-anchor="middle">대기</text>
+  <text x="112" y="20" fill="#5A6053" font-size="12" font-family="ui-monospace, Menlo, monospace">2</text>
+</g>
+<!-- → 3 이상 없음 -->
+<g transform="translate(1104,492)">
+  <g stroke="#9AB06F" stroke-width="5" fill="none" transform="translate(28,24)"><path d="M0 20 l14 14 l26 -30"/></g>
+  <text x="48" y="88" fill="#9AB06F" font-size="17" font-weight="700" text-anchor="middle">이상 없음</text>
+  <text x="112" y="52" fill="#5A6053" font-size="12" font-family="ui-monospace, Menlo, monospace">3</text>
+</g>
+<!-- ↘ 4 지원 요청 : 선택 중 -->
+<g transform="translate(1046,586)">
+  <rect x="-10" y="-10" width="116" height="116" fill="#3A2412"/>
+  <rect x="-10" y="-10" width="116" height="116" fill="none" stroke="#DB8B55" stroke-width="3"/>
+  <g stroke="#DB8B55" stroke-width="4" fill="none" transform="translate(26,18)">
+    <path d="M22 44 V16"/><path d="M22 16 l-12 -8 M22 16 l12 -8"/><path d="M6 34 a20 20 0 0 1 32 0"/>
+  </g>
+  <text x="48" y="88" fill="#DB8B55" font-size="18" font-weight="800" text-anchor="middle">지원 요청</text>
+</g>
+<!-- ↓ 5 완료 -->
+<g transform="translate(912,602)">
+  <g stroke="#9AB06F" stroke-width="4.5" fill="none" transform="translate(18,28)">
+    <path d="M0 14 l11 11 l19 -22"/><path d="M28 14 l6 6 l22 -24"/>
+  </g>
+  <text x="48" y="88" fill="#9AB06F" font-size="17" font-weight="700" text-anchor="middle">완료</text>
+  <text x="48" y="112" fill="#5A6053" font-size="12" text-anchor="middle" font-family="ui-monospace, Menlo, monospace">5</text>
+</g>
+<!-- ↙ 6 못 함 -->
+<g transform="translate(778,586)">
+  <g stroke="#D2594B" stroke-width="5" fill="none" transform="translate(28,24)"><path d="M0 0 L40 40 M40 0 L0 40"/></g>
+  <text x="48" y="88" fill="#D2594B" font-size="17" font-weight="700" text-anchor="middle">못 함</text>
+  <text x="-16" y="100" fill="#5A6053" font-size="12" font-family="ui-monospace, Menlo, monospace">6</text>
+</g>
+<!-- ← 7 여기 -->
+<g transform="translate(720,492)">
+  <g fill="#7FAECF" transform="translate(30,22)">
+    <path d="M18 0 a18 18 0 0 1 18 18 c0 14 -18 30 -18 30 S0 32 0 18 A18 18 0 0 1 18 0 Z"/>
+    <circle cx="18" cy="18" r="7" fill="#12150F"/>
+  </g>
+  <text x="48" y="88" fill="#7FAECF" font-size="17" font-weight="700" text-anchor="middle">여기</text>
+  <text x="-16" y="52" fill="#5A6053" font-size="12" font-family="ui-monospace, Menlo, monospace">7</text>
+</g>
+<!-- ↖ 8 서둘러 -->
+<g transform="translate(778,448)">
+  <g stroke="#DB8B55" stroke-width="4" fill="none" transform="translate(26,20)">
+    <circle cx="22" cy="24" r="20"/><path d="M22 12 v13 l9 6"/>
+  </g>
+  <text x="48" y="88" fill="#DB8B55" font-size="17" font-weight="700" text-anchor="middle">서둘러</text>
+  <text x="-16" y="20" fill="#5A6053" font-size="12" font-family="ui-monospace, Menlo, monospace">8</text>
+</g>
+
+<!-- 선택 방향 지시선 -->
+<path d="M960 540 L1078 618" stroke="#DB8B55" stroke-width="3"/>
+<circle cx="1078" cy="618" r="6" fill="#DB8B55"/>
+
+<!-- ============ 좌측 사양 패널 ============ -->
+<rect x="60" y="60" width="440" height="300" fill="#12150F" opacity="0.94"/>
+<rect x="60" y="60" width="440" height="300" fill="none" stroke="#333A2B"/>
+<text x="84" y="94" fill="#9AB06F" font-size="12" letter-spacing="2.2" font-family="ui-monospace, Menlo, monospace">7.8  QUICK COMMAND</text>
+<rect x="84" y="106" width="392" height="1" fill="#333A2B"/>
+<g font-size="15" fill="#99A18D">
+  <text x="84" y="138">보이스 없음 — 이것이 소통의 전부</text>
+  <text x="84" y="170" fill="#DFE2D6">입력  <tspan font-family="ui-monospace, Menlo, monospace" fill="#9AB06F">Q</tspan> 홀드 → 방향 → 릴리즈</text>
+  <text x="84" y="196" fill="#DFE2D6">또는  <tspan font-family="ui-monospace, Menlo, monospace" fill="#9AB06F">Q + 1~8</tspan> 즉시 발신</text>
+  <text x="84" y="230" fill="#D2594B">표시 지연 0ms — 애니메이션 금지</text>
+  <text x="84" y="256">타임 프레셔 구간의 유일한 채널</text>
+  <rect x="84" y="272" width="392" height="1" fill="#333A2B"/>
+  <text x="84" y="302" fill="#DFE2D6">발신 시 3종 동시 출력</text>
+  <text x="84" y="328" font-size="14">말풍선 3초 · 미니맵 핑(무전 시) · 전용 SFX</text>
+</g>
+
+<!-- ============ 우측 SFX 패널 ============ -->
+<rect x="1420" y="60" width="440" height="360" fill="#12150F" opacity="0.94"/>
+<rect x="1420" y="60" width="440" height="360" fill="none" stroke="#333A2B"/>
+<text x="1444" y="94" fill="#9AB06F" font-size="12" letter-spacing="2.2" font-family="ui-monospace, Menlo, monospace">SFX — 8종 상호 구분 필수</text>
+<rect x="1444" y="106" width="392" height="1" fill="#333A2B"/>
+<g font-size="14">
+  <g transform="translate(1444,124)">
+    <g fill="#99A18D">
+      <text y="22">1 집합</text><text y="52">2 대기</text><text y="82">3 이상 없음</text><text y="112">4 지원 요청</text>
+      <text y="142">5 완료</text><text y="172">6 못 함</text><text y="202">7 여기</text><text y="232">8 서둘러</text>
+    </g>
+    <g fill="#DFE2D6" font-size="13">
+      <text x="130" y="22">호루라기 2음</text><text x="130" y="52">낮은 단음</text><text x="130" y="82">상승 2음</text>
+      <text x="130" y="112" fill="#DB8B55">반복 3음 · 긴급</text>
+      <text x="130" y="142">상승 3음</text><text x="130" y="172" fill="#D2594B">하강 2음</text>
+      <text x="130" y="202" fill="#7FAECF">핑 단음</text><text x="130" y="232" fill="#DB8B55">빠른 4연음</text>
+    </g>
+    <g stroke="#5A6053" stroke-width="2" fill="none" opacity="0.7">
+      <path d="M300 16 l10 0 l0 -8 l14 0 l0 8 l10 0"/>
+      <path d="M300 46 l34 0"/>
+      <path d="M300 76 l12 0 l0 -6 l10 0 l0 -8 l12 0"/>
+      <path d="M300 106 l8 0 l0 -8 l6 0 l0 8 l6 0 l0 -8 l6 0 l0 8 l8 0" stroke="#DB8B55"/>
+      <path d="M300 136 l8 0 l0 -5 l8 0 l0 -6 l8 0 l0 -7 l10 0"/>
+      <path d="M300 160 l12 0 l0 8 l12 0 l0 8 l10 0" stroke="#D2594B"/>
+      <path d="M300 196 l14 0 l0 -10 l6 0 l0 10 l14 0" stroke="#7FAECF"/>
+      <path d="M300 226 l5 0 l0 -8 l4 0 l0 8 l5 0 l0 -8 l4 0 l0 8 l5 0 l0 -8 l4 0 l0 8 l5 0" stroke="#DB8B55"/>
+    </g>
+  </g>
+</g>
+
+<!-- 방독면 제약 안내 -->
+<rect x="1420" y="440" width="440" height="110" fill="#12150F" opacity="0.94"/>
+<rect x="1420" y="440" width="6" height="110" fill="#7FAECF"/>
+<text x="1444" y="474" fill="#7FAECF" font-size="12" letter-spacing="2" font-family="ui-monospace, Menlo, monospace">COMM-01  방독면 착용 중</text>
+<text x="1444" y="504" fill="#DFE2D6" font-size="16">퀵 커맨드만 가능</text>
+<text x="1444" y="530" fill="#D2594B" font-size="15">자유 채팅 입력 차단</text>
+
+<!-- 무전 두절 안내 -->
+<rect x="1420" y="570" width="440" height="110" fill="#12150F" opacity="0.94"/>
+<rect x="1420" y="570" width="6" height="110" fill="#D2594B"/>
+<text x="1444" y="604" fill="#D2594B" font-size="12" letter-spacing="2" font-family="ui-monospace, Menlo, monospace">RADIO DOWN</text>
+<text x="1444" y="634" fill="#DFE2D6" font-size="16">미니맵 핑 소멸 · SFX 거리 감쇠 적용</text>
+<text x="1444" y="660" fill="#99A18D" font-size="15">물리적으로 모여야 전달됨</text>
+</svg>

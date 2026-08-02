@@ -1,0 +1,171 @@
+<svg viewBox="0 0 1920 1080" xmlns="http://www.w3.org/2000/svg" font-family="Pretendard, 'Apple SD Gothic Neo', 'Malgun Gothic', 'Noto Sans KR', sans-serif">
+<defs>
+  <pattern id="hatch" width="10" height="10" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+    <rect width="4" height="10" fill="#7FAECF" opacity="0.14"/>
+  </pattern>
+</defs>
+<rect width="1920" height="1080" fill="#0B0D08"/>
+<!-- 배경: 기상 직후 생활관 실루엣 -->
+<g opacity="0.3">
+  <rect x="0" y="600" width="1920" height="480" fill="#1B2027"/>
+  <g fill="#232A31"><rect x="120" y="640" width="220" height="200"/><rect x="420" y="640" width="220" height="200"/>
+  <rect x="1280" y="640" width="220" height="200"/><rect x="1580" y="640" width="220" height="200"/></g>
+</g>
+<rect width="1920" height="1080" fill="url(#hatch)"/>
+
+<!-- 패널 1600×880 @ (160,100) -->
+<rect x="160" y="100" width="1600" height="880" fill="#12150F"/>
+<rect x="160" y="100" width="1600" height="880" fill="none" stroke="#333A2B" stroke-width="2"/>
+
+<!-- 헤더 -->
+<rect x="160" y="100" width="1600" height="120" fill="#1B1F17"/>
+<rect x="160" y="218" width="1600" height="2" fill="#DFE2D6"/>
+<text x="196" y="146" fill="#9AB06F" font-size="12" letter-spacing="2.4" font-family="ui-monospace, Menlo, monospace">DAILY SCHEDULE — 06:00 기상</text>
+<text x="196" y="196" fill="#DFE2D6" font-size="40" font-weight="800" letter-spacing="-1.2">D-10  일과표</text>
+<text x="480" y="195" fill="#99A18D" font-size="20">숙영 2일차</text>
+<!-- 밴드 -->
+<g transform="translate(1120,132)">
+  <rect width="60" height="60" fill="#21281A"/>
+  <g stroke="#7FAECF" stroke-width="3.5" stroke-linecap="square" transform="translate(6,6)">
+    <path d="M24 6V42M9 15L39 33M39 15L9 33"/><path d="M24 12l-5 5M24 12l5 5M24 36l-5-5M24 36l5-5"/>
+  </g>
+</g>
+<text x="1196" y="168" fill="#7FAECF" font-size="24" font-weight="800">극혹한</text>
+<text x="1196" y="198" fill="#7FAECF" font-size="20" font-family="ui-monospace, Menlo, monospace">−14 °C</text>
+<rect x="1400" y="140" width="330" height="44" fill="#2A1614"/>
+<text x="1565" y="169" fill="#D2594B" font-size="18" font-weight="700" text-anchor="middle">⚠  기후 이벤트 확정 — 기상 악화</text>
+
+<!-- ── 6칸 타임라인 ── -->
+<g transform="translate(196,266)">
+  <g font-size="12" fill="#99A18D" font-family="ui-monospace, Menlo, monospace" letter-spacing="2">
+    <text x="0" y="0">TIMESLOT ×6</text>
+  </g>
+
+  <!-- 칸 공통: 240 wide, gap 16 -->
+  <!-- 1 -->
+  <g transform="translate(0,20)">
+    <rect width="240" height="300" fill="#191D14" stroke="#333A2B"/>
+    <text x="20" y="38" fill="#9AB06F" font-size="20" font-weight="700" font-family="ui-monospace, Menlo, monospace">06:00</text>
+    <text x="20" y="70" fill="#DFE2D6" font-size="19" font-weight="700">기상 · 점검</text>
+    <rect x="20" y="86" width="200" height="1" fill="#333A2B"/>
+    <text x="20" y="118" fill="#99A18D" font-size="16">모포 정리</text>
+    <text x="20" y="146" fill="#99A18D" font-size="16">세면 · 인원 보고</text>
+    <text x="20" y="284" fill="#5A6053" font-size="13">미이행 시 군기 −5</text>
+  </g>
+  <!-- 2 신규 -->
+  <g transform="translate(256,20)">
+    <rect width="240" height="300" fill="#21281A" stroke="#9AB06F" stroke-width="2"/>
+    <rect width="240" height="26" fill="#9AB06F"/>
+    <text x="120" y="19" fill="#12150F" font-size="13" font-weight="800" text-anchor="middle">★ 신규</text>
+    <text x="20" y="60" fill="#9AB06F" font-size="20" font-weight="700" font-family="ui-monospace, Menlo, monospace">08:00</text>
+    <text x="20" y="92" fill="#DFE2D6" font-size="19" font-weight="700">오전 일과</text>
+    <rect x="20" y="108" width="200" height="1" fill="#333A2B"/>
+    <rect x="20" y="122" width="200" height="30" fill="#12150F"/>
+    <text x="120" y="143" fill="#DB8B55" font-size="14" text-anchor="middle" font-weight="700">하달 창 20초</text>
+    <text x="20" y="178" fill="#7FAECF" font-size="18" font-weight="700">혹한기 훈련</text>
+    <text x="20" y="204" fill="#99A18D" font-size="15">보온 게이지 관리</text>
+    <text x="20" y="228" fill="#99A18D" font-size="15">설상 기동 · 난로 유지</text>
+    <text x="20" y="284" fill="#7FAECF" font-size="13">체크포인트 3 = 필수 3</text>
+  </g>
+  <!-- 3 -->
+  <g transform="translate(512,20)">
+    <rect width="240" height="300" fill="#191D14" stroke="#333A2B"/>
+    <text x="20" y="38" fill="#9AB06F" font-size="20" font-weight="700" font-family="ui-monospace, Menlo, monospace">12:00</text>
+    <text x="20" y="70" fill="#DFE2D6" font-size="19" font-weight="700">중식 · 휴식</text>
+    <rect x="20" y="86" width="200" height="1" fill="#333A2B"/>
+    <text x="20" y="118" fill="#99A18D" font-size="16">포만감 · 수분 회복</text>
+    <text x="20" y="146" fill="#EEF1E8" font-size="16">배식 감독 — 의무병</text>
+    <text x="20" y="284" fill="#5A6053" font-size="13">정신력 회복 구간</text>
+  </g>
+  <!-- 4 변경 -->
+  <g transform="translate(768,20)">
+    <rect width="240" height="300" fill="#21281A" stroke="#DB8B55" stroke-width="2"/>
+    <rect width="240" height="26" fill="#DB8B55"/>
+    <text x="120" y="19" fill="#12150F" font-size="13" font-weight="800" text-anchor="middle">★ 변경</text>
+    <text x="20" y="60" fill="#9AB06F" font-size="20" font-weight="700" font-family="ui-monospace, Menlo, monospace">14:00</text>
+    <text x="20" y="92" fill="#DFE2D6" font-size="19" font-weight="700">오후 일과</text>
+    <rect x="20" y="108" width="200" height="1" fill="#333A2B"/>
+    <rect x="20" y="122" width="200" height="30" fill="#12150F"/>
+    <text x="120" y="143" fill="#DB8B55" font-size="14" text-anchor="middle" font-weight="700">하달 창 20초</text>
+    <text x="20" y="178" fill="#DFE2D6" font-size="18" font-weight="700">난로 유지</text>
+    <rect x="20" y="192" width="200" height="26" fill="#12150F"/>
+    <text x="120" y="211" fill="#9AB06F" font-size="14" text-anchor="middle">합동 · 4인 전원</text>
+    <text x="20" y="248" fill="#5A6053" font-size="14" text-decoration="line-through">배수로 정비</text>
+    <text x="20" y="284" fill="#DB8B55" font-size="13">한파로 대체됨</text>
+  </g>
+  <!-- 5 -->
+  <g transform="translate(1024,20)">
+    <rect width="240" height="300" fill="#191D14" stroke="#333A2B"/>
+    <text x="20" y="38" fill="#9AB06F" font-size="20" font-weight="700" font-family="ui-monospace, Menlo, monospace">18:00</text>
+    <text x="20" y="70" fill="#DFE2D6" font-size="19" font-weight="700">석식 · 개인정비</text>
+    <rect x="20" y="86" width="200" height="1" fill="#333A2B"/>
+    <text x="20" y="118" fill="#99A18D" font-size="16">장비 손질 · 세면</text>
+    <text x="20" y="146" fill="#99A18D" font-size="16">간부 대화</text>
+    <text x="20" y="174" fill="#9AB06F" font-size="16">유일한 자유 배분 구간</text>
+    <text x="20" y="284" fill="#5A6053" font-size="13">보급 청구 가능</text>
+  </g>
+  <!-- 6 판정 -->
+  <g transform="translate(1280,20)">
+    <rect width="240" height="300" fill="#2A1614" stroke="#D2594B" stroke-width="2"/>
+    <text x="20" y="38" fill="#D2594B" font-size="20" font-weight="700" font-family="ui-monospace, Menlo, monospace">22:00</text>
+    <text x="20" y="70" fill="#DFE2D6" font-size="19" font-weight="700">점호 · 판정</text>
+    <rect x="20" y="86" width="200" height="1" fill="#5A2A22"/>
+    <text x="20" y="118" fill="#D2594B" font-size="16" font-weight="700">조건 A~D 검사</text>
+    <text x="20" y="146" fill="#99A18D" font-size="15">생존 / 게임오버 결정</text>
+    <text x="20" y="174" fill="#99A18D" font-size="15">야간 경계 로테이션</text>
+    <text x="20" y="284" fill="#D2594B" font-size="13">되돌릴 수 없음</text>
+  </g>
+</g>
+
+<!-- ── 하단 요약 ── -->
+<rect x="196" y="620" width="1528" height="2" fill="#333A2B"/>
+<g transform="translate(196,660)">
+  <rect width="360" height="90" fill="#191D14"/>
+  <text x="20" y="30" fill="#99A18D" font-size="12" letter-spacing="2" font-family="ui-monospace, Menlo, monospace">오늘의 필수</text>
+  <text x="20" y="72" fill="#D2594B" font-size="40" font-weight="800" font-family="ui-monospace, Menlo, monospace">5</text>
+  <text x="70" y="72" fill="#99A18D" font-size="16">= 훈련 체크포인트 3 + 보직 2</text>
+</g>
+<g transform="translate(580,660)">
+  <rect width="440" height="90" fill="#191D14"/>
+  <text x="20" y="30" fill="#99A18D" font-size="12" letter-spacing="2" font-family="ui-monospace, Menlo, monospace">합동 퀘스트</text>
+  <text x="20" y="66" fill="#DFE2D6" font-size="22" font-weight="700">난로 유지</text>
+  <rect x="180" y="46" width="130" height="26" fill="#21281A"/>
+  <text x="245" y="65" fill="#9AB06F" font-size="14" text-anchor="middle" font-weight="700">4인 전원 · 여유 0</text>
+</g>
+<g transform="translate(1044,660)">
+  <rect width="680" height="90" fill="#191D14"/>
+  <text x="20" y="30" fill="#99A18D" font-size="12" letter-spacing="2" font-family="ui-monospace, Menlo, monospace">보직 배정</text>
+  <g font-size="15">
+    <text x="20" y="66" fill="#6E7A50">김 · RFL 경계</text><text x="190" y="66" fill="#7FAECF">최 · COM 교신</text>
+    <text x="380" y="66" fill="#EEF1E8">정 · MED 위생</text><text x="550" y="66" fill="#B08A2C">박 · ADM 난로</text>
+  </g>
+</g>
+
+<!-- 필수 장비 / 금지 -->
+<g transform="translate(196,780)">
+  <rect width="1528" height="54" fill="#12150F" stroke="#D2594B"/>
+  <rect width="6" height="54" fill="#D2594B"/>
+  <text x="24" y="34" fill="#D2594B" font-size="13" letter-spacing="2" font-family="ui-monospace, Menlo, monospace">필수 장비</text>
+  <g font-size="17">
+    <rect x="140" y="14" width="140" height="28" fill="#21281A"/><text x="210" y="34" fill="#9AB06F" text-anchor="middle">방상외피 ✓</text>
+    <rect x="292" y="14" width="130" height="28" fill="#21281A"/><text x="357" y="34" fill="#9AB06F" text-anchor="middle">방한화 ✓</text>
+    <rect x="434" y="14" width="160" height="28" fill="#2A1614"/><text x="514" y="34" fill="#D2594B" text-anchor="middle">보온 수통 ✗</text>
+  </g>
+  <text x="640" y="34" fill="#D2594B" font-size="15">— 미소지 시 훈련 출발 차단</text>
+</g>
+<g transform="translate(196,846)">
+  <rect width="1528" height="54" fill="#12150F" stroke="#333A2B"/>
+  <rect width="6" height="54" fill="#7FAECF"/>
+  <text x="24" y="34" fill="#7FAECF" font-size="13" letter-spacing="2" font-family="ui-monospace, Menlo, monospace">금지 일과</text>
+  <text x="140" y="34" fill="#99A18D" font-size="17">정수 작업 · 야간 장거리 행군 — 극혹한 밴드에서 자동 제외</text>
+</g>
+
+<!-- 하단 액션 -->
+<g transform="translate(196,918)">
+  <rect width="300" height="44" fill="#12150F" stroke="#B08A2C"/>
+  <text x="150" y="30" fill="#B08A2C" font-size="16" text-anchor="middle">내일 예보 보기 — 행정병</text>
+  <text x="1240" y="30" fill="#5A6053" font-size="14" text-anchor="end">일과표는 매일 아침 자동 표시 · 이후 [J]로 재확인</text>
+  <rect x="1264" y="0" width="264" height="44" fill="#9AB06F"/>
+  <text x="1396" y="30" fill="#12150F" font-size="18" font-weight="800" text-anchor="middle">확인  ·  SPACE</text>
+</g>
+</svg>

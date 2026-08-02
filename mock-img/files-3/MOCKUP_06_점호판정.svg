@@ -1,0 +1,144 @@
+<svg viewBox="0 0 1920 1080" xmlns="http://www.w3.org/2000/svg" font-family="Pretendard, 'Apple SD Gothic Neo', 'Malgun Gothic', 'Noto Sans KR', sans-serif">
+<defs>
+  <radialGradient id="fail" cx="50%" cy="45%" r="70%">
+    <stop offset="0%" stop-color="#3A100C" stop-opacity="0"/>
+    <stop offset="100%" stop-color="#3A100C" stop-opacity="0.85"/>
+  </radialGradient>
+  <g id="stand">
+    <rect x="10" y="0" width="30" height="8" fill="#3D4629"/>
+    <rect x="6" y="8" width="38" height="12" fill="#55603C"/>
+    <rect x="6" y="20" width="38" height="6" fill="#3D4629"/>
+    <rect x="12" y="26" width="26" height="20" fill="#C9A183"/>
+    <rect x="0" y="46" width="50" height="14" fill="#6E7A50"/>
+    <rect x="6" y="60" width="38" height="46" fill="#6E7A50"/>
+    <rect x="0" y="60" width="8" height="42" fill="#55603C"/>
+    <rect x="42" y="60" width="8" height="42" fill="#55603C"/>
+    <rect x="6" y="98" width="38" height="8" fill="#3D4629"/>
+    <rect x="10" y="106" width="14" height="34" fill="#55603C"/>
+    <rect x="26" y="106" width="14" height="34" fill="#55603C"/>
+    <rect x="10" y="140" width="14" height="16" fill="#33352E"/>
+    <rect x="26" y="140" width="14" height="16" fill="#33352E"/>
+  </g>
+</defs>
+
+<!-- 배경: 생활관 관물대 앞 -->
+<rect width="1920" height="1080" fill="#151A13"/>
+<rect x="0" y="0" width="1920" height="440" fill="#1B2119"/>
+<g fill="#232B20">
+  <rect x="120" y="90" width="200" height="300"/><rect x="400" y="90" width="200" height="300"/>
+  <rect x="1320" y="90" width="200" height="300"/><rect x="1600" y="90" width="200" height="300"/>
+</g>
+<g fill="#2C3527">
+  <rect x="140" y="130" width="160" height="8"/><rect x="140" y="240" width="160" height="8"/>
+  <rect x="420" y="130" width="160" height="8"/><rect x="420" y="240" width="160" height="8"/>
+  <rect x="1340" y="130" width="160" height="8"/><rect x="1340" y="240" width="160" height="8"/>
+  <rect x="1620" y="130" width="160" height="8"/><rect x="1620" y="240" width="160" height="8"/>
+</g>
+<rect x="0" y="440" width="1920" height="12" fill="#101410"/>
+
+<!-- 정렬: 4자리 중 1 공석 -->
+<g transform="translate(700,232) scale(1.05)"><use href="#stand"/></g>
+<g transform="translate(860,232) scale(1.05)"><use href="#stand"/><rect x="0" y="60" width="8" height="12" fill="#3F6E90"/></g>
+<!-- 공석 -->
+<g transform="translate(1020,232) scale(1.05)" opacity="0.55">
+  <rect x="0" y="0" width="50" height="156" fill="none" stroke="#D2594B" stroke-width="2" stroke-dasharray="6 5"/>
+</g>
+<text x="1092" y="410" fill="#D2594B" font-size="15" text-anchor="middle">공석 · 정이병 후송</text>
+<g transform="translate(1180,232) scale(1.05)"><use href="#stand"/><rect x="0" y="60" width="8" height="12" fill="#B08A2C"/></g>
+
+<!-- 이름표 -->
+<g font-size="14" text-anchor="middle" fill="#99A18D" font-family="ui-monospace, Menlo, monospace">
+  <text x="726" y="410">김 · RFL</text><text x="894" y="410">최 · COM</text><text x="1218" y="410">박 · ADM</text>
+</g>
+
+<!-- 실패 그레이딩 -->
+<rect width="1920" height="1080" fill="url(#fail)"/>
+<rect width="1920" height="1080" fill="#9E3226" opacity="0.13"/>
+
+<!-- ============ 판정 패널 ============ -->
+<rect x="360" y="452" width="1200" height="556" fill="#12150F"/>
+<rect x="360" y="452" width="1200" height="556" fill="none" stroke="#D2594B" stroke-width="3"/>
+
+<rect x="360" y="452" width="1200" height="82" fill="#1B1F17"/>
+<rect x="360" y="532" width="1200" height="2" fill="#D2594B"/>
+<text x="392" y="490" fill="#D2594B" font-size="12" letter-spacing="2.4" font-family="ui-monospace, Menlo, monospace">JDG-01  ROLL CALL — 22:00</text>
+<text x="392" y="520" fill="#DFE2D6" font-size="24" font-weight="800" letter-spacing="4">야 간 점 호</text>
+<text x="1528" y="500" fill="#DFE2D6" font-size="26" font-weight="800" text-anchor="end" font-family="ui-monospace, Menlo, monospace">D-10</text>
+<text x="1528" y="522" fill="#99A18D" font-size="14" text-anchor="end">인원 4 · 현재 3 · 대리 1</text>
+
+<!-- 조건 A -->
+<g transform="translate(392,566)">
+  <rect width="1136" height="70" fill="#191D14"/>
+  <text x="24" y="44" fill="#9AB06F" font-size="22" font-weight="800" font-family="ui-monospace, Menlo, monospace">A</text>
+  <text x="72" y="44" fill="#DFE2D6" font-size="21">필수 퀘스트 100% 완료</text>
+  <text x="820" y="44" fill="#99A18D" font-size="19" text-anchor="end" font-family="ui-monospace, Menlo, monospace">17 / 17</text>
+  <text x="960" y="44" fill="#5A6053" font-size="14">NPC 대리 인수 2건</text>
+  <g transform="translate(1080,26)" stroke="#9AB06F" stroke-width="4" fill="none"><path d="M0 10 l9 9 l17 -20"/></g>
+</g>
+<!-- 조건 B -->
+<g transform="translate(392,646)">
+  <rect width="1136" height="70" fill="#191D14"/>
+  <text x="24" y="44" fill="#9AB06F" font-size="22" font-weight="800" font-family="ui-monospace, Menlo, monospace">B</text>
+  <text x="72" y="44" fill="#DFE2D6" font-size="21">합동 퀘스트 완료</text>
+  <text x="820" y="44" fill="#99A18D" font-size="19" text-anchor="end">난로 유지 · 100%</text>
+  <g transform="translate(1080,26)" stroke="#9AB06F" stroke-width="4" fill="none"><path d="M0 10 l9 9 l17 -20"/></g>
+</g>
+<!-- 조건 C — 실패 -->
+<g transform="translate(392,726)">
+  <rect width="1136" height="76" fill="#2A1614"/>
+  <rect width="6" height="76" fill="#D2594B"/>
+  <text x="24" y="48" fill="#D2594B" font-size="22" font-weight="800" font-family="ui-monospace, Menlo, monospace">C</text>
+  <text x="72" y="48" fill="#DFE2D6" font-size="21" font-weight="700">분대 군기 게이지 ≥ 40</text>
+  <rect x="520" y="34" width="240" height="14" fill="#12150F"/>
+  <rect x="520" y="34" width="91" height="14" fill="#D2594B"/>
+  <rect x="616" y="28" width="2" height="26" fill="#DFE2D6"/>
+  <text x="620" y="24" fill="#DFE2D6" font-size="11" font-family="ui-monospace, Menlo, monospace">40</text>
+  <text x="850" y="48" fill="#D2594B" font-size="22" font-weight="800" text-anchor="end" font-family="ui-monospace, Menlo, monospace">38 / 100</text>
+  <g transform="translate(1078,28)" stroke="#D2594B" stroke-width="4.5" fill="none"><path d="M0 0 L24 24 M24 0 L0 24"/></g>
+</g>
+<!-- 조건 D — 미판정 -->
+<g transform="translate(392,812)" opacity="0.3">
+  <rect width="1136" height="70" fill="#191D14"/>
+  <text x="24" y="44" fill="#5A6053" font-size="22" font-weight="800" font-family="ui-monospace, Menlo, monospace">D</text>
+  <text x="72" y="44" fill="#5A6053" font-size="21">복장 · 장비 점검</text>
+  <text x="1096" y="46" fill="#5A6053" font-size="24" text-anchor="middle" font-family="ui-monospace, Menlo, monospace">—</text>
+</g>
+
+<!-- 결과 -->
+<rect x="360" y="900" width="1200" height="108" fill="#3A100C"/>
+<rect x="360" y="900" width="1200" height="2" fill="#D2594B"/>
+<text x="960" y="944" fill="#D2594B" font-size="28" font-weight="800" text-anchor="middle">⚠  조건 C 미달 — 퇴소</text>
+<text x="960" y="974" fill="#DFE2D6" font-size="17" text-anchor="middle">D-10 까지 생존 · 후송 1회와 대리 유지가 군기를 −18 끌어내렸습니다</text>
+<rect x="1140" y="984" width="180" height="0" fill="none"/>
+
+<!-- 버튼 -->
+<g transform="translate(1120,1012)" opacity="0">
+  <rect width="0" height="0"/>
+</g>
+<g transform="translate(660,1020)">
+  <rect x="0" y="0" width="0" height="0"/>
+</g>
+<!-- 하단 버튼바 (패널 외부) -->
+<g transform="translate(660,1016)">
+  <rect x="-300" y="-1000" width="0" height="0"/>
+</g>
+<g transform="translate(1052,928)" opacity="0"><rect width="0" height="0"/></g>
+
+<!-- 버튼 (패널 하단 겹침 방지 · 좌우 배치) -->
+<g transform="translate(400,930)">
+  <rect width="0" height="0"/>
+</g>
+
+<!-- 실제 버튼 -->
+<g transform="translate(1160,942)">
+  <rect width="150" height="46" fill="#12150F" stroke="#99A18D"/>
+  <text x="75" y="30" fill="#99A18D" font-size="16" text-anchor="middle">리포트 보기</text>
+  <rect x="166" y="0" width="150" height="46" fill="#D2594B"/>
+  <text x="241" y="30" fill="#12150F" font-size="16" font-weight="800" text-anchor="middle">재시작</text>
+</g>
+
+<!-- 연출 타임라인 주석 -->
+<g transform="translate(392,1032)" opacity="0.9">
+  <text x="0" y="0" fill="#5A6053" font-size="13" font-family="ui-monospace, Menlo, monospace">연출 6.4s : 0.0 암전+정렬 → 0.8 인원보고 → 1.6/2.2/2.8/3.4 조건 순차 → 4.0 결과 · 실패 시 해당 줄에서 정지</text>
+</g>
+</svg>

@@ -4,10 +4,13 @@
 
 | | |
 |---|---|
-| 원본 | Noto Sans CJK KR (Google) |
+| 원본 | Pretendard Regular |
 | 라이선스 | SIL Open Font License 1.1 |
-| 원본 크기 | 4.4MB |
-| 서브셋 | 73KB |
+| 원본 크기 | 1.5MB |
+| 서브셋 | 110KB |
+
+**Noto에서 Pretendard로 갈아탔다.** 목업(`files-3/`)이 전부 Pretendard로
+그려져 있어서, 다른 폰트로 렌더하면 실측 좌표로 잡아둔 글자 폭이 어긋난다.
 
 ## 왜 필요한가
 

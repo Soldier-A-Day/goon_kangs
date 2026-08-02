@@ -1,0 +1,215 @@
+<svg viewBox="0 0 1920 2160" xmlns="http://www.w3.org/2000/svg" font-family="Pretendard, 'Apple SD Gothic Neo', 'Malgun Gothic', 'Noto Sans KR', sans-serif">
+<rect width="1920" height="2160" fill="#0B0D08"/>
+
+<!-- ══════════ 1 : 로비 (Next.js 웹 셸) ══════════ -->
+<rect y="0" width="1920" height="1080" fill="#12150F"/>
+<text x="60" y="46" fill="#5E6E42" font-size="12" letter-spacing="3" font-family="ui-monospace, Menlo, monospace">SCREEN 7.10-D — LOBBY  ·  Next.js 웹 셸  ·  Unity 번들 백그라운드 프리페치 중</text>
+
+<!-- 헤더 -->
+<rect x="0" y="70" width="1920" height="120" fill="#1B1F17"/>
+<rect x="0" y="188" width="1920" height="2" fill="#DFE2D6"/>
+<text x="80" y="122" fill="#9AB06F" font-size="12" letter-spacing="3" font-family="ui-monospace, Menlo, monospace">SAD  ·  18-DAY CO-OP SURVIVAL</text>
+<text x="80" y="168" fill="#DFE2D6" font-size="34" font-weight="800" letter-spacing="-1">SOLDIER<tspan fill="#9AB06F"> : </tspan>A DAY</text>
+<text x="1840" y="128" fill="#99A18D" font-size="14" text-anchor="end">초대 코드</text>
+<rect x="1580" y="138" width="260" height="42" fill="#21281A" stroke="#9AB06F"/>
+<text x="1710" y="168" fill="#9AB06F" font-size="26" font-weight="800" text-anchor="middle" letter-spacing="8" font-family="ui-monospace, Menlo, monospace">K7M2QX</text>
+
+<!-- 좌: 보직 선택 -->
+<g transform="translate(80,230)">
+  <text x="0" y="0" fill="#99A18D" font-size="12" letter-spacing="2" font-family="ui-monospace, Menlo, monospace">ROLE — 보직당 정확히 1명, 중복 불가</text>
+  <!-- 소총수 : 선택됨(다른 플레이어) -->
+  <g transform="translate(0,20)">
+    <rect width="270" height="330" fill="#191D14" stroke="#333A2B"/>
+    <rect width="270" height="30" fill="#6E7A50"/><text x="135" y="21" fill="#12150F" font-size="12" font-weight="800" text-anchor="middle">RFL</text>
+    <g transform="translate(103,50) scale(2)">
+      <rect x="12" y="0" width="8" height="1" fill="#3D4629"/><rect x="11" y="1" width="10" height="2" fill="#55603C"/><rect x="11" y="3" width="10" height="1" fill="#3D4629"/>
+      <rect x="12" y="4" width="8" height="5" fill="#E0B48C"/><rect x="9" y="10" width="14" height="2" fill="#6E7A50"/><rect x="11" y="12" width="10" height="9" fill="#6E7A50"/>
+      <rect x="9" y="12" width="2" height="9" fill="#55603C"/><rect x="21" y="12" width="2" height="9" fill="#55603C"/>
+      <rect x="12" y="22" width="4" height="7" fill="#55603C"/><rect x="17" y="22" width="4" height="7" fill="#55603C"/>
+      <rect x="12" y="29" width="4" height="4" fill="#33352E"/><rect x="17" y="29" width="4" height="4" fill="#33352E"/>
+      <rect x="6" y="12" width="16" height="2" fill="#33352E" transform="rotate(38 14 13)"/>
+    </g>
+    <text x="20" y="220" fill="#DFE2D6" font-size="20" font-weight="700">소총수</text>
+    <text x="20" y="248" fill="#99A18D" font-size="14">전투 · 경계 · 기동</text>
+    <text x="20" y="272" fill="#D2594B" font-size="13">실패 시 기습 이벤트 2배</text>
+    <rect x="20" y="288" width="230" height="30" fill="#21281A"/>
+    <text x="135" y="308" fill="#9AB06F" font-size="14" text-anchor="middle">김 · 준비 완료</text>
+  </g>
+  <!-- 통신병 -->
+  <g transform="translate(290,20)">
+    <rect width="270" height="330" fill="#191D14" stroke="#333A2B"/>
+    <rect width="270" height="30" fill="#3F6E90"/><text x="135" y="21" fill="#12150F" font-size="12" font-weight="800" text-anchor="middle">COM</text>
+    <g transform="translate(103,50) scale(2)">
+      <rect x="12" y="0" width="8" height="1" fill="#3D4629"/><rect x="11" y="1" width="10" height="2" fill="#55603C"/><rect x="11" y="2" width="10" height="1" fill="#2A2E24"/><rect x="11" y="3" width="10" height="1" fill="#3D4629"/>
+      <rect x="12" y="4" width="8" height="5" fill="#E0B48C"/><rect x="10" y="5" width="2" height="3" fill="#2A2E24"/><rect x="20" y="5" width="2" height="3" fill="#2A2E24"/>
+      <rect x="9" y="10" width="14" height="2" fill="#6E7A50"/><rect x="11" y="12" width="10" height="9" fill="#6E7A50"/>
+      <rect x="9" y="12" width="2" height="9" fill="#55603C"/><rect x="21" y="12" width="2" height="9" fill="#55603C"/>
+      <rect x="22" y="2" width="1" height="12" fill="#8A9080"/>
+      <rect x="12" y="22" width="4" height="7" fill="#55603C"/><rect x="17" y="22" width="4" height="7" fill="#55603C"/>
+      <rect x="12" y="29" width="4" height="4" fill="#33352E"/><rect x="17" y="29" width="4" height="4" fill="#33352E"/>
+    </g>
+    <text x="20" y="220" fill="#DFE2D6" font-size="20" font-weight="700">통신병</text>
+    <text x="20" y="248" fill="#99A18D" font-size="14">정보 전달</text>
+    <text x="20" y="272" fill="#D2594B" font-size="13">실패 시 미니맵 마커 소멸</text>
+    <rect x="20" y="288" width="230" height="30" fill="#21281A"/>
+    <text x="135" y="308" fill="#9AB06F" font-size="14" text-anchor="middle">최 · 준비 완료</text>
+  </g>
+  <!-- 의무병 : 내가 선택 중 -->
+  <g transform="translate(580,20)">
+    <rect width="270" height="330" fill="#21281A" stroke="#9AB06F" stroke-width="3"/>
+    <rect width="270" height="30" fill="#EEF1E8"/><text x="135" y="21" fill="#12150F" font-size="12" font-weight="800" text-anchor="middle">MED</text>
+    <g transform="translate(103,50) scale(2)">
+      <rect x="12" y="0" width="8" height="1" fill="#3D4629"/><rect x="11" y="1" width="10" height="2" fill="#55603C"/><rect x="11" y="3" width="10" height="1" fill="#EEF1E8"/>
+      <rect x="12" y="4" width="8" height="5" fill="#E0B48C"/><rect x="9" y="10" width="14" height="2" fill="#6E7A50"/><rect x="11" y="12" width="10" height="9" fill="#6E7A50"/>
+      <rect x="9" y="12" width="2" height="9" fill="#EEF1E8"/><rect x="21" y="12" width="2" height="9" fill="#55603C"/>
+      <rect x="12" y="22" width="4" height="7" fill="#55603C"/><rect x="17" y="22" width="4" height="7" fill="#55603C"/>
+      <rect x="12" y="29" width="4" height="4" fill="#33352E"/><rect x="17" y="29" width="4" height="4" fill="#33352E"/>
+    </g>
+    <text x="20" y="220" fill="#DFE2D6" font-size="20" font-weight="700">의무병</text>
+    <text x="20" y="248" fill="#99A18D" font-size="14">컨디션 전반 ← 취사 흡수</text>
+    <text x="20" y="272" fill="#D2594B" font-size="13">실패 시 전원 수분 소모 2배</text>
+    <rect x="20" y="288" width="230" height="30" fill="#9AB06F"/>
+    <text x="135" y="308" fill="#12150F" font-size="14" font-weight="800" text-anchor="middle">나 · 선택 중</text>
+  </g>
+  <!-- 행정병 : 비어있음 → NPC 예고 -->
+  <g transform="translate(870,20)">
+    <rect width="270" height="330" fill="#191D14" stroke="#D2594B" stroke-width="2" stroke-dasharray="8 6"/>
+    <rect width="270" height="30" fill="#B08A2C"/><text x="135" y="21" fill="#12150F" font-size="12" font-weight="800" text-anchor="middle">ADM</text>
+    <g transform="translate(103,50) scale(2)" opacity="0.35">
+      <rect x="12" y="0" width="8" height="1" fill="#55603C"/><rect x="11" y="1" width="10" height="3" fill="#55603C"/>
+      <rect x="12" y="4" width="8" height="5" fill="#E0B48C"/><rect x="9" y="10" width="14" height="2" fill="#6E7A50"/><rect x="11" y="12" width="10" height="9" fill="#6E7A50"/>
+      <rect x="9" y="12" width="2" height="9" fill="#B08A2C"/><rect x="21" y="12" width="4" height="6" fill="#D8DAD0"/>
+      <rect x="12" y="22" width="4" height="7" fill="#55603C"/><rect x="17" y="22" width="4" height="7" fill="#55603C"/>
+      <rect x="12" y="29" width="4" height="4" fill="#33352E"/><rect x="17" y="29" width="4" height="4" fill="#33352E"/>
+    </g>
+    <text x="20" y="220" fill="#DFE2D6" font-size="20" font-weight="700">행정병</text>
+    <text x="20" y="248" fill="#99A18D" font-size="14">정보 관리 · 정비 ← 정비 흡수</text>
+    <text x="20" y="272" fill="#D2594B" font-size="13">실패 시 혹한 보온 −50%</text>
+    <rect x="20" y="288" width="230" height="30" fill="#2A1614"/>
+    <text x="135" y="308" fill="#D2594B" font-size="13" font-weight="700" text-anchor="middle">NPC 대리로 진행됨</text>
+  </g>
+</g>
+
+<!-- NPC 경고 -->
+<g transform="translate(80,610)">
+  <rect width="1140" height="94" fill="#2A1614"/>
+  <rect width="5" height="94" fill="#D2594B"/>
+  <text x="24" y="32" fill="#D2594B" font-size="12" letter-spacing="2" font-family="ui-monospace, Menlo, monospace">ROLE-03  인원 미달 처리</text>
+  <text x="24" y="62" fill="#DFE2D6" font-size="17">행정병이 NPC 대리가 됩니다 — 필수 퀘스트만 수행하고 선택 · 돌발 · 히든은 하지 않습니다.</text>
+  <text x="24" y="84" fill="#99A18D" font-size="15">군기 −3/일은 면제되지만, 정보 비대칭 합동 패턴 일부가 막히고 보급 포인트가 자연 감소합니다.</text>
+</g>
+
+<!-- 우: 설정 · 프리페치 -->
+<g transform="translate(1260,230)">
+  <text x="0" y="0" fill="#99A18D" font-size="12" letter-spacing="2" font-family="ui-monospace, Menlo, monospace">RUN SETUP</text>
+  <g transform="translate(0,20)">
+    <rect width="580" height="94" fill="#191D14" stroke="#333A2B"/>
+    <text x="24" y="34" fill="#99A18D" font-size="14">계절</text>
+    <rect x="24" y="48" width="170" height="34" fill="#21281A" stroke="#7FAECF"/><text x="109" y="71" fill="#7FAECF" font-size="15" text-anchor="middle" font-weight="700">혹한기</text>
+    <rect x="204" y="48" width="170" height="34" fill="#12150F" stroke="#333A2B"/><text x="289" y="71" fill="#5A6053" font-size="15" text-anchor="middle">혹서기</text>
+    <rect x="384" y="48" width="170" height="34" fill="#12150F" stroke="#333A2B"/><text x="469" y="71" fill="#5A6053" font-size="15" text-anchor="middle">랜덤</text>
+  </g>
+  <g transform="translate(0,134)">
+    <rect width="580" height="94" fill="#191D14" stroke="#333A2B"/>
+    <text x="24" y="34" fill="#99A18D" font-size="14">난이도</text>
+    <rect x="24" y="48" width="260" height="34" fill="#21281A" stroke="#9AB06F"/><text x="154" y="71" fill="#9AB06F" font-size="15" text-anchor="middle" font-weight="700">정규 — 1회 미달 즉시 종료</text>
+    <rect x="294" y="48" width="260" height="34" fill="#12150F" stroke="#333A2B"/><text x="424" y="71" fill="#5A6053" font-size="15" text-anchor="middle">완화 — 3회 · 보상 60%</text>
+  </g>
+  <g transform="translate(0,248)">
+    <rect width="580" height="120" fill="#191D14" stroke="#333A2B"/>
+    <text x="24" y="34" fill="#9AB06F" font-size="12" letter-spacing="2" font-family="ui-monospace, Menlo, monospace">PREFETCH — 대기 시간에 다운로드</text>
+    <text x="24" y="66" fill="#DFE2D6" font-size="17">Unity 번들 내려받는 중</text>
+    <rect x="24" y="80" width="532" height="14" fill="#262C1F"/>
+    <rect x="24" y="80" width="394" height="14" fill="#9AB06F"/>
+    <text x="556" y="66" fill="#9AB06F" font-size="16" text-anchor="end" font-family="ui-monospace, Menlo, monospace">74%</text>
+    <text x="24" y="110" fill="#5A6053" font-size="13">2D 전환으로 25MB — 3D 안 120MB 대비 1/5</text>
+  </g>
+</g>
+
+<!-- 하단 -->
+<g transform="translate(80,750)">
+  <rect width="1760" height="1" fill="#333A2B"/>
+  <text x="0" y="42" fill="#99A18D" font-size="16">권장 인원 <tspan fill="#9AB06F" font-weight="800">4인</tspan> · 현재 3인  ·  예상 소요 100~130분</text>
+  <text x="0" y="72" fill="#5A6053" font-size="14">1~2인 방은 튜토리얼 · 연습 용도이며 기록에 남지 않습니다</text>
+  <rect x="1400" y="10" width="170" height="52" fill="#12150F" stroke="#99A18D"/>
+  <text x="1485" y="43" fill="#99A18D" font-size="16" text-anchor="middle">설정</text>
+  <rect x="1590" y="10" width="170" height="52" fill="#9AB06F"/>
+  <text x="1675" y="43" fill="#12150F" font-size="17" font-weight="800" text-anchor="middle">준비 완료</text>
+</g>
+
+<!-- ══════════ 2 : 설정 · 접근성 ══════════ -->
+<g transform="translate(0,1080)">
+  <rect width="1920" height="1080" fill="#0B0D08"/>
+  <text x="60" y="46" fill="#5E6E42" font-size="12" letter-spacing="3" font-family="ui-monospace, Menlo, monospace">SCREEN 7.10-E — 설정 · 접근성 [ESC]  ·  15.0 필수 구현 항목</text>
+
+  <rect x="480" y="70" width="960" height="940" fill="#12150F"/>
+  <rect x="480" y="70" width="960" height="940" fill="none" stroke="#333A2B" stroke-width="2"/>
+  <rect x="480" y="70" width="960" height="72" fill="#1B1F17"/>
+  <rect x="480" y="140" width="960" height="2" fill="#DFE2D6"/>
+  <text x="512" y="102" fill="#9AB06F" font-size="12" letter-spacing="2.2" font-family="ui-monospace, Menlo, monospace">ACCESSIBILITY</text>
+  <text x="512" y="128" fill="#DFE2D6" font-size="22" font-weight="800">접근성</text>
+
+  <!-- 항목 -->
+  <g transform="translate(512,180)" font-size="17">
+    <text x="0" y="0" fill="#99A18D" font-size="12" letter-spacing="2" font-family="ui-monospace, Menlo, monospace">화면 효과 — 개별 토글</text>
+    <g transform="translate(0,20)">
+      <g><rect width="896" height="56" fill="#191D14"/><text x="24" y="35" fill="#DFE2D6">열 왜곡 (혹서 · 극혹서)</text>
+         <rect x="800" y="16" width="72" height="26" fill="#21281A" stroke="#9AB06F"/><circle cx="858" cy="29" r="9" fill="#9AB06F"/></g>
+      <g transform="translate(0,64)"><rect width="896" height="56" fill="#191D14"/><text x="24" y="35" fill="#DFE2D6">결빙 프레임 (극혹한 · 동상)</text>
+         <rect x="800" y="16" width="72" height="26" fill="#21281A" stroke="#9AB06F"/><circle cx="858" cy="29" r="9" fill="#9AB06F"/></g>
+      <g transform="translate(0,128)"><rect width="896" height="56" fill="#191D14"/><text x="24" y="35" fill="#DFE2D6">패닉 화면 진동 (정신력 0)</text>
+         <rect x="800" y="16" width="72" height="26" fill="#12150F" stroke="#5A6053"/><circle cx="814" cy="29" r="9" fill="#5A6053"/>
+         <text x="640" y="35" fill="#DB8B55" font-size="14" text-anchor="end">꺼짐 권장</text></g>
+      <g transform="translate(0,192)"><rect width="896" height="56" fill="#191D14"/><text x="24" y="35" fill="#DFE2D6">화면 흔들림 전반</text>
+         <rect x="800" y="16" width="72" height="26" fill="#21281A" stroke="#9AB06F"/><circle cx="858" cy="29" r="9" fill="#9AB06F"/></g>
+    </g>
+
+    <g transform="translate(0,300)">
+      <text x="0" y="0" fill="#99A18D" font-size="12" letter-spacing="2" font-family="ui-monospace, Menlo, monospace">색 · 표기</text>
+      <g transform="translate(0,20)">
+        <rect width="896" height="76" fill="#191D14"/>
+        <text x="24" y="32" fill="#DFE2D6">색각 이상 모드 — 온도 밴드를 아이콘 형태 + 텍스트로 이중 표기</text>
+        <g transform="translate(24,44)">
+          <g stroke="#7FAECF" stroke-width="2.5" fill="none" transform="translate(0,0)"><path d="M10 2V22M2 7L18 17M18 7L2 17"/></g>
+          <text x="26" y="18" fill="#7FAECF" font-size="14">극혹한</text>
+          <circle cx="120" cy="12" r="9" fill="none" stroke="#99A18D" stroke-width="2.5"/><text x="136" y="18" fill="#99A18D" font-size="14">평시</text>
+          <g transform="translate(230,0)"><circle cx="10" cy="12" r="7" fill="#DB8B55"/><g stroke="#DB8B55" stroke-width="2"><path d="M10 0v3M10 21v3M0 12h3M17 12h3"/></g></g>
+          <text x="256" y="18" fill="#DB8B55" font-size="14">혹서</text>
+        </g>
+        <rect x="800" y="24" width="72" height="26" fill="#21281A" stroke="#9AB06F"/><circle cx="858" cy="37" r="9" fill="#9AB06F"/>
+      </g>
+    </g>
+
+    <g transform="translate(0,420)">
+      <text x="0" y="0" fill="#99A18D" font-size="12" letter-spacing="2" font-family="ui-monospace, Menlo, monospace">입력</text>
+      <g transform="translate(0,20)">
+        <g><rect width="896" height="56" fill="#191D14"/><text x="24" y="35" fill="#DFE2D6">미니게임 홀드 대체 입력 (연타 요구 금지)</text>
+           <rect x="800" y="16" width="72" height="26" fill="#21281A" stroke="#9AB06F"/><circle cx="858" cy="29" r="9" fill="#9AB06F"/></g>
+        <g transform="translate(0,64)"><rect width="896" height="56" fill="#191D14"/><text x="24" y="35" fill="#DFE2D6">하달 창 키보드 배정 (드래그 대체)</text>
+           <rect x="800" y="16" width="72" height="26" fill="#21281A" stroke="#9AB06F"/><circle cx="858" cy="29" r="9" fill="#9AB06F"/></g>
+      </g>
+    </g>
+
+    <g transform="translate(0,560)">
+      <text x="0" y="0" fill="#99A18D" font-size="12" letter-spacing="2" font-family="ui-monospace, Menlo, monospace">UI 크기</text>
+      <g transform="translate(0,20)">
+        <rect width="896" height="60" fill="#191D14"/>
+        <text x="24" y="37" fill="#DFE2D6">UI 스케일</text>
+        <rect x="200" y="16" width="90" height="30" fill="#12150F" stroke="#333A2B"/><text x="245" y="37" fill="#5A6053" font-size="15" text-anchor="middle">100%</text>
+        <rect x="300" y="16" width="90" height="30" fill="#21281A" stroke="#9AB06F"/><text x="345" y="37" fill="#9AB06F" font-size="15" text-anchor="middle" font-weight="700">125%</text>
+        <rect x="400" y="16" width="90" height="30" fill="#12150F" stroke="#333A2B"/><text x="445" y="37" fill="#5A6053" font-size="15" text-anchor="middle">150%</text>
+        <text x="872" y="37" fill="#99A18D" font-size="14" text-anchor="end">텍스트 크기 별도 조절</text>
+      </g>
+    </g>
+  </g>
+
+  <!-- 핵심 보증 -->
+  <g transform="translate(512,880)">
+    <rect width="896" height="96" fill="#21281A"/>
+    <rect width="5" height="96" fill="#9AB06F"/>
+    <text x="24" y="34" fill="#9AB06F" font-size="12" letter-spacing="2" font-family="ui-monospace, Menlo, monospace">DESIGN GUARANTEE</text>
+    <text x="24" y="66" fill="#DFE2D6" font-size="19" font-weight="700">타이핑을 전혀 하지 않고도 18일 완주가 가능해야 한다</text>
+    <text x="24" y="88" fill="#99A18D" font-size="14">퀵 커맨드 + 상황판만으로 모든 합동 퀘스트가 해결 — 자유 채팅은 심화 수단일 뿐</text>
+  </g>
+</g>
+</svg>

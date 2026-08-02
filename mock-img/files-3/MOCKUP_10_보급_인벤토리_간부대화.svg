@@ -1,0 +1,222 @@
+<svg viewBox="0 0 1920 2160" xmlns="http://www.w3.org/2000/svg" font-family="Pretendard, 'Apple SD Gothic Neo', 'Malgun Gothic', 'Noto Sans KR', sans-serif">
+<rect width="1920" height="2160" fill="#0B0D08"/>
+
+<!-- ══════════ 1 : 보급 청구 ══════════ -->
+<text x="60" y="46" fill="#5E6E42" font-size="12" letter-spacing="3" font-family="ui-monospace, Menlo, monospace">SCREEN 7.10-A — SUP-01  보급 청구  ·  행정병만 작성</text>
+
+<rect x="320" y="70" width="1280" height="640" fill="#12150F"/>
+<rect x="320" y="70" width="1280" height="640" fill="none" stroke="#333A2B" stroke-width="2"/>
+<rect x="320" y="70" width="1280" height="80" fill="#1B1F17"/>
+<rect x="320" y="148" width="1280" height="2" fill="#DFE2D6"/>
+<text x="352" y="106" fill="#9AB06F" font-size="12" letter-spacing="2.2" font-family="ui-monospace, Menlo, monospace">SUPPLY REQUISITION — D-09 보급일</text>
+<text x="352" y="136" fill="#DFE2D6" font-size="24" font-weight="800">보급 청구서</text>
+<text x="1420" y="106" fill="#99A18D" font-size="13" text-anchor="end">보급 포인트</text>
+<text x="1568" y="136" fill="#9AB06F" font-size="34" font-weight="800" text-anchor="end" font-family="ui-monospace, Menlo, monospace">42</text>
+<text x="1420" y="136" fill="#99A18D" font-size="15" text-anchor="end">잔여</text>
+
+<!-- 예보 힌트 (행정병 전용) -->
+<g transform="translate(352,178)">
+  <rect width="1216" height="70" fill="#191D14" stroke="#B08A2C"/>
+  <rect width="5" height="70" fill="#B08A2C"/>
+  <text x="24" y="30" fill="#B08A2C" font-size="12" letter-spacing="2" font-family="ui-monospace, Menlo, monospace">ADMIN FORECAST — 나만 보임</text>
+  <text x="24" y="56" fill="#DFE2D6" font-size="18">D-10 <tspan fill="#7FAECF" font-weight="700">극혹한 −14°C</tspan> · 기상 악화 확정 — 방한 우선</text>
+  <text x="1192" y="52" fill="#D2594B" font-size="15" text-anchor="end">이 정보를 분대장에게 말해야 결정이 된다</text>
+</g>
+
+<!-- 품목 카드 -->
+<g transform="translate(352,272)">
+  <text x="0" y="0" fill="#99A18D" font-size="12" letter-spacing="2" font-family="ui-monospace, Menlo, monospace">CATALOG</text>
+  <!-- 선택됨 -->
+  <g transform="translate(0,16)">
+    <rect width="290" height="150" fill="#21281A" stroke="#9AB06F" stroke-width="2"/>
+    <rect width="290" height="26" fill="#9AB06F"/><text x="145" y="19" fill="#12150F" font-size="12" font-weight="800" text-anchor="middle">청구 목록에 있음</text>
+    <text x="20" y="60" fill="#DFE2D6" font-size="20" font-weight="700">방한 내피 ×4</text>
+    <text x="20" y="88" fill="#7FAECF" font-size="15">보온치 +5 / 인</text>
+    <text x="20" y="112" fill="#99A18D" font-size="14">젖음 시 −6 · 건조 필요</text>
+    <text x="270" y="136" fill="#9AB06F" font-size="24" font-weight="800" text-anchor="end" font-family="ui-monospace, Menlo, monospace">18</text>
+  </g>
+  <g transform="translate(310,16)">
+    <rect width="290" height="150" fill="#21281A" stroke="#9AB06F" stroke-width="2"/>
+    <rect width="290" height="26" fill="#9AB06F"/><text x="145" y="19" fill="#12150F" font-size="12" font-weight="800" text-anchor="middle">청구 목록에 있음</text>
+    <text x="20" y="60" fill="#DFE2D6" font-size="20" font-weight="700">보온 수통 ×4</text>
+    <text x="20" y="88" fill="#7FAECF" font-size="15">극혹한 필수 장비</text>
+    <text x="20" y="112" fill="#D2594B" font-size="14">현재 미소지 — 조건 D 위험</text>
+    <text x="270" y="136" fill="#9AB06F" font-size="24" font-weight="800" text-anchor="end" font-family="ui-monospace, Menlo, monospace">12</text>
+  </g>
+  <g transform="translate(620,16)">
+    <rect width="290" height="150" fill="#191D14" stroke="#333A2B"/>
+    <text x="20" y="46" fill="#DFE2D6" font-size="20" font-weight="700">의약품 세트</text>
+    <text x="20" y="76" fill="#EEF1E8" font-size="15">동상 해제 ×6 · 붕대 ×10</text>
+    <text x="20" y="102" fill="#99A18D" font-size="14">의무병 요청</text>
+    <text x="270" y="136" fill="#DFE2D6" font-size="24" font-weight="800" text-anchor="end" font-family="ui-monospace, Menlo, monospace">20</text>
+  </g>
+  <g transform="translate(930,16)" opacity="0.45">
+    <rect width="286" height="150" fill="#191D14" stroke="#333A2B"/>
+    <text x="20" y="46" fill="#DFE2D6" font-size="20" font-weight="700">난로 유류 ×2</text>
+    <text x="20" y="76" fill="#DB8B55" font-size="15">열원 유지 3일분</text>
+    <text x="20" y="102" fill="#D2594B" font-size="14">포인트 부족</text>
+    <text x="266" y="136" fill="#D2594B" font-size="24" font-weight="800" text-anchor="end" font-family="ui-monospace, Menlo, monospace">16</text>
+  </g>
+</g>
+
+<!-- 합계 -->
+<g transform="translate(352,462)">
+  <rect width="1216" height="1" fill="#333A2B"/>
+  <text x="0" y="38" fill="#99A18D" font-size="16">청구 합계</text>
+  <text x="200" y="40" fill="#DFE2D6" font-size="26" font-weight="800" font-family="ui-monospace, Menlo, monospace">30</text>
+  <text x="250" y="38" fill="#99A18D" font-size="16">/ 42  ·  잔여 12</text>
+  <rect x="440" y="20" width="500" height="16" fill="#262C1F"/>
+  <rect x="440" y="20" width="357" height="16" fill="#9AB06F"/>
+  <text x="1216" y="38" fill="#D2594B" font-size="15" text-anchor="end">잔여 12로는 난로 유류(16)를 살 수 없음</text>
+</g>
+
+<!-- 긴장 구조 -->
+<g transform="translate(352,522)">
+  <rect width="1216" height="86" fill="#2A1614"/>
+  <rect width="5" height="86" fill="#D2594B"/>
+  <text x="24" y="32" fill="#D2594B" font-size="12" letter-spacing="2" font-family="ui-monospace, Menlo, monospace">TRADE-OFF</text>
+  <text x="24" y="62" fill="#DFE2D6" font-size="17">방한 장비를 살 것인가, 의약품을 살 것인가 — 포인트는 항상 부족하다.</text>
+  <text x="1192" y="62" fill="#B08A2C" font-size="15" text-anchor="end">정답은 예보를 아는 행정병만 안다</text>
+</g>
+
+<g transform="translate(352,628)">
+  <rect width="240" height="48" fill="#12150F" stroke="#99A18D"/>
+  <text x="120" y="31" fill="#99A18D" font-size="16" text-anchor="middle">분대장에게 상신</text>
+  <rect x="976" y="0" width="240" height="48" fill="#9AB06F"/>
+  <text x="1096" y="31" fill="#12150F" font-size="17" font-weight="800" text-anchor="middle">청구 확정</text>
+</g>
+
+<!-- ══════════ 2 : 인벤토리 · 피복 ══════════ -->
+<g transform="translate(0,760)">
+  <text x="60" y="46" fill="#5E6E42" font-size="12" letter-spacing="3" font-family="ui-monospace, Menlo, monospace">SCREEN 7.10-B — 인벤토리 · 피복 [I]</text>
+
+  <rect x="320" y="70" width="1280" height="640" fill="#12150F"/>
+  <rect x="320" y="70" width="1280" height="640" fill="none" stroke="#333A2B" stroke-width="2"/>
+  <rect x="320" y="70" width="1280" height="72" fill="#1B1F17"/>
+  <rect x="320" y="140" width="1280" height="2" fill="#DFE2D6"/>
+  <text x="352" y="102" fill="#9AB06F" font-size="12" letter-spacing="2.2" font-family="ui-monospace, Menlo, monospace">EQUIPMENT</text>
+  <text x="352" y="128" fill="#DFE2D6" font-size="22" font-weight="800">피복 · 장비</text>
+  <text x="1568" y="112" fill="#7FAECF" font-size="17" text-anchor="end" font-weight="700">체감온도 보정  +14</text>
+
+  <!-- 페이퍼돌 -->
+  <g transform="translate(400,180)">
+    <rect width="300" height="480" fill="#191D14" stroke="#333A2B"/>
+    <g transform="translate(78,60) scale(4.5)">
+      <rect x="12" y="0" width="8" height="1" fill="#3D4629"/><rect x="11" y="1" width="10" height="2" fill="#55603C"/>
+      <rect x="11" y="3" width="10" height="1" fill="#3D4629"/><rect x="12" y="4" width="8" height="5" fill="#E0B48C"/>
+      <rect x="13" y="9" width="6" height="1" fill="#55603C"/>
+      <rect x="8" y="10" width="16" height="2" fill="#3F4A2E"/><rect x="10" y="12" width="12" height="9" fill="#3F4A2E"/>
+      <rect x="8" y="12" width="2" height="9" fill="#2E3722"/><rect x="22" y="12" width="2" height="9" fill="#2E3722"/>
+      <rect x="10" y="19" width="12" height="2" fill="#3D4629"/>
+      <rect x="12" y="22" width="4" height="7" fill="#55603C"/><rect x="17" y="22" width="4" height="7" fill="#55603C"/>
+      <rect x="12" y="29" width="4" height="4" fill="#33352E"/><rect x="17" y="29" width="4" height="4" fill="#33352E"/>
+    </g>
+    <text x="150" y="450" fill="#99A18D" font-size="14" text-anchor="middle">방상외피 착용 중</text>
+  </g>
+
+  <!-- 슬롯 6 -->
+  <g transform="translate(730,180)">
+    <text x="0" y="-10" fill="#99A18D" font-size="12" letter-spacing="2" font-family="ui-monospace, Menlo, monospace">SLOTS</text>
+    <g font-size="16">
+      <g transform="translate(0,0)"><rect width="400" height="70" fill="#191D14" stroke="#333A2B"/>
+        <text x="18" y="30" fill="#99A18D" font-size="13">상의</text><text x="18" y="54" fill="#DFE2D6">전투복 상의</text>
+        <text x="382" y="30" fill="#7FAECF" text-anchor="end" font-family="ui-monospace, Menlo, monospace">보온 +2</text>
+        <text x="382" y="54" fill="#99A18D" font-size="13" text-anchor="end">통기 3 · 방호 1</text></g>
+      <g transform="translate(0,78)"><rect width="400" height="70" fill="#191D14" stroke="#333A2B"/>
+        <text x="18" y="30" fill="#99A18D" font-size="13">하의</text><text x="18" y="54" fill="#DFE2D6">방한 하의</text>
+        <text x="382" y="30" fill="#7FAECF" text-anchor="end" font-family="ui-monospace, Menlo, monospace">보온 +3</text></g>
+      <g transform="translate(0,156)"><rect width="400" height="70" fill="#21281A" stroke="#9AB06F"/>
+        <text x="18" y="30" fill="#9AB06F" font-size="13">외피</text><text x="18" y="54" fill="#DFE2D6" font-weight="700">방상외피</text>
+        <text x="382" y="30" fill="#7FAECF" text-anchor="end" font-weight="700" font-family="ui-monospace, Menlo, monospace">보온 +9</text>
+        <text x="382" y="54" fill="#D2594B" font-size="13" text-anchor="end">젖으면 −6</text></g>
+      <g transform="translate(0,234)"><rect width="400" height="70" fill="#191D14" stroke="#333A2B"/>
+        <text x="18" y="30" fill="#99A18D" font-size="13">두부</text><text x="18" y="54" fill="#DFE2D6">방한모</text>
+        <text x="382" y="30" fill="#7FAECF" text-anchor="end" font-family="ui-monospace, Menlo, monospace">보온 +2</text></g>
+      <g transform="translate(0,312)"><rect width="400" height="70" fill="#191D14" stroke="#333A2B"/>
+        <text x="18" y="30" fill="#99A18D" font-size="13">수족</text><text x="18" y="54" fill="#DFE2D6">방한화 · 장갑</text>
+        <text x="382" y="30" fill="#7FAECF" text-anchor="end" font-family="ui-monospace, Menlo, monospace">보온 +2</text></g>
+      <g transform="translate(0,390)"><rect width="400" height="70" fill="#191D14" stroke="#333A2B"/>
+        <text x="18" y="30" fill="#99A18D" font-size="13">군장</text><text x="18" y="54" fill="#DFE2D6">의무낭 · 탄띠</text>
+        <text x="382" y="30" fill="#DB8B55" text-anchor="end" font-family="ui-monospace, Menlo, monospace">무게 6.4kg</text>
+        <text x="382" y="54" fill="#99A18D" font-size="13" text-anchor="end">행군 피로 ×1.2</text></g>
+    </g>
+  </g>
+
+  <!-- 소모품 -->
+  <g transform="translate(1180,180)">
+    <text x="0" y="-10" fill="#99A18D" font-size="12" letter-spacing="2" font-family="ui-monospace, Menlo, monospace">CONSUMABLES</text>
+    <rect width="380" height="298" fill="#191D14" stroke="#333A2B"/>
+    <g font-size="16">
+      <g transform="translate(20,36)"><text fill="#DFE2D6">수통</text><text x="340" text-anchor="end" fill="#D2594B" font-family="ui-monospace, Menlo, monospace">0 / 1</text></g>
+      <g transform="translate(20,74)"><text fill="#DFE2D6">전투식량</text><text x="340" text-anchor="end" fill="#DFE2D6" font-family="ui-monospace, Menlo, monospace">2</text></g>
+      <g transform="translate(20,112)"><text fill="#DFE2D6">붕대</text><text x="340" text-anchor="end" fill="#DFE2D6" font-family="ui-monospace, Menlo, monospace">4</text></g>
+      <g transform="translate(20,150)"><text fill="#DFE2D6">핫팩</text><text x="340" text-anchor="end" fill="#9AB06F" font-family="ui-monospace, Menlo, monospace">6</text></g>
+      <g transform="translate(20,188)"><text fill="#5A6053">얼음팩</text><text x="340" text-anchor="end" fill="#5A6053" font-family="ui-monospace, Menlo, monospace">0</text></g>
+      <g transform="translate(20,226)"><text fill="#DFE2D6">건전지</text><text x="340" text-anchor="end" fill="#DFE2D6" font-family="ui-monospace, Menlo, monospace">3</text></g>
+      <g transform="translate(20,264)"><text fill="#DFE2D6">정비 부품</text><text x="340" text-anchor="end" fill="#DFE2D6" font-family="ui-monospace, Menlo, monospace">1</text></g>
+    </g>
+
+    <g transform="translate(0,326)">
+      <rect width="380" height="134" fill="#2A1614"/>
+      <rect width="5" height="134" fill="#D2594B"/>
+      <text x="20" y="32" fill="#D2594B" font-size="12" letter-spacing="2" font-family="ui-monospace, Menlo, monospace">CHECK — 조건 D</text>
+      <text x="20" y="62" fill="#DFE2D6" font-size="16">보온 수통 미소지</text>
+      <text x="20" y="90" fill="#D2594B" font-size="15">D-10 극혹한 필수 장비</text>
+      <text x="20" y="118" fill="#99A18D" font-size="14">보급 청구 또는 창고에서 수령</text>
+    </g>
+  </g>
+</g>
+
+<!-- ══════════ 3 : 간부 대화 ══════════ -->
+<g transform="translate(0,1500)">
+  <text x="60" y="46" fill="#5E6E42" font-size="12" letter-spacing="3" font-family="ui-monospace, Menlo, monospace">SCREEN 7.10-C — DISC-02  간부 대화  ·  석식 · 개인정비 시간대에만</text>
+
+  <!-- 월드 상단 (의무실 배경) -->
+  <rect x="0" y="70" width="1920" height="300" fill="#1B2119"/>
+  <g fill="#232B20"><rect x="200" y="110" width="260" height="200"/><rect x="1400" y="110" width="300" height="200"/></g>
+  <g transform="translate(880,150) scale(1.6)">
+    <rect x="10" y="0" width="26" height="6" fill="#3D4629"/><rect x="6" y="6" width="34" height="12" fill="#4A5230"/>
+    <rect x="6" y="18" width="34" height="4" fill="#3D4629"/><rect x="10" y="22" width="26" height="16" fill="#C9A183"/>
+    <rect x="0" y="40" width="46" height="48" fill="#5A6440"/>
+    <rect x="4" y="46" width="8" height="10" fill="#E0D8B0"/>
+    <rect x="8" y="88" width="12" height="26" fill="#33352E"/><rect x="26" y="88" width="12" height="26" fill="#33352E"/>
+  </g>
+  <rect x="0" y="70" width="1920" height="300" fill="#0B0D08" opacity="0.35"/>
+
+  <!-- 대화 패널 1440×400 하단 -->
+  <rect x="240" y="380" width="1440" height="400" fill="#12150F"/>
+  <rect x="240" y="380" width="1440" height="400" fill="none" stroke="#333A2B" stroke-width="2"/>
+  <rect x="240" y="380" width="1440" height="66" fill="#1B1F17"/>
+  <rect x="240" y="444" width="1440" height="2" fill="#DFE2D6"/>
+  <text x="272" y="422" fill="#DFE2D6" font-size="21" font-weight="800">행보관</text>
+  <text x="392" y="421" fill="#99A18D" font-size="15">보급 · 정비를 중시</text>
+  <text x="1508" y="412" fill="#99A18D" font-size="13" text-anchor="end">신뢰도</text>
+  <rect x="1330" y="418" width="200" height="14" fill="#262C1F"/>
+  <rect x="1330" y="418" width="128" height="14" fill="#9AB06F"/>
+  <text x="1648" y="426" fill="#9AB06F" font-size="20" font-weight="800" text-anchor="end" font-family="ui-monospace, Menlo, monospace">64</text>
+
+  <text x="272" y="500" fill="#DFE2D6" font-size="19">"난로 유류가 이틀치밖에 안 남았다던데. 내일 한파라며?"</text>
+
+  <!-- 선택지 -->
+  <g transform="translate(272,536)">
+    <g>
+      <rect width="1376" height="60" fill="#191D14" stroke="#9AB06F"/>
+      <rect width="4" height="60" fill="#9AB06F"/>
+      <text x="24" y="37" fill="#DFE2D6" font-size="18">"오늘 청구서에 올렸습니다. 포인트가 모자라 우선순위를 조정했습니다."</text>
+      <text x="1352" y="37" fill="#9AB06F" font-size="16" font-weight="700" text-anchor="end" font-family="ui-monospace, Menlo, monospace">+6</text>
+    </g>
+    <g transform="translate(0,72)">
+      <rect width="1376" height="60" fill="#191D14" stroke="#333A2B"/>
+      <text x="24" y="37" fill="#DFE2D6" font-size="18">"확인해 보겠습니다."</text>
+      <text x="1352" y="37" fill="#99A18D" font-size="16" text-anchor="end" font-family="ui-monospace, Menlo, monospace">+1</text>
+    </g>
+    <g transform="translate(0,144)">
+      <rect width="1376" height="60" fill="#191D14" stroke="#333A2B"/>
+      <text x="24" y="37" fill="#99A18D" font-size="18">자리를 뜬다 — 다른 일과에 시간을 쓴다</text>
+      <text x="1352" y="37" fill="#D2594B" font-size="16" text-anchor="end" font-family="ui-monospace, Menlo, monospace">−2</text>
+    </g>
+  </g>
+
+  <text x="272" y="770" fill="#5A6053" font-size="14">간부 3인 개별 트랙 · 신뢰도 합계 ÷10 = 승급 점수 최대 +12  ·  최고 신뢰 간부 1명만 런당 1회 구제권 발동</text>
+</g>
+</svg>

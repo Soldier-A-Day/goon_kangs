@@ -37,6 +37,18 @@ def collect() -> set[str]:
     return found
 
 
+def has_glyph(font: Path, char: str) -> bool:
+    from fontTools.ttLib import TTFont
+
+    global _CMAP
+    if _CMAP is None:
+        _CMAP = TTFont(str(font)).getBestCmap()
+    return ord(char) in _CMAP
+
+
+_CMAP: dict | None = None
+
+
 def main() -> int:
     source = Path(sys.argv[1])
     target = Path(sys.argv[2])
@@ -44,7 +56,23 @@ def main() -> int:
     chars = collect()
     # ASCII 는 통째로 넣는다. 숫자·영문은 어디서 올지 예측할 수 없고 값도 싸다.
     ascii_range = "".join(chr(c) for c in range(0x20, 0x7F))
-    text = "".join(sorted(chars)) + ascii_range + "·—…▶△▽○●×"
+    # 기호는 코드에서 긁히지 않는다(한글 정규식 밖이라). 화면에 쓰는 것을
+    # 손으로 적어둔다 — 빠진 기호는 빈 네모로 나오고, 실제로 프롬프트의
+    # 체크표시가 그렇게 사라져 "4/2 — 홀드"가 깨져 보였다
+    symbols = "·—…▶◀△▽○●×✓✗⚠→←↑↓≥≤±°％"
+
+    # **원본에 없는 기호는 여기서 멈춘다.**
+    #
+    # fontTools는 모르는 문자를 조용히 버린다. 그래서 화면에는 아무것도 안 나오고,
+    # 서브셋은 성공했다고 말한다 — 실제로 `✕`와 `▸`가 그렇게 사라졌고, 왜 빈칸인지
+    # 찾느라 엉뚱한 곳(레이아웃·색)을 뒤졌다. Pretendard는 KS X 1001 밖의
+    # 기호를 상당수 갖고 있지 않다.
+    missing = [c for c in symbols if not has_glyph(source, c)]
+    if missing:
+        print(f"원본에 없는 기호: {' '.join(missing)} — 화면에서 빈칸으로 나온다", file=sys.stderr)
+        return 1
+
+    text = "".join(sorted(chars)) + ascii_range + symbols
 
     target.parent.mkdir(parents=True, exist_ok=True)
     subprocess.run(

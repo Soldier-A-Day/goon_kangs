@@ -1,0 +1,196 @@
+<svg viewBox="0 0 1920 1080" xmlns="http://www.w3.org/2000/svg" font-family="Pretendard, 'Apple SD Gothic Neo', 'Malgun Gothic', 'Noto Sans KR', sans-serif">
+<rect width="1920" height="1080" fill="#0B0D08"/>
+<text x="60" y="46" fill="#5E6E42" font-size="12" letter-spacing="3" font-family="ui-monospace, Menlo, monospace">SCREEN 7.9 — 부대 지도 [M]  ·  구역 단위 시야 차단 (1.3-A) 적용 상태</text>
+
+<!-- 패널 -->
+<rect x="60" y="70" width="1180" height="940" fill="#12150F"/>
+<rect x="60" y="70" width="1180" height="940" fill="none" stroke="#333A2B" stroke-width="2"/>
+<rect x="60" y="70" width="1180" height="72" fill="#1B1F17"/>
+<rect x="60" y="140" width="1180" height="2" fill="#DFE2D6"/>
+<text x="88" y="102" fill="#9AB06F" font-size="12" letter-spacing="2.2" font-family="ui-monospace, Menlo, monospace">BASE MAP</text>
+<text x="88" y="128" fill="#DFE2D6" font-size="22" font-weight="800">부대 배치도</text>
+<text x="1212" y="112" fill="#9AB06F" font-size="15" text-anchor="end">● 무전 연결 — 아군 마커 표시 중</text>
+
+<!-- ========== 배치도 ========== -->
+<g transform="translate(96,176)">
+  <!-- 실내동 (좌) -->
+  <rect x="0" y="0" width="470" height="470" fill="#191D14" stroke="#333A2B" stroke-width="2"/>
+  <text x="10" y="-8" fill="#5A6053" font-size="12" font-family="ui-monospace, Menlo, monospace">본관동</text>
+
+  <!-- Z01 생활관 (현재 위치 아님, 가시) -->
+  <g><rect x="14" y="14" width="180" height="130" fill="#21281A" stroke="#5E6E42"/>
+     <text x="26" y="36" fill="#9AB06F" font-size="11" font-family="ui-monospace, Menlo, monospace">Z01</text>
+     <text x="26" y="60" fill="#DFE2D6" font-size="16" font-weight="700">생활관</text></g>
+  <!-- Z03 -->
+  <g><rect x="204" y="14" width="120" height="90" fill="#151810" stroke="#262C1F"/>
+     <text x="216" y="36" fill="#3A4030" font-size="11" font-family="ui-monospace, Menlo, monospace">Z03</text>
+     <text x="216" y="58" fill="#5A6053" font-size="14">세면장</text></g>
+  <!-- Z04 -->
+  <g><rect x="334" y="14" width="122" height="130" fill="#151810" stroke="#262C1F"/>
+     <text x="346" y="36" fill="#3A4030" font-size="11" font-family="ui-monospace, Menlo, monospace">Z04</text>
+     <text x="346" y="58" fill="#5A6053" font-size="14">행정반</text></g>
+  <!-- Z02 복도 -->
+  <g><rect x="14" y="154" width="442" height="52" fill="#1B1F17" stroke="#333A2B"/>
+     <text x="26" y="186" fill="#5A6053" font-size="14">Z02  복도 · 계단</text></g>
+  <!-- Z05 -->
+  <g><rect x="14" y="216" width="130" height="110" fill="#151810" stroke="#262C1F"/>
+     <text x="26" y="238" fill="#3A4030" font-size="11" font-family="ui-monospace, Menlo, monospace">Z05</text>
+     <text x="26" y="260" fill="#5A6053" font-size="14">의무실</text></g>
+  <!-- Z06 -->
+  <g><rect x="154" y="216" width="130" height="110" fill="#151810" stroke="#262C1F"/>
+     <text x="166" y="238" fill="#3A4030" font-size="11" font-family="ui-monospace, Menlo, monospace">Z06</text>
+     <text x="166" y="260" fill="#5A6053" font-size="14">통신실</text></g>
+  <!-- Z07 -->
+  <g><rect x="294" y="216" width="162" height="110" fill="#151810" stroke="#262C1F"/>
+     <text x="306" y="238" fill="#3A4030" font-size="11" font-family="ui-monospace, Menlo, monospace">Z07</text>
+     <text x="306" y="260" fill="#5A6053" font-size="14">식당</text></g>
+  <!-- Z13 Z15 Z14 -->
+  <g><rect x="14" y="336" width="130" height="120" fill="#151810" stroke="#262C1F"/>
+     <text x="26" y="358" fill="#3A4030" font-size="11" font-family="ui-monospace, Menlo, monospace">Z13</text><text x="26" y="380" fill="#5A6053" font-size="14">세탁장</text></g>
+  <g><rect x="154" y="336" width="130" height="120" fill="#151810" stroke="#262C1F"/>
+     <text x="166" y="358" fill="#3A4030" font-size="11" font-family="ui-monospace, Menlo, monospace">Z14</text><text x="166" y="380" fill="#5A6053" font-size="14">보일러실</text></g>
+  <g><rect x="294" y="336" width="162" height="120" fill="#151810" stroke="#262C1F"/>
+     <text x="306" y="358" fill="#3A4030" font-size="11" font-family="ui-monospace, Menlo, monospace">Z15</text><text x="306" y="380" fill="#5A6053" font-size="14">강당</text></g>
+
+  <!-- Z11 연병장 : 현재 구역 -->
+  <g>
+    <rect x="500" y="0" width="480" height="300" fill="#21281A" stroke="#9AB06F" stroke-width="3"/>
+    <text x="514" y="24" fill="#9AB06F" font-size="11" font-family="ui-monospace, Menlo, monospace">Z11</text>
+    <text x="514" y="52" fill="#DFE2D6" font-size="20" font-weight="800">연병장</text>
+    <rect x="856" y="10" width="112" height="24" fill="#9AB06F"/>
+    <text x="912" y="27" fill="#12150F" font-size="12" font-weight="800" text-anchor="middle">현재 구역</text>
+    <!-- 지형 -->
+    <rect x="530" y="80" width="420" height="4" fill="#333A2B"/>
+    <rect x="530" y="200" width="420" height="4" fill="#333A2B"/>
+    <circle cx="740" cy="142" r="26" fill="none" stroke="#333A2B" stroke-width="3"/>
+    <!-- 마커 : 본인 + 같은 구역 아군 -->
+    <g>
+      <circle cx="640" cy="150" r="10" fill="#EEF1E8"/>
+      <circle cx="640" cy="150" r="17" fill="none" stroke="#EEF1E8" stroke-width="2" opacity="0.6"/>
+      <text x="640" y="184" fill="#EEF1E8" font-size="13" text-anchor="middle">나 · MED</text>
+    </g>
+    <g><circle cx="830" cy="112" r="9" fill="#6E7A50"/><text x="830" y="142" fill="#99A18D" font-size="13" text-anchor="middle">김 · RFL</text></g>
+    <!-- 퀘스트 마커 -->
+    <g transform="translate(890,230)">
+      <path d="M0 0 l-9 -16 h18 Z" fill="#9AB06F"/><circle cx="0" cy="-22" r="8" fill="#9AB06F"/>
+      <path d="M-4 -22 l3 3 l5 -6" stroke="#12150F" stroke-width="2" fill="none"/>
+      <text x="0" y="24" fill="#9AB06F" font-size="12" text-anchor="middle">위생 점검</text>
+    </g>
+    <!-- 열원 -->
+    <g transform="translate(570,240)">
+      <circle r="30" fill="#DB8B55" opacity="0.18"/><rect x="-7" y="-9" width="14" height="18" fill="#DB8B55"/>
+      <text y="46" fill="#DB8B55" font-size="12" text-anchor="middle">난로 · 열원</text>
+    </g>
+  </g>
+
+  <!-- Z08 창고 -->
+  <g><rect x="500" y="320" width="230" height="136" fill="#151810" stroke="#262C1F"/>
+     <text x="514" y="344" fill="#3A4030" font-size="11" font-family="ui-monospace, Menlo, monospace">Z08</text><text x="514" y="368" fill="#5A6053" font-size="14">창고 · 보급</text></g>
+  <!-- Z10 정비고 -->
+  <g><rect x="742" y="320" width="238" height="136" fill="#151810" stroke="#262C1F"/>
+     <text x="756" y="344" fill="#3A4030" font-size="11" font-family="ui-monospace, Menlo, monospace">Z10</text><text x="756" y="368" fill="#5A6053" font-size="14">정비고</text></g>
+  <!-- Z09 -->
+  <g><rect x="1000" y="0" width="0" height="0"/></g>
+  <g><rect x="500" y="474" width="230" height="106" fill="#151810" stroke="#262C1F"/>
+     <text x="514" y="498" fill="#3A4030" font-size="11" font-family="ui-monospace, Menlo, monospace">Z09</text><text x="514" y="522" fill="#5A6053" font-size="14">무기고</text></g>
+  <!-- Z12 초소 -->
+  <g><rect x="742" y="474" width="238" height="106" fill="#151810" stroke="#262C1F"/>
+     <text x="756" y="498" fill="#3A4030" font-size="11" font-family="ui-monospace, Menlo, monospace">Z12</text><text x="756" y="522" fill="#5A6053" font-size="14">초소</text></g>
+  <!-- 하단 실내동 잔여 -->
+  <g><rect x="0" y="474" width="470" height="106" fill="#151810" stroke="#262C1F"/>
+     <text x="14" y="498" fill="#3A4030" font-size="11" font-family="ui-monospace, Menlo, monospace">Z16</text><text x="14" y="522" fill="#5A6053" font-size="14">주차장 · 후문</text></g>
+
+  <!-- 무전 마커 (다른 구역 · 무전으로만 보임) -->
+  <g opacity="0.85">
+    <g transform="translate(220,270)">
+      <circle r="8" fill="none" stroke="#3F6E90" stroke-width="2.5" stroke-dasharray="3 3"/>
+      <text y="-16" fill="#7FAECF" font-size="12" text-anchor="middle">최 · COM</text>
+    </g>
+    <g transform="translate(860,388)">
+      <circle r="8" fill="none" stroke="#B08A2C" stroke-width="2.5" stroke-dasharray="3 3"/>
+      <text y="-16" fill="#B08A2C" font-size="12" text-anchor="middle">박 · ADM</text>
+    </g>
+  </g>
+</g>
+
+<!-- 범례 -->
+<g transform="translate(96,806)">
+  <rect width="1108" height="1" fill="#333A2B"/>
+  <text x="0" y="32" fill="#99A18D" font-size="12" letter-spacing="2" font-family="ui-monospace, Menlo, monospace">LEGEND</text>
+  <g font-size="14" fill="#99A18D">
+    <rect x="0" y="48" width="20" height="20" fill="#21281A" stroke="#9AB06F" stroke-width="2"/><text x="30" y="63">현재 구역 — 월드 렌더 활성</text>
+    <rect x="280" y="48" width="20" height="20" fill="#151810" stroke="#262C1F"/><text x="310" y="63">타 구역 — 스프라이트 미렌더</text>
+    <circle cx="600" cy="58" r="8" fill="#EEF1E8"/><text x="618" y="63">같은 구역 아군 — 실시간</text>
+    <circle cx="850" cy="58" r="8" fill="none" stroke="#3F6E90" stroke-width="2.5" stroke-dasharray="3 3"/><text x="868" y="63">타 구역 아군 — 무전으로만</text>
+  </g>
+</g>
+
+<!-- ========== 우측: 무전 3단계 ========== -->
+<rect x="1280" y="70" width="580" height="940" fill="#12150F"/>
+<rect x="1280" y="70" width="580" height="940" fill="none" stroke="#333A2B" stroke-width="2"/>
+<rect x="1280" y="70" width="580" height="72" fill="#1B1F17"/>
+<rect x="1280" y="140" width="580" height="2" fill="#DFE2D6"/>
+<text x="1308" y="102" fill="#D2594B" font-size="12" letter-spacing="2.2" font-family="ui-monospace, Menlo, monospace">1.3-1  재설계 항목</text>
+<text x="1308" y="128" fill="#DFE2D6" font-size="20" font-weight="800">무전 상태 3단계</text>
+
+<!-- 정상 -->
+<g transform="translate(1308,176)">
+  <rect width="524" height="180" fill="#191D14" stroke="#9AB06F"/>
+  <rect width="5" height="180" fill="#9AB06F"/>
+  <text x="24" y="34" fill="#9AB06F" font-size="17" font-weight="800">정상</text>
+  <text x="500" y="34" fill="#9AB06F" font-size="13" text-anchor="end">배터리 OK · 안테나 OK</text>
+  <rect x="24" y="50" width="476" height="90" fill="#12150F"/>
+  <g transform="translate(40,62)">
+    <g stroke="#333A2B" fill="#1B1F17"><rect width="90" height="30"/><rect x="102" width="60" height="30"/><rect x="174" width="110" height="30"/><rect x="296" width="80" height="30"/><rect x="388" width="56" height="30"/></g>
+    <g stroke="#333A2B" fill="#1B1F17" transform="translate(0,40)"><rect width="120" height="26"/><rect x="132" width="150" height="26"/><rect x="294" width="150" height="26"/></g>
+    <circle cx="60" cy="16" r="5" fill="#6E7A50"/><circle cx="200" cy="16" r="5" fill="#3F6E90"/>
+    <circle cx="330" cy="54" r="5" fill="#EEF1E8"/><circle cx="410" cy="16" r="5" fill="#B08A2C"/>
+    <circle cx="200" cy="16" r="12" fill="none" stroke="#7FAECF" stroke-width="1.5" opacity="0.8"/>
+  </g>
+  <text x="24" y="166" fill="#99A18D" font-size="14">마커 4개 + 퀘스트 핑 + 통신병 지정 핑</text>
+</g>
+
+<!-- 약함 -->
+<g transform="translate(1308,378)">
+  <rect width="524" height="180" fill="#191D14" stroke="#DB8B55"/>
+  <rect width="5" height="180" fill="#DB8B55"/>
+  <text x="24" y="34" fill="#DB8B55" font-size="17" font-weight="800">약함</text>
+  <text x="500" y="34" fill="#DB8B55" font-size="13" text-anchor="end">배터리 저하 · 안테나 열화</text>
+  <rect x="24" y="50" width="476" height="90" fill="#12150F"/>
+  <g transform="translate(40,62)" opacity="0.9">
+    <g stroke="#333A2B" fill="#1B1F17"><rect width="90" height="30"/><rect x="102" width="60" height="30"/><rect x="174" width="110" height="30"/><rect x="296" width="80" height="30"/><rect x="388" width="56" height="30"/></g>
+    <g stroke="#333A2B" fill="#1B1F17" transform="translate(0,40)"><rect width="120" height="26"/><rect x="132" width="150" height="26"/><rect x="294" width="150" height="26"/></g>
+    <circle cx="60" cy="16" r="5" fill="#6E7A50" opacity="0.35"/><circle cx="200" cy="16" r="5" fill="#3F6E90"/>
+    <circle cx="330" cy="54" r="5" fill="#EEF1E8" opacity="0.35"/><circle cx="410" cy="16" r="5" fill="#B08A2C" opacity="0.35"/>
+  </g>
+  <text x="24" y="166" fill="#99A18D" font-size="14">1.5초 주기 점멸 · 위치 갱신 3초 지연</text>
+</g>
+
+<!-- 두절 -->
+<g transform="translate(1308,580)">
+  <rect width="524" height="180" fill="#2A1614" stroke="#D2594B" stroke-width="2"/>
+  <rect width="5" height="180" fill="#D2594B"/>
+  <text x="24" y="34" fill="#D2594B" font-size="17" font-weight="800">두절</text>
+  <text x="500" y="34" fill="#D2594B" font-size="13" text-anchor="end">통신병 실패 · 배터리 방전</text>
+  <rect x="24" y="50" width="476" height="90" fill="#12150F"/>
+  <g transform="translate(40,62)" opacity="0.28">
+    <g stroke="#333A2B" fill="#1B1F17"><rect width="90" height="30"/><rect x="102" width="60" height="30"/><rect x="174" width="110" height="30"/><rect x="296" width="80" height="30"/><rect x="388" width="56" height="30"/></g>
+    <g stroke="#333A2B" fill="#1B1F17" transform="translate(0,40)"><rect width="120" height="26"/><rect x="132" width="150" height="26"/><rect x="294" width="150" height="26"/></g>
+  </g>
+  <text x="262" y="112" fill="#D2594B" font-size="16" font-weight="700" text-anchor="middle">● 무전 두절</text>
+  <text x="24" y="166" fill="#D2594B" font-size="14">모든 마커 · 핑 소멸 — 걸어가야만 확인 가능</text>
+</g>
+
+<!-- 설계 근거 -->
+<g transform="translate(1308,782)">
+  <rect width="524" height="1" fill="#333A2B"/>
+  <text x="0" y="34" fill="#9AB06F" font-size="12" letter-spacing="2" font-family="ui-monospace, Menlo, monospace">왜 이 화면이 필요한가</text>
+  <text x="0" y="66" fill="#DFE2D6" font-size="15">3D는 벽이 시야를 가려 무전 두절이 압박이 됐다.</text>
+  <text x="0" y="92" fill="#DFE2D6" font-size="15">2D 탑다운은 화면 안이 전부 보이므로</text>
+  <text x="0" y="118" fill="#D2594B" font-size="15" font-weight="700">그대로 옮기면 통신병 보직이 무의미해진다.</text>
+  <text x="0" y="156" fill="#99A18D" font-size="15">해결 = 구역 밖 스프라이트 미렌더(A)</text>
+  <text x="0" y="182" fill="#99A18D" font-size="15">＋ 미니맵 마커를 무전에 게이팅(C)</text>
+  <rect x="0" y="200" width="524" height="1" fill="#333A2B"/>
+  <text x="0" y="230" fill="#DB8B55" font-size="14">M1에서 반드시 검증 — M3로 미루면 되돌릴 수 없음</text>
+</g>
+</svg>

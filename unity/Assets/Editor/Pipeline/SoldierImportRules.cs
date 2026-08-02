@@ -63,7 +63,11 @@ namespace SoldierADay.EditorTools
                 importer.textureType == TextureImporterType.NormalMap;
             importer.sRGBTexture = !isData;
 
-            importer.maxTextureSize = rules.maxTextureSize;
+            // 소품·가구는 손에 들거나 방 안에서 보는 것이라 2K가 필요 없다.
+            // 실제 에셋 5종의 원본이 3~7MB씩이라 그대로 두면 §10의 소품 12MB를
+            // 가구만으로 넘긴다.
+            var small = assetPath.Contains("/prop/") || assetPath.Contains("/furniture/");
+            importer.maxTextureSize = small ? 1024 : rules.maxTextureSize;
             importer.mipmapEnabled = true;
             importer.streamingMipmaps = true;
 
@@ -71,7 +75,7 @@ namespace SoldierADay.EditorTools
             // 번들이 두 벌이 되어 120MB 예산이 그냥 무너진다.
             var settings = importer.GetPlatformTextureSettings(WebGL);
             settings.overridden = true;
-            settings.maxTextureSize = rules.maxTextureSize;
+            settings.maxTextureSize = importer.maxTextureSize;
             settings.format = importer.DoesSourceTextureHaveAlpha()
                 ? TextureImporterFormat.DXT5
                 : TextureImporterFormat.DXT1;
@@ -93,6 +97,15 @@ namespace SoldierADay.EditorTools
             // M0에서 정반대 실수를 했다 — 정적 배칭을 위해 읽기를 켜야 했는데, 그건
             // 코드로 만든 프록시 메시 얘기고 임포트한 에셋에는 해당하지 않는다.
             importer.isReadable = rules.readWriteEnabled;
+
+            // 재질을 **모델 옆에서만** 찾는다.
+            //
+            // Meshy가 내보낸 MTL 5개가 전부 `Material.001` 이라, 프로젝트 전체에서
+            // 찾게 두면 Unity가 다섯을 하나로 합친다 — 책상도 형광등도 침대
+            // 텍스처(위장색)를 뒤집어썼다. MTL 이름도 고쳤지만, 규칙으로도 막는다.
+            importer.materialLocation = ModelImporterMaterialLocation.External;
+            importer.materialName = ModelImporterMaterialName.BasedOnMaterialName;
+            importer.materialSearch = ModelImporterMaterialSearch.Local;
 
             importer.importVisibility = false;
             importer.importCameras = false;

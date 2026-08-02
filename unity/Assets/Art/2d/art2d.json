@@ -1,0 +1,1600 @@
+{
+ "chars": {
+  "cellW": 32,
+  "cellH": 48,
+  "pivotX": 16,
+  "pivotY": 2,
+  "rows": [
+   "idle_S",
+   "idle_N",
+   "idle_E",
+   "walk_S",
+   "walk_N",
+   "walk_E",
+   "run_S",
+   "run_N",
+   "run_E",
+   "walk_carry_S",
+   "walk_carry_N",
+   "walk_carry_E",
+   "walk_coop_S",
+   "walk_coop_N",
+   "walk_coop_E",
+   "work_generic_S",
+   "work_generic_N",
+   "work_generic_E",
+   "work_ground_S",
+   "work_ground_N",
+   "work_ground_E",
+   "work_panel_S",
+   "work_panel_N",
+   "work_panel_E",
+   "salute_S",
+   "attention_S",
+   "aim_S",
+   "aim_N",
+   "aim_E",
+   "fire_S",
+   "fire_N",
+   "fire_E",
+   "mask_on_S",
+   "collapse_S",
+   "down_idle_S",
+   "carried_S",
+   "assist_S",
+   "assist_N",
+   "assist_E",
+   "sleep_S",
+   "shiver_S",
+   "shiver_N",
+   "shiver_E",
+   "pant_S",
+   "pant_N",
+   "pant_E",
+   "march_E",
+   "climb_E",
+   "emote_cmd_S"
+  ],
+  "cols": 8,
+  "clips": [
+   {
+    "name": "idle",
+    "frames": 4,
+    "fps": 6,
+    "dirs": "4",
+    "loop": true,
+    "rows": [
+     "idle_S",
+     "idle_N",
+     "idle_E"
+    ]
+   },
+   {
+    "name": "walk",
+    "frames": 6,
+    "fps": 10,
+    "dirs": "4",
+    "loop": true,
+    "rows": [
+     "walk_S",
+     "walk_N",
+     "walk_E"
+    ]
+   },
+   {
+    "name": "run",
+    "frames": 6,
+    "fps": 14,
+    "dirs": "4",
+    "loop": true,
+    "rows": [
+     "run_S",
+     "run_N",
+     "run_E"
+    ]
+   },
+   {
+    "name": "walk_carry",
+    "frames": 6,
+    "fps": 8,
+    "dirs": "4",
+    "loop": true,
+    "rows": [
+     "walk_carry_S",
+     "walk_carry_N",
+     "walk_carry_E"
+    ]
+   },
+   {
+    "name": "walk_coop",
+    "frames": 6,
+    "fps": 7,
+    "dirs": "4",
+    "loop": true,
+    "rows": [
+     "walk_coop_S",
+     "walk_coop_N",
+     "walk_coop_E"
+    ]
+   },
+   {
+    "name": "work_generic",
+    "frames": 4,
+    "fps": 8,
+    "dirs": "4",
+    "loop": true,
+    "rows": [
+     "work_generic_S",
+     "work_generic_N",
+     "work_generic_E"
+    ]
+   },
+   {
+    "name": "work_ground",
+    "frames": 4,
+    "fps": 8,
+    "dirs": "4",
+    "loop": true,
+    "rows": [
+     "work_ground_S",
+     "work_ground_N",
+     "work_ground_E"
+    ]
+   },
+   {
+    "name": "work_panel",
+    "frames": 4,
+    "fps": 8,
+    "dirs": "4",
+    "loop": true,
+    "rows": [
+     "work_panel_S",
+     "work_panel_N",
+     "work_panel_E"
+    ]
+   },
+   {
+    "name": "salute",
+    "frames": 5,
+    "fps": 8,
+    "dirs": "1",
+    "loop": false,
+    "rows": [
+     "salute_S"
+    ]
+   },
+   {
+    "name": "attention",
+    "frames": 2,
+    "fps": 4,
+    "dirs": "1",
+    "loop": true,
+    "rows": [
+     "attention_S"
+    ]
+   },
+   {
+    "name": "aim",
+    "frames": 3,
+    "fps": 8,
+    "dirs": "4",
+    "loop": true,
+    "rows": [
+     "aim_S",
+     "aim_N",
+     "aim_E"
+    ]
+   },
+   {
+    "name": "fire",
+    "frames": 3,
+    "fps": 20,
+    "dirs": "4",
+    "loop": false,
+    "rows": [
+     "fire_S",
+     "fire_N",
+     "fire_E"
+    ]
+   },
+   {
+    "name": "mask_on",
+    "frames": 8,
+    "fps": 10,
+    "dirs": "1",
+    "loop": false,
+    "rows": [
+     "mask_on_S"
+    ]
+   },
+   {
+    "name": "collapse",
+    "frames": 6,
+    "fps": 8,
+    "dirs": "1",
+    "loop": false,
+    "rows": [
+     "collapse_S"
+    ]
+   },
+   {
+    "name": "down_idle",
+    "frames": 2,
+    "fps": 3,
+    "dirs": "1",
+    "loop": true,
+    "rows": [
+     "down_idle_S"
+    ]
+   },
+   {
+    "name": "carried",
+    "frames": 2,
+    "fps": 4,
+    "dirs": "1",
+    "loop": true,
+    "rows": [
+     "carried_S"
+    ]
+   },
+   {
+    "name": "assist",
+    "frames": 6,
+    "fps": 8,
+    "dirs": "4",
+    "loop": true,
+    "rows": [
+     "assist_S",
+     "assist_N",
+     "assist_E"
+    ]
+   },
+   {
+    "name": "sleep",
+    "frames": 2,
+    "fps": 2,
+    "dirs": "1",
+    "loop": true,
+    "rows": [
+     "sleep_S"
+    ]
+   },
+   {
+    "name": "shiver",
+    "frames": 4,
+    "fps": 10,
+    "dirs": "4",
+    "loop": true,
+    "rows": [
+     "shiver_S",
+     "shiver_N",
+     "shiver_E"
+    ]
+   },
+   {
+    "name": "pant",
+    "frames": 4,
+    "fps": 12,
+    "dirs": "4",
+    "loop": true,
+    "rows": [
+     "pant_S",
+     "pant_N",
+     "pant_E"
+    ]
+   },
+   {
+    "name": "march",
+    "frames": 8,
+    "fps": 10,
+    "dirs": "SIDE",
+    "loop": true,
+    "rows": [
+     "march_E"
+    ]
+   },
+   {
+    "name": "climb",
+    "frames": 6,
+    "fps": 10,
+    "dirs": "SIDE",
+    "loop": true,
+    "rows": [
+     "climb_E"
+    ]
+   },
+   {
+    "name": "emote_cmd",
+    "frames": 3,
+    "fps": 8,
+    "dirs": "1",
+    "loop": false,
+    "rows": [
+     "emote_cmd_S"
+    ]
+   }
+  ],
+  "sheets": [
+   {
+    "layer": "body",
+    "variant": "skin0",
+    "file": "chars/body_skin0.png"
+   },
+   {
+    "layer": "body",
+    "variant": "skin1",
+    "file": "chars/body_skin1.png"
+   },
+   {
+    "layer": "body",
+    "variant": "skin2",
+    "file": "chars/body_skin2.png"
+   },
+   {
+    "layer": "legs",
+    "variant": "field",
+    "file": "chars/legs_field.png"
+   },
+   {
+    "layer": "legs",
+    "variant": "winter",
+    "file": "chars/legs_winter.png"
+   },
+   {
+    "layer": "legs",
+    "variant": "pt",
+    "file": "chars/legs_pt.png"
+   },
+   {
+    "layer": "legs",
+    "variant": "rain",
+    "file": "chars/legs_rain.png"
+   },
+   {
+    "layer": "torso",
+    "variant": "field",
+    "file": "chars/torso_field.png"
+   },
+   {
+    "layer": "torso",
+    "variant": "winter",
+    "file": "chars/torso_winter.png"
+   },
+   {
+    "layer": "torso",
+    "variant": "pt",
+    "file": "chars/torso_pt.png"
+   },
+   {
+    "layer": "torso",
+    "variant": "rain",
+    "file": "chars/torso_rain.png"
+   },
+   {
+    "layer": "outer",
+    "variant": "none",
+    "file": "chars/outer_none.png"
+   },
+   {
+    "layer": "outer",
+    "variant": "parka",
+    "file": "chars/outer_parka.png"
+   },
+   {
+    "layer": "outer",
+    "variant": "raincoat",
+    "file": "chars/outer_raincoat.png"
+   },
+   {
+    "layer": "outer",
+    "variant": "fieldCoat",
+    "file": "chars/outer_fieldCoat.png"
+   },
+   {
+    "layer": "gear",
+    "variant": "none",
+    "file": "chars/gear_none.png"
+   },
+   {
+    "layer": "gear",
+    "variant": "belt",
+    "file": "chars/gear_belt.png"
+   },
+   {
+    "layer": "gear",
+    "variant": "pack",
+    "file": "chars/gear_pack.png"
+   },
+   {
+    "layer": "gear",
+    "variant": "medicBag",
+    "file": "chars/gear_medicBag.png"
+   },
+   {
+    "layer": "gear",
+    "variant": "toolbox",
+    "file": "chars/gear_toolbox.png"
+   },
+   {
+    "layer": "head",
+    "variant": "cap",
+    "file": "chars/head_cap.png"
+   },
+   {
+    "layer": "head",
+    "variant": "winterCap",
+    "file": "chars/head_winterCap.png"
+   },
+   {
+    "layer": "head",
+    "variant": "mask",
+    "file": "chars/head_mask.png"
+   },
+   {
+    "layer": "head",
+    "variant": "helmet",
+    "file": "chars/head_helmet.png"
+   },
+   {
+    "layer": "head",
+    "variant": "bare",
+    "file": "chars/head_bare.png"
+   },
+   {
+    "layer": "hand",
+    "variant": "none",
+    "file": "chars/hand_none.png"
+   },
+   {
+    "layer": "hand",
+    "variant": "rifle",
+    "file": "chars/hand_rifle.png"
+   },
+   {
+    "layer": "hand",
+    "variant": "shovel",
+    "file": "chars/hand_shovel.png"
+   },
+   {
+    "layer": "hand",
+    "variant": "broom",
+    "file": "chars/hand_broom.png"
+   },
+   {
+    "layer": "hand",
+    "variant": "radio",
+    "file": "chars/hand_radio.png"
+   },
+   {
+    "layer": "hand",
+    "variant": "clipboard",
+    "file": "chars/hand_clipboard.png"
+   },
+   {
+    "layer": "hand",
+    "variant": "stretcher",
+    "file": "chars/hand_stretcher.png"
+   },
+   {
+    "layer": "hand",
+    "variant": "fuelCan",
+    "file": "chars/hand_fuelCan.png"
+   },
+   {
+    "layer": "mark",
+    "variant": "rifle_private",
+    "file": "chars/mark_rifle_private.png"
+   },
+   {
+    "layer": "mark",
+    "variant": "rifle_pfc",
+    "file": "chars/mark_rifle_pfc.png"
+   },
+   {
+    "layer": "mark",
+    "variant": "rifle_corporal",
+    "file": "chars/mark_rifle_corporal.png"
+   },
+   {
+    "layer": "mark",
+    "variant": "rifle_sergeant",
+    "file": "chars/mark_rifle_sergeant.png"
+   },
+   {
+    "layer": "mark",
+    "variant": "comms_private",
+    "file": "chars/mark_comms_private.png"
+   },
+   {
+    "layer": "mark",
+    "variant": "comms_pfc",
+    "file": "chars/mark_comms_pfc.png"
+   },
+   {
+    "layer": "mark",
+    "variant": "comms_corporal",
+    "file": "chars/mark_comms_corporal.png"
+   },
+   {
+    "layer": "mark",
+    "variant": "comms_sergeant",
+    "file": "chars/mark_comms_sergeant.png"
+   },
+   {
+    "layer": "mark",
+    "variant": "medic_private",
+    "file": "chars/mark_medic_private.png"
+   },
+   {
+    "layer": "mark",
+    "variant": "medic_pfc",
+    "file": "chars/mark_medic_pfc.png"
+   },
+   {
+    "layer": "mark",
+    "variant": "medic_corporal",
+    "file": "chars/mark_medic_corporal.png"
+   },
+   {
+    "layer": "mark",
+    "variant": "medic_sergeant",
+    "file": "chars/mark_medic_sergeant.png"
+   },
+   {
+    "layer": "mark",
+    "variant": "admin_private",
+    "file": "chars/mark_admin_private.png"
+   },
+   {
+    "layer": "mark",
+    "variant": "admin_pfc",
+    "file": "chars/mark_admin_pfc.png"
+   },
+   {
+    "layer": "mark",
+    "variant": "admin_corporal",
+    "file": "chars/mark_admin_corporal.png"
+   },
+   {
+    "layer": "mark",
+    "variant": "admin_sergeant",
+    "file": "chars/mark_admin_sergeant.png"
+   }
+  ]
+ },
+ "tiles": {
+  "tile": 32,
+  "floors": [
+   {
+    "kind": "concrete",
+    "file": "tiles/floor_concrete.png"
+   },
+   {
+    "kind": "concreteLight",
+    "file": "tiles/floor_concreteLight.png"
+   },
+   {
+    "kind": "tile",
+    "file": "tiles/floor_tile.png"
+   },
+   {
+    "kind": "wood",
+    "file": "tiles/floor_wood.png"
+   },
+   {
+    "kind": "dirt",
+    "file": "tiles/floor_dirt.png"
+   },
+   {
+    "kind": "drill",
+    "file": "tiles/floor_drill.png"
+   },
+   {
+    "kind": "grass",
+    "file": "tiles/floor_grass.png"
+   },
+   {
+    "kind": "asphalt",
+    "file": "tiles/floor_asphalt.png"
+   },
+   {
+    "kind": "snow",
+    "file": "tiles/floor_snow.png"
+   },
+   {
+    "kind": "water",
+    "file": "tiles/floor_water.png"
+   },
+   {
+    "kind": "skyDay",
+    "file": "tiles/floor_skyDay.png"
+   },
+   {
+    "kind": "skyNight",
+    "file": "tiles/floor_skyNight.png"
+   }
+  ],
+  "walls": [
+   {
+    "kind": "interior",
+    "files": [
+     "tiles/wall_interior_00.png",
+     "tiles/wall_interior_01.png",
+     "tiles/wall_interior_02.png",
+     "tiles/wall_interior_03.png",
+     "tiles/wall_interior_04.png",
+     "tiles/wall_interior_05.png",
+     "tiles/wall_interior_06.png",
+     "tiles/wall_interior_07.png",
+     "tiles/wall_interior_08.png",
+     "tiles/wall_interior_09.png",
+     "tiles/wall_interior_10.png",
+     "tiles/wall_interior_11.png",
+     "tiles/wall_interior_12.png",
+     "tiles/wall_interior_13.png",
+     "tiles/wall_interior_14.png",
+     "tiles/wall_interior_15.png"
+    ]
+   },
+   {
+    "kind": "utility",
+    "files": [
+     "tiles/wall_utility_00.png",
+     "tiles/wall_utility_01.png",
+     "tiles/wall_utility_02.png",
+     "tiles/wall_utility_03.png",
+     "tiles/wall_utility_04.png",
+     "tiles/wall_utility_05.png",
+     "tiles/wall_utility_06.png",
+     "tiles/wall_utility_07.png",
+     "tiles/wall_utility_08.png",
+     "tiles/wall_utility_09.png",
+     "tiles/wall_utility_10.png",
+     "tiles/wall_utility_11.png",
+     "tiles/wall_utility_12.png",
+     "tiles/wall_utility_13.png",
+     "tiles/wall_utility_14.png",
+     "tiles/wall_utility_15.png"
+    ]
+   },
+   {
+    "kind": "outdoor",
+    "files": [
+     "tiles/wall_outdoor_00.png",
+     "tiles/wall_outdoor_01.png",
+     "tiles/wall_outdoor_02.png",
+     "tiles/wall_outdoor_03.png",
+     "tiles/wall_outdoor_04.png",
+     "tiles/wall_outdoor_05.png",
+     "tiles/wall_outdoor_06.png",
+     "tiles/wall_outdoor_07.png",
+     "tiles/wall_outdoor_08.png",
+     "tiles/wall_outdoor_09.png",
+     "tiles/wall_outdoor_10.png",
+     "tiles/wall_outdoor_11.png",
+     "tiles/wall_outdoor_12.png",
+     "tiles/wall_outdoor_13.png",
+     "tiles/wall_outdoor_14.png",
+     "tiles/wall_outdoor_15.png"
+    ]
+   },
+   {
+    "kind": "wood",
+    "files": [
+     "tiles/wall_wood_00.png",
+     "tiles/wall_wood_01.png",
+     "tiles/wall_wood_02.png",
+     "tiles/wall_wood_03.png",
+     "tiles/wall_wood_04.png",
+     "tiles/wall_wood_05.png",
+     "tiles/wall_wood_06.png",
+     "tiles/wall_wood_07.png",
+     "tiles/wall_wood_08.png",
+     "tiles/wall_wood_09.png",
+     "tiles/wall_wood_10.png",
+     "tiles/wall_wood_11.png",
+     "tiles/wall_wood_12.png",
+     "tiles/wall_wood_13.png",
+     "tiles/wall_wood_14.png",
+     "tiles/wall_wood_15.png"
+    ]
+   },
+   {
+    "kind": "fence",
+    "files": [
+     "tiles/wall_fence_00.png",
+     "tiles/wall_fence_01.png",
+     "tiles/wall_fence_02.png",
+     "tiles/wall_fence_03.png",
+     "tiles/wall_fence_04.png",
+     "tiles/wall_fence_05.png",
+     "tiles/wall_fence_06.png",
+     "tiles/wall_fence_07.png",
+     "tiles/wall_fence_08.png",
+     "tiles/wall_fence_09.png",
+     "tiles/wall_fence_10.png",
+     "tiles/wall_fence_11.png",
+     "tiles/wall_fence_12.png",
+     "tiles/wall_fence_13.png",
+     "tiles/wall_fence_14.png",
+     "tiles/wall_fence_15.png"
+    ]
+   }
+  ],
+  "props": [
+   {
+    "name": "관물대",
+    "file": "props/prop_13032.png",
+    "w": 1,
+    "h": 1,
+    "walkable": false
+   },
+   {
+    "name": "침상",
+    "file": "props/prop_38298.png",
+    "w": 2,
+    "h": 1,
+    "walkable": false
+   },
+   {
+    "name": "게시판",
+    "file": "props/prop_65561.png",
+    "w": 2,
+    "h": 5,
+    "walkable": false
+   },
+   {
+    "name": "세면대",
+    "file": "props/prop_01316.png",
+    "w": 1,
+    "h": 1,
+    "walkable": false
+   },
+   {
+    "name": "샤워 칸",
+    "file": "props/prop_27823.png",
+    "w": 2,
+    "h": 3,
+    "walkable": false
+   },
+   {
+    "name": "난로",
+    "file": "props/prop_74646.png",
+    "w": 1,
+    "h": 1,
+    "walkable": false
+   },
+   {
+    "name": "보일러 본체",
+    "file": "props/prop_45613.png",
+    "w": 3,
+    "h": 5,
+    "walkable": false
+   },
+   {
+    "name": "물자 선반",
+    "file": "props/prop_30682.png",
+    "w": 2,
+    "h": 5,
+    "walkable": false
+   },
+   {
+    "name": "총기 거치대",
+    "file": "props/prop_72913.png",
+    "w": 2,
+    "h": 5,
+    "walkable": false
+   },
+   {
+    "name": "무전 콘솔",
+    "file": "props/prop_46100.png",
+    "w": 4,
+    "h": 3,
+    "walkable": false
+   },
+   {
+    "name": "약품장",
+    "file": "props/prop_92098.png",
+    "w": 4,
+    "h": 3,
+    "walkable": false
+   },
+   {
+    "name": "처치대",
+    "file": "props/prop_88285.png",
+    "w": 2,
+    "h": 1,
+    "walkable": false
+   },
+   {
+    "name": "배식대",
+    "file": "props/prop_31094.png",
+    "w": 5,
+    "h": 1,
+    "walkable": false
+   },
+   {
+    "name": "식탁",
+    "file": "props/prop_75254.png",
+    "w": 2,
+    "h": 1,
+    "walkable": false
+   },
+   {
+    "name": "세척대",
+    "file": "props/prop_16844.png",
+    "w": 2,
+    "h": 1,
+    "walkable": false
+   },
+   {
+    "name": "식기 반납대",
+    "file": "props/prop_53675.png",
+    "w": 1,
+    "h": 1,
+    "walkable": false
+   },
+   {
+    "name": "세탁기",
+    "file": "props/prop_51592.png",
+    "w": 1,
+    "h": 1,
+    "walkable": false
+   },
+   {
+    "name": "건조대",
+    "file": "props/prop_07777.png",
+    "w": 2,
+    "h": 1,
+    "walkable": false
+   },
+   {
+    "name": "서류함",
+    "file": "props/prop_46122.png",
+    "w": 1,
+    "h": 1,
+    "walkable": false
+   },
+   {
+    "name": "행정 책상",
+    "file": "props/prop_48846.png",
+    "w": 4,
+    "h": 2,
+    "walkable": false
+   },
+   {
+    "name": "발전기",
+    "file": "props/prop_20311.png",
+    "w": 3,
+    "h": 3,
+    "walkable": false
+   },
+   {
+    "name": "공구함",
+    "file": "props/prop_90416.png",
+    "w": 1,
+    "h": 1,
+    "walkable": false
+   },
+   {
+    "name": "유류통",
+    "file": "props/prop_53450.png",
+    "w": 1,
+    "h": 1,
+    "walkable": false
+   },
+   {
+    "name": "국기 게양대",
+    "file": "props/prop_64301.png",
+    "w": 1,
+    "h": 2,
+    "walkable": false
+   },
+   {
+    "name": "나무",
+    "file": "props/prop_97392.png",
+    "w": 2,
+    "h": 2,
+    "walkable": false
+   },
+   {
+    "name": "차량",
+    "file": "props/prop_73919.png",
+    "w": 5,
+    "h": 4,
+    "walkable": false
+   },
+   {
+    "name": "초소 벽",
+    "file": "props/prop_30630.png",
+    "w": 3,
+    "h": 3,
+    "walkable": false
+   },
+   {
+    "name": "차단기",
+    "file": "props/prop_33551.png",
+    "w": 4,
+    "h": 5,
+    "walkable": false
+   },
+   {
+    "name": "강단",
+    "file": "props/prop_97500.png",
+    "w": 1,
+    "h": 1,
+    "walkable": false
+   },
+   {
+    "name": "장애물",
+    "file": "props/prop_87166.png",
+    "w": 2,
+    "h": 1,
+    "walkable": false
+   },
+   {
+    "name": "모래주머니",
+    "file": "props/prop_76916.png",
+    "w": 1,
+    "h": 1,
+    "walkable": false
+   },
+   {
+    "name": "좌석",
+    "file": "props/prop_39854.png",
+    "w": 1,
+    "h": 1,
+    "walkable": false
+   },
+   {
+    "name": "배수로",
+    "file": "props/prop_46944.png",
+    "w": 1,
+    "h": 1,
+    "walkable": true
+   },
+   {
+    "name": "물자 상자",
+    "file": "props/prop_56592.png",
+    "w": 1,
+    "h": 1,
+    "walkable": false
+   },
+   {
+    "name": "문지방",
+    "file": "props/prop_98219.png",
+    "w": 1,
+    "h": 1,
+    "walkable": true
+   },
+   {
+    "name": "탄약함",
+    "file": "props/prop_15501.png",
+    "w": 2,
+    "h": 2,
+    "walkable": false
+   },
+   {
+    "name": "상황판",
+    "file": "props/prop_70110.png",
+    "w": 1,
+    "h": 4,
+    "walkable": false
+   },
+   {
+    "name": "수입 깔개",
+    "file": "props/prop_11904.png",
+    "w": 4,
+    "h": 2,
+    "walkable": true
+   },
+   {
+    "name": "청소도구함",
+    "file": "props/prop_37244.png",
+    "w": 1,
+    "h": 1,
+    "walkable": false
+   },
+   {
+    "name": "슬리퍼 선반",
+    "file": "props/prop_59115.png",
+    "w": 2,
+    "h": 1,
+    "walkable": false
+   },
+   {
+    "name": "거울",
+    "file": "props/prop_83735.png",
+    "w": 6,
+    "h": 1,
+    "walkable": false
+   },
+   {
+    "name": "변기칸",
+    "file": "props/prop_86963.png",
+    "w": 2,
+    "h": 2,
+    "walkable": false
+   },
+   {
+    "name": "약제함",
+    "file": "props/prop_10790.png",
+    "w": 1,
+    "h": 1,
+    "walkable": false
+   },
+   {
+    "name": "바닥 배수구",
+    "file": "props/prop_81474.png",
+    "w": 1,
+    "h": 1,
+    "walkable": true
+   },
+   {
+    "name": "세탁물 수령대",
+    "file": "props/prop_17106.png",
+    "w": 4,
+    "h": 3,
+    "walkable": false
+   },
+   {
+    "name": "집합 좌석",
+    "file": "props/prop_87096.png",
+    "w": 4,
+    "h": 4,
+    "walkable": false
+   },
+   {
+    "name": "러닝머신",
+    "file": "props/prop_95395.png",
+    "w": 2,
+    "h": 4,
+    "walkable": false
+   },
+   {
+    "name": "덤벨 거치대",
+    "file": "props/prop_80428.png",
+    "w": 4,
+    "h": 2,
+    "walkable": false
+   },
+   {
+    "name": "케이블 머신",
+    "file": "props/prop_81811.png",
+    "w": 3,
+    "h": 3,
+    "walkable": false
+   },
+   {
+    "name": "재물 대장",
+    "file": "props/prop_28199.png",
+    "w": 4,
+    "h": 1,
+    "walkable": false
+   },
+   {
+    "name": "퇴식구",
+    "file": "props/prop_61081.png",
+    "w": 1,
+    "h": 1,
+    "walkable": false
+   },
+   {
+    "name": "잔반통",
+    "file": "props/prop_84796.png",
+    "w": 1,
+    "h": 1,
+    "walkable": false
+   },
+   {
+    "name": "분리수거함",
+    "file": "props/prop_56610.png",
+    "w": 2,
+    "h": 1,
+    "walkable": false
+   },
+   {
+    "name": "취반기",
+    "file": "props/prop_45051.png",
+    "w": 3,
+    "h": 2,
+    "walkable": false
+   },
+   {
+    "name": "세척 컨베이어",
+    "file": "props/prop_51205.png",
+    "w": 5,
+    "h": 2,
+    "walkable": false
+   },
+   {
+    "name": "부식고",
+    "file": "props/prop_20562.png",
+    "w": 2,
+    "h": 3,
+    "walkable": false
+   },
+   {
+    "name": "급수통",
+    "file": "props/prop_84726.png",
+    "w": 1,
+    "h": 1,
+    "walkable": false
+   },
+   {
+    "name": "시약대",
+    "file": "props/prop_24078.png",
+    "w": 1,
+    "h": 1,
+    "walkable": false
+   },
+   {
+    "name": "들것 거치대",
+    "file": "props/prop_57853.png",
+    "w": 2,
+    "h": 4,
+    "walkable": false
+   },
+   {
+    "name": "폐기함",
+    "file": "props/prop_03121.png",
+    "w": 1,
+    "h": 1,
+    "walkable": false
+   },
+   {
+    "name": "위생 검수대",
+    "file": "props/prop_19935.png",
+    "w": 4,
+    "h": 2,
+    "walkable": false
+   },
+   {
+    "name": "일지 보드",
+    "file": "props/prop_90803.png",
+    "w": 4,
+    "h": 3,
+    "walkable": false
+   },
+   {
+    "name": "배터리함",
+    "file": "props/prop_94690.png",
+    "w": 3,
+    "h": 2,
+    "walkable": false
+   },
+   {
+    "name": "일과표 게시판",
+    "file": "props/prop_58687.png",
+    "w": 5,
+    "h": 4,
+    "walkable": false
+   },
+   {
+    "name": "인원 대장",
+    "file": "props/prop_05078.png",
+    "w": 4,
+    "h": 2,
+    "walkable": false
+   },
+   {
+    "name": "공용장비함",
+    "file": "props/prop_72465.png",
+    "w": 3,
+    "h": 3,
+    "walkable": false
+   },
+   {
+    "name": "청구 데스크",
+    "file": "props/prop_74832.png",
+    "w": 4,
+    "h": 2,
+    "walkable": false
+   },
+   {
+    "name": "하역 출입구",
+    "file": "props/prop_44905.png",
+    "w": 2,
+    "h": 1,
+    "walkable": true
+   },
+   {
+    "name": "섀도보드",
+    "file": "props/prop_78943.png",
+    "w": 4,
+    "h": 3,
+    "walkable": false
+   },
+   {
+    "name": "유량계",
+    "file": "props/prop_91685.png",
+    "w": 1,
+    "h": 1,
+    "walkable": false
+   },
+   {
+    "name": "고압 세척기",
+    "file": "props/prop_96282.png",
+    "w": 1,
+    "h": 1,
+    "walkable": false
+   },
+   {
+    "name": "압력계",
+    "file": "props/prop_96352.png",
+    "w": 1,
+    "h": 1,
+    "walkable": false
+   },
+   {
+    "name": "비상 발전기",
+    "file": "props/prop_39739.png",
+    "w": 3,
+    "h": 3,
+    "walkable": false
+   },
+   {
+    "name": "차단 밸브",
+    "file": "props/prop_09255.png",
+    "w": 1,
+    "h": 1,
+    "walkable": false
+   },
+   {
+    "name": "배관 분기",
+    "file": "props/prop_47361.png",
+    "w": 1,
+    "h": 1,
+    "walkable": true
+   },
+   {
+    "name": "모래함",
+    "file": "props/prop_29357.png",
+    "w": 1,
+    "h": 1,
+    "walkable": false
+   },
+   {
+    "name": "안테나 마스트",
+    "file": "props/prop_91710.png",
+    "w": 1,
+    "h": 2,
+    "walkable": false
+   },
+   {
+    "name": "급전선 단자",
+    "file": "props/prop_87045.png",
+    "w": 1,
+    "h": 1,
+    "walkable": false
+   },
+   {
+    "name": "관측 지점",
+    "file": "props/prop_60423.png",
+    "w": 2,
+    "h": 2,
+    "walkable": false
+   },
+   {
+    "name": "대열 정렬선",
+    "file": "props/prop_59617.png",
+    "w": 4,
+    "h": 1,
+    "walkable": true
+   },
+   {
+    "name": "감시창",
+    "file": "props/prop_27118.png",
+    "w": 4,
+    "h": 2,
+    "walkable": false
+   },
+   {
+    "name": "인수인계대",
+    "file": "props/prop_18487.png",
+    "w": 1,
+    "h": 1,
+    "walkable": false
+   },
+   {
+    "name": "초소 전화",
+    "file": "props/prop_16771.png",
+    "w": 1,
+    "h": 1,
+    "walkable": false
+   },
+   {
+    "name": "철조망",
+    "file": "props/prop_64645.png",
+    "w": 2,
+    "h": 1,
+    "walkable": false
+   },
+   {
+    "name": "검문대",
+    "file": "props/prop_49541.png",
+    "w": 3,
+    "h": 2,
+    "walkable": false
+   },
+   {
+    "name": "출입 대장",
+    "file": "props/prop_80189.png",
+    "w": 3,
+    "h": 3,
+    "walkable": false
+   },
+   {
+    "name": "운반 적재대",
+    "file": "props/prop_73646.png",
+    "w": 4,
+    "h": 2,
+    "walkable": false
+   },
+   {
+    "name": "텐트",
+    "file": "props/prop_02726.png",
+    "w": 3,
+    "h": 3,
+    "walkable": false
+   },
+   {
+    "name": "야전 취사도구",
+    "file": "props/prop_32045.png",
+    "w": 1,
+    "h": 1,
+    "walkable": false
+   },
+   {
+    "name": "모탕",
+    "file": "props/prop_29652.png",
+    "w": 2,
+    "h": 2,
+    "walkable": false
+   },
+   {
+    "name": "그늘막 팩",
+    "file": "props/prop_37236.png",
+    "w": 1,
+    "h": 1,
+    "walkable": false
+   },
+   {
+    "name": "화장실 칸",
+    "file": "props/prop_11698.png",
+    "w": 3,
+    "h": 4,
+    "walkable": false
+   },
+   {
+    "name": "PC 책상",
+    "file": "props/prop_71425.png",
+    "w": 5,
+    "h": 1,
+    "walkable": false
+   },
+   {
+    "name": "단말",
+    "file": "props/prop_70211.png",
+    "w": 1,
+    "h": 1,
+    "walkable": false
+   },
+   {
+    "name": "생활관 출입문",
+    "file": "props/prop_76276.png",
+    "w": 2,
+    "h": 1,
+    "walkable": true
+   },
+   {
+    "name": "슬리퍼",
+    "file": "props/prop_82090.png",
+    "w": 1,
+    "h": 1,
+    "walkable": false
+   },
+   {
+    "name": "배식통",
+    "file": "props/prop_13076.png",
+    "w": 1,
+    "h": 1,
+    "walkable": false
+   },
+   {
+    "name": "조리솥",
+    "file": "props/prop_46147.png",
+    "w": 2,
+    "h": 2,
+    "walkable": false
+   },
+   {
+    "name": "세척기",
+    "file": "props/prop_35957.png",
+    "w": 2,
+    "h": 2,
+    "walkable": false
+   },
+   {
+    "name": "급수 정수 설비",
+    "file": "props/prop_37980.png",
+    "w": 3,
+    "h": 3,
+    "walkable": false
+   },
+   {
+    "name": "잔반장",
+    "file": "props/prop_78689.png",
+    "w": 2,
+    "h": 3,
+    "walkable": false
+   },
+   {
+    "name": "접속부",
+    "file": "props/prop_20024.png",
+    "w": 3,
+    "h": 2,
+    "walkable": false
+   },
+   {
+    "name": "상하키 수령대",
+    "file": "props/prop_51677.png",
+    "w": 3,
+    "h": 2,
+    "walkable": false
+   },
+   {
+    "name": "야전 취사장",
+    "file": "props/prop_16627.png",
+    "w": 3,
+    "h": 3,
+    "walkable": false
+   },
+   {
+    "name": "토사 퇴적",
+    "file": "props/prop_91447.png",
+    "w": 2,
+    "h": 1,
+    "walkable": false
+   }
+  ],
+  "markers": [
+   {
+    "name": "quest",
+    "file": "markers/quest.png"
+   },
+   {
+    "name": "door",
+    "file": "markers/door.png"
+   }
+  ],
+  "snow": [
+   "tiles/snow_0.png",
+   "tiles/snow_1.png",
+   "tiles/snow_2.png",
+   "tiles/snow_3.png"
+  ],
+  "labels": []
+ },
+ "vfx": {
+  "sprites": [
+   {
+    "name": "flake",
+    "w": 6,
+    "h": 6,
+    "frames": 1,
+    "cellW": 6,
+    "cellH": 6,
+    "note": "눈송이 — VFX_Snow_Light"
+   },
+   {
+    "name": "speck",
+    "w": 3,
+    "h": 3,
+    "frames": 1,
+    "cellW": 3,
+    "cellH": 3,
+    "note": "눈보라 알갱이 — VFX_Snow_Heavy"
+   },
+   {
+    "name": "breath",
+    "w": 36,
+    "h": 8,
+    "frames": 3,
+    "cellW": 12,
+    "cellH": 8,
+    "note": "입김 — VFX_Breath"
+   },
+   {
+    "name": "haze",
+    "w": 12,
+    "h": 6,
+    "frames": 1,
+    "cellW": 12,
+    "cellH": 6,
+    "note": "아지랑이 — VFX_HeatHaze"
+   },
+   {
+    "name": "dust",
+    "w": 3,
+    "h": 3,
+    "frames": 1,
+    "cellW": 3,
+    "cellH": 3,
+    "note": "먼지 — VFX_Dust"
+   },
+   {
+    "name": "drop",
+    "w": 3,
+    "h": 9,
+    "frames": 1,
+    "cellW": 3,
+    "cellH": 9,
+    "note": "빗방울 — VFX_Rain"
+   },
+   {
+    "name": "splash",
+    "w": 8,
+    "h": 4,
+    "frames": 1,
+    "cellW": 8,
+    "cellH": 4,
+    "note": "물튀김 — VFX_Rain"
+   },
+   {
+    "name": "steam",
+    "w": 10,
+    "h": 10,
+    "frames": 1,
+    "cellW": 10,
+    "cellH": 10,
+    "note": "수증기 — VFX_Steam"
+   },
+   {
+    "name": "muzzle",
+    "w": 28,
+    "h": 14,
+    "frames": 2,
+    "cellW": 14,
+    "cellH": 14,
+    "note": "총구 화염 — VFX_MuzzleFlash"
+   },
+   {
+    "name": "spray",
+    "w": 10,
+    "h": 10,
+    "frames": 1,
+    "cellW": 10,
+    "cellH": 10,
+    "note": "제독 분무 — VFX_Decon"
+   },
+   {
+    "name": "sweat",
+    "w": 5,
+    "h": 7,
+    "frames": 1,
+    "cellW": 5,
+    "cellH": 7,
+    "note": "땀방울 — VFX_SweatDrop"
+   },
+   {
+    "name": "ring",
+    "w": 24,
+    "h": 24,
+    "frames": 1,
+    "cellW": 24,
+    "cellH": 24,
+    "note": "완료 확산 링 — VFX_QuestComplete"
+   },
+   {
+    "name": "ash",
+    "w": 6,
+    "h": 6,
+    "frames": 1,
+    "cellW": 6,
+    "cellH": 6,
+    "note": "쓰러짐 잔해 — VFX_Collapse"
+   }
+  ]
+ }
+}

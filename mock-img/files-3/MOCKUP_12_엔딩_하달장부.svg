@@ -1,0 +1,208 @@
+<svg viewBox="0 0 1920 2160" xmlns="http://www.w3.org/2000/svg" font-family="Pretendard, 'Apple SD Gothic Neo', 'Malgun Gothic', 'Noto Sans KR', sans-serif">
+<rect width="1920" height="2160" fill="#0B0D08"/>
+
+<!-- ══════════ 1 : 엔딩 리포트 ══════════ -->
+<text x="60" y="46" fill="#5E6E42" font-size="12" letter-spacing="3" font-family="ui-monospace, Menlo, monospace">SCREEN 7.10-F — META-02  엔딩 리포트  ·  D-18 전역 심사 통과</text>
+
+<rect x="200" y="70" width="1520" height="940" fill="#12150F"/>
+<rect x="200" y="70" width="1520" height="940" fill="none" stroke="#9AB06F" stroke-width="3"/>
+<rect x="200" y="70" width="1520" height="110" fill="#1B1F17"/>
+<rect x="200" y="178" width="1520" height="2" fill="#9AB06F"/>
+<text x="236" y="116" fill="#9AB06F" font-size="12" letter-spacing="3" font-family="ui-monospace, Menlo, monospace">DISCHARGE REVIEW — D-18</text>
+<text x="236" y="160" fill="#DFE2D6" font-size="34" font-weight="800" letter-spacing="-1">정상 전역</text>
+<rect x="470" y="128" width="180" height="38" fill="#2A1614"/>
+<text x="560" y="154" fill="#D2594B" font-size="15" font-weight="700" text-anchor="middle">모범 전역 불가</text>
+<text x="670" y="154" fill="#99A18D" font-size="15">후송 1회 — 무실패 배지 소실</text>
+<text x="1684" y="126" fill="#99A18D" font-size="14" text-anchor="end">분대 코드</text>
+<text x="1684" y="162" fill="#DFE2D6" font-size="24" font-weight="800" text-anchor="end" letter-spacing="5" font-family="ui-monospace, Menlo, monospace">K7M2QX</text>
+
+<!-- 18일 그래프 -->
+<g transform="translate(236,216)">
+  <text x="0" y="0" fill="#99A18D" font-size="12" letter-spacing="2" font-family="ui-monospace, Menlo, monospace">18-DAY LOG — 군기 추이 · 사건</text>
+  <rect x="0" y="16" width="1448" height="220" fill="#191D14"/>
+  <!-- 기준선 40 -->
+  <rect x="0" y="176" width="1448" height="1" fill="#D2594B" opacity="0.7"/>
+  <text x="1440" y="172" fill="#D2594B" font-size="11" text-anchor="end" font-family="ui-monospace, Menlo, monospace">조건 C 하한 40</text>
+  <!-- 폴리라인 -->
+  <polyline points="20,120 96,110 172,104 248,116 324,98 400,88 476,94 552,126 628,152 704,168 780,140 856,124 932,132 1008,146 1084,110 1160,96 1236,84 1312,72 1388,64"
+            fill="none" stroke="#9AB06F" stroke-width="3"/>
+  <!-- 사건 마커 -->
+  <g>
+    <circle cx="704" cy="168" r="7" fill="#D2594B"/>
+    <rect x="644" y="186" width="122" height="24" fill="#2A1614"/>
+    <text x="705" y="203" fill="#D2594B" font-size="12" text-anchor="middle">D-10 정 후송</text>
+    <circle cx="1084" cy="110" r="6" fill="#DB8B55"/>
+    <rect x="1030" y="76" width="110" height="24" fill="#3A2412"/>
+    <text x="1085" y="93" fill="#DB8B55" font-size="12" text-anchor="middle">D-15 폭설</text>
+  </g>
+  <!-- 축 -->
+  <g fill="#5A6053" font-size="11" font-family="ui-monospace, Menlo, monospace">
+    <text x="20" y="252">D-01</text><text x="400" y="252">D-06</text><text x="780" y="252">D-11</text><text x="1160" y="252">D-15</text><text x="1388" y="252">D-18</text>
+  </g>
+</g>
+
+<!-- 4인 최종 -->
+<g transform="translate(236,510)">
+  <text x="0" y="0" fill="#99A18D" font-size="12" letter-spacing="2" font-family="ui-monospace, Menlo, monospace">SQUAD</text>
+  <g transform="translate(0,16)">
+    <rect width="350" height="180" fill="#191D14" stroke="#333A2B"/>
+    <rect width="350" height="28" fill="#6E7A50"/><text x="175" y="20" fill="#12150F" font-size="12" font-weight="800" text-anchor="middle">RFL — 김</text>
+    <g transform="translate(24,48)"><rect width="36" height="7" fill="#FFD98A"/><rect y="12" width="36" height="7" fill="#FFD98A"/><rect y="24" width="36" height="7" fill="#FFD98A"/><rect x="14" y="-10" width="8" height="7" fill="#FFD98A"/></g>
+    <text x="80" y="72" fill="#DFE2D6" font-size="21" font-weight="700">병장</text>
+    <text x="24" y="112" fill="#99A18D" font-size="15">복무 점수 <tspan fill="#DFE2D6" font-family="ui-monospace, Menlo, monospace">168</tspan></text>
+    <text x="24" y="138" fill="#99A18D" font-size="15">하달 <tspan fill="#DB8B55" font-family="ui-monospace, Menlo, monospace">11건 넘김</tspan> / 대행 <tspan font-family="ui-monospace, Menlo, monospace">2건</tspan></text>
+    <text x="24" y="164" fill="#99A18D" font-size="15">숙련도 3단계 · 무실패</text>
+  </g>
+  <g transform="translate(366,16)">
+    <rect width="350" height="180" fill="#191D14" stroke="#333A2B"/>
+    <rect width="350" height="28" fill="#3F6E90"/><text x="175" y="20" fill="#12150F" font-size="12" font-weight="800" text-anchor="middle">COM — 최</text>
+    <g transform="translate(24,52)"><rect width="36" height="7" fill="#E0D8B0"/><rect y="12" width="36" height="7" fill="#E0D8B0"/><rect y="24" width="36" height="7" fill="#E0D8B0"/></g>
+    <text x="80" y="72" fill="#DFE2D6" font-size="21" font-weight="700">상병</text>
+    <text x="24" y="112" fill="#99A18D" font-size="15">복무 점수 <tspan fill="#DFE2D6" font-family="ui-monospace, Menlo, monospace">124</tspan></text>
+    <text x="24" y="138" fill="#99A18D" font-size="15">하달 <tspan font-family="ui-monospace, Menlo, monospace">3건</tspan> / 대행 <tspan fill="#9AB06F" font-family="ui-monospace, Menlo, monospace">7건</tspan></text>
+    <text x="24" y="164" fill="#99A18D" font-size="15">무전 두절 2회</text>
+  </g>
+  <g transform="translate(732,16)">
+    <rect width="350" height="180" fill="#191D14" stroke="#D2594B"/>
+    <rect width="350" height="28" fill="#EEF1E8"/><text x="175" y="20" fill="#12150F" font-size="12" font-weight="800" text-anchor="middle">MED — 정</text>
+    <g transform="translate(24,58)"><rect width="36" height="7" fill="#C9C7BC"/></g>
+    <text x="80" y="72" fill="#DFE2D6" font-size="21" font-weight="700">이병</text>
+    <rect x="150" y="52" width="120" height="26" fill="#2A1614"/>
+    <text x="210" y="70" fill="#D2594B" font-size="13" text-anchor="middle" font-weight="700">D-10 후송 · 리셋</text>
+    <text x="24" y="112" fill="#99A18D" font-size="15">복무 점수 <tspan fill="#DFE2D6" font-family="ui-monospace, Menlo, monospace">41</tspan></text>
+    <text x="24" y="138" fill="#99A18D" font-size="15">하달 <tspan font-family="ui-monospace, Menlo, monospace">0건</tspan> / 대행 <tspan fill="#9AB06F" font-family="ui-monospace, Menlo, monospace">9건</tspan></text>
+    <text x="24" y="164" fill="#D2594B" font-size="15">축적 전손 — 병장에서 이병으로</text>
+  </g>
+  <g transform="translate(1098,16)">
+    <rect width="350" height="180" fill="#191D14" stroke="#333A2B"/>
+    <rect width="350" height="28" fill="#B08A2C"/><text x="175" y="20" fill="#12150F" font-size="12" font-weight="800" text-anchor="middle">ADM — 박</text>
+    <g transform="translate(24,52)"><rect width="36" height="7" fill="#E0D8B0"/><rect y="12" width="36" height="7" fill="#E0D8B0"/><rect y="24" width="36" height="7" fill="#E0D8B0"/></g>
+    <text x="80" y="72" fill="#DFE2D6" font-size="21" font-weight="700">상병</text>
+    <path d="M290 44 l14 14 l-14 14 l-14 -14 Z" fill="#9AB06F"/>
+    <text x="290" y="88" fill="#9AB06F" font-size="12" text-anchor="middle">분대장</text>
+    <text x="24" y="112" fill="#99A18D" font-size="15">복무 점수 <tspan fill="#DFE2D6" font-family="ui-monospace, Menlo, monospace">137</tspan></text>
+    <text x="24" y="138" fill="#99A18D" font-size="15">하달 <tspan font-family="ui-monospace, Menlo, monospace">1건</tspan> / 대행 <tspan fill="#9AB06F" font-family="ui-monospace, Menlo, monospace">18건</tspan></text>
+    <text x="24" y="164" fill="#9AB06F" font-size="15">대행 최다 — 사다리를 올라옴</text>
+  </g>
+</g>
+
+<!-- 기록 -->
+<g transform="translate(236,730)">
+  <rect width="1448" height="1" fill="#333A2B"/>
+  <g font-size="15">
+    <g transform="translate(0,40)"><text fill="#99A18D">최종 군기</text><text x="0" y="30" fill="#9AB06F" font-size="26" font-weight="800" font-family="ui-monospace, Menlo, monospace">74</text></g>
+    <g transform="translate(200,40)"><text fill="#99A18D">간부 신뢰 합계</text><text x="0" y="30" fill="#DFE2D6" font-size="26" font-weight="800" font-family="ui-monospace, Menlo, monospace">198</text></g>
+    <g transform="translate(430,40)"><text fill="#99A18D">히든 달성</text><text x="0" y="30" fill="#DFE2D6" font-size="26" font-weight="800" font-family="ui-monospace, Menlo, monospace">2 / 4</text></g>
+    <g transform="translate(640,40)"><text fill="#99A18D">구제권 사용</text><text x="0" y="30" fill="#DB8B55" font-size="26" font-weight="800" font-family="ui-monospace, Menlo, monospace">3 / 3</text></g>
+    <g transform="translate(880,40)"><text fill="#99A18D">무실패 일수</text><text x="0" y="30" fill="#DFE2D6" font-size="26" font-weight="800" font-family="ui-monospace, Menlo, monospace">17 / 18</text></g>
+    <g transform="translate(1130,40)"><text fill="#99A18D">플레이 시간</text><text x="0" y="30" fill="#DFE2D6" font-size="26" font-weight="800" font-family="ui-monospace, Menlo, monospace">1:52:14</text></g>
+  </g>
+</g>
+
+<!-- 해금 -->
+<g transform="translate(236,840)">
+  <rect width="1448" height="80" fill="#21281A"/>
+  <rect width="5" height="80" fill="#9AB06F"/>
+  <text x="24" y="32" fill="#9AB06F" font-size="12" letter-spacing="2" font-family="ui-monospace, Menlo, monospace">UNLOCKED</text>
+  <text x="24" y="62" fill="#DFE2D6" font-size="18">의무병 완주 → <tspan font-weight="700">위생 특기 / 야전 응급 특기</tspan> 해금 — 능력 총량은 동일, 플레이 방식만 달라집니다</text>
+</g>
+
+<g transform="translate(236,940)">
+  <rect width="220" height="48" fill="#12150F" stroke="#99A18D"/>
+  <text x="110" y="31" fill="#99A18D" font-size="16" text-anchor="middle">하달 장부 보기</text>
+  <rect x="240" y="0" width="220" height="48" fill="#12150F" stroke="#99A18D"/>
+  <text x="350" y="31" fill="#99A18D" font-size="16" text-anchor="middle">리더보드</text>
+  <rect x="1228" y="0" width="220" height="48" fill="#9AB06F"/>
+  <text x="1338" y="31" fill="#12150F" font-size="17" font-weight="800" text-anchor="middle">로비로</text>
+</g>
+
+<!-- ══════════ 2 : 하달 장부 ══════════ -->
+<g transform="translate(0,1080)">
+  <rect width="1920" height="1080" fill="#0B0D08"/>
+  <text x="60" y="46" fill="#5E6E42" font-size="12" letter-spacing="3" font-family="ui-monospace, Menlo, monospace">SCREEN 7.10-G — QST-05  하달 장부  ·  런 종료 시 공개  ·  6.2 역전 경로 2의 기록</text>
+
+  <rect x="360" y="70" width="1200" height="940" fill="#12150F"/>
+  <rect x="360" y="70" width="1200" height="940" fill="none" stroke="#DB8B55" stroke-width="2"/>
+  <rect x="360" y="70" width="1200" height="86" fill="#1B1F17"/>
+  <rect x="360" y="154" width="1200" height="2" fill="#DB8B55"/>
+  <text x="392" y="110" fill="#DB8B55" font-size="12" letter-spacing="2.2" font-family="ui-monospace, Menlo, monospace">HANDOVER LEDGER — 18 DAYS</text>
+  <text x="392" y="142" fill="#DFE2D6" font-size="24" font-weight="800">하달 장부</text>
+  <text x="1528" y="132" fill="#99A18D" font-size="15" text-anchor="end">총 33건</text>
+
+  <!-- 매트릭스 -->
+  <g transform="translate(392,190)">
+    <text x="0" y="0" fill="#99A18D" font-size="12" letter-spacing="2" font-family="ui-monospace, Menlo, monospace">누가 → 누구에게</text>
+    <!-- 헤더 -->
+    <g transform="translate(0,20)">
+      <rect width="1136" height="44" fill="#1B1F17"/>
+      <text x="20" y="29" fill="#99A18D" font-size="14">하달자 \ 수행자</text>
+      <g text-anchor="middle" font-size="15" fill="#DFE2D6" font-weight="700">
+        <text x="440" y="29">김 · RFL</text><text x="640" y="29">최 · COM</text><text x="840" y="29">정 · MED</text><text x="1040" y="29">박 · ADM</text>
+      </g>
+    </g>
+    <g transform="translate(0,64)" font-size="18" text-anchor="middle" font-family="ui-monospace, Menlo, monospace">
+      <g><rect width="1136" height="52" fill="#191D14"/>
+        <text x="20" y="33" fill="#DFE2D6" font-size="16" text-anchor="start" font-family="Pretendard, sans-serif">김 · RFL <tspan fill="#FFD98A" font-size="13">병장</tspan></text>
+        <text x="440" y="33" fill="#3A4030">—</text><text x="640" y="33" fill="#DFE2D6">3</text>
+        <text x="840" y="33" fill="#DFE2D6">2</text><text x="1040" y="33" fill="#DB8B55" font-size="22" font-weight="800">6</text></g>
+      <g transform="translate(0,60)"><rect width="1136" height="52" fill="#12150F"/>
+        <text x="20" y="33" fill="#DFE2D6" font-size="16" text-anchor="start" font-family="Pretendard, sans-serif">최 · COM <tspan fill="#E0D8B0" font-size="13">상병</tspan></text>
+        <text x="440" y="33" fill="#3A4030">—</text><text x="640" y="33" fill="#3A4030">—</text>
+        <text x="840" y="33" fill="#DFE2D6">1</text><text x="1040" y="33" fill="#DFE2D6">2</text></g>
+      <g transform="translate(0,120)"><rect width="1136" height="52" fill="#191D14"/>
+        <text x="20" y="33" fill="#DFE2D6" font-size="16" text-anchor="start" font-family="Pretendard, sans-serif">정 · MED <tspan fill="#C9C7BC" font-size="13">이병</tspan> <tspan fill="#D2594B" font-size="13">← 후송 리셋</tspan></text>
+        <text x="440" y="33" fill="#3A4030">—</text><text x="640" y="33" fill="#DFE2D6">4</text>
+        <text x="840" y="33" fill="#3A4030">—</text><text x="1040" y="33" fill="#DFE2D6">5</text></g>
+      <g transform="translate(0,180)"><rect width="1136" height="52" fill="#12150F"/>
+        <text x="20" y="33" fill="#DFE2D6" font-size="16" text-anchor="start" font-family="Pretendard, sans-serif">박 · ADM <tspan fill="#E0D8B0" font-size="13">상병</tspan> <tspan fill="#9AB06F" font-size="13">← 분대장</tspan></text>
+        <text x="440" y="33" fill="#DFE2D6">1</text><text x="640" y="33" fill="#3A4030">—</text>
+        <text x="840" y="33" fill="#3A4030">—</text><text x="1040" y="33" fill="#3A4030">—</text></g>
+      <rect y="238" width="1136" height="2" fill="#DFE2D6"/>
+      <g transform="translate(0,240)"><rect width="1136" height="54" fill="#1B1F17"/>
+        <text x="20" y="34" fill="#DFE2D6" font-size="16" font-weight="700" text-anchor="start" font-family="Pretendard, sans-serif">받은 합계</text>
+        <text x="440" y="36" fill="#99A18D" font-size="22" font-weight="800">1</text>
+        <text x="640" y="36" fill="#DFE2D6" font-size="22" font-weight="800">7</text>
+        <text x="840" y="36" fill="#DFE2D6" font-size="22" font-weight="800">3</text>
+        <text x="1040" y="36" fill="#9AB06F" font-size="26" font-weight="800">13</text></g>
+    </g>
+  </g>
+
+  <!-- 역전 서사 -->
+  <g transform="translate(392,586)">
+    <rect width="1136" height="1" fill="#333A2B"/>
+    <text x="0" y="34" fill="#9AB06F" font-size="12" letter-spacing="2" font-family="ui-monospace, Menlo, monospace">역전 경로 2 — 후송에 의한 즉시 강등</text>
+    <g transform="translate(0,54)">
+      <rect width="1136" height="126" fill="#191D14"/>
+      <rect width="5" height="126" fill="#D2594B"/>
+      <text x="24" y="36" fill="#DFE2D6" font-size="18">D-09 까지 <tspan fill="#FFD98A" font-weight="700">정 · 병장</tspan> 이 <tspan fill="#B08A2C" font-weight="700">박 · 이병</tspan> 에게 5건을 넘겼다.</text>
+      <text x="24" y="70" fill="#DFE2D6" font-size="18">D-10 정이 후송되며 <tspan fill="#D2594B" font-weight="700">이병으로 리셋</tspan> — 하달 권한을 전부 잃었다.</text>
+      <text x="24" y="104" fill="#9AB06F" font-size="18">D-15 대행 점수 18점이 쌓인 박이 <tspan font-weight="700">상병 · 분대장</tspan> 이 되어, 이제 정에게 하달할 수 있다.</text>
+    </g>
+  </g>
+
+  <!-- 개별 후기 -->
+  <g transform="translate(392,786)">
+    <text x="0" y="0" fill="#99A18D" font-size="12" letter-spacing="2" font-family="ui-monospace, Menlo, monospace">분대원 개별 후기 — 히든 4개 달성 시 확장</text>
+    <g transform="translate(0,18)">
+      <rect width="556" height="90" fill="#191D14"/>
+      <rect width="4" height="90" fill="#B08A2C"/>
+      <text x="20" y="30" fill="#B08A2C" font-size="14" font-weight="700">박 · ADM</text>
+      <text x="20" y="58" fill="#DFE2D6" font-size="15">"처음 열흘은 남의 일과만 했다."</text>
+      <text x="20" y="80" fill="#99A18D" font-size="15">"그게 점수가 될 줄은 몰랐다."</text>
+    </g>
+    <g transform="translate(580,18)">
+      <rect width="556" height="90" fill="#191D14"/>
+      <rect width="4" height="90" fill="#EEF1E8"/>
+      <text x="20" y="30" fill="#EEF1E8" font-size="14" font-weight="700">정 · MED</text>
+      <text x="20" y="58" fill="#DFE2D6" font-size="15">"쓰러진 다음 날 아침, 계급장이 한 줄이었다."</text>
+      <text x="20" y="80" fill="#99A18D" font-size="15">"어제 내가 시켰던 사람이 오늘 나에게 시켰다."</text>
+    </g>
+  </g>
+
+  <g transform="translate(392,930)">
+    <text x="0" y="20" fill="#5A6053" font-size="14">장부는 런 종료 시에만 공개됩니다 — 진행 중에 보이면 하달 자체를 안 하게 되어 시스템이 죽습니다</text>
+    <rect x="916" y="0" width="220" height="48" fill="#9AB06F"/>
+    <text x="1026" y="31" fill="#12150F" font-size="17" font-weight="800" text-anchor="middle">닫기</text>
+  </g>
+</g>
+</svg>
