@@ -30,15 +30,17 @@ namespace SoldierADay.Net
     public static class BoardLab
     {
         /// <summary>
-        /// 원형 16종. `RANDOM`은 이 중 하나를 무작위로 불러오는 메타 판이라
-        /// (`RandomBoard`) 그 자체로는 재미가 없어 뺐다. 합동(`JointBoard`)도
-        /// 원형이 아니라 "누가 채우는가"를 씌우는 겉이라 뺐다 — 안쪽 원형은
-        /// 여기서 이미 잰다. `RaceBoard`(A-5 2차)도 같은 이유로 뺐다 — 목록의
-        /// 원형이 아니라 `[G]`로 지금 고른 원형 위에 씌우는 겉이다.
+        /// 원형 17종. 합동(`JointBoard`)은 원형이 아니라 "누가 채우는가"를
+        /// 씌우는 겉이라 뺐다 — 안쪽 원형은 여기서 이미 잰다(합동은 `[J]`로
+        /// 지금 고른 원형 위에 씌워서 따로 본다). `RaceBoard`(A-5 2차)도 같은
+        /// 이유로 뺐다 — 목록의 원형이 아니라 `[G]`로 씌우는 겉이다.
         ///
-        /// `STILL`·`DODGE`(A-5 2차)는 `Generated/Protocol.cs`가 아직 이
-        /// 워크트리에서 재생성되지 않아 `SnapshotQuestsItemMinigameTypeValues`에
-        /// 두 상수가 없다 — `Boards.Create`와 같은 이유로 병합 후 맞물린다.
+        /// `RANDOM`은 T단계 전까지는 "이 중 하나를 무작위로 불러오는 메타
+        /// 판이라 그 자체로는 재미가 없다"는 이유로 빠져 있었다. 그런데
+        /// `RandomBoard`가 **부르는 코드**(`Boards.Create` 스위치·`Pool` 배열)는
+        /// 안쪽 원형과 별개로 검증할 거리가 있다 — 뽑기 자체가 고장 나면
+        /// 안쪽 원형이 멀쩡해도 지원 요청 일과가 통째로 막힌다. 그래서
+        /// 목록 맨 끝에 넣는다.
         /// </summary>
         private static readonly string[] Types =
         {
@@ -58,6 +60,7 @@ namespace SoldierADay.Net
             SnapshotQuestsItemMinigameTypeValues.REACT,
             SnapshotQuestsItemMinigameTypeValues.STILL,
             SnapshotQuestsItemMinigameTypeValues.DODGE,
+            SnapshotQuestsItemMinigameTypeValues.RANDOM,
         };
 
         private static bool _open;
@@ -68,6 +71,30 @@ namespace SoldierADay.Net
 
         /// <summary>`[G]` — 지금 고른 원형을 `RaceBoard`(고스트 대결)로 씌워서 연다</summary>
         private static bool _race;
+
+        /// <summary>T단계 — `[I]` 인터럽트(`interrupt:"REACT"`)를 스펙에 얹어 연다.
+        /// `Boards.Open`이 이미 그 필드만 보고 `InterruptBoard`로 씌워주므로
+        /// (`Boards.cs`), 실험대는 스펙에 문자열 하나만 얹으면 된다</summary>
+        private static bool _interrupt;
+
+        /// <summary>T단계 — `[P]` 연쇄판(`phase2`)을 스펙에 얹어 연다. 지금은
+        /// `HoldBoard`(계기 유지)만 이 필드를 읽어 절반을 넘기면 틈을 좁힌다
+        /// (`HoldBoard.cs`) — 다른 원형에 걸어도 무시될 뿐이라 안전하다</summary>
+        private static bool _phase2;
+
+        /// <summary>T단계 — `[J]` 지금 고른 원형을 `JointBoard`(합동)로 씌워서 연다.
+        /// 서버가 없으니 분대원·조각 진척은 실험대가 손으로 밀어넣는다</summary>
+        private static bool _joint;
+        private static int _jointTotal = 6;
+        private static int _jointNeed = 2;
+        private static int _jointHere = 2;
+        /// <summary>B-1 비대칭 — ""(대칭) · "watch"(정답만) · "operate"(조작만).
+        /// SEQ·TRACE만 실제로 읽지만(`JointBoard.RoleSpec`), 다른 원형에 얹어도
+        /// `Asymmetric` 분기 밖이라 그냥 무시된다 — `phase2`와 같은 안전망이다</summary>
+        private static string _jointRole = "";
+        /// <summary>지금 연 판이 합동이면 여기 담아 매 프레임 인원값을 다시 밀어넣는다
+        /// (`QuestPlay.Feed`가 스냅샷마다 하는 일과 같다 — 서버가 없을 뿐이다)</summary>
+        private static JointBoard _jointBoard;
 
         private static Board _board;
         private static bool _awaitingResult;
@@ -136,6 +163,11 @@ namespace SoldierADay.Net
             // A-5 2차 — 지금 고른 원형을 `RaceBoard`로 씌워서 고스트 페이스와
             // 나란히 본다. `quests.json`에는 안 묶인 실험대 전용 진입이다
             if (Input.GetKeyDown(KeyCode.G)) { _race = !_race; OpenBoard(); }
+            // T단계 F9 확장 — 인터럽트·연쇄판·합동 모디파이어. 셋 다 겉을 씌우는
+            // 것이라 `[G]`처럼 토글하고 곧바로 다시 연다
+            if (Input.GetKeyDown(KeyCode.I)) { _interrupt = !_interrupt; OpenBoard(); }
+            if (Input.GetKeyDown(KeyCode.P)) { _phase2 = !_phase2; OpenBoard(); }
+            if (Input.GetKeyDown(KeyCode.J)) { _joint = !_joint; OpenBoard(); }
 
             // 화살표(↑↓)는 안 쓴다 — `LocalPlayer`가 `Vertical` 축(↑↓ · W/S)으로
             // 이동하는데, 실험대는 판이 열려도 그 입력을 막지 않는다(§소유권 —
@@ -172,13 +204,40 @@ namespace SoldierADay.Net
             _seed += 1;
             var type = Types[_index];
             var (spec, limit) = BuildSpec(type, _difficulty);
+
+            // T단계 F9 확장 — `[I]` 인터럽트·`[P]` 연쇄판은 스펙에 필드 하나만
+            // 얹으면 된다. `Boards.Open`이 `interrupt`를 보고 `InterruptBoard`로
+            // 스스로 씌우고(`Boards.cs`), `phase2`는 `HoldBoard`가 직접 읽는다
+            // (다른 원형에 얹어도 그냥 무시된다 — 안전하다)
+            if (_interrupt) spec.interrupt = "REACT";
+            if (_phase2) spec.phase2 = type;
+
             // 씨앗에 실행 카운터를 넣는다. 실전(`QuestPlay.Restart`)은 재시도마다
             // **같은** 씨앗을 써서 같은 판을 다시 내지만(§익힘), 실험대는 반대로
             // 한 원형을 여러 배치로 훑어봐야 파라미터가 맞는지 감이 온다
             var questId = $"lab:{type}:{_difficulty}:{_seed}";
-            _board = _race ? OpenRace(spec, limit, questId) : Boards.Open(spec, limit, questId);
+            _jointBoard = null;
+            _board = _joint ? OpenJoint(spec, limit, questId)
+                : _race ? OpenRace(spec, limit, questId)
+                : Boards.Open(spec, limit, questId);
             _awaitingResult = true;
             _started = false;
+        }
+
+        /// <summary>`[J]` — `JointBoard`(합동)로 씌워서 연다. 서버가 없으니 분대원
+        /// 진척은 실험대가 손으로 밀어넣는다(`QuestPlay.Feed`가 스냅샷마다 하는
+        /// 일과 같다) — 조각을 채울 때마다 `Done`을 올려 진행이 보이게 한다</summary>
+        private static Board OpenJoint(SnapshotQuestsItemMinigame spec, float limit, string questId)
+        {
+            var board = new JointBoard
+            {
+                Total = _jointTotal, Done = 0, NeedActors = _jointNeed, HereActors = _jointHere,
+                MyRole = _jointRole,
+            };
+            board.OnStep = () => board.Done = Mathf.Min(board.Total, board.Done + 1);
+            board.Begin(spec, limit, questId);
+            _jointBoard = board;
+            return board;
         }
 
         /// <summary>`RaceBoard`로 씌워서 연다(`[G]`) — 인터럽트 겉은 얹지 않는다, 비교 연출만 본다</summary>
@@ -229,6 +288,17 @@ namespace SoldierADay.Net
             // **`Time.timeScale`은 건드리지 않는다.** 멀티 동기화가 그 값을
             // 공유하므로, 여기서 바꾸면 다른 곳까지 같이 빨라진다. 판에 들어가는
             // `dt`만 불려서 이 판의 `Tick` 안에서만 시간이 빨리 간다
+            // T단계 — 합동 시뮬레이션 중이면 인원값을 매 틱 다시 밀어넣는다.
+            // `QuestPlay.Feed`가 스냅샷마다 하는 일과 같다 — 여기는 서버가 없으니
+            // 실험대 자신의 +/- 버튼값을 그 자리에 대신 넣는다(Total은 판을 여는
+            // 순간에만 정하고 중간에 바꾸지 않는다 — 진행분(Done)이 어긋난다)
+            if (_jointBoard != null)
+            {
+                _jointBoard.NeedActors = _jointNeed;
+                _jointBoard.HereActors = _jointHere;
+                _jointBoard.MyRole = _jointRole;
+            }
+
             var dt = _fast ? Time.deltaTime * 4f : Time.deltaTime;
             _board.Tick(dt, BoardInput.Read());
         }
@@ -436,8 +506,9 @@ namespace SoldierADay.Net
             GUI.Label(new Rect(panel.x + 16f, panel.y + 8f, 500f, 32f),
                 "BoardLab — 미니게임 실험대  [F9]",
                 theme.At(theme.Title, 22, HudTheme.Ink));
-            GUI.Label(new Rect(panel.xMax - 900f, panel.y + 14f, 884f, 24f),
-                "[ [ ] ] 원형  ·  [1][2][3] 난이도  ·  [R] 재시작  ·  [T] 배속 ×1/×4  ·  [G] 고스트 대결",
+            GUI.Label(new Rect(panel.xMax - 1180f, panel.y + 14f, 1164f, 24f),
+                "[ [ ] ] 원형  ·  [1][2][3] 난이도  ·  [R] 재시작  ·  [T] 배속 ×1/×4  ·  " +
+                "[G] 고스트 대결  ·  [I] 인터럽트  ·  [P] 연쇄판  ·  [J] 합동",
                 theme.At(theme.Label, 13, HudTheme.Ink2, TextAnchor.MiddleRight));
 
             var top = panel.y + headerH + 16f;
@@ -504,7 +575,9 @@ namespace SoldierADay.Net
             theme.Chip(chip, Boards.Name(type), HudTheme.AccentW, HudTheme.Accent);
             GUI.Label(new Rect(chip.xMax + 10f, area.y + 6f, area.width - 220f, 28f),
                 $"{type}  ·  d{_difficulty}  ·  제한 {_board.Limit:0}초" +
-                $"{(_fast ? "  (×4 배속)" : "")}{(_race ? "  ·  고스트 대결 [G]" : "")}",
+                $"{(_fast ? "  (×4 배속)" : "")}{(_race ? "  ·  고스트 대결 [G]" : "")}" +
+                $"{(_interrupt ? "  ·  인터럽트 [I]" : "")}{(_phase2 ? "  ·  연쇄판 [P]" : "")}" +
+                $"{(_joint ? "  ·  합동 [J]" : "")}",
                 theme.At(theme.Body, 16, HudTheme.Ink2));
 
             var footH = 54f;
@@ -635,6 +708,79 @@ namespace SoldierADay.Net
             theme.Border(restartBtn, HudTheme.Rule);
             GUI.Label(restartBtn, "재시작  [R]", theme.At(theme.Small, 13, HudTheme.Ink, TextAnchor.MiddleCenter));
             if (restartHot && Input.GetMouseButtonDown(0)) OpenBoard();
+            y += 40f;
+
+            /* T단계 — 겉 씌우기 3종 */
+            theme.Fill(new Rect(area.x + 10f, y, area.width - 20f, 1f), HudTheme.Rule);
+            y += 10f;
+            GUI.Label(new Rect(area.x + 10f, y, area.width - 20f, 18f), "겉 씌우기 (다시 열림)",
+                theme.At(theme.Label, 12, HudTheme.Ink3));
+            y += 20f;
+
+            void Modifier(int slot, string label, bool on, System.Action toggle)
+            {
+                var btn = new Rect(area.x + 10f + slot * 108f, y, 100f, 28f);
+                var hot = btn.Contains(BoardInput.Read().Mouse);
+                theme.Fill(btn, on ? HudTheme.AccentW : hot ? HudTheme.Paper2 : HudTheme.Paper);
+                theme.Border(btn, on ? HudTheme.Accent : HudTheme.Rule);
+                GUI.Label(btn, label, theme.At(theme.Small, 13,
+                    on ? HudTheme.Accent : HudTheme.Ink, TextAnchor.MiddleCenter));
+                if (hot && Input.GetMouseButtonDown(0)) toggle();
+            }
+
+            Modifier(0, "인터럽트 [I]", _interrupt, () => { _interrupt = !_interrupt; OpenBoard(); });
+            Modifier(1, "연쇄판 [P]", _phase2, () => { _phase2 = !_phase2; OpenBoard(); });
+            Modifier(2, "합동 [J]", _joint, () => { _joint = !_joint; OpenBoard(); });
+            y += 36f;
+
+            if (_joint)
+            {
+                void Stepper(string label, int value, System.Action<int> set)
+                {
+                    GUI.Label(new Rect(area.x + 10f, y, 90f, 26f), label,
+                        theme.At(theme.Small, 13, HudTheme.Ink2));
+                    var minus = new Rect(area.x + 100f, y, 26f, 26f);
+                    var plus = new Rect(area.x + 160f, y, 26f, 26f);
+                    theme.Fill(minus, HudTheme.Paper); theme.Border(minus, HudTheme.Rule);
+                    theme.Fill(plus, HudTheme.Paper); theme.Border(plus, HudTheme.Rule);
+                    GUI.Label(minus, "-", theme.At(theme.Body, 15, HudTheme.Ink, TextAnchor.MiddleCenter));
+                    GUI.Label(plus, "+", theme.At(theme.Body, 15, HudTheme.Ink, TextAnchor.MiddleCenter));
+                    GUI.Label(new Rect(area.x + 128f, y, 30f, 26f), $"{value}",
+                        theme.At(theme.Mono, 15, HudTheme.Ink, TextAnchor.MiddleCenter));
+                    if (minus.Contains(BoardInput.Read().Mouse) && Input.GetMouseButtonDown(0)) set(value - 1);
+                    if (plus.Contains(BoardInput.Read().Mouse) && Input.GetMouseButtonDown(0)) set(value + 1);
+                    y += 30f;
+                }
+
+                Stepper("요구 인원", _jointNeed, v => _jointNeed = Mathf.Clamp(v, 1, 4));
+                Stepper("지금 인원", _jointHere, v => _jointHere = Mathf.Clamp(v, 0, 4));
+                Stepper("조각 총량", _jointTotal, v => { _jointTotal = Mathf.Clamp(v, 1, 20); OpenBoard(); });
+
+                // B-1 비대칭 — SEQ·TRACE에서 "정답만 보고 불러주는" watch,
+                // "안 보고 조작만 하는" operate를 눌러 볼 수 있다
+                GUI.Label(new Rect(area.x + 10f, y, 90f, 26f), "내 역할",
+                    theme.At(theme.Small, 13, HudTheme.Ink2));
+                var roleBtn = new Rect(area.x + 100f, y, 130f, 26f);
+                var roleLabel = _jointRole switch
+                {
+                    SnapshotQuestsItemJointRolesItemRoleValues.Watch => "watch (정답)",
+                    SnapshotQuestsItemJointRolesItemRoleValues.Operate => "operate (조작)",
+                    _ => "대칭 (전원 동일)",
+                };
+                theme.Fill(roleBtn, HudTheme.Paper); theme.Border(roleBtn, HudTheme.Rule);
+                GUI.Label(roleBtn, roleLabel, theme.At(theme.Small, 12, HudTheme.Ink, TextAnchor.MiddleCenter));
+                if (roleBtn.Contains(BoardInput.Read().Mouse) && Input.GetMouseButtonDown(0))
+                {
+                    _jointRole = _jointRole switch
+                    {
+                        "" => SnapshotQuestsItemJointRolesItemRoleValues.Watch,
+                        SnapshotQuestsItemJointRolesItemRoleValues.Watch => SnapshotQuestsItemJointRolesItemRoleValues.Operate,
+                        _ => "",
+                    };
+                    OpenBoard();
+                }
+                y += 30f;
+            }
         }
 
         private static void DrawLog(HudTheme theme, Rect area)

@@ -23,9 +23,22 @@ namespace SoldierADay.Net
                                 bool restarting = false, string restartError = "")
         {
             if (client == null) return false;
+            return Draw(theme, client.Rejected, client.Latest?.status, client.Latest,
+                onRestart, onLobby, restarting, restartError);
+        }
 
-            var rejected = client.Rejected;
-            var status = client.Latest?.status;
+        /// <summary>
+        /// T단계 ScreenLab(F10) 전용 진입점 — `rejected`·`status`·`snapshot`을 직접 받는다.
+        ///
+        /// 원래는 `GameClient`에서 세 값을 꺼내 왔는데, `Rejected`·`Latest`가 private
+        /// setter라 서버 연결 없이는 퇴소·전역·분대해산·연결거절 화면을 하나도 재현할
+        /// 수 없었다. 그리기 코드를 복붙하는 대신(§T단계 원칙) 값을 파라미터로 뽑아
+        /// 올렸다 — 동작은 그대로다. 위 오버로드가 그대로 이걸 부른다.
+        /// </summary>
+        public static bool Draw(HudTheme theme, string rejected, string status, Snapshot snapshot,
+                                System.Action onRestart, System.Action onLobby,
+                                bool restarting = false, string restartError = "")
+        {
             var ended = !string.IsNullOrEmpty(status) &&
                         status != SnapshotStatusValues.Running;
 
@@ -46,7 +59,7 @@ namespace SoldierADay.Net
             theme.Fill(panel, HudTheme.Paper2);
             theme.Border(panel, rejected != null ? HudTheme.Alert : Accent(status), 2f);
 
-            var (title, line, quote, hint) = Words(rejected, status, client.Latest);
+            var (title, line, quote, hint) = Words(rejected, status, snapshot);
 
             GUI.Label(new Rect(panel.x, panel.y + 44f, panel.width, 24f),
                 rejected != null ? "연결 끊김" : "런 종료",
@@ -54,7 +67,7 @@ namespace SoldierADay.Net
 
             // 연결이 끊긴 화면에는 헤드라인이 없다 — 그 사건은 "이번 판이 무엇이었나"가
             // 아니라 "서버에 말을 걸 수 없다"는 얘기라 별개다.
-            var headline = rejected == null ? client.Latest?.headline : null;
+            var headline = rejected == null ? snapshot?.headline : null;
             if (!string.IsNullOrEmpty(headline))
             {
                 GUI.Label(new Rect(panel.x, panel.y + 68f, panel.width, 32f), headline,

@@ -105,6 +105,21 @@ namespace SoldierADay.Net
             _screens = new HudScreens(this);
         }
 
+        private HudScreens _labScreens;
+
+        /// <summary>
+        /// T단계 — ScreenLab(F10) 전용 `HudScreens` 인스턴스.
+        ///
+        /// **진짜 `_screens`를 빌려주지 않는다.** 실전 `_screens`는 `OnEvent`·
+        /// `OnSnapshot`을 계속 구독하고 있어서, 랩이 그 안의 `_screen`을 강제로
+        /// 바꾸는 동안 실제 하달 창이나 판정이 도착하면 서로 덮어써 버린다 —
+        /// "랩이 실전 상태를 오염시키지 않는다"는 원칙이 깨진다. 그래서 그리기
+        /// 코드(`DrawRollCall` 등)만 같이 쓰고 상태는 완전히 별개인 인스턴스를
+        /// 하나 더 둔다 — 생성자가 요구하는 `Hud` 참조 말고는 실전과 아무것도
+        /// 공유하지 않는다.
+        /// </summary>
+        internal HudScreens LabScreens => _labScreens ??= new HudScreens(this) { LabPreviewOnly = true };
+
         private void OnEnable()
         {
             if (client == null) return;
@@ -131,8 +146,9 @@ namespace SoldierADay.Net
         {
             // 실험실이 떠 있으면 게임 입력을 전부 물린다 — 창 토글도 이동도.
             // 실험판의 조작(스페이스 탭·숫자·R)이 게임으로 새면 판을 재는 동안
-            // 등 뒤에서 일과표가 열리고 사람이 걸어 다닌다
-            if (BoardLab.IsOpen)
+            // 등 뒤에서 일과표가 열리고 사람이 걸어 다닌다. T단계 — ScreenLab(F10)·
+            // WorldLab(F11)도 같은 이유로 같이 물린다
+            if (BoardLab.IsOpen || ScreenLab.IsOpen || WorldLab.IsOpen)
             {
                 if (world?.player != null) world.player.Suspended = true;
                 return;
@@ -184,6 +200,24 @@ namespace SoldierADay.Net
                 return;
             }
 
+            // T단계 — 화면 실험대(F10)·월드 실험대(F11). BoardLab과 같은 원칙:
+            // 열려 있는 동안은 그것이 화면의 전부다. 실전 Hud를 갖고 있어야
+            // 실물 그리기 코드(HudScreens·DrawCondition·Notify 등)를 그대로
+            // 재사용할 수 있어 `this`를 넘긴다
+            ScreenLab.Draw(_theme, this);
+            if (ScreenLab.IsOpen)
+            {
+                GUI.matrix = matrix;
+                return;
+            }
+
+            WorldLab.Draw(_theme, this);
+            if (WorldLab.IsOpen)
+            {
+                GUI.matrix = matrix;
+                return;
+            }
+
             var snapshot = client.Latest;
 
             // **런이 끝났거나 붙지 못했으면 여기서 끝난다.**
@@ -207,6 +241,7 @@ namespace SoldierADay.Net
             DrawStateOverlays();
             DrawWhereAmI();
             DrawPhaseBar(snapshot);
+            DrawSkipVote(snapshot);
             DrawToasts();
             DrawMinimap(snapshot);
             DrawNotebookSummary(snapshot);
@@ -538,6 +573,17 @@ namespace SoldierADay.Net
                 text = "연결이 끊겼습니다 — 새로고침으로 다시 붙을 수 있습니다";
                 color = HudTheme.Alert;
             }
+            DrawConnectionBanner(text, color);
+        }
+
+        /// <summary>
+        /// 실제 그리는 자리. `NetBootstrap` 판정(`boot.Reconnecting` 등)과 그리기를
+        /// 갈라뒀다 — `boot`는 재접속 상태의 private setter라 서버 없이는 재접속
+        /// 배너를 하나도 재현할 수 없었다(ScreenLab 요구). 위 무인자 버전이 여전히
+        /// 실전 판정을 그대로 하고 이 함수를 부르므로 동작은 그대로다.
+        /// </summary>
+        private void DrawConnectionBanner(string text, Color color)
+        {
             if (text == null) return;
 
             var rect = new Rect(HudTheme.ViewWidth * 0.5f - 320f, 8f, 640f, 34f);
@@ -625,6 +671,43 @@ namespace SoldierADay.Net
             {
                 GUI.Label(new Rect(rect.xMax - 176f, rect.y + 18f, 152f, 40f), clock,
                     _theme.At(_theme.Display, 30, urgent ? HudTheme.Alert : HudTheme.Ink, TextAnchor.MiddleRight));
+            }
+        }
+
+        /// <summary>내가 지금 스킵에 투표한 상태인가 — 순전히 표시용 로컬 기억이다.
+        /// 서버(`room.ts` skipVotes)는 시간대가 바뀌어도 투표를 지우지 않으므로
+        /// (재시작 때만 clear), 여기서도 시간대가 바뀐다고 껐다 켜지 않는다 — 다시
+        /// 눌러야 꺼지는 실제 서버 상태를 그대로 따라간다</summary>
+        private bool _skipVoted;
+
+        /// <summary>
+        /// TIME-01 실전 시간대 스킵 투표 — 서버 `voteSkip`은 있었는데 클라 버튼이 없었다.
+        ///
+        /// 정족수도 스킵 실행도 서버가 정한다(`room.ts` voteSkip, 생존 인원의 3/4).
+        /// 여기서는 찬반만 토글해 보낸다 — 몇 명이 더 눌렀는지는 스냅샷에 안 실려 있어
+        /// (`skipVotes`가 서버 내부 집합일 뿐 프로토콜 필드가 아니다) 개표 현황은
+        /// 못 보여준다. 정족수가 차면 시간대 바가 스스로 넘어가는 것으로 결과가 보인다.
+        /// </summary>
+        private void DrawSkipVote(Snapshot snapshot)
+        {
+            if (snapshot?.phase == null) return;
+
+            // 목업 실측 없는 신규 버튼 — 시간대 바(480,48,960,72) 오른쪽, 미니맵
+            // (x=1592) 왼쪽 사이 좁은 틈에 끼운다. 그래서 폭을 짧게 잡는다
+            var rect = new Rect(1448f, 48f, 136f, 72f);
+            var hot = rect.Contains(_mouse);
+            _theme.Fill(rect, _skipVoted ? HudTheme.AccentW : hot ? HudTheme.Paper2 : HudTheme.Paper);
+            _theme.Border(rect, _skipVoted ? HudTheme.Accent : HudTheme.Rule);
+            GUI.Label(new Rect(rect.x + 8f, rect.y + 8f, rect.width - 16f, 22f), "시간대 스킵",
+                _theme.At(_theme.Small, 13, _skipVoted ? HudTheme.Accent : HudTheme.Ink));
+            GUI.Label(new Rect(rect.x + 8f, rect.y + 32f, rect.width - 16f, 30f),
+                _skipVoted ? "투표함  [취소]" : "투표하기",
+                _theme.At(_theme.Label, 12, _skipVoted ? HudTheme.Accent : HudTheme.Ink2));
+
+            if (hot && Input.GetMouseButtonDown(0))
+            {
+                _skipVoted = !_skipVoted;
+                client.VoteSkip(_skipVoted);
             }
         }
 
@@ -910,6 +993,30 @@ namespace SoldierADay.Net
             var extra = items.Length > shown.Count ? $" 외 {items.Length - shown.Count}건" : "";
             return string.Join(" · ", shown) + extra;
         }
+
+        /// <summary>ScreenLab(F10) 전용 — 토스트를 실물 그리기 코드(`Notify`·`DrawToasts`)
+        /// 그대로 띄운다. 서버 이벤트를 거치지 않을 뿐 화면에 쌓이고 사라지는 방식은
+        /// 실전과 완전히 같다 — 여기서 그리기를 복붙하지 않는 이유가 이것이다</summary>
+        public void DebugNotify(string tag, string text, Color color, float life = 4.6f) =>
+            Notify(tag, text, color, life);
+
+        /// <summary>ScreenLab(F10) 전용 — 컨디션 게이지(`DrawCondition`)를 가짜 스냅샷으로
+        /// 그대로 그린다. 이미 `snapshot` 파라미터를 받는 구조라 새 코드 없이 노출만 한다</summary>
+        public void DebugCondition(Snapshot snapshot) => DrawCondition(snapshot);
+
+        /// <summary>ScreenLab(F10) 전용 — 재접속 배너를 문구·색만 넣어 그대로 띄운다.
+        /// 아래 <see cref="DrawConnectionBanner()"/>가 여전히 실전 경로(`boot`)를 그대로 쓴다 —
+        /// 이 오버로드는 그 안의 그리기만 떼어 판 것이지 판정을 새로 만들지 않았다</summary>
+        public void DebugConnectionBanner(string text, Color color) => DrawConnectionBanner(text, color);
+
+        /// <summary>ScreenLab(F10) 전용 — `DebugNotify`로 쌓은 토스트를 실제로 그린다.
+        /// 랩이 열려 있는 동안은 `OnGUI`의 실전 `DrawToasts()` 호출까지 도달하지
+        /// 않으므로(§조기 return) 이 통로가 없으면 쌓인 토스트가 화면에 안 뜬다</summary>
+        public void DebugDrawToasts() => DrawToasts();
+
+        /// <summary>ScreenLab(F10) 전용 — 보온 게이지(`DrawBodyHeat`)를 가짜 스냅샷으로
+        /// 그대로 그린다. `DrawCondition`과 같은 이유로 새 코드 없이 노출만 한다</summary>
+        public void DebugBodyHeat(Snapshot snapshot) => DrawBodyHeat(snapshot);
 
         private void Notify(string tag, string text, Color color, float life = 4.6f)
         {
