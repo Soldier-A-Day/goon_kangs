@@ -60,6 +60,28 @@ def rect(img: Image.Image, x0: int, y0: int, x1: int, y1: int, color) -> None:
             px[x, y] = c
 
 
+def ellipse(img: Image.Image, cx: float, cy: float, rx: float, ry: float, color) -> None:
+    """
+    채워진 타원을 불투명 단색으로 찍는다 (D-1 "발밑 그림자").
+
+    반투명을 쓰지 않는다 — `tiles.py`의 원칙 그대로 픽셀아트에서 알파 중간값은
+    확대하면 뿌옇게 뜬다. 그림자·바닥 얼룩·소품 밑변처럼 "여기가 바닥에
+    닿았다"를 팔레트의 어두운 단색 한 장으로 찍을 때 쓴다.
+    """
+    px = img.load()
+    c = color if len(color) == 4 else (color[0], color[1], color[2], 255)
+    if rx <= 0 or ry <= 0:
+        return
+    y0, y1 = int(cy - ry), int(cy + ry)
+    x0, x1 = int(cx - rx), int(cx + rx)
+    for y in range(max(0, y0), min(img.height, y1 + 1)):
+        ny = (y + 0.5 - cy) / ry
+        for x in range(max(0, x0), min(img.width, x1 + 1)):
+            nx = (x + 0.5 - cx) / rx
+            if nx * nx + ny * ny <= 1.0:
+                px[x, y] = c
+
+
 def outline(img: Image.Image, color) -> None:
     """
     불투명 픽셀의 바깥 테두리를 1px 두른다 (§5.1 선택적 아웃라인).

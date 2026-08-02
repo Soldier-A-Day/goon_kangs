@@ -63,6 +63,31 @@ def _audit(directory: str) -> list[str]:
     return bad
 
 
+def _prune_orphans(directory: str, keep: set[str]) -> list[str]:
+    """
+    `directory` 안에서 이번 실행이 만들지 않은 파일(과 그 `.meta`)을 지운다.
+
+    이름(→ 해시 파일명)이 바뀌거나 없어진 소품이 있으면 옛 파일이 지워지지
+    않고 **고아**로 남는다 — 겉보기엔 무해하지만 `_audit()`가 그 파일도 검사
+    대상에 넣어서, 팔레트 값이 바뀔 때마다(D-1 §2 `ramp()` 교체처럼) 아무도
+    안 만든 옛 파일이 "팔레트 밖 색"으로 걸린다(`props/prop_00023.png`가
+    실제로 그랬다). 디렉터리를 통째로 비우고 다시 굽지 않는 이유는 Unity
+    `.meta`가 스프라이트 GUID를 들고 있어서다 — 이름이 그대로인 파일까지
+    지웠다 다시 만들면 참조가 다 끊긴다. **고아만** 지운다.
+    """
+    if not os.path.isdir(directory):
+        return []
+    removed = []
+    for name in os.listdir(directory):
+        if name in keep or name.endswith(".meta") and name[:-5] in keep:
+            continue
+        if not (name.endswith(".png") or name.endswith(".png.meta")):
+            continue
+        os.remove(os.path.join(directory, name))
+        removed.append(name)
+    return removed
+
+
 def main() -> int:
     os.makedirs(OUT, exist_ok=True)
 
@@ -77,15 +102,36 @@ def main() -> int:
     rows = len(char_manifest["rows"])
     print(f"캐릭터  시트 {sheets}장 · 행 {rows} · 열 {char_manifest['cols']} "
           f"· 클립 {len(char_manifest['clips'])}종")
+    orphans = _prune_orphans(
+        os.path.join(OUT, "chars"),
+        {os.path.basename(s["file"]) for s in char_manifest["sheets"]})
 
     # ── §6.3 타일 · 소품 ──
     tile_index = tiles.generate(OUT)
     print(f"타일    바닥 {len(tile_index['floors'])}종 · "
           f"벽 {len(tile_index['walls'])}종×16 · 소품 {len(tile_index['props'])}종")
+    orphans += _prune_orphans(
+        os.path.join(OUT, "props"),
+        {os.path.basename(p["file"]) for p in tile_index["props"]})
+    tiles_keep = {os.path.basename(f["file"]) for f in tile_index["floors"]}
+    tiles_keep |= {os.path.basename(f) for f in tile_index.get("snow", [])}
+    for w in tile_index["walls"]:
+        tiles_keep |= {os.path.basename(f) for f in w["files"]}
+    orphans += _prune_orphans(os.path.join(OUT, "tiles"), tiles_keep)
+    orphans += _prune_orphans(
+        os.path.join(OUT, "markers"),
+        {os.path.basename(m["file"]) for m in tile_index["markers"]})
 
     # ── §9.1 파티클 ──
     vfx_index = vfx.generate(os.path.join(OUT, "vfx"))
     print(f"파티클  알갱이 {len(vfx_index['sprites'])}종")
+    orphans += _prune_orphans(
+        os.path.join(OUT, "vfx"),
+        {f"{s['name']}.png" for s in vfx_index["sprites"]})
+
+    if orphans:
+        print(f"고아 파일 정리: {len(orphans)}개 ({', '.join(sorted(orphans)[:6])}"
+              f"{' ...' if len(orphans) > 6 else ''})")
 
     # ── §6.4 부대 본영 ──
     base = basemap.build()

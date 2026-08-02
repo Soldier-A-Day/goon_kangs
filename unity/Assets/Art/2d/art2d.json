@@ -570,8 +570,24 @@
     "file": "tiles/floor_concrete.png"
    },
    {
+    "kind": "concrete2",
+    "file": "tiles/floor_concrete2.png"
+   },
+   {
+    "kind": "concrete3",
+    "file": "tiles/floor_concrete3.png"
+   },
+   {
     "kind": "concreteLight",
     "file": "tiles/floor_concreteLight.png"
+   },
+   {
+    "kind": "concreteLight2",
+    "file": "tiles/floor_concreteLight2.png"
+   },
+   {
+    "kind": "concreteLight3",
+    "file": "tiles/floor_concreteLight3.png"
    },
    {
     "kind": "tile",
@@ -588,6 +604,14 @@
    {
     "kind": "drill",
     "file": "tiles/floor_drill.png"
+   },
+   {
+    "kind": "drill2",
+    "file": "tiles/floor_drill2.png"
+   },
+   {
+    "kind": "drill3",
+    "file": "tiles/floor_drill3.png"
    },
    {
     "kind": "grass",
