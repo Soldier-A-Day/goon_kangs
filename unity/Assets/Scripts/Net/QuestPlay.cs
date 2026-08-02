@@ -48,6 +48,10 @@ namespace SoldierADay.Net
         /// </summary>
         public bool Settling { get; private set; }
 
+        /// <summary>실패 화면의 버튼이 눌렸다 — `HudMinigame`이 채우고 여기서 읽는다</summary>
+        public bool Retry { get; set; }
+        public bool Quit { get; set; }
+
         /// <summary>서버 `CLEAR_MIN_RATIO`와 같은 값. 어긋나면 통과가 조용히 무시된다</summary>
         private const float ClearMinProgress = 0.5f;
 
@@ -74,7 +78,7 @@ namespace SoldierADay.Net
                 return;
             }
 
-            if (Input.GetKeyDown(KeyCode.Escape)) { Close(); return; }
+            if (Input.GetKeyDown(KeyCode.Escape) || Quit) { Close(); return; }
 
             switch (Board.State)
             {
@@ -94,8 +98,9 @@ namespace SoldierADay.Net
                     // 붙잡은 것을 놓는다 — 실패한 판에 시간을 계속 태우지 않는다
                     Send(false);
                     _resultAge += Time.deltaTime;
-                    // 남은 시간이 있으면 또 해볼 수 있다
-                    if (_resultAge > ResultHold && Input.GetKeyDown(KeyCode.E)) Retry();
+                    // 남은 시간이 있으면 또 해볼 수 있다. 마우스·키 둘 다 받는다 —
+                    // 판 대부분이 마우스 조작이라 실패하는 순간 손이 거기 있다
+                    if (_resultAge > ResultHold && (Retry || Input.GetKeyDown(KeyCode.E))) Restart();
                     break;
             }
         }
@@ -164,8 +169,9 @@ namespace SoldierADay.Net
         /// 씨앗도 같아서 **같은 판이 다시 나온다.** 두 번째는 아는 판이어야
         /// 실력이 늘고, 매번 새 배치가 나오면 재시도가 뽑기가 된다.
         /// </summary>
-        private void Retry()
+        private void Restart()
         {
+            Retry = false;
             _resultAge = 0f;
             Settling = false;
 
@@ -261,6 +267,8 @@ namespace SoldierADay.Net
 
         public void Close()
         {
+            Retry = false;
+            Quit = false;
             Send(false);
             QuestId = null;
             Board = null;

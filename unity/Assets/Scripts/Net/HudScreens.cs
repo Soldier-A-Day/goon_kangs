@@ -170,13 +170,13 @@ namespace SoldierADay.Net
             // 가운데 두므로 목업 실측 좌표는 건드리지 않는다.
             // `Screen`은 이 클래스의 전체화면 enum과 이름이 겹친다 — 정식 이름을 쓴다
             var pixels = new Vector2(UnityEngine.Screen.width, UnityEngine.Screen.height);
-            var scale = Mathf.Min(pixels.x / HudTheme.DesignWidth,
-                                  pixels.y / HudTheme.DesignHeight);
+            var scale = Mathf.Min(pixels.x / HudTheme.ViewWidth,
+                                  pixels.y / HudTheme.ViewHeight);
             var full = new Rect(0f, 0f,
-                                Mathf.Max(HudTheme.DesignWidth, pixels.x / scale),
-                                Mathf.Max(HudTheme.DesignHeight, pixels.y / scale));
+                                Mathf.Max(HudTheme.ViewWidth, pixels.x / scale),
+                                Mathf.Max(HudTheme.ViewHeight, pixels.y / scale));
             theme.Fill(full, HudTheme.Dim, dim);
-            var rect = new Rect((HudTheme.DesignWidth - w) * 0.5f, (HudTheme.DesignHeight - h) * 0.5f, w, h);
+            var rect = new Rect((HudTheme.ViewWidth - w) * 0.5f, (HudTheme.ViewHeight - h) * 0.5f, w, h);
             theme.Fill(rect, HudTheme.Paper);
             theme.Border(rect, HudTheme.Rule, 2f);
             return rect;
@@ -1202,7 +1202,7 @@ namespace SoldierADay.Net
 
         private void DrawRollCall(HudTheme theme, Snapshot snapshot)
         {
-            theme.Fill(new Rect(0f, 0f, HudTheme.DesignWidth, HudTheme.DesignHeight), HudTheme.Dim, 0.92f);
+            theme.Fill(new Rect(0f, 0f, HudTheme.ViewWidth, HudTheme.ViewHeight), HudTheme.Dim, 0.92f);
             if (_judgement == null || snapshot == null) return;
 
             var t = Time.unscaledTime - _rollCallStart;
@@ -1211,7 +1211,7 @@ namespace SoldierADay.Net
 
             // 실패 시 화면 전체가 alert 톤으로 전환된다(§7.5)
             if (failed && t > 4f)
-                theme.Fill(new Rect(0f, 0f, HudTheme.DesignWidth, HudTheme.DesignHeight),
+                theme.Fill(new Rect(0f, 0f, HudTheme.ViewWidth, HudTheme.ViewHeight),
                     HudTheme.Alert, 0.13f);
 
             // 목업 실측: 1200×556 @ (360, 452)
@@ -1433,9 +1433,9 @@ namespace SoldierADay.Net
 
         private void DrawRadial(HudTheme theme)
         {
-            var center = new Vector2(HudTheme.DesignWidth * 0.5f, HudTheme.DesignHeight * 0.5f);
+            var center = new Vector2(HudTheme.ViewWidth * 0.5f, HudTheme.ViewHeight * 0.5f);
 
-            theme.Fill(new Rect(0f, 0f, HudTheme.DesignWidth, HudTheme.DesignHeight), HudTheme.Dim, 0.45f);
+            theme.Fill(new Rect(0f, 0f, HudTheme.ViewWidth, HudTheme.ViewHeight), HudTheme.Dim, 0.45f);
 
             // §7.8 라디얼 지름 360px, 슬롯 8개 각 96×96
             HudIcons.Circle(new Rect(center.x - 180f, center.y - 180f, 360f, 360f), 2f, HudTheme.Rule);
@@ -1482,11 +1482,11 @@ namespace SoldierADay.Net
         /// <summary>마우스 방향 → 슬롯. 중앙 근처는 선택 없음(실수로 발신되지 않게)</summary>
         private static int SlotUnderCursor()
         {
-            var scale = Mathf.Min(UnityEngine.Screen.width / HudTheme.DesignWidth,
-                                  UnityEngine.Screen.height / HudTheme.DesignHeight);
+            var scale = Mathf.Min(UnityEngine.Screen.width / HudTheme.ViewWidth,
+                                  UnityEngine.Screen.height / HudTheme.ViewHeight);
             var mouse = new Vector2(Input.mousePosition.x / scale,
                                     (UnityEngine.Screen.height - Input.mousePosition.y) / scale);
-            var center = new Vector2(HudTheme.DesignWidth * 0.5f, HudTheme.DesignHeight * 0.5f);
+            var center = new Vector2(HudTheme.ViewWidth * 0.5f, HudTheme.ViewHeight * 0.5f);
             var d = mouse - center;
             if (d.magnitude < 62f) return -1;
 

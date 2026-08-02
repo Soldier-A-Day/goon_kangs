@@ -87,9 +87,13 @@ export default function PlayPage() {
             companyName: "SoldierADay",
             productName: "SOLDIER : A DAY",
             productVersion: "1.0",
-            // 픽셀 퍼펙트 카메라가 정수배로 올리는데 여기서 DPR까지 곱하면
-            // 배율이 정수가 아니게 되어 격자가 어긋난다 (§2.1)
-            devicePixelRatio: 1,
+            // **레티나에서는 실제 픽셀 밀도로 그린다.**
+            //
+            // 1로 고정하면 캔버스가 CSS 픽셀 크기로 렌더된 뒤 브라우저가
+            // 2배로 늘린다 — 글자도 HUD도 캐릭터도 전부 뭉개진다. §2.1이
+            // 픽셀 퍼펙트를 위해 정수 배율을 요구한 것은 **월드 타일** 이야기이고,
+            // UI는 네이티브 해상도로 그리는 것이 같은 §2.1의 결정이다.
+            devicePixelRatio: typeof window === "undefined" ? 1 : window.devicePixelRatio,
           },
           (value) => setProgress(value),
         )

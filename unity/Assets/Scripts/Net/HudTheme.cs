@@ -108,6 +108,41 @@ namespace SoldierADay.Net
         public const float DesignHeight = 1080f;
         public const float SafeMargin = 48f;
 
+        /// <summary>
+        /// 지금 화면의 **논리 크기**. 매 프레임 `Hud`가 채운다.
+        ///
+        /// 목업이 1920×1080이라 좌표를 거기 맞춰 잡았는데, 그러면 21:9 같은
+        /// 넓은 화면에서 오른쪽 640px이 통째로 빈다 — 미니맵과 수첩이 화면
+        /// 가장자리에 안 붙고 한가운데 어중간하게 뜬다.
+        ///
+        /// 배율은 **짧은 축에 맞춘 균일 배율**을 그대로 쓴다(글자 크기가
+        /// 화면비에 따라 달라지면 안 된다). 대신 좌표계가 화면만큼 넓어지고,
+        /// 가장자리에 붙는 것들은 여기서 재는 값을 쓴다.
+        /// </summary>
+        public static float ViewWidth { get; private set; } = DesignWidth;
+        public static float ViewHeight { get; private set; } = DesignHeight;
+
+        /// <summary>화면 → 논리 좌표 배율. 짧은 축 기준이라 글자 크기가 일정하다</summary>
+        public static float ViewScale { get; private set; } = 1f;
+
+        /// <summary>`OnGUI` 첫머리에서 한 번 부른다</summary>
+        public static float Fit()
+        {
+            ViewScale = Mathf.Min(Screen.width / DesignWidth, Screen.height / DesignHeight);
+            if (ViewScale <= 0f) ViewScale = 1f;
+            ViewWidth = Screen.width / ViewScale;
+            ViewHeight = Screen.height / ViewScale;
+            return ViewScale;
+        }
+
+        /// <summary>오른쪽에서 잰 x — 목업의 1920 기준 좌표를 그대로 넘기면 된다</summary>
+        public static float RightOf(float designX, float width) =>
+            ViewWidth - (DesignWidth - designX - width) - width;
+
+        /// <summary>아래에서 잰 y</summary>
+        public static float BottomOf(float designY, float height) =>
+            ViewHeight - (DesignHeight - designY - height) - height;
+
         /* ─────────────────────────────────────────────────────── 스타일 */
 
         public readonly GUIStyle Display;   // 44~56 — 카운트다운 · 남은 필수

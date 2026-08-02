@@ -29,11 +29,11 @@ namespace SoldierADay.Net
 
             if (string.IsNullOrEmpty(rejected) && !ended) return false;
 
-            theme.Fill(new Rect(0f, 0f, HudTheme.DesignWidth, HudTheme.DesignHeight),
+            theme.Fill(new Rect(0f, 0f, HudTheme.ViewWidth, HudTheme.ViewHeight),
                        HudTheme.Dim, 0.92f);
 
-            var panel = new Rect(HudTheme.DesignWidth * 0.5f - 380f,
-                                 HudTheme.DesignHeight * 0.5f - 190f, 760f, 380f);
+            var panel = new Rect(HudTheme.ViewWidth * 0.5f - 380f,
+                                 HudTheme.ViewHeight * 0.5f - 190f, 760f, 380f);
             theme.Fill(panel, HudTheme.Paper2);
             theme.Border(panel, rejected != null ? HudTheme.Alert : Accent(status), 2f);
 

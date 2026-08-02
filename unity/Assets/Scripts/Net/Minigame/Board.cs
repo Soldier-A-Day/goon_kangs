@@ -36,8 +36,9 @@ namespace SoldierADay.Net
 
         public static BoardInput Read()
         {
-            var scale = Mathf.Min(Screen.width / HudTheme.DesignWidth,
-                                  Screen.height / HudTheme.DesignHeight);
+            // HUD가 매 프레임 재는 값을 그대로 쓴다 — 여기서 따로 계산하면
+            // 화면 크기가 바뀌는 순간 판의 클릭 자리와 그림이 어긋난다
+            var scale = HudTheme.ViewScale;
             var mouse = new Vector2(Input.mousePosition.x / scale,
                                     (Screen.height - Input.mousePosition.y) / scale);
 

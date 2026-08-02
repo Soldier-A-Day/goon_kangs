@@ -26,8 +26,8 @@ namespace SoldierADay.Net
         public const float PanelH = 620f;
 
         public static Rect Panel => new Rect(
-            (HudTheme.DesignWidth - PanelW) * 0.5f,
-            (HudTheme.DesignHeight - PanelH) * 0.5f - 40f,
+            (HudTheme.ViewWidth - PanelW) * 0.5f,
+            (HudTheme.ViewHeight - PanelH) * 0.5f - 40f,
             PanelW, PanelH);
 
         private const float HeaderH = 56f;
@@ -56,7 +56,7 @@ namespace SoldierADay.Net
             var panel = Panel;
 
             // 월드를 덮는다. 판이 열린 동안은 걷지 못하므로 시선을 한 곳에 모은다
-            theme.Fill(new Rect(0f, 0f, HudTheme.DesignWidth, HudTheme.DesignHeight),
+            theme.Fill(new Rect(0f, 0f, HudTheme.ViewWidth, HudTheme.ViewHeight),
                        HudTheme.Dim, 0.66f);
 
             // **판 바탕은 HUD보다 한 단 밝다.**
@@ -148,6 +148,17 @@ namespace SoldierADay.Net
         /// 무시하므로, 그 문턱을 넘을 때까지 여기서 기다린다 — 설계안이 말한
         /// "일찍 끝내도 시간은 그대로 흐른다"가 여기서 그대로 성립한다.
         /// </summary>
+        /// <summary>눌렸으면 참. 마우스가 위에 있으면 밝아진다</summary>
+        private static bool Button(HudTheme theme, Rect rect, string label, Color accent)
+        {
+            var hot = rect.Contains(BoardInput.Read().Mouse);
+            theme.Fill(rect, hot ? HudTheme.AccentW : HudTheme.Paper3);
+            theme.Border(rect, hot ? accent : HudTheme.Rule, 2f);
+            GUI.Label(rect, label,
+                theme.At(theme.Body, 17, hot ? accent : HudTheme.Ink, TextAnchor.MiddleCenter));
+            return hot && Input.GetMouseButtonDown(0);
+        }
+
         private static void DrawResult(HudTheme theme, Rect panel, QuestPlay play)
         {
             var board = play.Board;
@@ -171,14 +182,21 @@ namespace SoldierADay.Net
                 return;
             }
 
-            GUI.Label(new Rect(box.x, box.y + 22f, box.width, 34f), "못 끝냈다",
+            GUI.Label(new Rect(box.x, box.y + 18f, box.width, 32f), "못 끝냈다",
                 theme.At(theme.Heading, 22, HudTheme.Alert, TextAnchor.MiddleCenter));
-            GUI.Label(new Rect(box.x, box.y + 62f, box.width, 26f),
+            GUI.Label(new Rect(box.x, box.y + 50f, box.width, 24f),
                 "다시 할 수 있다 — 잃은 것은 시간이다",
                 theme.At(theme.Body, 17, HudTheme.Ink, TextAnchor.MiddleCenter));
-            GUI.Label(new Rect(box.x, box.yMax - 40f, box.width, 26f),
-                "[E] 다시  ·  [ESC] 그만",
-                theme.At(theme.Label, 13, HudTheme.Ink3, TextAnchor.MiddleCenter));
+
+            // **버튼은 마우스로 받는다.**
+            //
+            // 원형 열넷 중 일곱이 마우스 조작이라 실패하는 순간 손이 마우스에
+            // 있다. 거기서 키보드로 옮기라고 하면 재시도가 번거로워지고,
+            // 글자로만 적힌 `[E]`는 눌러야 할 것으로 읽히지도 않는다.
+            play.Retry = Button(theme, new Rect(box.center.x - 152f, box.yMax - 58f, 144f, 44f),
+                "다시  [E]", HudTheme.Accent);
+            play.Quit = Button(theme, new Rect(box.center.x + 8f, box.yMax - 58f, 144f, 44f),
+                "그만  [ESC]", HudTheme.Rule);
         }
     }
 }

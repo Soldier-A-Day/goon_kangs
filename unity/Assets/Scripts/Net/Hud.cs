@@ -104,9 +104,9 @@ namespace SoldierADay.Net
                 HudIcons.Bind(_theme);
             }
 
-            // §7 기준 해상도로 스케일한다. 비율을 지켜야 목업 좌표가 그대로 산다
-            var scale = Mathf.Min(Screen.width / HudTheme.DesignWidth,
-                                  Screen.height / HudTheme.DesignHeight);
+            // §7 기준 해상도로 스케일한다. 비율을 지켜야 목업 좌표가 그대로 산다.
+            // **좌표계는 화면만큼 넓어진다** — 넓은 화면에서 오른쪽이 비지 않게
+            var scale = HudTheme.Fit();
             var matrix = GUI.matrix;
             GUI.matrix = Matrix4x4.TRS(Vector3.zero, Quaternion.identity,
                                        new Vector3(scale, scale, 1f));
@@ -178,7 +178,7 @@ namespace SoldierADay.Net
         {
             if (lane == null || !lane.Running) return;
 
-            var box = new Rect(HudTheme.DesignWidth * 0.5f - 260f, 96f, 520f, 92f);
+            var box = new Rect(HudTheme.ViewWidth * 0.5f - 260f, 96f, 520f, 92f);
             _theme.Panel(box, HudTheme.Paper2, HudTheme.Rule);
 
             GUI.Label(new Rect(box.x + 16f, box.y + 10f, 300f, 20f), lane.LegName,
@@ -222,10 +222,10 @@ namespace SoldierADay.Net
         {
             if (mask == null || !mask.Active) return;
 
-            _theme.Fill(new Rect(0f, 0f, HudTheme.DesignWidth, HudTheme.DesignHeight),
+            _theme.Fill(new Rect(0f, 0f, HudTheme.ViewWidth, HudTheme.ViewHeight),
                         HudTheme.Dim, 0.88f);
 
-            var box = new Rect(HudTheme.DesignWidth * 0.5f - 340f,
+            var box = new Rect(HudTheme.ViewWidth * 0.5f - 340f,
                                HudTheme.DesignHeight * 0.5f - 150f, 680f, 300f);
             _theme.Panel(box, HudTheme.Paper2, HudTheme.Alert, 2f);
 
@@ -268,7 +268,7 @@ namespace SoldierADay.Net
         {
             if (evacuation == null || evacuation.Fade <= 0.02f) return;
 
-            var box = new Rect(HudTheme.DesignWidth * 0.5f - 300f,
+            var box = new Rect(HudTheme.ViewWidth * 0.5f - 300f,
                                HudTheme.DesignHeight * 0.5f - 70f, 600f, 140f);
             _theme.Panel(box, HudTheme.Paper2, HudTheme.Alert, 2f);
 
@@ -574,8 +574,8 @@ namespace SoldierADay.Net
 
         private void DrawMinimap(Snapshot snapshot)
         {
-            // 목업 실측: 220×220 @ (1652, 48)
-            var rect = new Rect(1652f, 48f, 220f, 220f);
+            // 목업 실측: 220×220 @ (1652, 48) — 오른쪽 가장자리에서 잰다
+            var rect = new Rect(HudTheme.RightOf(1652f, 220f), 48f, 220f, 220f);
             _theme.Fill(rect, HudTheme.Paper, 0.94f);
             _theme.Border(rect, HudTheme.Rule);
 
@@ -984,8 +984,9 @@ namespace SoldierADay.Net
 
         private void DrawNotebookSummary(Snapshot snapshot)
         {
-            // 목업 실측: 280×120 @ (1592, 640)
-            var rect = new Rect(1592f, 640f, 280f, 120f);
+            // 목업 실측: 280×120 @ (1592, 640) — 오른쪽 가장자리에서 잰다
+            var rect = new Rect(HudTheme.RightOf(1592f, 280f),
+                                HudTheme.BottomOf(640f, 120f), 280f, 120f);
 
             var counts = HudScreens.CountQuests(snapshot, client.MemberId);
             var left = counts.requiredTotal - counts.requiredDone;
@@ -1031,8 +1032,8 @@ namespace SoldierADay.Net
             var me = HudScreens.FindMember(snapshot, client.MemberId);
             if (me?.stats == null) return;
 
-            // 목업 실측: 클러스터 원점 (48, 912). 3×2 배치
-            var origin = new Vector2(48f, 912f);
+            // 목업 실측: 클러스터 원점 (48, 912). 3×2 배치 — 아래 가장자리에서 잰다
+            var origin = new Vector2(48f, HudTheme.ViewHeight - (HudTheme.DesignHeight - 912f));
             var showValues = Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt);
 
             // **바탕 패널을 두지 않는다.**
@@ -1161,7 +1162,9 @@ namespace SoldierADay.Net
             if (_screens.BlocksMovement) return;
 
             // 목업 실측: 480×88 @ (720, 880)
-            var rect = new Rect(720f, 880f, 480f, 88f);
+            // 목업 실측: 480×88 @ (720, 880) — 가로 가운데, 아래에서 잰다
+            var rect = new Rect(HudTheme.ViewWidth * 0.5f - 240f,
+                                HudTheme.BottomOf(880f, 88f), 480f, 88f);
 
             // 판이 열려 있으면 프롬프트는 그리지 않는다. 판은 화면 가운데를
             // 쓰고(`DrawMinigame`), 그 동안은 걷지도 못하므로 "다가서라"는
@@ -1269,7 +1272,7 @@ namespace SoldierADay.Net
         {
             if (grading == null) return;
 
-            var screen = new Rect(0f, 0f, HudTheme.DesignWidth, HudTheme.DesignHeight);
+            var screen = new Rect(0f, 0f, HudTheme.ViewWidth, HudTheme.ViewHeight);
 
             // 동상 — 화면 4변 결빙 프레임 페이드인(§4.3)
             if (grading.FrostBite > 0f)
@@ -1316,8 +1319,9 @@ namespace SoldierADay.Net
             var frostbitten = me.frostbitten;
             if (me.warmthRemainingMs <= 0d && !frostbitten) return;
 
-            // 목업 실측: (1290, 900)
-            var origin = new Vector2(1290f, 900f);
+            // 목업 실측: (1290, 900) — 오른쪽·아래 가장자리에서 잰다
+            var origin = new Vector2(HudTheme.RightOf(1290f, 320f),
+                                     HudTheme.ViewHeight - (HudTheme.DesignHeight - 900f));
             GUI.Label(new Rect(origin.x, origin.y - 14f, 320f, 20f), "BODY HEAT — 열원 접촉까지",
                 _theme.At(_theme.Label, 11, HudTheme.Cold));
 
@@ -1364,8 +1368,7 @@ namespace SoldierADay.Net
             var camera = world?.camera != null ? world.camera.GetComponent<Camera>() : Camera.main;
             if (camera == null || snapshot?.members == null) return;
 
-            var scale = Mathf.Min(Screen.width / HudTheme.DesignWidth,
-                                  Screen.height / HudTheme.DesignHeight);
+            var scale = HudTheme.ViewScale;
 
             // 내 캐릭터
             if (world.player != null)
