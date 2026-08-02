@@ -31,9 +31,25 @@ namespace SoldierADay.EditorTools
             if (pos != null) camera.transform.position = ParseVec(pos);
             if (look != null) camera.transform.rotation = Quaternion.LookRotation(ParseVec(look) - camera.transform.position);
 
+            // 2D 씬용. 직교 반높이를 키우면 부대 전체가 한 장에 들어온다
+            var ortho = Arg("-ortho");
+            if (ortho != null) camera.orthographicSize = float.Parse(ortho);
+
             var rt = new RenderTexture(width, height, 24, RenderTextureFormat.ARGB32);
-            camera.targetTexture = rt;
-            camera.Render();
+
+            // SRP에서 Camera.Render()는 지원되지 않는 레거시 경로라 결과가 실행마다
+            // 흔들린다 — 정렬이 뒤집히고 색이 이중 감마로 어두워지는 "유령 버그"를
+            // 이걸로 몇 시간 쫓았다. 실제 파이프라인을 태우는 정식 API로 그린다.
+            var request = new UnityEngine.Rendering.RenderPipeline.StandardRequest { destination = rt };
+            if (UnityEngine.Rendering.RenderPipeline.SupportsRenderRequest(camera, request))
+            {
+                UnityEngine.Rendering.RenderPipeline.SubmitRenderRequest(camera, request);
+            }
+            else
+            {
+                camera.targetTexture = rt;
+                camera.Render();
+            }
 
             RenderTexture.active = rt;
             var image = new Texture2D(width, height, TextureFormat.RGB24, false);
