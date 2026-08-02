@@ -380,6 +380,9 @@ def build() -> dict:
     for building in BUILDINGS:
         _building(building, ground, walls, zones, props, doors)
 
+    # 보일러실은 어느 동에도 속하지 않는 단독 건물이라 위 루프가 문을 안 낸다.
+    # 두 동(여기선 야외 소품과 B1)이 다 그려진 뒤에 불러야 벽이 안 덮인다
+    _connect_boiler_to_washroom(ground, walls, doors)
 
     # 외곽 철조망 — PLAN 01. **부대만** 두른다. 훈련장은 그 밖이고,
     # 정문(Z18)으로 나가서 간다 — 사격장도 숙영지도 원래 위병소를 지나 간다
@@ -586,10 +589,16 @@ def _layout_links() -> set[frozenset[str]]:
       **열린 땅끼리**        — 동 출입구와 야외 구역은 전부 흙바닥으로 나온다.
 
     두 번째가 중요하다. 처음에는 야외를 "전부 연병장을 거친다"로 적었는데,
-    그건 그림과 다르다 — 북서 초소에서 보일러실까지는 연병장을 밟지 않고
+    그건 그림과 다르다 — 북서 초소에서 정문 위병소까지는 연병장을 밟지 않고
     그냥 걸어갈 수 있다. 그렇게 적어두면 걸어갈 수 있는데 서버가 이동을
     거절하고, 플레이어에게는 그게 그냥 고장으로 보인다. 벽이 없으면 이어져
     있는 것이고, 표도 그렇게 적혀 있어야 한다.
+
+    **단, 벽 두른 단독 건물(`walled`)은 "열린 땅"이 아니다.** 보일러실(Z14)이
+    그 예다 — 벽으로 막혀 있으니 문이 없으면 못 들어가고, 문이 있으면 그
+    문으로만 들어간다. 여기서 빼고 실제 문이 낸 통로만 따로 잇는다
+    (`_connect_boiler_to_washroom`) — 안 그러면 "벽이 있는데 인접하다"는
+    거짓말이 다시 생긴다.
 
     부대 밖으로는 못 나간다 — 외곽 철조망이 둘러 있고 그 밖은 게임이 없는 땅이다.
     """
@@ -598,11 +607,15 @@ def _layout_links() -> set[frozenset[str]]:
         for r in b["rooms"]:
             links.add(frozenset((r["id"], b["corridorZone"])))
 
-    # 흙바닥에 발을 딛는 것들 — 서로 벽이 없다
-    open_ground = [b["corridorZone"] for b in BUILDINGS] + [o["id"] for o in OUTDOOR]
+    # 흙바닥에 발을 딛는 것들 — 서로 벽이 없다. 벽 두른 단독 건물은 뺀다
+    open_ground = [b["corridorZone"] for b in BUILDINGS] + \
+        [o["id"] for o in OUTDOOR if not o.get("walled")]
     for i, a in enumerate(open_ground):
         for b in open_ground[i + 1:]:
             links.add(frozenset((a, b)))
+
+    # 보일러실 ↔ 세면장 — `_connect_boiler_to_washroom`이 실제로 뚫은 문
+    links.add(frozenset(("Z03", "Z14")))
 
     # 훈련장은 철조망 **밖**이다. 정문 위병소를 지나야 나갈 수 있고, 그게
     # "훈련은 부대를 나가서 한다"를 규칙으로 만든다 — 마당 패거리에 넣으면
@@ -847,15 +860,52 @@ def _is_outer(b: dict, x: int, y: int) -> bool:
     return x in (b["x"], b["x"] + b["w"] - 1) or y in (b["y"], b["y"] + b["h"] - 1)
 
 
+def _connect_boiler_to_washroom(ground: Grid, walls: Grid, doors: list[dict]) -> None:
+    """
+    보일러실(Z14) ↔ 세면장(Z03) — 보일러실의 유일한 문.
+
+    보일러실은 벽을 두른 단독 건물이다(플레이어 보고: "보일러실에 들어갈 수가
+    없다"). 두 방은 x=16 선을 y=32~33 구간에서 맞대지만 그 벽은 **두 겹**이다 —
+    보일러실 자기 동쪽 벽(x=15)과 생활관동 서쪽 외벽(x=16)이 나란히 선다.
+    한 겹만 뚫으면 문을 열고도 다른 벽에 막힌다. 반드시 이 함수가 두 동을 다
+    그린 **뒤에** 불려야 한다 — `_building`이 동 내부를 벽으로 다시 채우고
+    시작하므로, 먼저 뚫으면 그 위에 벽이 덮인다.
+
+    자리는 보일러실 자신의 동쪽 문 자리(`door_span`)를 그대로 쓴다 — 소품이
+    보일러 본체 · 배관 쪽에 몰려 있어(`LAYOUTS["Z14"]`) 동쪽 벽 앞은 원래
+    비어 있고, 세면장 쪽도 같은 y에는 샤워 칸이 한 칸 못 미쳐 끝난다(y28~30).
+    """
+    boiler = next(o for o in OUTDOOR if o["id"] == "Z14")
+    span = door_span(boiler, "east")
+    washroom_wall_x = BARRACKS_X  # 16 — Z03는 동 서쪽 외벽을 제 벽으로 쓴다(row())
+
+    for (bx, by) in span:
+        walls.clear(bx, by)
+        walls.clear(washroom_wall_x, by)
+        ground.set(bx, by, "floor:concreteLight")
+        ground.set(washroom_wall_x, by, "floor:concreteLight")
+
+    # 세면장에서 볼 때와 보일러실에서 볼 때 할 말이 다르다 — 동 출입구가
+    # `name`(밖에서 볼 때) · `exitLabel`(안에서 볼 때)을 나누는 것과 같은 규칙.
+    # `zone`을 Z14로 두면: Z14 안에서는 exitLabel("세면장")을, 밖(Z03)에서는
+    # name("보일러실")을 보여준다(`ZoneWorld.NearestDoor`).
+    doors.append({
+        "zone": "Z14", "name": "보일러실", "exitLabel": "세면장",
+        "x": span[0][0], "y": span[0][1], "w": 1, "h": DOOR_W,
+        "side": "east", "exit": True,
+    })
+
+
 def _outdoor(ground: Grid, walls: Grid, zones: list[dict], props: list[dict]) -> None:
     for o in OUTDOOR:
         ground.fill(o["x"], o["y"], o["w"], o["h"], f"floor:{o['floor']}")
 
         if o.get("walled"):
+            # 벽만 두른다. 문은 여기서 내지 않는다 — 예전에는 동쪽 벽에 틈만
+            # 뚫어놓고 그 틈이 어디로도 안 이어져서 "문처럼 보이는 막다른 벽"이
+            # 됐다(§보일러실 버그). 실제 통로는 `_connect_boiler_to_washroom`이
+            # 이웃 건물 벽까지 같이 뚫어야 완성되므로 그쪽에서 낸다
             walls.outline(o["x"], o["y"], o["w"], o["h"], "wall:utility")
-            span = door_span(o, "east")
-            for (dx, dy) in span:
-                walls.clear(dx, dy)
         elif o.get("fenced"):
             # 초소·위병소·탄약고는 철조망으로 두른다. 탄약고는 **이중** (PLAN 04-B).
             # 문이 나는 방향은 도면이 정한다 — 위병소는 연병장 쪽(북)이다
