@@ -896,28 +896,133 @@ namespace SoldierADay.Net
                 _theme.Fill(Snap(DoorLine(door)), HudTheme.Heat);
             }
 
-            /* ── 4. 이름 ── */
+            /* ── 4. 이름 ──
+             *
+             * "방 이름이 한눈에 안 들어온다"(플레이어 보고). 셋을 합쳐서 푼다.
+             *
+             *   1. 글자 뒤에 종이색 칩을 깐다 — 벽선·문 위에 얹혀도 읽힌다
+             *   2. 상자에 안 들어가면 밖으로 빼고 가는 지시선으로 잇는다
+             *   3. 글자를 키운다 — 예전 13pt 상한은 1920 기준 전체화면
+             *      지도에는 작았다
+             *
+             * **이름은 방 한가운데**에 놓는다(칩이 있으면). 왼쪽 위에 붙이면
+             * 벽선과 붙어서 글자가 벽에 걸린 표찰처럼 보이고, 어느 방의
+             * 이름인지도 한 칸 애매해진다. 짧은 이름을 쓰는 것도 그대로다 —
+             * 긴 이름은 좁은 방에서 잘리고, 잘린 이름은 없는 이름과 같다. */
             if (detailed)
             {
+                // 폰트는 상자 **높이와 폭을 같이** 본다. 예전에는 높이만 보고
+                // 정했는데, 무기고처럼 세로로 길고 가로가 좁은 방은 높이 기준
+                // 글자가 폭을 넘어설 뻔했다. `GUIStyle.CalcSize`로 정확히 잴
+                // 수도 있지만 그건 프레임마다 `GUIContent`를 새로 만든다(M0
+                // "힙 누수 0"). 한글 완성형 글자는 폭이 폰트 크기에 거의
+                // 맞먹는 정사각형이라 "글자 수 × 폰트 크기"면 넉넉히 맞고,
+                // `widthMargin`이 오차를 흡수한다.
+                const float minFont = 10f, maxFont = 20f, heightMul = 0.16f;
+                const float widthMargin = 14f, charWidth = 1f;
+
+                // 칩은 글자 폭만큼만 깐다 — 방을 다 덮으면 채움처럼 보인다
+                Rect ChipOf(Vector2 center, string text, float fontSize) =>
+                    new Rect(center.x - (text.Length * fontSize * charWidth + 8f) * 0.5f,
+                              center.y - (fontSize * 1.3f + 4f) * 0.5f,
+                              text.Length * fontSize * charWidth + 8f, fontSize * 1.3f + 4f);
+
+                // 상자 안에 못 들어가는 방(현재 base_map.json 25개 중에는 없다 —
+                // 계산으로 확인했다)은 여기로 온다. 네 방향으로 "다음 방(복도
+                // 제외)까지 거리"를 재서 가장 넓게 뚫린 쪽에 이름을 내놓는다.
+                // 복도는 이름이 없는 통로라 지나가도 되지만, **다른 방과는
+                // 겹치면 안 된다** — 그래서 복도만 후보에서 뺀다.
+                void DrawOutside(ZoneMap zone, Rect box, string label, Color color)
+                {
+                    float ClearWorld(Vector2 dir)
+                    {
+                        var r = zone.area;
+                        var best = 6f; // 후보가 없으면 반 칸만 — 안전 쪽으로
+                        foreach (var other in world.zones)
+                        {
+                            if (other == null || other == zone) continue;
+                            if (RegionOf(other.id) != region || other.kind == "corridor") continue;
+
+                            if (dir.x != 0f)
+                            {
+                                var overlap = Mathf.Min(r.yMax, other.area.yMax) -
+                                              Mathf.Max(r.yMin, other.area.yMin);
+                                if (overlap <= 0f) continue;
+                                var gap = dir.x > 0f
+                                    ? other.area.xMin - r.xMax
+                                    : r.xMin - other.area.xMax;
+                                if (gap >= 0f) best = Mathf.Min(best, gap);
+                            }
+                            else
+                            {
+                                var overlap = Mathf.Min(r.xMax, other.area.xMax) -
+                                              Mathf.Max(r.xMin, other.area.xMin);
+                                if (overlap <= 0f) continue;
+                                var gap = dir.y > 0f
+                                    ? other.area.yMin - r.yMax
+                                    : r.yMin - other.area.yMax;
+                                if (gap >= 0f) best = Mathf.Min(best, gap);
+                            }
+                        }
+                        return best;
+                    }
+
+                    var chosen = Vector2.right;
+                    var bestClear = -1f;
+                    foreach (var d in new[] { Vector2.right, Vector2.left, Vector2.up, Vector2.down })
+                    {
+                        var c = ClearWorld(d);
+                        if (c <= bestClear) continue;
+                        bestClear = c;
+                        chosen = d;
+                    }
+
+                    // 화면 y는 월드 y와 반대로 커진다
+                    var screenDir = new Vector2(chosen.x, -chosen.y);
+                    var reach = Mathf.Min(bestClear * k * 0.5f, 44f);
+                    var edge = chosen.x != 0f ? box.width * 0.5f : box.height * 0.5f;
+                    var start = box.center + screenDir * edge;
+                    var end = start + screenDir * reach;
+
+                    // 지시선 — 가늘게, 도면의 인출선과 같은 무게
+                    if (chosen.x != 0f)
+                        _theme.Fill(new Rect(Mathf.Min(start.x, end.x), start.y - 0.5f,
+                            Mathf.Abs(end.x - start.x), 1f), HudTheme.Rule2);
+                    else
+                        _theme.Fill(new Rect(start.x - 0.5f, Mathf.Min(start.y, end.y),
+                            1f, Mathf.Abs(end.y - start.y)), HudTheme.Rule2);
+
+                    var style = _theme.At(_theme.Small, (int)minFont, color, TextAnchor.MiddleCenter);
+                    var tag = ChipOf(end, label, minFont);
+                    _theme.Fill(tag, HudTheme.Paper, 0.88f);
+                    GUI.Label(tag, label, style);
+                }
+
                 foreach (var zone in world.zones)
                 {
                     if (zone == null || RegionOf(zone.id) != region) continue;
                     if (zone.kind == "corridor") continue;   // 복도는 지나가는 곳이다
 
                     var box = BoxOf(zone.area);
-                    if (box.width < 40f || box.height < 22f) continue;
+                    var label = ZoneNames.ShortOf(zone.id);
+                    var color = zone.id == here ? HudTheme.Ink : HudTheme.Ink2;
 
-                    // **이름은 방 한가운데**에 놓는다. 왼쪽 위에 붙이면 벽선과
-                    // 붙어서 글자가 벽에 걸린 표찰처럼 보이고, 어느 방의
-                    // 이름인지도 한 칸 애매해진다.
-                    //
-                    // 짧은 이름을 쓴다 — 긴 이름은 좁은 방에서 잘리고, 잘린
-                    // 이름은 없는 이름과 같다. 짧은 쪽이 부대에서 실제로 부르는
-                    // 말이기도 하다(사지방 · 체단장 · 위병소).
-                    GUI.Label(box, ZoneNames.ShortOf(zone.id),
-                        _theme.At(_theme.Small, 11,
-                            zone.id == here ? HudTheme.Ink : HudTheme.Ink2,
-                            TextAnchor.MiddleCenter));
+                    var byHeight = Mathf.Clamp(box.height * heightMul, minFont, maxFont);
+                    var byWidth = label.Length > 0
+                        ? (box.width - widthMargin) / (label.Length * charWidth)
+                        : maxFont;
+                    var size = Mathf.Min(byHeight, byWidth);
+
+                    if (size < minFont || box.width < 40f || box.height < 22f)
+                    {
+                        DrawOutside(zone, box, label, color);
+                        continue;
+                    }
+
+                    var fontSize = Mathf.FloorToInt(size);
+                    var style = _theme.At(_theme.Small, fontSize, color, TextAnchor.MiddleCenter);
+                    _theme.Fill(ChipOf(box.center, label, size), HudTheme.Paper, 0.82f);
+                    GUI.Label(box, label, style);
                 }
             }
 
