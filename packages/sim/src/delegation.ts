@@ -101,7 +101,41 @@ export function openDelegationWindow(state: RunState): void {
   state.leaderOverridePhase = -1;
   for (const member of state.members) {
     member.delegatedThisWindow = 0;
+    member.delegationDone = false;
   }
+}
+
+/**
+ * 하달 창 조기 종료.
+ *
+ * "사람 참석자"는 `presence === "player"`뿐이다 — NPC 대리(`npcVacant`·`npcLeave`),
+ * 후송 대리(`npcEvac`), 후송자(`evacuated`)는 애초에 하달 창을 볼 사람이 아니므로
+ * 세지 않는다. 접속이 끊긴 사람(미접속)은 presence가 그대로 `player`로 남지만,
+ * 게임서버가 접속 종료 시점에 이 이벤트를 대신 흘려보내 "세지 않는다"를 채운다
+ * (`services/gameserver/src/room.ts` disconnect).
+ *
+ * 전원이 신고하기 전에는 아무리 여럿이 끝내도 창이 안 닫힌다 — 한 명만 확정해서는
+ * 안 닫히는 것이 핵심이다. 창이 이미 닫혀 있으면(자격자가 없어서 안 열렸거나,
+ * 이미 조기 종료됐거나) 조용히 무시한다.
+ */
+export function markDelegationDone(
+  state: RunState,
+  memberId: string,
+  effects: Effect[],
+): void {
+  const member = find(state, memberId);
+  if (!member || member.presence !== "player") return;
+  if (state.delegationWindowMsLeft <= 0) return;
+
+  member.delegationDone = true;
+
+  const pending = state.members.some(
+    (m) => m.presence === "player" && !m.delegationDone,
+  );
+  if (pending) return;
+
+  state.delegationWindowMsLeft = 0;
+  effects.push({ type: "log", message: "delegationWindowClosed" });
 }
 
 export function canDelegate(

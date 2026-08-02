@@ -5,6 +5,7 @@ import {
   awardProxyScore,
   delegateChore,
   leaderReassign,
+  markDelegationDone,
   openDelegationWindow,
   vetoChore,
 } from "./delegation.js";
@@ -80,6 +81,9 @@ export function step(state: RunState, event: SimEvent): StepResult {
       break;
     case "vetoChore":
       vetoChore(next, event.memberId, event.questId, effects);
+      break;
+    case "delegationDone":
+      markDelegationDone(next, event.memberId, effects);
       break;
     case "leaderReassign":
       leaderReassign(next, event.leaderId, event.questId, event.toId, effects);

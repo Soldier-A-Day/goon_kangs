@@ -17,10 +17,12 @@ describe("ARCH-02 — 단일 정의에서 C#을 생성한다", () => {
     }
   });
 
-  it("의도 14종의 판별자가 전부 상수로 남는다", () => {
+  it("의도 15종의 판별자가 전부 상수로 남는다", () => {
+    // 하달 창 조기 종료 신고(delegationDone)가 15번째로 늘었다 — 시간이 멈추는
+    // 버그 수정의 일부다 (packages/protocol/src/index.ts intentSchema)
     const intent = schemas.Intent;
     const variants = intent?.anyOf ?? intent?.oneOf ?? [];
-    expect(variants.length).toBe(14);
+    expect(variants.length).toBe(15);
 
     for (const variant of variants) {
       const literal = variant.properties?.type?.const;

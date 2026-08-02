@@ -427,3 +427,71 @@ describe("하달 창 개폐", () => {
     expect(isDelegationWindow(state)).toBe(true);
   });
 });
+
+describe("하달 창 조기 종료 — 전원 확정 시 delegationWindowMsLeft = 0", () => {
+  it("1인만 확정해서는 안 닫힌다", () => {
+    let state = atMorning();
+    state = step(state, { type: "delegationDone", memberId: "p1" }).state;
+
+    expect(state.delegationWindowMsLeft).toBe(20 * SECOND);
+    expect(isDelegationWindow(state)).toBe(true);
+  });
+
+  it("사람 참석자 전원이 확정하면 즉시 닫히고 일과 시간이 다시 흐른다", () => {
+    let state = atMorning();
+
+    // 마지막 한 명이 남을 때까지는 계속 열려 있다
+    for (const id of ["p1", "p2", "p3"]) {
+      state = step(state, { type: "delegationDone", memberId: id }).state;
+      expect(state.delegationWindowMsLeft).toBe(20 * SECOND);
+    }
+
+    state = step(state, { type: "delegationDone", memberId: "p4" }).state;
+    expect(state.delegationWindowMsLeft).toBe(0);
+
+    // 창이 닫혔으니 이제부터는 틱이 곧바로 일과 시간을 깎는다 — 남은 창
+    // 시간을 기다리지 않는다(조기 종료 전이라면 여기서 phaseElapsedMs가
+    // 여전히 0이어야 한다)
+    state = step(state, { type: "tick", elapsedMs: 5 * SECOND }).state;
+    expect(state.phaseElapsedMs).toBe(5 * SECOND);
+  });
+
+  it("같은 사람이 두 번 신고해도 중복으로 세지 않는다", () => {
+    let state = atMorning();
+    for (const id of ["p1", "p1", "p2", "p3"]) {
+      state = step(state, { type: "delegationDone", memberId: id }).state;
+    }
+    expect(state.delegationWindowMsLeft).toBe(20 * SECOND); // p4가 아직
+
+    state = step(state, { type: "delegationDone", memberId: "p4" }).state;
+    expect(state.delegationWindowMsLeft).toBe(0);
+  });
+
+  it("NPC 대리 · 후송자는 세지 않는다 — 남은 사람 전원만 확정하면 닫힌다", () => {
+    let state = atMorning();
+    const evacuee = state.members.find((m) => m.id === "p3");
+    const proxy = state.members.find((m) => m.id === "p4");
+    if (!evacuee || !proxy) throw new Error("분대원 없음");
+    // p3는 후송자, p4는 이탈 대리로 바꿔둔다 — 둘 다 "사람 참석자"가 아니다
+    evacuee.presence = "evacuated";
+    proxy.presence = "npcLeave";
+
+    // 남은 사람은 p1 · p2뿐이다. 둘만 확정해도 닫혀야 한다
+    state = step(state, { type: "delegationDone", memberId: "p1" }).state;
+    expect(state.delegationWindowMsLeft).toBe(20 * SECOND);
+
+    state = step(state, { type: "delegationDone", memberId: "p2" }).state;
+    expect(state.delegationWindowMsLeft).toBe(0);
+  });
+
+  it("이미 닫힌 창에 신고가 와도 아무 일도 없다", () => {
+    let state = atMorning();
+    state = step(state, { type: "tick", elapsedMs: 20 * SECOND }).state;
+    expect(state.delegationWindowMsLeft).toBe(0);
+
+    const before = state.phaseElapsedMs;
+    state = step(state, { type: "delegationDone", memberId: "p1" }).state;
+    expect(state.phaseElapsedMs).toBe(before);
+    expect(state.delegationWindowMsLeft).toBe(0);
+  });
+});

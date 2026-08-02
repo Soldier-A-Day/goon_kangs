@@ -808,6 +808,7 @@ namespace SoldierADay.Protocol
         public const string VoteSkip = "voteSkip";
         public const string DelegateChore = "delegateChore";
         public const string VetoChore = "vetoChore";
+        public const string DelegationDone = "delegationDone";
         public const string LeaderReassign = "leaderReassign";
         public const string VoteLeader = "voteLeader";
         public const string FileClaim = "fileClaim";

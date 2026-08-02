@@ -199,6 +199,14 @@ export const intentSchema = z.discriminatedUnion("type", [
     questId: z.string(),
   }),
   z.object({ type: z.literal("vetoChore"), questId: z.string() }),
+  /**
+   * 하달 창 조기 종료 신고 — "이 창에서 더 볼 것이 없다."
+   *
+   * 하달 확정이든 그냥 넘김이든 클라가 창을 닫는 그 순간 보낸다. 사람 참석자
+   * (`presence === "player"`) 전원이 보내야 창이 닫힌다 — sim이 판정한다
+   * (`packages/sim/src/delegation.ts` `markDelegationDone`).
+   */
+  z.object({ type: z.literal("delegationDone") }),
   z.object({
     type: z.literal("leaderReassign"),
     questId: z.string(),
