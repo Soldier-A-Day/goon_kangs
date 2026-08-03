@@ -120,8 +120,14 @@ namespace SoldierADay.Net
         /// </summary>
         internal HudScreens LabScreens => _labScreens ??= new HudScreens(this) { LabPreviewOnly = true };
 
+        /// <summary>화생방 마스크 훈련 — 이것도 이동 잠금 소스다. 씬 배선 없이
+        /// 한 번 찾아 둔다(잠금 대입이 매 프레임 덮어쓰는 구조라, 소스를 빼먹으면
+        /// 그쪽 잠금이 다음 프레임에 지워진다)</summary>
+        private MaskDrill _maskDrill;
+
         private void OnEnable()
         {
+            _maskDrill = FindFirstObjectByType<MaskDrill>();
             if (client == null) return;
             client.EventReceived += OnEvent;
             client.SnapshotReceived += OnSnapshot;
@@ -162,7 +168,12 @@ namespace SoldierADay.Net
 
             if (world?.player != null)
             {
-                world.player.Suspended = _screens.BlocksMovement;
+                // 판이 열려 있는 동안(QuestPlay)의 잠금도 여기서 같이 본다 — 이
+                // 대입이 매 프레임 돌기 때문에, 한 소스만 보면 다른 쪽이 걸어둔
+                // 잠금을 다음 프레임에 지워버린다(실플레이 신고: 판을 깨는 중에
+                // 캐릭터가 걸어 다녔다). 잠금의 소스는 둘 다다: 전체화면 창과 판.
+                world.player.Suspended = _screens.BlocksMovement || play?.QuestId != null
+                    || (_maskDrill != null && _maskDrill.Active);
             }
 
             // 상호작용은 `QuestPlay`가 맡는다 — E를 누르면 그 일과의 판이 열리고,
