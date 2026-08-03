@@ -1080,7 +1080,10 @@ namespace SoldierADay.Net
                 var fadeStart = toast.life - 0.6f;
                 var alpha = age > fadeStart ? Mathf.Clamp01(1f - (age - fadeStart) / 0.6f) : 1f;
 
-                var rect = new Rect(48f, 132f + i * 76f, 380f, 64f);
+                // 좌상단 위치·주변 패널(48,48부터 힌트·나침반·주변 목록까지 최대
+                // 400px대)과 같은 x열이라, 시작 y를 그 아래로 내려야 안 겹친다 —
+                // 실플레이 신고: 토스트가 기존 HUD를 덮었다
+                var rect = new Rect(48f, 470f + i * 76f, 380f, 64f);
                 var previous = GUI.color;
                 GUI.color = new Color(1f, 1f, 1f, alpha);
 
