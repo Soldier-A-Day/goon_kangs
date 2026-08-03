@@ -78,6 +78,28 @@ namespace SoldierADay.Net
         /// <summary>이 창들이 떠 있으면 이동·상호작용을 잠근다</summary>
         public bool BlocksMovement => _screen != Screen.None || _radialOpen;
 
+        /// <summary>
+        /// 하루 마감 연출(판정 → 승급 → 취침)이 아직 사용자 확인을 다 못 받았다 —
+        /// Hud.cs가 이 동안은 HudEnding(퇴소·전역 화면)을 보류한다.
+        ///
+        /// 사용자 반려("점호 판정보다 퇴소창이 먼저 뜨는 건 뭐야?")의 원인이 여기다.
+        /// 런이 실패로 끝나는 날은 서버가 dayJudged(failed)와 runEnded를 같은
+        /// 프레임에 함께 보낸다. HudEnding은 스냅샷 status만 보고 뜨므로, 이 큐가
+        /// 판정 화면(왜 졌는지)을 사용자에게 보여주기도 전에 그 위를 덮어 버렸다.
+        ///
+        /// `_screen`이 RollCall/Rank/Sleep이거나 큐에 남은 화면이 있으면 아직
+        /// 연출 중이라는 뜻이다 — 이 조건은 <see cref="OnSnapshot"/>이 스냅샷을
+        /// 걸러내는 조건과 같다(같은 사건이라 같은 잣대를 쓴다). 정상 진행
+        /// 날·클리어(전역) 날도 이 문을 지나므로 흐름이 똑같이 유지된다.
+        ///
+        /// 소프트락 방지는 여기서 새로 만들지 않는다 — <see cref="UpdateRollCallAdvance"/>·
+        /// <see cref="UpdateDayEndAdvance"/>가 각자 20초 강제 흘림 문턱을 갖고 있어
+        /// 이 값은 반드시 언젠가 false로 떨어진다(재접속 등으로 확인 버튼을 아예
+        /// 못 눌러도 마찬가지 — Update()는 연결 상태와 무관하게 매 프레임 돈다).
+        /// </summary>
+        public bool DayEndInProgress =>
+            _screen is Screen.RollCall or Screen.Rank or Screen.Sleep || _dayEndQueue.Count > 0;
+
         private GameClient Client => _hud.client;
 
         /* ══════════════════════════════════════════════════════ 입력 */
@@ -180,8 +202,10 @@ namespace SoldierADay.Net
             //
             // 건너뛰어도 잃는 것이 없다. 스냅샷은 10Hz로 계속 오고 하달 창은 몇십
             // 초 열려 있으므로, 연출이 끝난 바로 다음 스냅샷이 그대로 연다.
-            if (_screen is Screen.RollCall or Screen.Rank or Screen.Sleep ||
-                _dayEndQueue.Count > 0)
+            //
+            // (Hud.cs가 HudEnding을 보류하는 조건과 같은 잣대라 DayEndInProgress를
+            // 그대로 재사용한다.)
+            if (DayEndInProgress)
             {
                 if (snapshot.phase.id != SnapshotPhaseIdValues.Rollcall) _beforeSleep = snapshot;
                 return;
@@ -233,17 +257,17 @@ namespace SoldierADay.Net
 
                 case ServerEventTypeValues.RankReviewed:
                     _rankReview = item;
-                    // 판정 실패 날은 RollCall 화면이 그대로 남아 종료 흐름(퇴소)으로
-                    // 가야 한다(§7.5, HudEnding 담당). 승급 화면을 끼워 넣으면 그 흐름을
-                    // 밀어내 버리므로, SleepSettled와 똑같은 가드를 여기도 건다.
+                    // 판정 실패 날은 승급이랄 게 없다 — 큐에 안 넣고 버린다. 판정
+                    // 화면은 [확인]으로 직접 닫히고(UpdateRollCallAdvance), 그 순간
+                    // DayEndInProgress가 풀려 HudEnding(퇴소 화면)이 이어받는다.
                     if (_judgement != null && !_judgement.passed) break;
                     EnqueueDayEnd(Screen.Rank);
                     break;
 
                 case ServerEventTypeValues.SleepSettled:
                     _sleepSettle = item;
-                    // 실패 시엔 RollCall 화면을 지키는 기존 동작 그대로 — 취침 정산을
-                    // 보여주지 않고 버려서(§7.5) 판정 화면이 종료 흐름으로 이어지게 한다.
+                    // 실패 날은 취침 정산도 없다 — 위와 같은 이유로 버린다. 판정 →
+                    // [확인] → (큐가 비었으니) HudEnding, 이 순서가 여기서 만들어진다.
                     if (_judgement != null && !_judgement.passed) break;
                     EnqueueDayEnd(Screen.Sleep);
                     break;
@@ -454,12 +478,17 @@ namespace SoldierADay.Net
 
         /// <summary>판정(RollCall) 화면의 확인 전환 — 6.4초 리빌이 끝난 뒤 키보드
         /// 확인과 강제 흘림만 여기서 본다(마우스 클릭은 DrawRollCall이 버튼 Rect를
-        /// 아는 자리에서 직접 처리 — 위 Update() 주석 참고). 실패 판정은 이 큐를
-        /// 안 탄다 — RollCall 화면이 그대로 남아 §7.5 종료 흐름(HudEnding)으로
-        /// 이어져야 하므로 절대 넘기지 않는다.</summary>
+        /// 아는 자리에서 직접 처리 — 위 Update() 주석 참고).
+        ///
+        /// 통과·실패 둘 다 여기로 온다. 통과한 날은 큐(승급·취침)가 채워져 있어
+        /// <see cref="AdvanceDayEnd"/>가 그 다음 화면을 꺼내고, 실패한 날은
+        /// `RankReviewed`·`SleepSettled`가 애초에 큐를 안 채워 뒀으므로(아래
+        /// OnEvent 참고) 같은 호출이 화면을 그냥 닫는다 — 그 순간 <see cref="DayEndInProgress"/>가
+        /// false로 떨어지고, Hud.cs가 그제야 HudEnding(퇴소·전역 화면)을 그린다.
+        /// 사용자가 [확인]을 누른 "뒤에야" 종료 화면이 뜨는 지점이 여기다.</summary>
         private void UpdateRollCallAdvance()
         {
-            if (_judgement == null || !_judgement.passed) return;
+            if (_judgement == null) return;
 
             var t = Time.unscaledTime - _rollCallStart;
             if (t < 6.4f) return;
@@ -1907,18 +1936,18 @@ namespace SoldierADay.Net
                 theme.At(theme.Body, 17, HudTheme.Ink, TextAnchor.MiddleCenter));
 
             // 6.4초 = 기획서(SAD-GDD-002 §16 사운드 박스) "점호 판정 트랙은 6.4초
-            // 연출에 큐 포인트 4개" — 리빌이 다 끝나는 시각이다. 실패 시엔 절대
-            // 안 넘긴다 — RollCall 화면이 그대로 남아 §7.5 종료 흐름(HudEnding)으로
-            // 이어져야 한다. 통과 시엔 이 시각부터 [확인] 버튼이나 Space/Enter
-            // (UpdateRollCallAdvance, Update() 경유)로 다음 화면(승급이 있으면 승급,
-            // 없으면 취침 정산)으로 넘어간다 — 수리 1: 예전엔 6.4초 시각에 자동으로
-            // 넘어갔지만, 이제 6.4초는 "버튼이 뜨는 시점"일 뿐이고 실제 전환은
-            // 사용자 확인을 받는다(강제 흘림 문턱은 UpdateRollCallAdvance 주석 참고).
-            if (!failed)
-            {
-                var buttonRect = new Rect(panel.center.x - 115f, panel.yMax - 52f, 230f, 44f);
-                if (DrawConfirmButton(theme, buttonRect, t >= 6.4f)) AdvanceDayEnd();
-            }
+            // 연출에 큐 포인트 4개" — 리빌이 다 끝나는 시각이다. 이 시각부터
+            // [확인] 버튼이나 Space/Enter(UpdateRollCallAdvance, Update() 경유)로
+            // 다음 화면으로 넘어간다 — 통과 날은 승급이 있으면 승급, 없으면 취침
+            // 정산. 실패 날은 큐가 비어 있어(위 OnEvent 참고) 곧장 닫히고, 그
+            // 뒤에야 Hud.cs가 HudEnding(퇴소 화면)을 그린다 — 사용자 반려("점호
+            // 판정보다 퇴소창이 먼저 뜨는 건 뭐야?")의 수정 지점이 여기다. 실패
+            // 날에도 버튼을 그려야 그 확인을 받을 수 있으므로 `failed` 여부로
+            // 가리지 않는다. 수리 1: 예전엔 6.4초 시각에 자동으로 넘어갔지만,
+            // 이제 6.4초는 "버튼이 뜨는 시점"일 뿐이고 실제 전환은 사용자 확인을
+            // 받는다(강제 흘림 문턱은 UpdateRollCallAdvance 주석 참고).
+            var buttonRect = new Rect(panel.center.x - 115f, panel.yMax - 52f, 230f, 44f);
+            if (DrawConfirmButton(theme, buttonRect, t >= 6.4f)) AdvanceDayEnd();
         }
 
         /* ═══════════════════════════════════════════ §7.6 취침 정산 */
