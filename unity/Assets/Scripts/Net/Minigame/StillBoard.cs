@@ -22,6 +22,16 @@ namespace SoldierADay.Net
     /// (`MaxEarlyMistakes`), 세 번째는 되돌릴 수 없는 실수로 본다(`Fail()`).
     /// 진짜 "해산"이 뜬 뒤 반응 창(`window`, 기본 3초) 안에 못 누르면 그것도
     /// 되돌릴 수 없다 — 마지막 기회라 다음이 없다.
+    ///
+    /// ── 긴장감 패스 B — 무궁화꽃이 피었습니다 ─────────────────────────────
+    /// 화면에 감시자(간부 실루엣)를 실제로 세운다. 딴 곳을 보다가(안전) 시드
+    /// 고정 무작위 간격으로 이쪽을 돌아본다(감시) — 돌기 0.3초 전에 어깨가
+    /// 들썩여 예고한다(트위스트 철칙과 같은 이유로, 몰래 돌지 않는다). 감시
+    /// 중일 때만 마우스 이동·키 입력이 "감지 게이지"를 채우고, 게이지가
+    /// 만땅이면 `Miss()` 한 번을 물고 다시 0에서 시작한다 — **즉사 아니다.**
+    /// 진짜 "해산" 창(`_open`)이 열리면 이 관찰은 멈춘다 — 그때는 눌러야
+    /// 하는 게 규칙이라, 그 입력을 감시 대상으로 세면 앞뒤가 안 맞는다.
+    /// 기존 "해산 신호에 반응" 마무리(위 판정 문단)는 그대로 유지한다.
     /// </summary>
     public sealed class StillBoard : Board
     {
@@ -47,12 +57,27 @@ namespace SoldierADay.Net
         /// <summary>떨림의 겉모습만 흔드는 개인차 — 같은 시드면 같은 떨림이 나온다</summary>
         private float _jitterSeed;
 
+        /* ──────────────────────────────────────── 긴장감 패스 B — 감시자 */
+
+        /// <summary>지금 감시자가 이쪽을 돌아보고 있는가(감시 중)</summary>
+        private bool _watching;
+        /// <summary>지금 단계(감시·비감시)가 끝날 때까지 남은 시간(초) — 시드 고정 랜덤</summary>
+        private float _watchPhaseT;
+        /// <summary>감지 게이지(0~1) — 감시 중 움직이면 차고, 그렇지 않으면 서서히 준다</summary>
+        private float _detectGauge;
+        /// <summary>직전 프레임 마우스 좌표 — 이동량을 재는 기준(음수면 아직 안 쟀다)</summary>
+        private Vector2 _lastWatchMouse = new Vector2(-1f, -1f);
+
+        /// <summary>마지막 3초 — 공통 하이라이트용 박동 타이머</summary>
+        private float _finalBeatTimer;
+
         public override string Instruction => _open
             ? "해산! — 지금 눌러라"
-            : "움직이지 마라 — '해산' 전에는 어떤 입력도 참는다";
+            : "움직이지 마라 — '해산' 전에는 어떤 입력도 참는다. 감시자가 돌아보면 더더욱";
 
         public override string Status =>
-            _open ? "해산 — 반응 창 안에" : $"구령 대기 · 실수 {Mistakes}";
+            _open ? "해산 — 반응 창 안에"
+                  : $"구령 대기 · 실수 {Mistakes} · 감시 {(_watching ? "중" : "소강")}";
 
         protected override void Setup()
         {
@@ -87,12 +112,19 @@ namespace SoldierADay.Net
             _verdict = "";
             _verdictAge = 999f;
             _jitterSeed = (float)Rng.NextDouble() * 100f;
+
+            // 감시자 — 처음엔 딴 곳을 본다. 다음 단계 길이도 시드 고정 Rng로 뽑는다
+            _watching = false;
+            _watchPhaseT = RandRange(1.3f, 2.2f);
+            _detectGauge = 0f;
+            _lastWatchMouse = new Vector2(-1f, -1f);
         }
 
         protected override void Advance(float dt, BoardInput input)
         {
             _verdictAge += dt;
             if (_decoyFlashT > 0f) _decoyFlashT -= dt;
+            FinalStretchTick(dt);
 
             if (_decoyNext < _decoyAt.Length && Elapsed >= _decoyAt[_decoyNext])
             {
@@ -119,6 +151,10 @@ namespace SoldierADay.Net
                 return;
             }
 
+            // 감시자는 진짜 "해산" 전까지만 돈다 — 열리면 눌러야 하는 게 규칙이라
+            // 그 입력을 감시 대상으로 세면 앞뒤가 안 맞는다
+            UpdateWatcher(dt, input);
+
             if (Elapsed >= _disbandAt)
             {
                 _open = true;
@@ -140,9 +176,84 @@ namespace SoldierADay.Net
             Fill = Mathf.Clamp01(Elapsed / Mathf.Max(0.01f, _disbandAt));
         }
 
+        /// <summary>
+        /// 감시자의 돌아보기 주기와 감지 게이지. 돌아보는 타이밍은 시드 고정
+        /// `Rng`로 뽑아 매번 같지만, 언제 도는지는 화면(어깨 들썩)이 먼저
+        /// 알려준다 — 몰래 돌지 않는다.
+        /// </summary>
+        private void UpdateWatcher(float dt, BoardInput input)
+        {
+            _watchPhaseT -= dt;
+            if (_watchPhaseT <= 0f)
+            {
+                _watching = !_watching;
+                _watchPhaseT = _watching ? RandRange(0.8f, 1.6f) : RandRange(1.3f, 2.4f);
+            }
+
+            var moved = _lastWatchMouse.x >= 0f && (input.Mouse - _lastWatchMouse).sqrMagnitude > 4f;
+            _lastWatchMouse = input.Mouse;
+            var keyed = Mathf.Abs(input.Horizontal) > 0.1f || Mathf.Abs(input.Vertical) > 0.1f;
+
+            if (_watching && (moved || keyed))
+            {
+                _detectGauge = Mathf.Clamp01(_detectGauge + dt * 1.4f);
+                if (_detectGauge >= 1f)
+                {
+                    // 즉사 아니다 — 실수 하나만 물고 다시 0에서 시작한다
+                    _detectGauge = 0f;
+                    Miss();
+                }
+            }
+            else
+            {
+                _detectGauge = Mathf.Max(0f, _detectGauge - dt * 0.6f);
+            }
+        }
+
+        /// <summary>마지막 3초 — 펄스 테두리 + 저음 심박(공통 패스 B 항목)</summary>
+        private void FinalStretchTick(float dt)
+        {
+            if (State != BoardState.Running || Remaining > 3f || Remaining <= 0f) return;
+            _finalBeatTimer -= dt;
+            if (_finalBeatTimer > 0f) return;
+            var urgency = 1f - Mathf.Clamp01(Remaining / 3f);
+            Sfx.Play("tap", 0.5f, Mathf.Lerp(0.75f, 0.5f, urgency));
+            _finalBeatTimer = Mathf.Lerp(0.5f, 0.22f, urgency);
+        }
+
+        private void FinalStretchDraw(HudTheme theme, Rect body)
+        {
+            if (State != BoardState.Running || Remaining > 3f || Remaining <= 0f) return;
+            var urgency = 1f - Mathf.Clamp01(Remaining / 3f);
+            if (!HudTheme.Pulse(Mathf.Lerp(2f, 4f, urgency))) return;
+            theme.Border(body, HudTheme.Alert, 3f);
+        }
+
         public override void Draw(HudTheme theme, Rect body)
         {
             theme.Fill(body, HudTheme.Paper3);
+
+            // 감시자 — 위쪽에 작은 실루엣. 딴 곳을 보면 무채색, 돌아보면
+            // 경고색. 돌기 0.3초 전엔 어깨가 들썩인다(예고, 함정 아님)
+            if (!_open)
+            {
+                var pretell = !_watching && _watchPhaseT <= 0.3f && _watchPhaseT > 0f;
+                var twitch = pretell ? (1f - _watchPhaseT / 0.3f) * 5f : 0f;
+                var wy = body.y + 34f + Mathf.Sin(Time.unscaledTime * 26f) * twitch;
+
+                var watcher = new Rect(body.center.x - 16f, wy, 32f, 46f);
+                theme.Fill(watcher, _watching ? HudTheme.AlertW : HudTheme.Paper2);
+                theme.Border(watcher, _watching ? HudTheme.Alert : HudTheme.Rule2, 2f);
+                GUI.Label(new Rect(watcher.x - 70f, watcher.yMax + 4f, watcher.width + 140f, 20f),
+                    _watching ? "감시자가 돌아봤다" : pretell ? "어깨가 들썩인다…" : "감시자는 딴 곳을 본다",
+                    theme.At(theme.Label, 12,
+                        _watching ? HudTheme.Alert : pretell ? HudTheme.Heat : HudTheme.Ink3,
+                        TextAnchor.MiddleCenter));
+
+                // 감지 게이지 — 감시 중에 움직이면 찬다. 만땅이면 실수 하나(즉사 아님)
+                var gaugeRect = new Rect(body.center.x - 90f, watcher.yMax + 26f, 180f, 10f);
+                theme.Bar(gaugeRect, _detectGauge, _detectGauge > 0.7f ? HudTheme.Alert : HudTheme.Heat);
+            }
 
             // 떨림 — 참는 시간이 길어질수록 커진다. 해산이 뜨면 참는 게 아니라
             // "지금 누를 차례"이므로 떨림을 접는다
@@ -196,6 +307,7 @@ namespace SoldierADay.Net
             }
 
             theme.Border(body, HudTheme.Rule);
+            FinalStretchDraw(theme, body);
         }
     }
 }

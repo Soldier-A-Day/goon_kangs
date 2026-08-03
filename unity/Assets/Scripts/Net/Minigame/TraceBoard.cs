@@ -13,6 +13,17 @@ namespace SoldierADay.Net
     ///
     /// `branches`가 있으면 갈래가 생긴다. 갈래는 전부 이어야 하고, 그래서 유선
     /// 가설(분기 3)이 초소 전화 점검(분기 0)보다 길다.
+    ///
+    /// ── 긴장감 패스 B — Pipe Mania 물 ─────────────────────────────────────
+    /// 판을 열고 `_waterDelay`(기본 4초)가 지나면 시작 칸부터 **진짜 물이
+    /// 찬다** — 지금 이어진(`_live`) 칸을 따라 초당 `_waterSpeed`칸씩. 물은
+    /// `Flow`가 매 회전마다 다시 재는 "이어진 끝"(`_frontierDist`)을 넘어설
+    /// 수 없다 — 거기가 아직 안 이은 막다른 관이라는 뜻이다. 따라잡히면
+    /// 실수 하나가 붙고 2초 멈췄다 같은 자리에서 다시 흐른다(자리를 처음으로
+    /// 되돌리지 않는다 — 그사이 관을 돌려 물길을 열어주면 다음 틱에 바로
+    /// 이어서 나간다). **회전 횟수로 실수를 세던 예전 규칙은 걷어냈다** —
+    /// 물이 같은 자리(손이 헤맨 것)를 이미 더 정확하게 벌하므로, 둘을
+    /// 같이 두면 이중 처벌이다(발주 §1-②).
     /// </summary>
     public sealed class TraceBoard : Board
     {
@@ -44,7 +55,35 @@ namespace SoldierADay.Net
         private bool _usingKeyboard = true;
         private Vector2 _lastMouseForFocus = new Vector2(-1f, -1f);
 
-        public override string Instruction => "관을 눌러 돌리고 끝까지 이어라 — 화살표로 옮기고 Space로 돌린다";
+        /* ──────────────────────────────────────── 긴장감 패스 B — Pipe Mania 물 */
+
+        private enum WaterState
+        {
+            Idle,
+            Flowing,
+            Blocked,
+        }
+
+        /// <summary>시작에서부터 BFS로 잰 칸 거리. `_live`가 아니면 -1</summary>
+        private int[] _dist;
+        /// <summary>지금 이어진 칸 중 가장 먼 거리 — 물이 넘어설 수 없는 경계다</summary>
+        private int _frontierDist;
+
+        private WaterState _waterState;
+        /// <summary>Idle이면 물이 차기까지 남은 시간, Blocked면 다시 흐르기까지 남은 시간</summary>
+        private float _waterTimer;
+        /// <summary>물이 시작에서부터 차오른 거리(칸). 소수점은 칸 사이 진행률이다</summary>
+        private float _waterDist;
+        private float _waterDelay;
+        private float _waterSpeed;
+
+        private const float WaterBlockPause = 2f;
+
+        /// <summary>마지막 3초 — 공통 하이라이트용 박동 타이머</summary>
+        private float _finalBeatTimer;
+
+        public override string Instruction =>
+            "관을 눌러 돌리고 끝까지 이어라 — 화살표로 옮기고 Space로 돌린다(물이 차오른다)";
 
         public override string Status
         {
@@ -52,7 +91,13 @@ namespace SoldierADay.Net
             {
                 var lit = 0;
                 if (_live != null) foreach (var l in _live) if (l) lit += 1;
-                return $"연결 {lit}칸  ·  돌린 횟수 {_turns}";
+                var water = _waterState switch
+                {
+                    WaterState.Idle => $"물까지 {Mathf.CeilToInt(_waterTimer)}초",
+                    WaterState.Blocked => "물이 막혔다",
+                    _ => $"수위 {Mathf.FloorToInt(_waterDist)}칸",
+                };
+                return $"연결 {lit}칸  ·  돌린 횟수 {_turns}  ·  {water}";
             }
         }
 
@@ -63,6 +108,7 @@ namespace SoldierADay.Net
             _pipe = new int[_cols * _rows];
             _live = new bool[_cols * _rows];
             _onPath = new bool[_cols * _rows];
+            _dist = new int[_cols * _rows];
             _turns = 0;
 
             // 트윈이 끝난 상태(각 0°)로 시작한다 — `Time.time - RotateDuration`은
@@ -92,6 +138,13 @@ namespace SoldierADay.Net
             }
 
             Flow();
+
+            // 물 — 시작 4초 뒤부터 차오른다. 난이도가 오르면 유예가 줄고 유속이 빨라진다
+            _waterDelay = Mathf.Lerp(4f, 2.4f, (Difficulty - 1f) * 0.5f);
+            _waterSpeed = Mathf.Lerp(1f, 1.6f, (Difficulty - 1f) * 0.5f);
+            _waterState = WaterState.Idle;
+            _waterTimer = _waterDelay;
+            _waterDist = 0f;
 
             // 키보드 포커스는 "시작" 칸에서 출발한다 — 첫 Space가 곧바로
             // 뜻있는 자리를 돌리게 한다
@@ -171,19 +224,30 @@ namespace SoldierADay.Net
             return y * _cols + x;
         }
 
-        /// <summary>시작에서 신호를 흘린다. 이 결과가 곧 화면이다</summary>
+        /// <summary>
+        /// 시작에서 신호를 흘린다. 이 결과가 곧 화면이다.
+        ///
+        /// BFS로 바꾼 이유는 물 연출(`UpdateWater`)이 "시작에서부터 몇 칸째인가"
+        /// (`_dist`)를 알아야 해서다 — 예전 DFS(스택)도 `_live` 집합 자체는
+        /// 똑같이 만들지만 거리는 안 준다. 도달 가능한 칸 집합은 순회 순서와
+        /// 무관하므로 이 교체는 판정에 아무 영향이 없다.
+        /// </summary>
         private void Flow()
         {
-            for (var i = 0; i < _live.Length; i += 1) _live[i] = false;
+            for (var i = 0; i < _live.Length; i += 1) { _live[i] = false; _dist[i] = -1; }
+            _frontierDist = 0;
             if (_pipe[_start] == 0) return;
 
-            var stack = new System.Collections.Generic.Stack<int>();
-            stack.Push(_start);
+            var queue = new System.Collections.Generic.Queue<int>();
+            queue.Enqueue(_start);
             _live[_start] = true;
+            _dist[_start] = 0;
 
-            while (stack.Count > 0)
+            while (queue.Count > 0)
             {
-                var at = stack.Pop();
+                var at = queue.Dequeue();
+                if (_dist[at] > _frontierDist) _frontierDist = _dist[at];
+
                 for (var dir = 0; dir < 4; dir += 1)
                 {
                     if ((_pipe[at] & (1 << dir)) == 0) continue;
@@ -192,7 +256,8 @@ namespace SoldierADay.Net
                     // 맞은편도 뚫려 있어야 흐른다 — 반쪽만 맞으면 안 이어진다
                     if ((_pipe[n] & (1 << ((dir + 2) % 4))) == 0) continue;
                     _live[n] = true;
-                    stack.Push(n);
+                    _dist[n] = _dist[at] + 1;
+                    queue.Enqueue(n);
                 }
             }
         }
@@ -202,6 +267,8 @@ namespace SoldierADay.Net
             if (_area.width <= 0f) return;
 
             UpdateFocusNav(dt, input);
+            UpdateWater(dt);
+            FinalStretchTick(dt);
 
             if (input.Pressed)
             {
@@ -223,6 +290,39 @@ namespace SoldierADay.Net
             RotateCellAt(_focus);
         }
 
+        /// <summary>
+        /// 물의 흐름. Idle → 유예가 끝나면 Flowing. Flowing 중엔 `_frontierDist`를
+        /// 따라잡으면(=아직 안 이은 막다른 관에 닿으면) 실수 하나를 물리고 그
+        /// 자리에서 2초 멈춘다(Blocked) — 자리를 처음으로 되돌리지 않으므로
+        /// 그사이 관을 돌려 물길을 열어주면 다음 틱에 바로 이어서 나간다.
+        /// </summary>
+        private void UpdateWater(float dt)
+        {
+            switch (_waterState)
+            {
+                case WaterState.Idle:
+                    _waterTimer -= dt;
+                    if (_waterTimer <= 0f) _waterState = WaterState.Flowing;
+                    break;
+
+                case WaterState.Flowing:
+                    _waterDist += _waterSpeed * dt;
+                    if (_waterDist > _frontierDist + 0.001f)
+                    {
+                        _waterDist = _frontierDist;
+                        Miss();
+                        _waterState = WaterState.Blocked;
+                        _waterTimer = WaterBlockPause;
+                    }
+                    break;
+
+                case WaterState.Blocked:
+                    _waterTimer -= dt;
+                    if (_waterTimer <= 0f) _waterState = WaterState.Flowing;
+                    break;
+            }
+        }
+
         /// <summary>칸 하나를 90도 돌린다. 판정 로직은 여기 하나뿐이라 마우스 클릭과
         /// 키보드 포커스 확정이 정확히 같은 결과를 낸다</summary>
         private void RotateCellAt(int i)
@@ -236,10 +336,6 @@ namespace SoldierADay.Net
             _rotSince[i] = Time.time;
             Sfx.Play("tap", 0.8f, 1.15f);
             Flow();
-
-            // 필요 이상으로 돌리면 손이 헤맨 것이다. `rotations`의 두 배까지 봐준다
-            var budget = Mathf.Max(4, ParamInt("rotations", 5) * 2);
-            if (_turns == budget + 1 || _turns == budget * 2 + 1) Miss();
 
             var lit = 0;
             foreach (var l in _live) if (l) lit += 1;
@@ -305,10 +401,38 @@ namespace SoldierADay.Net
                             size - 6f, size - 6f);
         }
 
+        /// <summary>마지막 3초 — 펄스 테두리 + 저음 심박(공통 패스 B 항목). 남은 시간이
+        /// 짧아질수록 박동이 빨라진다</summary>
+        private void FinalStretchTick(float dt)
+        {
+            if (State != BoardState.Running || Remaining > 3f || Remaining <= 0f) return;
+            _finalBeatTimer -= dt;
+            if (_finalBeatTimer > 0f) return;
+            var urgency = 1f - Mathf.Clamp01(Remaining / 3f);
+            Sfx.Play("tap", 0.5f, Mathf.Lerp(0.75f, 0.5f, urgency));
+            _finalBeatTimer = Mathf.Lerp(0.5f, 0.22f, urgency);
+        }
+
+        private void FinalStretchDraw(HudTheme theme, Rect body)
+        {
+            if (State != BoardState.Running || Remaining > 3f || Remaining <= 0f) return;
+            var urgency = 1f - Mathf.Clamp01(Remaining / 3f);
+            if (!HudTheme.Pulse(Mathf.Lerp(2f, 4f, urgency))) return;
+            theme.Border(body, HudTheme.Alert, 3f);
+        }
+
         public override void Draw(HudTheme theme, Rect body)
         {
             _area = body;
             theme.Fill(body, HudTheme.Paper3);
+
+            // 물 — 이어진 칸을 따라 차오른 것을 옅은 파랑으로 겹쳐 그린다. 관
+            // 그림보다 먼저 그려서 위에 관 아이콘이 또렷하게 남는다
+            for (var i = 0; i < _dist.Length; i += 1)
+            {
+                if (_dist[i] < 0 || _dist[i] > _waterDist) continue;
+                theme.Fill(CellRect(i), HudTheme.Cold, 0.35f);
+            }
 
             for (var i = 0; i < _pipe.Length; i += 1)
             {
@@ -368,7 +492,21 @@ namespace SoldierADay.Net
             // H-4 — 키보드 포커스 테두리. 마우스를 쓰는 동안은 감춘다
             if (_usingKeyboard) theme.Border(CellRect(_focus), HudTheme.Cold, 3f);
 
+            // 물이 막혔을 때·차오르기 전일 때의 안내
+            if (_waterState == WaterState.Blocked)
+            {
+                GUI.Label(new Rect(body.x, body.y + 6f, body.width, 24f), "물이 막혔다! 곧 다시 흐른다",
+                    theme.At(theme.Small, 14, HudTheme.Alert, TextAnchor.MiddleCenter));
+            }
+            else if (_waterState == WaterState.Idle)
+            {
+                GUI.Label(new Rect(body.x, body.y + 6f, body.width, 24f),
+                    $"물이 {Mathf.CeilToInt(_waterTimer)}초 뒤 찬다",
+                    theme.At(theme.Small, 14, HudTheme.Cold, TextAnchor.MiddleCenter));
+            }
+
             theme.Border(body, HudTheme.Rule);
+            FinalStretchDraw(theme, body);
         }
     }
 }

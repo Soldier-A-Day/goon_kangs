@@ -23,6 +23,14 @@ namespace SoldierADay.Net
     /// 기억이 같은 자료를 가리키게 한다. 난이도가 올라 노출 시간(`show`)이
     /// 짧아져도 이 재생은 노출 구간에 맞춰 자동으로 빨라질 뿐 끊기지 않는다 —
     /// 짧아진 몫을 소리가 그대로 보상한다.
+    ///
+    /// ── 긴장감 패스 B — 속도로 조인다 ─────────────────────────────────────
+    /// `steps`가 2 이상인 다단 절차는 라운드(단계)가 넘어갈 때마다 노출 재생
+    /// 속도가 15%씩 빨라진다(`_stageSpeedFactor`) — 자릿수가 느는 것(암기량)과
+    /// 별개의 축이다. 외울 것이 느는 동시에 "보는 시간"까지 준다는 것이
+    /// 요지라, 두 축이 같은 방향으로 조여도 걷어내지 않는다(발주 §3 지시).
+    /// 최저 노출 시간을 0.6초로 바닥을 둔 것은 그 아래로 가면 소리·글자
+    /// 어느 쪽으로도 못 따라가는 구간이라서다.
     /// </summary>
     public sealed class SeqBoard : Board
     {
@@ -36,6 +44,15 @@ namespace SoldierADay.Net
         private float _flash;
         private bool _wrong;
         private Rect _area;
+
+        /// <summary>라운드(단계)마다 1.15배씩 불어나는 재생 속도 배수 — 1이 기본</summary>
+        private float _stageSpeedFactor;
+
+        /// <summary>재생 속도가 아무리 올라도 이 아래로는 못 줄어드는 노출 시간(초)</summary>
+        private const float MinRevealDuration = 0.6f;
+
+        /// <summary>마지막 3초 — 공통 하이라이트용 박동 타이머</summary>
+        private float _finalBeatTimer;
 
         /// <summary>노출 동안 몇 번째 값까지 소리로 들려줬는가</summary>
         private int _revealSounded;
@@ -62,6 +79,7 @@ namespace SoldierADay.Net
             _stages = Mathf.Clamp(ParamInt("steps", 1), 1, 4);
             _stage = 0;
             _showFor = Param("show", 3f);
+            _stageSpeedFactor = 1f;
             Build(ParamInt("length", 5));
         }
 
@@ -97,8 +115,11 @@ namespace SoldierADay.Net
             }
 
             _at = 0;
-            _reveal = _showFor;
-            _revealDuration = _showFor;
+            // 라운드마다 15%씩 빨라진 재생 속도를 여기서 반영한다 — 노출
+            // 시간을 배수로 나눌 뿐이니 자릿수(`length`)가 는 것과는 별개다
+            var revealDuration = Mathf.Max(MinRevealDuration, _showFor / Mathf.Max(1f, _stageSpeedFactor));
+            _reveal = revealDuration;
+            _revealDuration = revealDuration;
             _revealSounded = 0;
         }
 
@@ -114,6 +135,7 @@ namespace SoldierADay.Net
         protected override void Advance(float dt, BoardInput input)
         {
             _flash = Mathf.Max(0f, _flash - dt * 3f);
+            FinalStretchTick(dt);
 
             if (_reveal > 0f)
             {
@@ -153,7 +175,9 @@ namespace SoldierADay.Net
                 _stage += 1;
                 if (_stage >= _stages) { Fill = 1f; Clear(); return; }
 
-                // 자릿수가 는다. 6 → 8 → 10
+                // 라운드마다 재생 속도 15%씩 상승 — 외울 양이 아니라 보는
+                // 속도로 조인다. 자릿수 증가(6 → 8 → 10)와는 다른 축이다
+                _stageSpeedFactor *= 1.15f;
                 Build(_sequence.Length + 2);
                 Fill = Progressed();
                 return;
@@ -164,13 +188,36 @@ namespace SoldierADay.Net
             _flash = 1f;
             _at = 0;
             Miss();
-            // 두 번 틀리면 다시 보여준다 — 못 외운 채로 시간만 태우게 두지 않는다
+            // 두 번 틀리면 다시 보여준다 — 못 외운 채로 시간만 태우게 두지 않는다.
+            // 지금 라운드의 빨라진 속도(`_stageSpeedFactor`)도 그대로 반영한다 —
+            // 재노출이 원래 노출보다 느리게 보이면 그 자체가 보상처럼 읽힌다
             if (Mistakes % 2 == 0)
             {
-                _reveal = _showFor * 0.6f;
-                _revealDuration = _reveal;
+                var reveal = Mathf.Max(MinRevealDuration,
+                    _showFor * 0.6f / Mathf.Max(1f, _stageSpeedFactor));
+                _reveal = reveal;
+                _revealDuration = reveal;
                 _revealSounded = 0;
             }
+        }
+
+        /// <summary>마지막 3초 — 펄스 테두리 + 저음 심박(공통 패스 B 항목)</summary>
+        private void FinalStretchTick(float dt)
+        {
+            if (State != BoardState.Running || Remaining > 3f || Remaining <= 0f) return;
+            _finalBeatTimer -= dt;
+            if (_finalBeatTimer > 0f) return;
+            var urgency = 1f - Mathf.Clamp01(Remaining / 3f);
+            Sfx.Play("tap", 0.5f, Mathf.Lerp(0.75f, 0.5f, urgency));
+            _finalBeatTimer = Mathf.Lerp(0.5f, 0.22f, urgency);
+        }
+
+        private void FinalStretchDraw(HudTheme theme, Rect body)
+        {
+            if (State != BoardState.Running || Remaining > 3f || Remaining <= 0f) return;
+            var urgency = 1f - Mathf.Clamp01(Remaining / 3f);
+            if (!HudTheme.Pulse(Mathf.Lerp(2f, 4f, urgency))) return;
+            theme.Border(body, HudTheme.Alert, 3f);
         }
 
         private float Progressed() =>
@@ -283,6 +330,7 @@ namespace SoldierADay.Net
             }
 
             theme.Border(body, HudTheme.Rule);
+            FinalStretchDraw(theme, body);
         }
 
         private string Label(int index) =>

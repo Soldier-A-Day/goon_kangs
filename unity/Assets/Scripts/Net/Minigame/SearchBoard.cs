@@ -13,6 +13,17 @@ namespace SoldierADay.Net
     /// 훑는 순서가 실력이 된다.
     ///
     /// 헛짚어도 실패는 아니다. 실수로만 세고, 못 찾은 채 시간이 다하면 재시도다.
+    ///
+    /// ── 긴장감 패스 B — 금속탐지기 ─────────────────────────────────────────
+    /// 신호 세기(`_strength`)를 이제 눈으로만이 아니라 **귀로도** 잰다 — 느린
+    /// 비프(멀다) → 중간(가깝다) → 연타(바로 근처)의 3단, 금속탐지기가 목표에
+    /// 다가갈 때 나는 소리 문법 그대로다. 화면 네 변에는 거리를 색 온도로
+    /// 얇게 두른다(멀면 차갑게, 가까우면 따뜻하게) — 알파는 은은해서 수색 자체를
+    /// 가리지 않는다. 남은 시간이 4초 남았는데 아직 못 찾은 대상이 있으면
+    /// 그 언저리가 딱 한 번 크게 반짝인다 — 정확한 좌표가 아니라 "이 근방"이라는
+    /// 범위 힌트고, 이미 있는 실패 리플레이(§클래스 하단)와는 다른 장치다:
+    /// 저건 판이 끝난 뒤에 못 찾은 것을 전부 보여주는 결과 화면이고, 이건
+    /// 판이 살아 있는 동안 하나만 슬쩍 알려주는 구제책이다.
     /// </summary>
     public sealed class SearchBoard : Board
     {
@@ -38,6 +49,21 @@ namespace SoldierADay.Net
 
         /// <summary>실패 리플레이가 깜빡이는 창(초) — 결과 화면이 뜬 처음 이만큼만 보여준다</summary>
         private const float RevealWindow = 1.4f;
+
+        /* ──────────────────────────────────────── 긴장감 패스 B — 금속탐지기 */
+
+        /// <summary>다음 비프까지 남은 시간(초) — 신호가 셀수록 짧아진다</summary>
+        private float _beepTimer;
+
+        /// <summary>남은 시간 4초 힌트를 이미 예약했는가 — 판마다 딱 한 번뿐이다</summary>
+        private bool _lateHintShown;
+        /// <summary>힌트로 고른 미발견 대상의 인덱스. 없으면 -1</summary>
+        private int _lateHintIndex = -1;
+        /// <summary>힌트 반짝임이 남은 시간(초)</summary>
+        private float _lateHintT;
+
+        /// <summary>마지막 3초 — 공통 하이라이트용 박동 타이머</summary>
+        private float _finalBeatTimer;
 
         /// <summary>
         /// 변형별 발견 카드 문구 — 무엇을 찾았는지 한 명사구로.
@@ -81,10 +107,6 @@ namespace SoldierADay.Net
         /// "못 했다"가 뜨는 건 이상하다. 이 스위치를 켜면 베이스가 시간초과
         /// 시점의 `Fill`이 0.5 이상이면 통과로 쳐준다 — 판정 자체는 `Board.Tick`이
         /// 한다. 여기서는 자격만 연다.
-        ///
-        /// 이 워크트리에는 아직 베이스에 `GradesOnTimeout`/`TimedOut`이 없다 —
-        /// 병렬로 도는 S1이 `Board.cs`에 추가하는 중이라 그렇다. 병합 전까지
-        /// 컴파일이 안 맞는 게 정상이고, 병합되면 맞물린다.
         /// </summary>
         protected override bool GradesOnTimeout => true;
 
@@ -104,6 +126,11 @@ namespace SoldierADay.Net
             _rows = Mathf.Max(3, Mathf.CeilToInt((float)cells / _cols));
             _swept = new bool[_cols * _rows];
 
+            _beepTimer = 0f;
+            _lateHintShown = false;
+            _lateHintIndex = -1;
+            _lateHintT = 0f;
+
             // 변형별 발견 카드 문구를 대상마다 하나씩 배정한다. 시드 고정 Rng라
             // 같은 questId면 매번 같은 대상이 같은 문구를 낸다.
             var cards = CardPool(Spec?.variant);
@@ -119,6 +146,23 @@ namespace SoldierADay.Net
         {
             _ping = Mathf.Max(0f, _ping - dt * 2f);
             _cardT = Mathf.Max(0f, _cardT - dt);
+            FinalStretchTick(dt);
+
+            // 남은 시간 4초 — 아직 못 찾은 대상이 있으면 그 언저리가 한 번
+            // 반짝인다(범위 힌트, 정답 공개 아님). 판마다 딱 한 번만 예약한다
+            if (_lateHintT > 0f) _lateHintT -= dt;
+            if (!_lateHintShown && State == BoardState.Running && Remaining <= 4f)
+            {
+                _lateHintShown = true;
+                for (var i = 0; i < _found.Length; i += 1)
+                {
+                    if (_found[i]) continue;
+                    _lateHintIndex = i;
+                    _lateHintT = 0.9f;
+                    break;
+                }
+            }
+
             if (_area.width <= 0f) return;
 
             // H-4 — 커서 자리를 가상 커서에서 읽는다. 마우스로 훑을 때는 매
@@ -145,6 +189,18 @@ namespace SoldierADay.Net
                 nearest = i;
             }
 
+            // 3단 비프 — 멀면 느리고 낮게, 가까울수록 잦고 높게(금속탐지기 문법).
+            // 실제 판정(`need` 문턱)은 안 건드린다 — 소리는 어디까지나 보조다
+            _beepTimer -= dt;
+            if (_beepTimer <= 0f)
+            {
+                var tier = _strength > 0.6f ? 2 : _strength > 0.25f ? 1 : 0;
+                var interval = tier == 2 ? 0.14f : tier == 1 ? 0.4f : 0.85f;
+                var pitch = tier == 2 ? 1.5f : tier == 1 ? 1f : 0.65f;
+                Sfx.Play("tap", 0.22f, pitch);
+                _beepTimer = interval;
+            }
+
             // 클릭 대신 Space·Enter도 받는다(`Confirm` — Board.cs §BoardInput)
             if (!input.Confirm) return;
 
@@ -166,6 +222,25 @@ namespace SoldierADay.Net
             Miss();
         }
 
+        /// <summary>마지막 3초 — 펄스 테두리 + 저음 심박(공통 패스 B 항목)</summary>
+        private void FinalStretchTick(float dt)
+        {
+            if (State != BoardState.Running || Remaining > 3f || Remaining <= 0f) return;
+            _finalBeatTimer -= dt;
+            if (_finalBeatTimer > 0f) return;
+            var urgency = 1f - Mathf.Clamp01(Remaining / 3f);
+            Sfx.Play("tap", 0.5f, Mathf.Lerp(0.75f, 0.5f, urgency));
+            _finalBeatTimer = Mathf.Lerp(0.5f, 0.22f, urgency);
+        }
+
+        private void FinalStretchDraw(HudTheme theme, Rect body)
+        {
+            if (State != BoardState.Running || Remaining > 3f || Remaining <= 0f) return;
+            var urgency = 1f - Mathf.Clamp01(Remaining / 3f);
+            if (!HudTheme.Pulse(Mathf.Lerp(2f, 4f, urgency))) return;
+            theme.Border(body, HudTheme.Alert, 3f);
+        }
+
         public override void Draw(HudTheme theme, Rect body)
         {
             _area = body;
@@ -184,6 +259,16 @@ namespace SoldierADay.Net
                            HudTheme.Paper, 0.92f);
             }
 
+            // 온도 비네트 — 멀수록 차갑게, 가까울수록 따뜻하게. 알파는 은은하게만
+            // 둬서 수색 자체(훑은 칸·신호 원)를 가리지 않는다
+            var temp = Color.Lerp(HudTheme.Cold, HudTheme.Heat, _strength);
+            var vAlpha = Mathf.Lerp(0.05f, 0.22f, _strength);
+            const float vignette = 26f;
+            theme.Fill(new Rect(body.x, body.y, body.width, vignette), temp, vAlpha);
+            theme.Fill(new Rect(body.x, body.yMax - vignette, body.width, vignette), temp, vAlpha);
+            theme.Fill(new Rect(body.x, body.y, vignette, body.height), temp, vAlpha);
+            theme.Fill(new Rect(body.xMax - vignette, body.y, vignette, body.height), temp, vAlpha);
+
             // 찾은 것
             for (var i = 0; i < _hidden.Length; i += 1)
             {
@@ -193,6 +278,18 @@ namespace SoldierADay.Net
                 var mark = new Rect(p.x - 15f, p.y - 15f, 30f, 30f);
                 theme.Fill(mark, HudTheme.AccentW);
                 theme.Border(mark, HudTheme.Accent, 2f);
+            }
+
+            // 막판 힌트 — 정확한 지점이 아니라 크고 옅은 원으로 "이 근방"만
+            // 알려준다. 찾은 표시(30px 사각 마커)와는 확실히 다른 모양이라
+            // 정답을 공개하는 것처럼 읽히지 않는다
+            if (_lateHintT > 0f && _lateHintIndex >= 0 && !_found[_lateHintIndex])
+            {
+                var p = new Vector2(body.x + _hidden[_lateHintIndex].x * body.width,
+                                    body.y + _hidden[_lateHintIndex].y * body.height);
+                var alpha = Mathf.Clamp01(_lateHintT / 0.9f) * 0.35f;
+                const float r = 70f;
+                theme.Fill(new Rect(p.x - r, p.y - r, r * 2f, r * 2f), HudTheme.Heat, alpha);
             }
 
             // **실패 리플레이.** 판이 끝났는데(통과든 실패든) 못 찾은 대상이 남아
@@ -256,6 +353,7 @@ namespace SoldierADay.Net
             }
 
             theme.Border(body, HudTheme.Rule);
+            FinalStretchDraw(theme, body);
         }
     }
 }
