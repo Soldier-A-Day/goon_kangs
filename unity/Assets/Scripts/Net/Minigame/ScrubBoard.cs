@@ -43,6 +43,19 @@ namespace SoldierADay.Net
         /// <summary>김 서림 예고 깜빡임이 실제로 덮기까지 보장하는 시간(초)</summary>
         private const float FogWarnDuration = 0.5f;
 
+        /// <summary>
+        /// 전체 완료 광택 플래시가 화면을 훑는 시간(초, A-5 벤치마크 이식 S3).
+        ///
+        /// 파워워시 시뮬레이터의 "DING"은 소리만이 아니라 다 닦인 표면 위로
+        /// 빛이 한 번 스치는 광택으로도 온다 — 덩어리 하나의 사건(탭 소리)과
+        /// 판 전체의 완료(광택 훑기)가 세기로 구분돼야 "이번엔 진짜 끝났다"가
+        /// 몸으로 읽힌다.
+        /// </summary>
+        private const float ClearSweepDuration = 0.5f;
+
+        /// <summary>공통 — 마지막 3초 하이라이트 심장 박동 tap 간격(초)</summary>
+        private const float HeartbeatInterval = 0.5f;
+
         private int _cols;
         private int _rows;
 
@@ -86,6 +99,9 @@ namespace SoldierADay.Net
         private Vector2 _last;
         private bool _dragging;
         private Rect _area;
+
+        /// <summary>공통 — 마지막 3초 심장 박동까지 남은 시간(초). 0 이하면 이번 프레임에 운다</summary>
+        private float _heartbeatCd;
 
         /// <summary>
         /// H-4 — 브러시 자리를 마우스가 아니라 가상 커서에서 읽는다.
@@ -248,6 +264,7 @@ namespace SoldierADay.Net
             // return과 무관하게 먼저 갱신한다
             UpdateStainFlashes(dt);
             UpdateFog(dt);
+            TickHeartbeat(dt);
 
             if (_area.width <= 0f) return;
 
@@ -359,11 +376,36 @@ namespace SoldierADay.Net
                 }
                 // 이번 프레임에 전체 클리어까지 같이 터지면 성공 사운드가 대신
                 // 울린다 — 탭 소리를 겹쳐 울리지 않는다. 강조는 그대로 보인다
-                if (!aboutToClear) Sfx.Play("tap");
+                //
+                // A-5 벤치마크 이식 S3 — 파워워시 시뮬레이터의 "DING". 덩어리
+                // 하나가 끝나는 사건은 tap보다 또렷한 pop 키를 살짝 높여 쓴다 —
+                // 딸깍이 아니라 "딩!"으로 들려야 벗겨낸 것이 사건으로 느껴진다
+                if (!aboutToClear) Sfx.Play("pop", 1f, 1.1f);
                 _stainCompletedThisFrame.Clear();
             }
 
             if (Fill >= Param("coverage", 0.9f)) Clear();
+        }
+
+        /// <summary>
+        /// 공통 S-공통1 — 마지막 3초 하이라이트.
+        ///
+        /// 심장 박동처럼 0.5초 간격으로 저음 tap을 운다. 시간 막대 자체는
+        /// `HudMinigame`(비소유 파일) 소관이라 여기서는 판 본문 쪽 시각·청각
+        /// 피드백만 맡는다 — `Draw`가 본문 위 가장자리에 펄스 띠를 그린다.
+        /// </summary>
+        private void TickHeartbeat(float dt)
+        {
+            if (Remaining > 3f || Remaining <= 0f)
+            {
+                _heartbeatCd = 0f;
+                return;
+            }
+
+            _heartbeatCd -= dt;
+            if (_heartbeatCd > 0f) return;
+            Sfx.Play("tap", 0.85f, 0.55f);
+            _heartbeatCd = HeartbeatInterval;
         }
 
         private void UpdateStainFlashes(float dt)
@@ -494,7 +536,21 @@ namespace SoldierADay.Net
                 }
             }
 
+            // 전체 완료 광택 플래시 — 파워워시의 "DING"이 화면을 훑는 밝은 줄로도
+            // 온다. `Clear()`/시간초과 통과 둘 다 `State`를 Cleared로 바꾸므로
+            // 여기 하나만 있으면 두 경로 다 같은 축하를 받는다
+            if (State == BoardState.Cleared && ResultAge < ClearSweepDuration)
+            {
+                DrawClearSweep(theme, body, ResultAge / ClearSweepDuration);
+            }
+
             theme.Border(body, HudTheme.Rule);
+
+            // 공통 — 마지막 3초 하이라이트. 본문 위 가장자리를 심장 박동에 맞춰 깜빡인다
+            if (Remaining <= 3f && Remaining > 0f && HudTheme.Pulse(2f))
+            {
+                theme.Fill(new Rect(body.x, body.y, body.width, 4f), HudTheme.Alert, 0.85f);
+            }
 
             // 브러시 — 어디를 닦고 있는지 손이 보여야 한다. 가상 커서 자리를
             // 그대로 쓰므로 마우스로 몰든 화살표+Space로 몰든 같은 원이 따라온다
@@ -521,6 +577,25 @@ namespace SoldierADay.Net
             var w = (_stainMaxX[stainIdx] - _stainMinX[stainIdx] + 1) * scaleX;
             var h = (_stainMaxY[stainIdx] - _stainMinY[stainIdx] + 1) * scaleY;
             return new Rect(x0, y0, w, h);
+        }
+
+        /// <summary>
+        /// 전체 완료 순간 화면을 훑는 광택 한 줄(A-5 벤치마크 이식 S3).
+        ///
+        /// 왼쪽 바깥에서 오른쪽 바깥까지 `t`(0~1)를 따라 선형으로 지나가며,
+        /// 지나갈수록 옅어진다 — 젖은 표면에 빛이 스치는 잔상처럼 한 번만
+        /// 훑고 사라져야 "덩어리 완료"(탭 소리 · 짧은 강조)와 "판 전체 완료"의
+        /// 세기가 갈린다.
+        /// </summary>
+        private static void DrawClearSweep(HudTheme theme, Rect body, float t)
+        {
+            var w = body.width * 0.16f;
+            var x = body.x + Mathf.Lerp(-w, body.width, Mathf.Clamp01(t));
+            var alpha = 0.8f * (1f - t);
+
+            theme.Fill(new Rect(x, body.y, w, body.height), HudTheme.White, alpha * 0.5f);
+            // 중심에 더 밝은 얇은 코어를 얹어 광택처럼 보이게 한다
+            theme.Fill(new Rect(x + w * 0.4f, body.y, w * 0.2f, body.height), HudTheme.White, alpha);
         }
 
         /// <summary>
