@@ -89,8 +89,9 @@ namespace SoldierADay.Net
         private static int _jointNeed = 2;
         private static int _jointHere = 2;
         /// <summary>B-1 비대칭 — ""(대칭) · "watch"(정답만) · "operate"(조작만).
-        /// SEQ·TRACE만 실제로 읽지만(`JointBoard.RoleSpec`), 다른 원형에 얹어도
-        /// `Asymmetric` 분기 밖이라 그냥 무시된다 — `phase2`와 같은 안전망이다</summary>
+        /// SEQ·TRACE만 실제로 읽지만(`JointBoard.OpenRound`가 안쪽 판에 꽂는
+        /// `SeqBoard.Locked`·`NoReveal`), 다른 원형에 얹어도 `Asymmetric` 분기
+        /// 밖이라 그냥 무시된다 — `phase2`와 같은 안전망이다</summary>
         private static string _jointRole = "";
         /// <summary>지금 연 판이 합동이면 여기 담아 매 프레임 인원값을 다시 밀어넣는다
         /// (`QuestPlay.Feed`가 스냅샷마다 하는 일과 같다 — 서버가 없을 뿐이다)</summary>

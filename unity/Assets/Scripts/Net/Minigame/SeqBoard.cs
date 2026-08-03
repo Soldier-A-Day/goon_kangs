@@ -62,6 +62,31 @@ namespace SoldierADay.Net
         /// "몇 번째 값을 이미 들려줬는가"가 재노출에서도 어긋나지 않는다</summary>
         private float _revealDuration;
 
+        /// <summary>
+        /// B-1 — 조작 역할은 노출 단계가 아예 없어야 한다.
+        ///
+        /// `show`를 0으로 낮추는 파라미터 트릭은 `MinRevealDuration`(0.6초)
+        /// 바닥에 걸려 실제로는 0.6초짜리 노출이 됐다 — 첫 프레임에 정답이
+        /// 잠깐 반짝인 것이다. 오답 두 번째 재노출(`Mistakes % 2 == 0`)도
+        /// 같은 바닥에 걸려 새는 건 마찬가지였다. 그래서 파라미터가 아니라
+        /// 이 스위치로 노출 자체를 완전히 끈다 — `Begin`이 `Setup`을 부르기
+        /// 전에 켜져 있어야 첫 라운드부터 적용된다.
+        /// </summary>
+        public bool NoReveal { get; set; }
+
+        /// <summary>
+        /// B-1 — 정답 역할은 절대 조작하지 않는다.
+        ///
+        /// `Tick`에 중립 `BoardInput`(전부 false/0)을 넘기는 것만으로는 안
+        /// 막힌다 — 숫자키는 `Pressed`가 전달받은 값이 아니라 `Input.GetKeyDown`을
+        /// 직접 읽기 때문에(원형은 숫자키를 마우스 클릭과 동급으로 취급한다),
+        /// 정답 화면을 보며 물리 키보드 숫자를 누르면 그대로 먹혔을 것이다.
+        /// 이 스위치가 켜져 있으면 `Pressed`가 그 경로들보다 먼저 -1을 돌려준다
+        /// — 노출 타이머(`Advance`)는 그대로 흘러야 "봤다가 사라지는" 것이
+        /// 보이므로 `Tick` 자체는 계속 부른다.
+        /// </summary>
+        public bool Locked { get; set; }
+
         public override string Instruction =>
             _reveal > 0f ? "외워라"
             : _keys == null ? "본 순서대로 눌러라"
@@ -115,6 +140,17 @@ namespace SoldierADay.Net
             }
 
             _at = 0;
+
+            // B-1 — 조작 역할은 노출 자체가 없다. 시간을 0으로 밀지 않고
+            // 아예 재우는 이유는 위 `NoReveal` 주석대로다
+            if (NoReveal)
+            {
+                _reveal = 0f;
+                _revealDuration = 0f;
+                _revealSounded = _sequence.Length;
+                return;
+            }
+
             // 라운드마다 15%씩 빨라진 재생 속도를 여기서 반영한다 — 노출
             // 시간을 배수로 나눌 뿐이니 자릿수(`length`)가 는 것과는 별개다
             var revealDuration = Mathf.Max(MinRevealDuration, _showFor / Mathf.Max(1f, _stageSpeedFactor));
@@ -190,8 +226,10 @@ namespace SoldierADay.Net
             Miss();
             // 두 번 틀리면 다시 보여준다 — 못 외운 채로 시간만 태우게 두지 않는다.
             // 지금 라운드의 빨라진 속도(`_stageSpeedFactor`)도 그대로 반영한다 —
-            // 재노출이 원래 노출보다 느리게 보이면 그 자체가 보상처럼 읽힌다
-            if (Mistakes % 2 == 0)
+            // 재노출이 원래 노출보다 느리게 보이면 그 자체가 보상처럼 읽힌다.
+            // B-1 — `NoReveal`이면 이 재노출도 막는다. 안 막으면 조작 역할이
+            // 일부러 두 번 틀려 정답을 훔쳐보는 길이 열린다
+            if (!NoReveal && Mistakes % 2 == 0)
             {
                 var reveal = Mathf.Max(MinRevealDuration,
                     _showFor * 0.6f / Mathf.Max(1f, _stageSpeedFactor));
@@ -236,6 +274,11 @@ namespace SoldierADay.Net
         /// </summary>
         private int Pressed(BoardInput input)
         {
+            // B-1 — 정답 역할 차단. 숫자키는 아래에서 `input`이 아니라
+            // `Input.GetKeyDown`을 직접 읽으므로, 중립 `BoardInput`을 넘기는
+            // 것만으로는 못 막는다 — 그래서 여기서 가장 먼저 끊는다
+            if (Locked) return -1;
+
             if (_keys == null)
             {
                 for (var n = 0; n <= 9; n += 1)
@@ -331,6 +374,51 @@ namespace SoldierADay.Net
 
             theme.Border(body, HudTheme.Rule);
             FinalStretchDraw(theme, body);
+        }
+
+        /// <summary>
+        /// B-1 — 정답 역할의 화면(`JointBoard`가 `Draw` 대신 이걸 부른다).
+        ///
+        /// 입력 칸은 아예 그리지 않는다 — 조작 역할의 화면과 애초에 구조가
+        /// 다르다. 노출(`_reveal`) 동안은 순서를 크게, 순서 번호와 함께
+        /// 보여주고, 노출이 끝나면 감추고 "외운 것을 불러줘라"만 남는다 —
+        /// 정답을 상시 띄우지 않는다. `Locked`가 입력을 막아 두므로 이 판
+        /// 자체는(재노출을 포함해) 그대로 흘러도 조작으로 이어지지 않는다.
+        /// </summary>
+        public void DrawAnswer(HudTheme theme, Rect body)
+        {
+            if (_sequence == null) return;
+            theme.Fill(body, HudTheme.Paper3);
+
+            if (_reveal > 0f)
+            {
+                var slot = Mathf.Min(84f, (body.width - 40f) / _sequence.Length);
+                for (var i = 0; i < _sequence.Length; i += 1)
+                {
+                    var cell = new Rect(body.center.x - _sequence.Length * slot * 0.5f + i * slot + 4f,
+                                        body.y + 44f, slot - 8f, 64f);
+                    theme.Fill(cell, HudTheme.AccentW);
+                    theme.Border(cell, HudTheme.Accent, 2f);
+                    GUI.Label(cell, Label(_sequence[i]),
+                        theme.At(_keys == null ? theme.MonoBig : theme.Heading,
+                            _keys == null ? 30 : 19, HudTheme.Accent, TextAnchor.MiddleCenter));
+                    // 순서 번호 — 불러줄 때 몇 번째인지 헷갈리지 않게
+                    GUI.Label(new Rect(cell.x, cell.y - 22f, cell.width, 18f), (i + 1).ToString(),
+                        theme.At(theme.Label, 13, HudTheme.Ink3, TextAnchor.MiddleCenter));
+                }
+
+                var bar = new Rect(body.center.x - 120f, body.y + 120f, 240f, 6f);
+                theme.Fill(bar, HudTheme.Rule3);
+                theme.Fill(new Rect(bar.x, bar.y, bar.width * (_reveal / Mathf.Max(0.01f, _revealDuration)),
+                                    bar.height), HudTheme.Heat);
+            }
+            else
+            {
+                GUI.Label(body, "외운 것을 불러줘라",
+                    theme.At(theme.Heading, 22, HudTheme.Ink2, TextAnchor.MiddleCenter));
+            }
+
+            theme.Border(body, HudTheme.Rule);
         }
 
         private string Label(int index) =>

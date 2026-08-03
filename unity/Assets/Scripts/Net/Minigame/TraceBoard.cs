@@ -24,11 +24,26 @@ namespace SoldierADay.Net
     /// 이어서 나간다). **회전 횟수로 실수를 세던 예전 규칙은 걷어냈다** —
     /// 물이 같은 자리(손이 헤맨 것)를 이미 더 정확하게 벌하므로, 둘을
     /// 같이 두면 이중 처벌이다(발주 §1-②).
+    ///
+    /// ── B-1 정보 비대칭 — 정답 스냅샷 ────────────────────────────────────
+    /// 합동판에서 정답 역할이 볼 화면은 이 판을 돌리는 것(`Tick`)이 아니라
+    /// `DrawSolved`를 부르는 것으로 만든다. 스크램블 전(=완성) 배치를
+    /// `_solvedPipe`에 미리 복제해 두고, 그걸 회전 없이 전부 lit로 그린다 —
+    /// 조작 역할이 실제로 돌리는 `_pipe`는 절대 안 건드리는 별도 경로다
+    /// (`JointBoard`가 역할에 따라 `Draw` 대신 이걸 부른다).
     /// </summary>
     public sealed class TraceBoard : Board
     {
         /// <summary>칸이 뚫린 방향 — 비트 0:위 1:오른쪽 2:아래 3:왼쪽</summary>
         private int[] _pipe;
+
+        /// <summary>
+        /// B-1 — 스크램블 전(=정답) 배치. `Setup`이 길을 다 판 직후, 돌려
+        /// 놓기(스크램블) 전에 한 번 복제해 둔다. `DrawSolved`가 이걸 그대로
+        /// 그린다 — `_pipe`(조작 역할이 실제로 돌리는 판)는 절대 안 건드린다
+        /// </summary>
+        private int[] _solvedPipe;
+
         private bool[] _live;
         private bool[] _onPath;
         private int _cols;
@@ -124,6 +139,11 @@ namespace SoldierADay.Net
 
             var branches = ParamInt("branches", 0);
             for (var i = 0; i < branches; i += 1) CarveBranch();
+
+            // B-1 — 돌려 놓기 전, 즉 정답 그대로인 배치를 복제해 둔다.
+            // 정답 역할은 이걸(`DrawSolved`) 그대로 보고, 조작 역할이 돌리는
+            // `_pipe`는 아래에서 스크램블된다
+            _solvedPipe = (int[])_pipe.Clone();
 
             // 다 깔고 나서 **돌려 놓는다.** 처음부터 이어져 있으면 판이 아니다
             var scramble = Mathf.Max(2, ParamInt("rotations", 5));
@@ -460,24 +480,7 @@ namespace SoldierADay.Net
                 // `GUIUtility.RotateAroundPivot`은 배율 걸린 GUI.matrix 아래서
                 // 피벗이 밀린다 — 관이 제자리가 아니라 궤도를 돈다(HudTheme.RotateAt)
                 HudTheme.RotateAt(angle, cell.center);
-
-                theme.Fill(cell, lit ? HudTheme.AccentW : HudTheme.Paper);
-                theme.Border(cell, lit ? HudTheme.Accent : HudTheme.Rule2);
-
-                // 관 — 뚫린 방향으로 가운데에서 뻗는다
-                var color = lit ? HudTheme.Accent : HudTheme.Ink3;
-                var c = cell.center;
-                const float w = 9f;
-                theme.Fill(new Rect(c.x - w * 0.5f, c.y - w * 0.5f, w, w), color);
-                if ((_pipe[i] & 1) != 0)
-                    theme.Fill(new Rect(c.x - w * 0.5f, cell.y, w, c.y - cell.y), color);
-                if ((_pipe[i] & 2) != 0)
-                    theme.Fill(new Rect(c.x, c.y - w * 0.5f, cell.xMax - c.x, w), color);
-                if ((_pipe[i] & 4) != 0)
-                    theme.Fill(new Rect(c.x - w * 0.5f, c.y, w, cell.yMax - c.y), color);
-                if ((_pipe[i] & 8) != 0)
-                    theme.Fill(new Rect(cell.x, c.y - w * 0.5f, c.x - cell.x, w), color);
-
+                DrawPipeVisual(theme, cell, _pipe[i], lit);
                 GUI.matrix = matrix;
             }
 
@@ -507,6 +510,69 @@ namespace SoldierADay.Net
 
             theme.Border(body, HudTheme.Rule);
             FinalStretchDraw(theme, body);
+        }
+
+        /// <summary>
+        /// 칸 하나의 시각(채움·테두리·관 십자 선). 회전 트윈을 씌우는지는
+        /// 호출부 몫이다 — 실전 판(`Draw`)은 `GUI.matrix`로 각도를 감싸 부르고,
+        /// 정답 스냅샷(`DrawSolved`)은 각도 없이 그대로 부른다. 관 그림
+        /// 코드를 두 벌 두지 않으려고 뗐다(B-1)
+        /// </summary>
+        private void DrawPipeVisual(HudTheme theme, Rect cell, int mask, bool lit)
+        {
+            theme.Fill(cell, lit ? HudTheme.AccentW : HudTheme.Paper);
+            theme.Border(cell, lit ? HudTheme.Accent : HudTheme.Rule2);
+
+            var color = lit ? HudTheme.Accent : HudTheme.Ink3;
+            var c = cell.center;
+            const float w = 9f;
+            theme.Fill(new Rect(c.x - w * 0.5f, c.y - w * 0.5f, w, w), color);
+            if ((mask & 1) != 0)
+                theme.Fill(new Rect(c.x - w * 0.5f, cell.y, w, c.y - cell.y), color);
+            if ((mask & 2) != 0)
+                theme.Fill(new Rect(c.x, c.y - w * 0.5f, cell.xMax - c.x, w), color);
+            if ((mask & 4) != 0)
+                theme.Fill(new Rect(c.x - w * 0.5f, c.y, w, cell.yMax - c.y), color);
+            if ((mask & 8) != 0)
+                theme.Fill(new Rect(cell.x, c.y - w * 0.5f, c.x - cell.x, w), color);
+        }
+
+        /// <summary>
+        /// B-1 — 정답 역할의 화면(`JointBoard`가 `Draw` 대신 이걸 부른다).
+        ///
+        /// 스크램블 전 배치(`_solvedPipe`)를, 회전 없이, 전부 신호가 흐르는
+        /// 것으로 그린다 — 완성된 정답 배치 그 자체다. 물·회전 트윈·키보드
+        /// 포커스 같은 조작 역할의 진행 상태는 아무것도 안 쓴다(`_pipe`·
+        /// `_live`·`_waterState`는 조작 역할의 판이 따로 갖고 있고, 이 메서드는
+        /// 그것들을 건드리지 않는다). `_area`만 여기서 맞춰 준다 — `Advance`가
+        /// 안 불리므로(정답 역할은 Tick 자체를 받지 않는다) 그게 아니면
+        /// `CellRect`가 쓸 좌표가 없다.
+        /// </summary>
+        public void DrawSolved(HudTheme theme, Rect body)
+        {
+            _area = body;
+            theme.Fill(body, HudTheme.Paper3);
+
+            for (var i = 0; i < _solvedPipe.Length; i += 1)
+            {
+                var cell = CellRect(i);
+                if (_solvedPipe[i] == 0)
+                {
+                    theme.Fill(cell, HudTheme.Paper2, 0.4f);
+                    continue;
+                }
+                // 정답이니 전부 lit — 이 모양대로 맞추면 끝까지 흐른다는 뜻이다
+                DrawPipeVisual(theme, cell, _solvedPipe[i], true);
+            }
+
+            theme.Border(CellRect(_start), HudTheme.Heat, 3f);
+            theme.Border(CellRect(_end), HudTheme.Accent, 3f);
+            GUI.Label(new Rect(CellRect(_start).x, CellRect(_start).y - 24f, 80f, 20f), "시작",
+                theme.At(theme.Label, 12, HudTheme.Heat));
+            GUI.Label(new Rect(CellRect(_end).x, CellRect(_end).y - 24f, 80f, 20f), "끝",
+                theme.At(theme.Label, 12, HudTheme.Accent));
+
+            theme.Border(body, HudTheme.Rule);
         }
     }
 }
