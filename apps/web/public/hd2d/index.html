@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>unity</title>
+    <!--
+      배포 타깃은 데스크톱 웹이다(ARCH-03). 이 파일은 Unity가 뜨기 **전에**
+      보이는 유일한 화면이고, 로딩은 25MB 브로틀리라 몇 초 걸린다.
+
+      그 몇 초를 하얀 화면으로 두면 안 된다 — 로비(Next.js)가 목업 §11의
+      야간 군용 팔레트인데 여기서 한 번 하얘졌다가 게임이 또 어두워지면
+      눈이 두 번 적응한다. 같은 색으로 받는다.
+    -->
+    <style>
+      :root {
+        --paper: #12150f;
+        --paper-2: #1b1f17;
+        --ink: #dfe2d6;
+        --ink-2: #99a18d;
+        --rule: #333a2b;
+        --accent: #9ab06f;
+      }
+      * { box-sizing: border-box; }
+      html, body {
+        margin: 0; padding: 0; height: 100%;
+        background: var(--paper); color: var(--ink);
+        font-family: "Apple SD Gothic Neo", Pretendard, "Malgun Gothic",
+                     "Noto Sans KR", system-ui, sans-serif;
+        overflow: hidden;
+      }
+      #unity-canvas {
+        display: block; width: 100%; height: 100%;
+        background: var(--paper);
+        /* 픽셀아트다(§2.1 PPU 32). 브라우저가 부드럽게 늘리면
+           640×360으로 맞춰놓은 격자가 통째로 뭉개진다 */
+        image-rendering: pixelated;
+      }
+      #boot {
+        position: fixed; inset: 0;
+        display: flex; flex-direction: column;
+        align-items: center; justify-content: center; gap: 28px;
+        background: var(--paper);
+        transition: opacity .45s ease;
+      }
+      #boot.done { opacity: 0; pointer-events: none; }
+      .mark { font-size: 34px; font-weight: 800; letter-spacing: -1px; }
+      .mark span { color: var(--accent); }
+      .tag {
+        font-family: ui-monospace, Menlo, monospace;
+        font-size: 12px; letter-spacing: 3px; color: var(--ink-2);
+      }
+      .bar { width: 360px; height: 14px; background: #262c1f; }
+      .bar > i { display: block; height: 100%; width: 0; background: var(--accent); transition: width .2s; }
+      .note { font-size: 13px; color: #5a6053; }
+      #fail {
+        display: none; max-width: 520px; padding: 20px 24px;
+        background: #2a1614; border-left: 5px solid #d2594b;
+        color: var(--ink); font-size: 15px; line-height: 1.6;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="unity-canvas" tabindex="1"></canvas>
+
+    <div id="boot">
+      <div class="tag">SAD · 18-DAY CO-OP SURVIVAL</div>
+      <div class="mark">SOLDIER<span> : </span>A DAY</div>
+      <div class="bar"><i id="bar"></i></div>
+      <div class="note" id="pct">번들 내려받는 중 0%</div>
+      <div id="fail"></div>
+    </div>
+
+    <script src="Build/hd2d.loader.js"></script>
+    <script>
+      var canvas = document.querySelector("#unity-canvas");
+
+      // **Tab을 브라우저에 뺏기지 않는다.**
+      //
+      // 수첩이 Tab이고(§7.2) 일과표가 Space다(§7.4). 기본 상태로 두면 Tab은
+      // 포커스를 다음 요소로 옮기고 Space는 페이지를 스크롤해서, 게임 안에서
+      // 그 두 키가 영영 안 먹는다 — 브라우저에서만 나는 버그라 에디터에서는
+      // 멀쩡해 보인다.
+      //
+      // 캔버스가 포커스를 쥐고 있을 때만 막는다. 그래야 개발자 도구나 주소창을
+      // 쓰는 것까지 방해하지 않는다.
+      canvas.focus();
+      canvas.addEventListener("mousedown", function () { canvas.focus(); });
+      // 포커스를 보고 판단하지 않는다. Unity 로더가 캔버스 위에 자기 요소를
+      // 얹으면서 `activeElement`가 캔버스가 아니게 되는 순간이 있고, 그때
+      // Tab이 브라우저로 새어 나가 수첩이 안 열린다 — 실제로 그랬다.
+      // 이 페이지에는 캔버스 말고 포커스 갈 곳이 없으므로 그냥 막는다.
+      window.addEventListener("keydown", function (e) {
+        if (e.code === "Tab" || e.code === "Space" || e.code.indexOf("Arrow") === 0) {
+          e.preventDefault();
+        }
+      }, true);
+
+      var boot = document.getElementById("boot");
+      var bar = document.getElementById("bar");
+      var pct = document.getElementById("pct");
+
+      function onProgress(p) {
+        var n = Math.round(p * 100);
+        bar.style.width = n + "%";
+        pct.textContent = "번들 내려받는 중 " + n + "%";
+      }
+
+      // 진행률은 **두 번째가 아니라 세 번째 인자**다. 로더 시그니처가
+      // `createUnityInstance(canvas, config, onProgress)`라, 콜백을 config 안에
+      // 넣으면 조용히 무시되고 막대가 0%에 멈춰 있다.
+      createUnityInstance(canvas, {
+        arguments: [],
+        dataUrl: "Build/hd2d.data",
+        frameworkUrl: "Build/hd2d.framework.js",
+        codeUrl: "Build/hd2d.wasm",
+        streamingAssetsUrl: "StreamingAssets",
+        companyName: "DefaultCompany",
+        productName: "unity",
+        productVersion: "1.0",
+        // 픽셀 퍼펙트 카메라가 정수배로 올리는데 여기서 DPR까지 곱하면
+        // 배율이 정수가 아니게 되어 격자가 어긋난다(§2.1)
+        devicePixelRatio: 1,
+      }, onProgress).then(function () {
+        boot.classList.add("done");
+        setTimeout(function () { boot.remove(); canvas.focus(); }, 500);
+      }).catch(function (message) {
+        // `alert`을 쓰지 않는다 — 브라우저 모달은 그 자리에서 페이지를 멈춘다
+        pct.style.display = "none";
+        document.querySelector(".bar").style.display = "none";
+        var fail = document.getElementById("fail");
+        fail.style.display = "block";
+        fail.textContent = "게임을 불러오지 못했다 — " + message;
+      });
+    </script>
+  </body>
+</html>
