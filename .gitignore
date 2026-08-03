@@ -79,3 +79,4 @@ unity/mono_crash.*.json
 # 갱신은 `node tools/webgl-sync.mjs` 뒤 **배포할 때만** 한다.
 !apps/web/public/game/Build/
 .claude/worktrees/
+unity/Assets/Resources/PerformanceTestRun*
