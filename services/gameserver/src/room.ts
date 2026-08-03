@@ -646,8 +646,14 @@ export class Room {
 
   private apply(event: SimEvent): void {
     if (!this.run) return;
+    const before = this.run.phaseIndex;
+    const beforeDay = this.run.day;
     const result = step(this.run, event);
     this.run = result.state;
+    // 시간대가 넘어가면(스킵이든 자연 종료든) 스킵 투표는 무효다 — 지난 칸에
+    // 던진 표가 다음 칸에 남아 있으면 한 명만 더 눌러도 곧바로 넘어가 버려서
+    // "두 칸씩 건너뛴다"로 보인다.
+    if (this.run.phaseIndex !== before || this.run.day !== beforeDay) this.skipVotes.clear();
     this.collect(result.effects);
   }
 

@@ -76,24 +76,26 @@ describe("TIME-01 시간대 엔진", () => {
     expect(ended).toMatchObject({ phase: "reveille", lockedQuestIds: ["q1"] });
   });
 
-  it("스킵 투표로 아낀 시간은 다음 칸으로 이월된다", () => {
+  it("스킵하면 남은 시간은 버려지고 다음 칸은 기본 길이로 시작한다", () => {
+    // 예전에는 남은 시간을 다음 칸에 이월했는데, 스킵해도 하루가 안 짧아지고
+    // 다음 칸 길이만 어중간해져(3분·5분) 시계 고장처럼 읽혔다 — 실플레이
+    // 판정으로 설계 변경. 스킵은 정말로 건너뛴다.
     let state = begin(fullSquad());
     state = tick(state, 20 * SECOND);
     state = step(state, { type: "skipPhase" }).state;
 
     expect(state.phaseIndex).toBe(1);
-    // 기본 60초 + 이월 40초
-    expect(state.phaseDurationMs).toBe(100 * SECOND);
+    expect(state.phaseDurationMs).toBe(60 * SECOND);
     expect(state.carryoverMs).toBe(0);
   });
 
-  it("이월분은 한 칸만 늘리고 그 다음 칸으로 넘어가지 않는다", () => {
+  it("스킵은 정확히 한 칸만 넘어간다", () => {
     let state = begin(fullSquad());
     state = step(state, { type: "skipPhase" }).state;
-    // 오전 일과는 60초 이월 + 20초 하달 창(타이머 정지)이므로 140초를 흘려야 넘어간다
-    state = tick(state, 140 * SECOND);
-    expect(state.phaseIndex).toBe(2);
-    expect(state.phaseDurationMs).toBe(60 * SECOND);
+    expect(state.phaseIndex).toBe(1);
+    // 다음 칸이 즉시 또 넘어가지 않는다 — 하달 창(20초 정지) + 기본 60초
+    state = tick(state, 79 * SECOND);
+    expect(state.phaseIndex).toBe(1);
   });
 
   it("한 번의 tick이 여러 칸을 넘어가도 순서대로 처리된다", () => {

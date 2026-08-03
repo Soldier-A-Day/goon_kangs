@@ -688,9 +688,22 @@ namespace SoldierADay.Net
         /// (`skipVotes`가 서버 내부 집합일 뿐 프로토콜 필드가 아니다) 개표 현황은
         /// 못 보여준다. 정족수가 차면 시간대 바가 스스로 넘어가는 것으로 결과가 보인다.
         /// </summary>
+        /// <summary>마지막으로 스킵 버튼 클릭을 처리한 프레임 — OnGUI가 한 프레임에
+        /// 여러 번 돌아(Layout·Repaint) 토글이 클릭당 두 번 뒤집히는 것을 막는다</summary>
+        private int _skipClickFrame = -1;
+        /// <summary>투표 상태가 유효한 시간대 — 칸이 넘어가면 서버가 표를 비우므로
+        /// 클라 토글도 같이 리셋해야 화면과 실제가 갈라지지 않는다</summary>
+        private string _skipPhaseId;
+
         private void DrawSkipVote(Snapshot snapshot)
         {
             if (snapshot?.phase == null) return;
+
+            if (snapshot.phase.id != _skipPhaseId)
+            {
+                _skipPhaseId = snapshot.phase.id;
+                _skipVoted = false;
+            }
 
             // 목업 실측 없는 신규 버튼 — 시간대 바(480,48,960,72) 오른쪽, 미니맵
             // (x=1592) 왼쪽 사이 좁은 틈에 끼운다. 그래서 폭을 짧게 잡는다
@@ -704,8 +717,9 @@ namespace SoldierADay.Net
                 _skipVoted ? "투표함  [취소]" : "투표하기",
                 _theme.At(_theme.Label, 12, _skipVoted ? HudTheme.Accent : HudTheme.Ink2));
 
-            if (hot && Input.GetMouseButtonDown(0))
+            if (hot && Input.GetMouseButtonDown(0) && Time.frameCount != _skipClickFrame)
             {
+                _skipClickFrame = Time.frameCount;
                 _skipVoted = !_skipVoted;
                 client.VoteSkip(_skipVoted);
             }

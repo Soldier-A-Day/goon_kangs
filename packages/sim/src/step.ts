@@ -298,8 +298,11 @@ function completeProxyWork(state: RunState, phaseId: PhaseId): void {
  * sim은 성립한 결과만 받는다.
  */
 function skipPhase(state: RunState, effects: Effect[]): void {
-  const left = Math.max(0, state.phaseDurationMs - state.phaseElapsedMs);
-  state.carryoverMs += left;
+  // 남은 시간은 **버린다.** 예전에는 이월(carryoverMs)로 다음 칸에 더했는데,
+  // 그러면 스킵해도 하루 총 길이가 안 줄고 다음 칸이 "기본+이월"의 어중간한
+  // 길이(3분·5분)가 되어 시계가 고장 난 것처럼 읽혔다 — 실플레이 판정으로
+  // 설계를 바꿨다. 스킵은 정말로 건너뛴다. 해금 실시간 게이트는 elapsedRealMs
+  // 기준이라 여기 영향이 없다.
   state.phaseElapsedMs = state.phaseDurationMs;
   endPhase(state, effects);
 }
