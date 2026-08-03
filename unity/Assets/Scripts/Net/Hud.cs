@@ -138,7 +138,11 @@ namespace SoldierADay.Net
             client.EventReceived -= CollectJournal;
         }
 
-        private void OnSnapshot(Snapshot snapshot) => _screens.OnSnapshot(snapshot);
+        private void OnSnapshot(Snapshot snapshot)
+        {
+            CollectQuestJournal(snapshot);
+            _screens.OnSnapshot(snapshot);
+        }
 
         /* ══════════════════════════════════════════════════════ 입력 */
 
@@ -2314,6 +2318,63 @@ namespace SoldierADay.Net
         /// 이 파일을 C-1b도 같이 만지기 때문 — 기존 case 안에 훅을 심으면 그쪽 수정과
         /// 충돌하기 쉽다. 별도 메서드로 붙이면 서로의 변경이 겹치지 않는다.
         /// </summary>
+        /// <summary>일과 id → 마지막으로 본 상태. 완료·잠김은 이벤트로 안 오고
+        /// 스냅샷 상태 변화로만 드러난다 — 일지가 이걸 안 보면 하루 중 가장 흔한
+        /// 사건(일과를 끝냈다/놓쳤다)이 통째로 빠진다(실플레이 신고).</summary>
+        private readonly Dictionary<string, string> _questStatusSeen = new Dictionary<string, string>();
+        private bool _questJournalPrimed;
+
+        private void CollectQuestJournal(Snapshot snapshot)
+        {
+            if (snapshot?.quests == null) return;
+
+            if (snapshot.day != _journalDay)
+            {
+                _journal.Clear();
+                _journalDay = snapshot.day;
+                _questStatusSeen.Clear();
+                _questJournalPrimed = false;
+            }
+
+            foreach (var quest in snapshot.quests)
+            {
+                if (quest == null || quest.id == null) continue;
+                // 회복 행동(밥·세면)은 판정 대상이 아니다 — 일지에 쌓으면 소음이 된다
+                if (quest.kind == SnapshotQuestsItemKindValues.Care) continue;
+
+                _questStatusSeen.TryGetValue(quest.id, out var seen);
+                _questStatusSeen[quest.id] = quest.status;
+                // 첫 스냅샷은 기준선이다 — 재접속 때 이미 끝난 일과가 전부
+                // "방금 완료"로 쏟아지면 일지가 거짓말을 한다
+                if (!_questJournalPrimed || seen == quest.status) continue;
+
+                var owner = quest.ownerId != null ? NameOf(quest.ownerId) : "합동";
+                if (quest.status == SnapshotQuestsItemStatusValues.Done)
+                {
+                    PushJournal("완료", $"{quest.label} — {owner}"
+                        + (quest.grade != null ? $" · {quest.grade}" : ""), HudTheme.Accent);
+                }
+                else if (quest.status == SnapshotQuestsItemStatusValues.Locked && quest.required)
+                {
+                    PushJournal("놓침", $"{quest.label} — 필수인데 시간대가 닫혔다", HudTheme.Alert);
+                }
+                else if (quest.status == SnapshotQuestsItemStatusValues.Failed)
+                {
+                    PushJournal("실패", $"{quest.label} — {owner}", HudTheme.Alert);
+                }
+            }
+
+            _questJournalPrimed = true;
+        }
+
+        private void PushJournal(string tag, string text, Color color)
+        {
+            var clock = client?.Latest?.phase?.clock ?? "";
+            var phaseLabel = HudTheme.PhaseLabel(client?.Latest?.phase?.id);
+            _journal.Insert(0, new JournalEntry(clock, phaseLabel, tag, text, color));
+            if (_journal.Count > 200) _journal.RemoveAt(_journal.Count - 1);
+        }
+
         private void CollectJournal(ServerEvent item)
         {
             if (item == null) return;
