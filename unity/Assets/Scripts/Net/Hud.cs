@@ -227,7 +227,18 @@ namespace SoldierADay.Net
             // **런이 끝났거나 붙지 못했으면 여기서 끝난다.**
             // 그 아래 HUD는 그릴 이유가 없고, 멈춘 화면을 그대로 두면
             // 플레이어는 퇴소된 줄도 모른 채 얼어붙은 부대를 본다
-            if (HudEnding.Draw(_theme, client, () => boot?.RestartRun(), GoLobby,
+            //
+            // 단, 하루 마감 연출(판정 → 승급 → 취침)이 아직 사용자 확인을 못
+            // 받았으면 보류한다 — 실패로 끝나는 날은 서버가 dayJudged(failed)와
+            // runEnded를 같은 프레임에 함께 보내는데, 그걸 그대로 따르면 이
+            // 화면이 판정 화면(왜 졌는지)을 읽기도 전에 덮어 버린다(사용자 반려:
+            // "점호 판정보다 퇴소창이 먼저 뜨는 건 뭐야?"). `_screens.DayEndInProgress`가
+            // 그 연출의 20초 강제 흘림 문턱까지 갖고 있어 여기서 소프트락이 생기지
+            // 않는다 — 판정 화면이 어떤 이유로 안 떴는데(재접속 등) 런이 끝나 있는
+            // 경우는 애초에 이 조건이 거짓이라(화면이 RollCall/Rank/Sleep이 아니면)
+            // 즉시 아래로 흘러 HudEnding이 뜬다.
+            if (!_screens.DayEndInProgress &&
+                HudEnding.Draw(_theme, client, () => boot?.RestartRun(), GoLobby,
                     boot != null && boot.Restarting, boot != null ? boot.RestartError : ""))
             {
                 GUI.matrix = matrix;
