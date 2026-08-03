@@ -93,8 +93,9 @@ describe("TIME-01 시간대 엔진", () => {
     let state = begin(fullSquad());
     state = step(state, { type: "skipPhase" }).state;
     expect(state.phaseIndex).toBe(1);
-    // 다음 칸이 즉시 또 넘어가지 않는다 — 하달 창(20초 정지) + 기본 60초
-    state = tick(state, 79 * SECOND);
+    // 다음 칸이 즉시 또 넘어가지 않는다 — 기본 60초를 다 흘려야 넘어간다
+    // (하달 창 20초 정지는 실시간 해금 뒤에나 열리므로 새 런 첫날엔 없다)
+    state = tick(state, 59 * SECOND);
     expect(state.phaseIndex).toBe(1);
   });
 
