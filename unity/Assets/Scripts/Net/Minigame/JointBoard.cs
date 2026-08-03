@@ -29,6 +29,22 @@ namespace SoldierADay.Net
     /// `MyRole`에 넣는다). 빈 문자열이면 비대칭이 꺼진 것이다 — 그때는
     /// 예전과 똑같이 전원이 같은 판을 돌린다.
     ///
+    /// **근사가 아니라 차단이다(실플레이 반려 재작업).** 처음 구현은 `show`·
+    /// `rotations` 파라미터를 극단으로 밀어 흉내만 냈다 — 그 결과 정답
+    /// 역할도 안쪽 판 조작이 그대로 먹혔고(입력을 안 끊었으니까), 조작
+    /// 역할은 `show=0`이 `SeqBoard.MinRevealDuration`(0.6초) 바닥에 걸려
+    /// 정답이 잠깐 샜다. 지금은 안쪽 판에 같은 `Spec`을 그대로 주고, 대신
+    /// 역할별로 다른 문을 연다:
+    ///   - watch·SEQ — 안쪽 판의 `SeqBoard.Locked`를 켜 입력을 원천에서
+    ///     끊고, `SeqBoard.DrawAnswer`로 노출 타이머 그대로 "봤다가
+    ///     사라지는" 정답만 그린다(입력 칸 없음).
+    ///   - watch·TRACE — 안쪽 판을 아예 돌리지 않고(Tick 자체를 안 부른다)
+    ///     `TraceBoard.DrawSolved`로 스크램블 전 배치를 정적으로 그린다.
+    ///   - operate·SEQ — `SeqBoard.NoReveal`을 켜 노출 단계 자체를 지운다.
+    ///   - operate·TRACE — 그대로. 스크램블된 판을 직접 돌린다.
+    /// 이 갈림은 `OpenRound`(안쪽 판 인스턴스에 스위치를 꽂는 곳)와
+    /// `Advance`·`Draw`(그 스위치에 맞게 부르는 곳)에 있다.
+    ///
     /// 두 화면이 같은 문제를 봐야 부를 말이 맞아떨어진다. 그래서 라운드
     /// 시드를 로컬 카운터(`_round`)가 아니라 **분대가 같이 보는 값**
     /// (`Done`을 `PerRound`로 나눈 라운드 번호)에서 뽑는다 — 스냅샷이 같으면
@@ -98,52 +114,18 @@ namespace SoldierADay.Net
                 ? $"{Spec?.variant}#joint#{_roundIndex}"
                 : $"{Spec?.variant}#{_round}";
 
-            _inner.Begin(RoleSpec(), Limit, seed);
+            // B-1 — 역할별 실제 차이는 `Spec` 파라미터를 흉내 내는 것이 아니라
+            // 안쪽 판 인스턴스에 스위치를 직접 꽂는다(위 클래스 요약). 둘 다
+            // `Asymmetric`이 꺼져 있으면(=역할이 없으면) 항상 false라 기존
+            // 12개 합동판은 이 블록이 없는 것과 같다.
+            if (_inner is SeqBoard seq)
+            {
+                seq.Locked = IsWatch;
+                seq.NoReveal = IsOperate;
+            }
+
+            _inner.Begin(Spec, Limit, seed);
             _round += 1;
-        }
-
-        /// <summary>
-        /// 역할에 맞게 살짝 바꾼 판 정의.
-        ///
-        /// **SEQ** — `show`(암기 노출 시간)를 극단으로 민다. 정답 역할은 절대
-        /// 안 사라지게, 조작 역할은 처음부터 가려지게. `SeqBoard`는 이 값을
-        /// `_reveal` 타이머로만 쓰므로 원형 코드를 손대지 않고도 갈린다.
-        ///
-        /// **TRACE** — 정답 역할의 판은 `rotations`를 최대한 낮춰(원형 자체
-        /// 하한 2회) 시작 배치를 정답에 가깝게 만든다. 완전한 정답 표시는
-        /// `TraceBoard`의 목표 배치가 공개 API로 없어서(이 발주 소유 파일
-        /// 밖) 못 하지만, 같은 씨앗이라 기본 경로·분기는 조작 역할의 판과
-        /// 동일하다 — 정답 역할이 "이 모양대로 맞춰라"를 불러줄 수 있다.
-        ///
-        /// 비대칭이 꺼져 있으면 서버 스펙을 그대로 돌려준다 — 기존 12개
-        /// 합동판은 이 함수가 사실상 없는 것과 같다.
-        /// </summary>
-        private SnapshotQuestsItemMinigame RoleSpec()
-        {
-            if (!Asymmetric || Spec == null) return Spec;
-
-            var clone = new SnapshotQuestsItemMinigame
-            {
-                type = Spec.type,
-                variant = Spec.variant,
-                difficulty = Spec.difficulty,
-                length = Spec.length,
-                show = Spec.show,
-                nodes = Spec.nodes,
-                branches = Spec.branches,
-                rotations = Spec.rotations,
-            };
-
-            if (Spec.type == SnapshotQuestsItemMinigameTypeValues.SEQ)
-            {
-                clone.show = IsWatch ? 9999f : 0f;
-            }
-            else if (Spec.type == SnapshotQuestsItemMinigameTypeValues.TRACE)
-            {
-                clone.rotations = IsWatch ? 0f : Spec.rotations;
-            }
-
-            return clone;
         }
 
         // 제한 시간은 시간대가 정한다 (QST-01). 판이 스스로 실패하지 않는다
@@ -153,42 +135,40 @@ namespace SoldierADay.Net
         {
             if (_inner == null) return;
 
-            // 정답 역할은 절대 조작하지 않는다 — 클릭이 들어와도 안쪽 판에
-            // 전달하지 않는다. SEQ는 위 `RoleSpec`의 `show` 극값으로 이미
-            // 막히지만, 격자를 직접 눌러 돌리는 TRACE 같은 원형은 입력 자체가
-            // 곧 조작이라 여기서 원천 차단해야 "누르지 마라"가 지켜진다.
-            var effectiveInput = IsWatch ? default : input;
-
-            // **미달이면 손이 안 먹는다.** 게이지가 안 차는 것을 보여주는 것보다
-            // 아예 못 만지게 하는 편이 "인원을 모아라"를 더 빨리 읽힌다
-            var state = Short ? BoardState.Running : _inner.Tick(dt, effectiveInput);
-
             Fill = Total <= 0 ? 0f : Mathf.Clamp01((float)Done / Total);
 
-            if (!Short && !IsWatch)
+            // **미달이면 손이 안 먹는다.** 게이지가 안 차는 것을 보여주는 것보다
+            // 아예 못 만지게 하는 편이 "인원을 모아라"를 더 빨리 읽힌다. 안쪽
+            // 판도 아예 돌리지 않는다 — 어느 역할이든 이 프레임엔 조작이 없다
+            if (Short) return;
+
+            if (IsWatch)
             {
-                // 안쪽 판이 얼마나 갔는지를 조각으로 환산해 올린다. 정답 역할은
-                // 스스로 채우지 않으므로 이 계산에서 빠진다 — 안 그러면 입력
-                // 없이도 조각이 오르는 것처럼 보인다
-                var earned = Mathf.FloorToInt(_inner.Fill * PerRound);
-                while (_sentThisRound < earned)
-                {
-                    _sentThisRound += 1;
-                    OnStep?.Invoke();
-                }
+                // 정답 역할은 절대 조작하지 않는다 — 커튼이 아니라 차단이다.
+                // SEQ는 `SeqBoard.Locked`가 입력을 원천에서 끊으므로 `Tick`을
+                // 불러도 안전하고, 그래야 노출 타이머가 흘러 "봤다가
+                // 사라지는" 것이 보인다. TRACE는 회전이 곧 입력이라 아예
+                // 돌리지 않는다(Tick 자체를 안 부른다) — `Draw`가 스크램블
+                // 전 배치를 정적으로 그린다.
+                if (_inner is SeqBoard) _inner.Tick(dt, default);
+
+                // 정답 역할은 스스로 라운드를 못 끝낸다(입력이 없으니 안쪽
+                // 판이 영원히 Running이다). 분대 조각 수(Done)가 라운드
+                // 경계를 넘으면 그게 "조작 역할이 다음 문제로 넘어갔다"는
+                // 신호다.
+                var roundIndex = Done / Mathf.Max(1, PerRound);
+                if (roundIndex != _roundIndex) OpenRound();
+                return;
             }
 
-            if (!Short && IsWatch)
+            var state = _inner.Tick(dt, input);
+
+            // 안쪽 판이 얼마나 갔는지를 조각으로 환산해 올린다
+            var earned = Mathf.FloorToInt(_inner.Fill * PerRound);
+            while (_sentThisRound < earned)
             {
-                // 정답 역할은 스스로 라운드를 못 끝낸다(입력이 없으니 `state`가
-                // 영원히 Running이다). 분대 조각 수(Done)가 라운드 경계를
-                // 넘으면 그게 "조작 역할이 다음 문제로 넘어갔다"는 신호다.
-                var roundIndex = Done / Mathf.Max(1, PerRound);
-                if (roundIndex != _roundIndex)
-                {
-                    OpenRound();
-                    return;
-                }
+                _sentThisRound += 1;
+                OnStep?.Invoke();
             }
 
             // 제 몫을 다 돌았으면 다음 판을 차린다 — 남은 조각은 아직 남아 있다
@@ -208,19 +188,26 @@ namespace SoldierADay.Net
             }
 
             var inner = new Rect(body.x, strip.yMax + 12f, body.width, body.height - strip.height - 12f);
-            _inner?.Draw(theme, inner);
 
-            // B-1 — 정답 역할의 조작 칸은 눈으로도 죽어 있어야 "누르지 마라"가
-            // 말이 아니라 화면으로 읽힌다. SEQ만 해당한다 — TRACE는 격자
-            // 전체가 곧 입력이라 절반만 가릴 자리가 없고, 위 Advance에서
-            // 입력 자체를 막는 것으로 대신한다.
-            if (!Short && IsWatch && Spec?.type == SnapshotQuestsItemMinigameTypeValues.SEQ)
+            // B-1 — 역할마다 아예 다른 화면을 그린다. 근사(반투명 커튼)가
+            // 아니라 구조 자체가 다르다 — 정답 역할은 입력 칸을 그릴 코드
+            // 경로 자체가 없고, 조작 역할은 정답을 그릴 코드 경로 자체가
+            // 없다. 배너로 한 번 더 못 박는 이유는 클래스 요약에 적었다.
+            if (!Short && IsWatch)
             {
-                var curtain = new Rect(inner.x, inner.center.y, inner.width, inner.height * 0.5f);
-                theme.Fill(curtain, HudTheme.Paper3, 0.92f);
-                theme.Border(curtain, HudTheme.Rule2);
-                GUI.Label(curtain, "조작 없음 — 불러만 줘라",
-                    theme.At(theme.Heading, 18, HudTheme.Ink2, TextAnchor.MiddleCenter));
+                var content = DrawRoleBanner(theme, inner, "정답 화면 — 조작자에게 불러줘라", HudTheme.Accent);
+                if (_inner is SeqBoard seq) seq.DrawAnswer(theme, content);
+                else if (_inner is TraceBoard trace) trace.DrawSolved(theme, content);
+                else _inner?.Draw(theme, content);
+            }
+            else if (!Short && IsOperate)
+            {
+                var content = DrawRoleBanner(theme, inner, "조작 화면 — 들은 대로 하라", HudTheme.Cold);
+                _inner?.Draw(theme, content);
+            }
+            else
+            {
+                _inner?.Draw(theme, inner);
             }
 
             if (!Short) return;
@@ -235,6 +222,25 @@ namespace SoldierADay.Net
             GUI.Label(new Rect(warn.x, warn.y + 50f, warn.width, 28f),
                 "혼자서는 한 조각도 오르지 않는다",
                 theme.At(theme.Body, 17, HudTheme.Ink, TextAnchor.MiddleCenter));
+        }
+
+        /// <summary>배너 높이 — 이 아래로 본문이 그려진다</summary>
+        private const float RoleBannerHeight = 32f;
+
+        /// <summary>
+        /// B-1 — 역할 배너. 화면 구조 자체가 역할마다 달라(입력 칸이 있고
+        /// 없고) 배너 없이도 헷갈리지 않겠지만, 실플레이 반려("판도 보이고
+        /// 조작도 된다")가 보여준 것은 사람이 화면을 스치듯 보고 판단한다는
+        /// 것이다 — 글자로 한 번 더 못 박는다. 반환값은 배너를 뺀 나머지
+        /// 자리라, 안쪽 판은 배너와 안 겹친다.
+        /// </summary>
+        private static Rect DrawRoleBanner(HudTheme theme, Rect area, string text, Color accent)
+        {
+            var banner = new Rect(area.x, area.y, area.width, RoleBannerHeight);
+            theme.Fill(banner, accent, 0.16f);
+            theme.Border(banner, accent, 2f);
+            GUI.Label(banner, text, theme.At(theme.Heading, 16, accent, TextAnchor.MiddleCenter));
+            return new Rect(area.x, banner.yMax + 8f, area.width, area.height - RoleBannerHeight - 8f);
         }
     }
 }
