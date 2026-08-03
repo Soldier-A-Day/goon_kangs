@@ -18,6 +18,8 @@ services/gameserver/test/
 # 문서와 생성기
 docs/
 *.html
+# HD-2D 목업 진입 파일만 예외 — 위 규칙은 기획서(SAD-GDD-*.html)를 거르려는 것이다
+!apps/web/public/hd2d/*.html
 tools/blockout/
 tools/sprites/
 tools/csharpgen/
