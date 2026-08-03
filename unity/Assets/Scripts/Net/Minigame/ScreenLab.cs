@@ -154,6 +154,12 @@ namespace SoldierADay.Net
             var full = new Rect(0f, 0f, HudTheme.ViewWidth, HudTheme.ViewHeight);
             theme.Fill(full, HudTheme.Dim, 0.55f);
 
+            // 토스트는 `DebugNotify`가 리스트에 쌓기만 한다 — 그리기는 **매 프레임**
+            // 여기서 해야 보인다. 처음에는 이 호출이 `Run()` 끝에 있었는데, 모든
+            // case가 return이라 사실상 죽은 코드였고, 랩이 열려 있는 동안 실전
+            // `DrawToasts()`는 차단되므로 토스트가 쌓이기만 하고 영영 안 그려졌다.
+            hud.DebugDrawToasts();
+
             // 상단 얇은 머리띠 — 실물 요소(토스트는 y48~, 페이즈바는 y48~)와
             // 겹치지 않는 자리다. 목록은 오른쪽 세로 띠에 둔다
             var head = new Rect(0f, 0f, HudTheme.ViewWidth, 30f);
@@ -378,10 +384,6 @@ namespace SoldierADay.Net
                     hud.DebugBodyHeat(FakeWarmthSnapshot(hud, 0d, true));
                     return;
             }
-
-            // 토스트는 지속형이 아니다 — 매 프레임 이 스위치에 걸리지 않고
-            // `Hud.DebugDrawToasts()`가 실전과 같은 `_toasts` 리스트를 그린다
-            hud.DebugDrawToasts();
         }
 
         private static void NoOp() { }
