@@ -57,7 +57,9 @@ namespace SoldierADay.Net
             var freshFrame = Time.frameCount != _lastFrame;
             if (freshFrame) _lastFrame = Time.frameCount;
 
-            if (freshFrame && Input.GetKeyDown(KeyCode.F11)) Toggle();
+            // F11은 macOS가 미션 컨트롤류로 가로채 브라우저까지 안 내려오는
+            // 환경이 흔하다 — F7을 정식 키로 얹고 F11도 그대로 받는다
+            if (freshFrame && (Input.GetKeyDown(KeyCode.F11) || Input.GetKeyDown(KeyCode.F7))) Toggle();
             if (!_open) return;
 
             if (freshFrame) HandleKeys();
@@ -101,7 +103,7 @@ namespace SoldierADay.Net
             const float headerH = 48f;
             theme.Header(panel, headerH);
             GUI.Label(new Rect(panel.x + 16f, panel.y + 8f, 500f, 32f),
-                "WorldLab — 월드 실험대  [F11]",
+                "WorldLab — 월드 실험대  [F7/F11]",
                 theme.At(theme.Title, 22, HudTheme.Ink));
             GUI.Label(new Rect(panel.xMax - 420f, panel.y + 14f, 404f, 24f),
                 "[1~5] 탭 전환",

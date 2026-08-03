@@ -133,8 +133,25 @@ namespace SoldierADay.Net
                 return;
             }
 
+            // TAB은 수첩을 순환한다 — 한 번에 일과 요약, 한 번 더에 오늘의 기록,
+            // 한 번 더(또는 Esc)에 닫기. 탭 전환을 마우스에만 맡기면 수첩을
+            // 여닫는 손(키보드)과 탭을 고르는 손(마우스)이 갈라진다.
             if (Input.GetKeyDown(KeyCode.Tab))
-                _screen = _screen == Screen.Notebook ? Screen.None : Screen.Notebook;
+            {
+                if (_screen != Screen.Notebook)
+                {
+                    _screen = Screen.Notebook;
+                    _notebookJournal = false;
+                }
+                else if (!_notebookJournal)
+                {
+                    _notebookJournal = true;
+                }
+                else
+                {
+                    _screen = Screen.None;
+                }
+            }
             if (Input.GetKeyDown(KeyCode.M))
                 _screen = _screen == Screen.Map ? Screen.None : Screen.Map;
             // 일과표는 Space로 열고 닫는다. 하루에 몇 번씩 여는 화면이라
