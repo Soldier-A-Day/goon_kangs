@@ -114,6 +114,17 @@ namespace SoldierADay.Net
             // 점호·하달은 서버 상태가 열고 닫는다. 플레이어가 닫을 수 없다.
             // 승급·취침 정산도 하루 마감 연출의 한 토막이라 여기 묶는다 — Tab/M/Space
             // 같은 창 전환 키가 끼어들면 큐가 진행되는 도중에 다른 창으로 새 버린다.
+            //
+            // 수리 1(사용자 피드백 — "결과 다 뜨면 자동으로 넘기지 말고 확인 눌렀을
+            // 때 다음 거 뜨게") — 점호·승급·취침 셋 다 이제 자동 타이머가 아니라
+            // 확인(버튼 클릭 또는 Space/Enter)으로 넘어간다. 마우스 클릭은 버튼
+            // Rect를 아는 각 Draw*가 직접 받는다(Event.current.type==MouseDown은
+            // 실제 이벤트 패스에서만 참이라 프레임당 한 번만 잡힌다). 여기
+            // Update()는 프레임당 정확히 한 번만 도는 곳이라 키보드 확인과 아래
+            // "강제 흘림" 문턱만 여기서 본다 — Draw()는 OnGUI가 Layout·Repaint로
+            // 프레임 하나에 여러 번 불러서, 거기서 Input.GetKeyDown을 쓰면 확인
+            // 한 번에 큐가 두 칸씩 넘어가 버린다.
+            if (_screen == Screen.RollCall) UpdateRollCallAdvance();
             if (_screen is Screen.RollCall or Screen.Delegation)
                 return;
             if (_screen is Screen.Rank or Screen.Sleep)
@@ -254,11 +265,12 @@ namespace SoldierADay.Net
         /// <summary>
         /// ScreenLab(F10) 전용 — 승급/취침 정산 화면을 손으로 한 칸 넘긴다.
         ///
-        /// 실전에서는 <see cref="UpdateDayEndAdvance"/>가 `Update()`를 타고 자동으로
-        /// 넘기지만, 랩은 `Update()`를 부르지 않는다 — 그 함수 맨 위가 Q 라디얼
-        /// 입력을 걸러 <see cref="Send"/>(실제 quickCommand 전송)로 새는 경로라,
-        /// 랩이 실전 서버로 값을 흘릴 위험을 만든다. 그래서 그 경로를 아예 타지
-        /// 않는 이 최소 통로만 새로 연다 — 큐 진행 로직 자체는 그대로다.
+        /// 실전에서는 <see cref="UpdateDayEndAdvance"/>가 `Update()`를 타고 [확인]
+        /// 버튼·Space/Enter·강제 흘림 문턱을 받지만, 랩은 `Update()`를 부르지
+        /// 않는다 — 그 함수 맨 위가 Q 라디얼 입력을 걸러 <see cref="Send"/>(실제
+        /// quickCommand 전송)로 새는 경로라, 랩이 실전 서버로 값을 흘릴 위험을
+        /// 만든다. 그래서 그 경로를 아예 타지 않는 이 최소 통로만 새로 연다 —
+        /// 큐 진행 로직 자체는 그대로다.
         /// </summary>
         public void DebugAdvanceDayEnd()
         {
@@ -286,9 +298,10 @@ namespace SoldierADay.Net
         /// <summary>
         /// ScreenLab(F10) 전용 — "하루 마감 큐"를 실제 큐(`_dayEndQueue`)로 재현한다.
         ///
-        /// 판정(RollCall)이 6.4초 뒤 스스로 <see cref="AdvanceDayEnd"/>를 부르면
-        /// (`DrawRollCall`) 여기서 미리 쌓아 둔 승급·취침이 실전과 똑같은 순서로
-        /// 이어진다 — <see cref="DebugOpenRollCall"/>·<see cref="DebugOpenRank"/>·
+        /// 판정(RollCall)에서 6.4초 뒤 뜨는 [확인] 버튼을 누르면(`DrawRollCall`이
+        /// Draw() 경유로 처리하므로 랩에서도 클릭이 먹힌다) <see cref="AdvanceDayEnd"/>가
+        /// 불려 여기서 미리 쌓아 둔 승급·취침이 실전과 똑같은 순서로 이어진다 —
+        /// <see cref="DebugOpenRollCall"/>·<see cref="DebugOpenRank"/>·
         /// <see cref="DebugOpenSleep"/>은 각 화면을 단독으로 보고 싶을 때 쓰고,
         /// 이건 연쇄 자체(큐가 판정→승급→취침 순서를 지키는지)를 검증할 때 쓴다.
         /// </summary>
@@ -368,38 +381,101 @@ namespace SoldierADay.Net
             _dayEndScreenStart = Time.unscaledTime;
         }
 
-        /// <summary>승급·취침 정산 화면의 자동/수동 전환.
+        /// <summary>큐 화면(판정·승급·취침)이 "다 읽었다"로 치는 최소 시간 — 이
+        /// 전에는 [확인] 버튼 자체를 안 그린다. 값 근거는 아래 <see cref="UpdateDayEndAdvance"/>
+        /// 주석과 같다(예전 자동 전환 하한을 그대로 "버튼이 뜨는 시점"으로 옮겼다).</summary>
+        private static float DayEndFloor(Screen screen) => screen == Screen.Rank ? 3.0f : 2.5f;
+
+        /// <summary>
+        /// 큐 화면(판정·승급·취침)이 확인 없이도 강제로 넘어가는 문턱 — 최소 시간
+        /// 이후 얼마를 더 기다려 주는가.
         ///
-        /// 판정 화면은 §7.5 6.4초 고정 연출이라 스킵을 안 받는다 — DrawRollCall이
-        /// 자체 타이머(`_rollCallStart`)로 알아서 <see cref="AdvanceDayEnd"/>를 부른다.
-        /// 여기서는 그 뒤에 오는 두 화면만 다룬다.
+        /// **수리 1 — 멀티 정합 주의.** `OnSnapshot`은 이 큐가 떠 있는 동안(그 함수
+        /// 맨 위 "하루 마감 연출이 도는 동안에는 스냅샷이 창을 열지 못한다" 주석)
+        /// 서버가 보내는 스냅샷을 무시한다 — 화면은 클라 로컬로 붙잡혀 있고 서버는
+        /// 그사이에도 계속 틱을 돈다(다음 시간대·다음 하달 창이 실제로 열렸다
+        /// 닫힌다). 이 자체는 소프트락이 아니다 — 다음 `DayJudged`가 도착하면
+        /// `OnEvent`가 지금 큐가 뭐든 무조건 버리고 새 판정으로 덮어쓴다(그 case의
+        /// "밀린 연출을 큐에 그대로 두면..." 주석). 그게 이 시스템의 원래 있던
+        /// 하드 리셋이고, 하루 길이(현재 phases.json 기준 시간대 6칸 × 60초
+        /// 근사)만큼이 이 화면이 묶여 있을 수 있는 이론적 상한이다.
         ///
-        /// 최소 시간 동안은 무슨 입력이 와도 넘기지 않는다(내용을 최소한은 보게).
-        /// 그 뒤로는 자동 전환 시각이 되거나 아무 키/클릭이 오면 즉시 다음으로
-        /// 넘긴다 — 실시간 멀티라 서버는 계속 틱을 돌기 때문에, 입력을 기다리며
-        /// 영영 멈춰 있는 경로를 만들면 안 된다(요구사항 4).
+        /// 그런데 그 상한(분 단위)에 기대어 "확인을 영영 안 누르면 다음 날까지
+        /// 멈춰 있다"를 허용하는 건 사용자 피드백의 취지(확인으로 넘긴다)와도
+        /// 안 맞고, 이동 잠금(`BlocksMovement`)이 그렇게 오래 걸리면 체감상
+        /// 소프트락과 다를 게 없다. 그래서 여기 문턱을 훨씬 짧게 따로 둔다 —
+        /// 정상 플레이는 버튼 한 번이면 끝나 절대 안 닿고, 확인 입력이 어떤
+        /// 이유로도(자리 비움·클릭 씹힘 등) 안 들어올 때만 여는 안전판이다.
+        /// </summary>
+        private const float DayEndConfirmBackstop = 20f;
+
+        /// <summary>승급·취침 정산 화면의 확인 전환.
         ///
-        /// 값 근거 — 기획서에 이 두 화면의 연출 시간이 명시돼 있지 않아 화면
-        /// 내용량으로 정했다:
-        /// - 승급(Rank): 분대원 4명짜리 표 하나, 단계식 리빌 없이 한 번에 그려진다.
-        ///   최소 3.0s(표를 눈으로 훑는 데 필요한 시간), 자동 전환 6.0s(최소치의 2배 —
-        ///   판정 화면 6.4s와 체감 속도를 맞췄다).
-        /// - 취침 정산(Sleep): 스탯 6종 + 군기까지 숫자를 하나씩 대조해야 해서 더 준다.
-        ///   최소 2.5s, 자동 전환 10.0s — 원래 "SPACE — 닫기"로 수동 닫기만 있던
-        ///   화면이라(자동으로 안 넘어가도 됐다) 자동 하한을 가장 넉넉하게 잡았다.
+        /// 판정 화면은 §7.5 6.4초 고정 연출이 끝난 뒤가 확인 시점이다 — 자체
+        /// 타이머(`_rollCallStart`)를 쓰는 <see cref="UpdateRollCallAdvance"/>가 따로
+        /// 맡는다. 여기서는 그 뒤에 오는 두 화면만 다룬다.
+        ///
+        /// 최소 시간(<see cref="DayEndFloor"/>) 동안은 확인을 안 받는다(내용을
+        /// 최소한은 보게). 그 뒤로는 [확인] 버튼 클릭(Draw*가 직접 처리, 아래
+        /// 참고) 또는 Space/Enter로 넘어가고, <see cref="DayEndConfirmBackstop"/>
+        /// 만큼 더 기다려도 확인이 없으면 강제로 넘긴다(위 주석 — 소프트락 방지).
         /// </summary>
         private void UpdateDayEndAdvance()
         {
             if (_screen != Screen.Rank && _screen != Screen.Sleep) return;
 
             var elapsed = Time.unscaledTime - _dayEndScreenStart;
-            var floor = _screen == Screen.Rank ? 3.0f : 2.5f;
-            var autoAdvance = _screen == Screen.Rank ? 6.0f : 10.0f;
-            // `Input.anyKeyDown`은 키보드뿐 아니라 마우스 버튼도 포함한다 — 클릭도 스킵으로 친다
-            var skipRequested = Input.anyKeyDown;
+            var floor = DayEndFloor(_screen);
 
-            if (elapsed >= autoAdvance || (elapsed >= floor && skipRequested))
+            var confirmKey = elapsed >= floor &&
+                (Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.Return) ||
+                 Input.GetKeyDown(KeyCode.KeypadEnter));
+
+            if (confirmKey || elapsed >= floor + DayEndConfirmBackstop)
                 AdvanceDayEnd();
+        }
+
+        /// <summary>판정(RollCall) 화면의 확인 전환 — 6.4초 리빌이 끝난 뒤 키보드
+        /// 확인과 강제 흘림만 여기서 본다(마우스 클릭은 DrawRollCall이 버튼 Rect를
+        /// 아는 자리에서 직접 처리 — 위 Update() 주석 참고). 실패 판정은 이 큐를
+        /// 안 탄다 — RollCall 화면이 그대로 남아 §7.5 종료 흐름(HudEnding)으로
+        /// 이어져야 하므로 절대 넘기지 않는다.</summary>
+        private void UpdateRollCallAdvance()
+        {
+            if (_judgement == null || !_judgement.passed) return;
+
+            var t = Time.unscaledTime - _rollCallStart;
+            if (t < 6.4f) return;
+
+            var confirmKey = Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.Return) ||
+                              Input.GetKeyDown(KeyCode.KeypadEnter);
+
+            if (confirmKey || t >= 6.4f + DayEndConfirmBackstop)
+                AdvanceDayEnd();
+        }
+
+        /// <summary>하루 마감 큐 화면들의 [확인] 버튼 — HudMinigame 결과창의 Retry
+        /// 버튼(`HudMinigame.Button`)·HudEnding의 재시작 버튼과 같은 마우스 판정을
+        /// 쓴다: hover면 accent로 밝아지고, `Event.current.type == MouseDown`으로
+        /// 딱 한 번만 반응한다. 연출이 아직 안 끝났으면(`ready=false`) 버튼을 아예
+        /// 그리지 않는다 — 비활성 버튼을 보여주면 "왜 안 눌리지"로 헷갈리니
+        /// 없는 편이 낫다.</summary>
+        private static bool DrawConfirmButton(HudTheme theme, Rect rect, bool ready)
+        {
+            if (!ready) return false;
+
+            var hot = rect.Contains(Event.current.mousePosition);
+            theme.Fill(rect, hot ? HudTheme.AccentW : HudTheme.Paper3);
+            theme.Border(rect, hot ? HudTheme.Accent : HudTheme.Rule, 2f);
+            GUI.Label(rect, "확 인   [Space/Enter]",
+                theme.At(theme.Body, 16, hot ? HudTheme.Accent : HudTheme.Ink, TextAnchor.MiddleCenter));
+
+            if (hot && Event.current.type == EventType.MouseDown)
+            {
+                Event.current.Use();
+                return true;
+            }
+            return false;
         }
 
         /* ══════════════════════════════════════════════════════ 그리기 */
@@ -1661,8 +1737,13 @@ namespace SoldierADay.Net
                 theme.Fill(new Rect(0f, 0f, HudTheme.ViewWidth, HudTheme.ViewHeight),
                     HudTheme.Alert, 0.13f);
 
-            // 목업 실측: 1200×556 @ (360, 452)
-            var panel = new Rect(360f, 452f, 1200f, 556f);
+            // 목업 실측: 1200×556 @ (360, 452). 아래쪽에 64px(`ConfirmAreaHeight`)를
+            // 더 얹었다 — 수리 1로 결과 문구 밑에 [확인] 버튼이 새로 들어가는데,
+            // 원래 556 높이는 결과 띠(108px)가 패널 바닥에 딱 맞춰져 있어 버튼이
+            // 들어갈 자리가 없었다(ViewHeight는 항상 ≥1080이라 이만큼 늘려도
+            // 화면 밖으로 안 밀린다 — Backdrop 주석 참고).
+            const float ConfirmAreaHeight = 64f;
+            var panel = new Rect(360f, 452f, 1200f, 556f + ConfirmAreaHeight);
             theme.Fill(panel, HudTheme.Paper);
             theme.Border(panel, failed ? HudTheme.Alert : HudTheme.Accent, 3f);
 
@@ -1712,7 +1793,11 @@ namespace SoldierADay.Net
                 var failureLine = isFail ? HudDialogue.RollCallFailureLine(key, (int)_judgement.day) : null;
                 var reliefTone = reliefExhausted ? HudTheme.Alert : HudTheme.Heat;
                 var baseHeight = i == 2 && failedAt == "C" ? 76f : 70f;
-                var noteHeight = isReliefRow || failureLine != null ? 24f : 0f;
+                // 수리 2(사용자 피드백 — "간부 말 문구 탑 마진이 너무 크고 글자 좀
+                // 키워줘") — 소대장 대사만 칸을 30f로 살짝 늘린다(17pt가 24f 안에서
+                // 잘리지 않도록). 간부 구제 문구(isReliefRow)는 피드백 대상이 아니라
+                // 그대로 24f를 쓴다.
+                var noteHeight = isReliefRow ? 24f : failureLine != null ? 30f : 0f;
                 var row = new Rect(panel.x + 32f, y, 1136f, baseHeight + noteHeight);
                 var mainRect = new Rect(row.x, row.y, row.width, baseHeight);
 
@@ -1760,9 +1845,18 @@ namespace SoldierADay.Net
                         // 연출). 이 줄은 그 줄이 실패로 정지하는 그 자리에서 바로
                         // 소대장의 반응을 붙인다 — 판정 숫자와 사람의 말을 같은
                         // 눈길에 담는다.
-                        GUI.Label(new Rect(row.x + 72f, row.y + baseHeight, 1040f, noteHeight),
+                        //
+                        // 수리 2 — 사용자가 "탑 마진이 너무 크고 글자 좀 키워줘"라고
+                        // 했다. 원래는 조건 줄 바로 아래(`row.y + baseHeight`)에서
+                        // 시작했는데, mainRect 안의 라벨이 이미 세로 중앙 정렬이라
+                        // 그 아래로 빈 칸이 남고 대사가 그 칸이 끝난 자리에서 또
+                        // 시작하니 라벨 글자 바닥과 대사 사이가 실측 20px대로 벌어져
+                        // 있었다. 16f 끌어올려 그 간격을 절반 이하(10px대)로 줄이고,
+                        // 글자도 14→17로 키운다 — noteHeight를 30f로 늘려 뒀으니
+                        // 커진 글자도 칸 밖으로 잘리지 않는다.
+                        GUI.Label(new Rect(row.x + 72f, row.y + baseHeight - 16f, 1040f, noteHeight),
                             $"\"{failureLine}\"",
-                            theme.At(theme.Small, 14, HudTheme.Alert));
+                            theme.At(theme.Small, 17, HudTheme.Alert));
                     }
                 }
                 else if (skipped)
@@ -1781,7 +1875,9 @@ namespace SoldierADay.Net
             if (t < 4f) return;
 
             // 결과 — §7.5 "실패 원인을 단 한 줄로 지목한다"
-            var result = new Rect(panel.x, panel.yMax - 108f, panel.width, 108f);
+            // 결과 띠는 패널 맨 아래 대신 `ConfirmAreaHeight`만큼 위로 붙는다 — 그
+            // 아래 남는 자리가 [확인] 버튼 자리다(패널 높이 주석 참고)
+            var result = new Rect(panel.x, panel.yMax - 108f - ConfirmAreaHeight, panel.width, 108f);
             theme.Fill(result, failed ? HudTheme.Hex("3A100C") : HudTheme.AccentW);
             theme.Fill(new Rect(result.x, result.y, result.width, 2f),
                 failed ? HudTheme.Alert : HudTheme.Accent);
@@ -1794,10 +1890,18 @@ namespace SoldierADay.Net
                 theme.At(theme.Body, 17, HudTheme.Ink, TextAnchor.MiddleCenter));
 
             // 6.4초 = 기획서(SAD-GDD-002 §16 사운드 박스) "점호 판정 트랙은 6.4초
-            // 연출에 큐 포인트 4개" — 그 시각에 다음 화면(승급이 있으면 승급, 없으면
-            // 취침 정산)으로 넘긴다. 실패 시엔 절대 안 넘긴다 — RollCall 화면이 그대로
-            // 남아 §7.5 종료 흐름(HudEnding)으로 이어져야 한다.
-            if (!failed && t > 6.4f) AdvanceDayEnd();
+            // 연출에 큐 포인트 4개" — 리빌이 다 끝나는 시각이다. 실패 시엔 절대
+            // 안 넘긴다 — RollCall 화면이 그대로 남아 §7.5 종료 흐름(HudEnding)으로
+            // 이어져야 한다. 통과 시엔 이 시각부터 [확인] 버튼이나 Space/Enter
+            // (UpdateRollCallAdvance, Update() 경유)로 다음 화면(승급이 있으면 승급,
+            // 없으면 취침 정산)으로 넘어간다 — 수리 1: 예전엔 6.4초 시각에 자동으로
+            // 넘어갔지만, 이제 6.4초는 "버튼이 뜨는 시점"일 뿐이고 실제 전환은
+            // 사용자 확인을 받는다(강제 흘림 문턱은 UpdateRollCallAdvance 주석 참고).
+            if (!failed)
+            {
+                var buttonRect = new Rect(panel.center.x - 115f, panel.yMax - 52f, 230f, 44f);
+                if (DrawConfirmButton(theme, buttonRect, t >= 6.4f)) AdvanceDayEnd();
+            }
         }
 
         /* ═══════════════════════════════════════════ §7.6 취침 정산 */
@@ -1883,8 +1987,15 @@ namespace SoldierADay.Net
                     theme.At(theme.Small, 13, HudTheme.Ink2));
             }
 
-            GUI.Label(new Rect(panel.x, panel.yMax - 44f, panel.width, 24f), "SPACE — 닫기",
-                theme.At(theme.Label, 13, HudTheme.Ink3, TextAnchor.MiddleCenter));
+            // 수리 1 — 예전엔 "SPACE — 닫기"로 문구만 있고 실제 전환은 자동 타이머
+            // (구 UpdateDayEndAdvance)가 맡았다. 이제 이 버튼이 그 역할을 진다 —
+            // 클릭이나 Space/Enter로 확인해야 다음(있으면 없음, 이 화면이 큐의
+            // 마지막)으로 넘어간다. 준비 시점·강제 흘림 문턱은 UpdateDayEndAdvance와
+            // 같은 값을 쓴다(DayEndFloor) — 둘이 어긋나면 버튼이 뜨기도 전에
+            // Update()가 먼저 넘겨 버리는 모순이 생긴다.
+            var sleepReady = Time.unscaledTime - _dayEndScreenStart >= DayEndFloor(Screen.Sleep);
+            var sleepButton = new Rect(panel.center.x - 115f, panel.yMax - 52f, 230f, 44f);
+            if (DrawConfirmButton(theme, sleepButton, sleepReady)) AdvanceDayEnd();
         }
 
         /// <summary>E-2 잔여 — 오늘의 기록에서 가장 최근 "군기 정산 …" 문장을 찾는다.
@@ -1979,9 +2090,16 @@ namespace SoldierADay.Net
                 y += 78f;
             }
 
-            GUI.Label(new Rect(panel.x, panel.yMax - 44f, panel.width, 24f),
-                "승급은 선택 퀘스트로만 — 필수는 전원 100%라 변별력이 0이다   ·   SPACE",
+            GUI.Label(new Rect(panel.x, panel.yMax - 84f, panel.width, 20f),
+                "승급은 선택 퀘스트로만 — 필수는 전원 100%라 변별력이 0이다",
                 theme.At(theme.Label, 13, HudTheme.Ink3, TextAnchor.MiddleCenter));
+
+            // 수리 1 — "· SPACE" 안내만 있고 실제 전환은 자동 타이머가 맡던 자리를
+            // 버튼으로 바꾼다. Sleep 쪽 주석과 같은 이유로 준비 시점을 DayEndFloor로
+            // 맞춘다.
+            var rankReady = Time.unscaledTime - _dayEndScreenStart >= DayEndFloor(Screen.Rank);
+            var rankButton = new Rect(panel.center.x - 115f, panel.yMax - 52f, 230f, 44f);
+            if (DrawConfirmButton(theme, rankButton, rankReady)) AdvanceDayEnd();
         }
 
         /* ═══════════════════════════════════════════ §7.8 퀵 커맨드 라디얼 */
