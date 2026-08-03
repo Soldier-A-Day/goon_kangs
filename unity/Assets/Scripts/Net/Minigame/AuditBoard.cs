@@ -46,6 +46,13 @@ namespace SoldierADay.Net
         private int _columns = 1;
         private Rect _area;
 
+        /// <summary>연속으로 정답만 적발한 횟수 — 오답 한 번에 끊긴다. 도장 소리 피치를 여기서 올린다</summary>
+        private int _correctStreak;
+
+        /// <summary>공통 — 마지막 3초 심장 박동까지 남은 시간(초)</summary>
+        private float _heartbeatCd;
+        private const float HeartbeatInterval = 0.5f;
+
         /* ───────────────────────────────────────────── H-4 키보드 포커스 */
 
         /// <summary>지금 포커스된 줄. `_rows.Length`면 "이상 없음 보고" 버튼이다</summary>
@@ -83,6 +90,7 @@ namespace SoldierADay.Net
             _vNavCooldown = 0f;
             _usingKeyboard = true;
             _lastMouseForFocus = new Vector2(-1f, -1f);
+            _correctStreak = 0;
 
             // 깨끗한 판인지 먼저 굴린다 — 같은 questId는 재시도에도 같은 값이
             // 나온다(`Rng`가 questId로 시드 고정된 것을 `Board.Begin`이 보장한다).
@@ -101,16 +109,40 @@ namespace SoldierADay.Net
                 };
             }
 
-            // 어긋난 줄을 고른다 (`_need`가 0이면, 즉 깨끗한 판이면 그냥 안 돈다)
+            // 어긋난 줄을 고른다 (`_need`가 0이면, 즉 깨끗한 판이면 그냥 안 돈다).
+            //
+            // A-5 벤치마크 이식 S3 — Papers, Please. 숫자 ±1 하나뿐이면 몇 판
+            // 지나면 "자리만 훑으면 된다"는 요령이 생긴다. 그래서 남은 함정이
+            // 둘 이상이면 시드 확률로 "군번 끝자리 교환" 변형을 섞는다 — 두 줄의
+            // 실물 값이 서로 자리를 바꾼다. 각 값 자체는 멀쩡한 숫자라 대장과
+            // 나란히 놓고 읽어야만 보이고, 옆 줄까지 같이 봐야 잡힌다.
             var picked = 0;
             while (picked < _need)
             {
-                var i = Rng.Next(count);
-                if (_rows[i].Mismatch) continue;
-                _rows[i].Mismatch = true;
+                var pairTrap = _need - picked >= 2 && Rng.NextDouble() < 0.35;
+                if (pairTrap)
+                {
+                    var i = Rng.Next(count);
+                    var j = Rng.Next(count);
+                    if (i == j || _rows[i].Mismatch || _rows[j].Mismatch) continue;
+                    if (_rows[i].Ledger == _rows[j].Ledger) continue; // 값이 같으면 바꿔도 안 틀린다
+
+                    var li = _rows[i].Ledger;
+                    var lj = _rows[j].Ledger;
+                    _rows[i].Mismatch = true;
+                    _rows[j].Mismatch = true;
+                    _rows[i].Actual = lj;
+                    _rows[j].Actual = li;
+                    picked += 2;
+                    continue;
+                }
+
+                var k = Rng.Next(count);
+                if (_rows[k].Mismatch) continue;
+                _rows[k].Mismatch = true;
                 // 한 자리만 다르다. 눈에 확 띄면 대조가 아니라 술래잡기가 된다
                 var shift = Rng.Next(2) == 0 ? 1 : -1;
-                _rows[i].Actual = (int.Parse(_rows[i].Ledger) + shift).ToString();
+                _rows[k].Actual = (int.Parse(_rows[k].Ledger) + shift).ToString();
                 picked += 1;
             }
         }
@@ -131,6 +163,8 @@ namespace SoldierADay.Net
 
         protected override void Advance(float dt, BoardInput input)
         {
+            TickHeartbeat(dt);
+
             if (_rows == null || _area.width <= 0f) return;
 
             UpdateFocusNav(dt, input);
@@ -169,14 +203,27 @@ namespace SoldierADay.Net
             if (row.Mismatch)
             {
                 _found += 1;
+                _correctStreak += 1;
                 Fill = (float)_found / _need;
-                if (_found >= _need) Clear();
+                if (_found >= _need)
+                {
+                    Clear();
+                    return;
+                }
+
+                // A-5 벤치마크 이식 S3 — 연속 적발 콤보. 도장을 찍을 때마다
+                // 피치가 경쾌하게 올라간다(`Clear`의 success 소리와 겹치지
+                // 않게 마지막 한 발은 위에서 이미 return했다). 너무 새된
+                // 소리가 되지 않게 상한을 둔다
+                var pitch = Mathf.Min(1.6f, 1f + _correctStreak * 0.08f);
+                Sfx.Play("tap", 1f, pitch);
                 return;
             }
 
             // 헛짚었다. 표시는 남는다 — 무엇을 잘못 봤는지 보여야 배운다
             row.Wrong = true;
             _strikes += 1;
+            _correctStreak = 0;
             Miss();
             if (_strikes >= _limit) Fail();
         }
@@ -193,6 +240,7 @@ namespace SoldierADay.Net
             }
 
             _strikes += 1;
+            _correctStreak = 0;
             Miss();
             if (_strikes >= _limit) Fail();
         }
@@ -244,6 +292,21 @@ namespace SoldierADay.Net
                 }
             }
             else _hNavCooldown = 0f;
+        }
+
+        /// <summary>공통 — 마지막 3초 하이라이트. 심장 박동처럼 0.5초 간격으로 저음 tap을 운다</summary>
+        private void TickHeartbeat(float dt)
+        {
+            if (Remaining > 3f || Remaining <= 0f)
+            {
+                _heartbeatCd = 0f;
+                return;
+            }
+
+            _heartbeatCd -= dt;
+            if (_heartbeatCd > 0f) return;
+            Sfx.Play("tap", 0.85f, 0.55f);
+            _heartbeatCd = HeartbeatInterval;
         }
 
         private void MoveFocusVertical(int delta)
@@ -361,6 +424,12 @@ namespace SoldierADay.Net
 
             DrawReportButton(theme);
             theme.Border(body, HudTheme.Rule);
+
+            // 공통 — 마지막 3초 하이라이트. 본문 위 가장자리를 심장 박동에 맞춰 깜빡인다
+            if (Remaining <= 3f && Remaining > 0f && HudTheme.Pulse(2f))
+            {
+                theme.Fill(new Rect(body.x, body.y, body.width, 4f), HudTheme.Alert, 0.85f);
+            }
         }
 
         /// <summary>

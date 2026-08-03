@@ -61,6 +61,22 @@ namespace SoldierADay.Net
         /// <summary>완벽 착지 강조가 유지되는 시간(초)</summary>
         private const float PerfectFlashDuration = 0.3f;
 
+        /// <summary>
+        /// 퍼펙트 콤보(A-5 벤치마크 이식 S2 — Stack) — 이 개수마다 폭을 조금
+        /// 되돌려준다. 매번 회복시키면 잘려나간 손실이 지워지고, 아예 안 주면
+        /// 연속 성공이 숫자로만 남는다. 3연속마다 한 번씩 숨통을 틔워준다.
+        /// </summary>
+        private const int ComboRecoverEvery = 3;
+
+        /// <summary>콤보 회복 시 되돌리는 비율 — 잃은 폭(시작 폭 − 지금 폭)의 30%</summary>
+        private const float ComboRecoverRatio = 0.3f;
+
+        /// <summary>탑 상단 스웨이가 시작되는 층 수 — 그 아래는 안 흔들린다</summary>
+        private const int SwayStartRow = 6;
+
+        /// <summary>공통 — 마지막 3초 하이라이트 심장 박동 tap 간격(초)</summary>
+        private const float HeartbeatInterval = 0.5f;
+
         /// <summary>잘려나간 조각이 보이는 시간(초) — 한 프레임이라도 보이면 되므로 짧다</summary>
         private const float ScrapLifetime = 0.3f;
 
@@ -96,11 +112,22 @@ namespace SoldierADay.Net
         /// <summary>완벽 착지 강조 — -1이면 꺼져 있다</summary>
         private float _perfectFlashAge = -1f;
         private int _perfectFlashRow = -1;
+        /// <summary>플래시가 켜진 순간의 콤보 수 — 밝기를 여기서 읽는다(연속일수록 환하다)</summary>
+        private int _perfectFlashCombo;
+
+        /// <summary>지금 첫 타일 폭(px) — 콤보 회복의 상한. `InitLayout`에서 한 번만 잰다</summary>
+        private float _baseWidth;
+        /// <summary>연속 퍼펙트 착지 수 — 어긋나거나 완전히 빗나가면 0으로 끊긴다</summary>
+        private int _perfectStreak;
+
+        /// <summary>공통 — 마지막 3초 심장 박동까지 남은 시간(초)</summary>
+        private float _heartbeatCd;
 
         public override string Instruction => "타이밍에 맞춰 눌러 쌓아라 — 어긋난 만큼 좁아진다";
 
         public override string Status =>
-            $"{_placed}/{_count} 쌓음" + (Mistakes > 0 ? $"  ·  실수 {Mistakes}" : "");
+            $"{_placed}/{_count} 쌓음" + (Mistakes > 0 ? $"  ·  실수 {Mistakes}" : "")
+            + (_perfectStreak > 0 ? $"  ·  퍼펙트 ×{_perfectStreak}" : "");
 
         /// <summary>
         /// 자리만 맞추면 되는 변형(`snapDeg` 0)만 시간초과로 통과한다.
@@ -125,6 +152,9 @@ namespace SoldierADay.Net
             _dropT = -1f;
             _perfectFlashAge = -1f;
             _perfectFlashRow = -1;
+            _perfectFlashCombo = 0;
+            _baseWidth = 0f;
+            _perfectStreak = 0;
         }
 
         /// <summary>
@@ -140,6 +170,7 @@ namespace SoldierADay.Net
             _initialized = true;
 
             var baseWidth = Mathf.Max(MinWidthPx, _area.width * BaseWidthRatio);
+            _baseWidth = baseWidth;
             _tower.Add(new Tile { CenterX = _area.width * 0.5f, Width = baseWidth });
             _curWidth = baseWidth;
             _placed = 1;
@@ -169,6 +200,7 @@ namespace SoldierADay.Net
             // 얼룩 강조·김 서림 시계와 같은 이유) — 아래 이른 return과 무관하게 먼저 갱신한다
             TickScraps(dt);
             TickPerfectFlash(dt);
+            TickHeartbeat(dt);
 
             if (_area.width <= 0f || _tower == null) return;
             if (!_initialized) InitLayout();
@@ -223,6 +255,7 @@ namespace SoldierADay.Net
             {
                 // 완전히 빗나갔다 — 극성(180)만 되돌릴 수 없는 실수로 취급한다.
                 // 90 · 0은 같은 타일이 같은 폭으로 다시 날아온다(규칙 §3)
+                _perfectStreak = 0;
                 if (_snap >= 180f) { Fail(); return; }
                 Miss();
                 SpawnNextTile();
@@ -242,6 +275,18 @@ namespace SoldierADay.Net
                 // 살짝 당겨 붙인다(허용 오차만큼의 오차가 시각적으로 튀어나오지 않게)
                 landedWidth = _curWidth;
                 landedCenter = Mathf.Clamp(_curX, belowLeft + landedWidth * 0.5f, belowRight - landedWidth * 0.5f);
+                _perfectStreak += 1;
+
+                // A-5 벤치마크 이식 S2 — Stack 콤보. 3연속마다 잃은 폭의 30%를
+                // 되돌려준다(시작 폭이 상한). 매번 주면 손실이 무의미해지고,
+                // 아예 안 주면 한 번 좁아진 탑은 끝까지 좁은 채로 남는다 —
+                // 연속 성공에 실질적인 보상을 줘야 "잘 하고 있다"가 손끝에 남는다
+                if (_perfectStreak % ComboRecoverEvery == 0 && _baseWidth > 0f)
+                {
+                    var lost = Mathf.Max(0f, _baseWidth - landedWidth);
+                    landedWidth = Mathf.Min(_baseWidth, landedWidth + lost * ComboRecoverRatio);
+                    landedCenter = Mathf.Clamp(_curX, belowLeft + landedWidth * 0.5f, belowRight - landedWidth * 0.5f);
+                }
             }
             else
             {
@@ -253,6 +298,7 @@ namespace SoldierADay.Net
 
                 SpawnScraps(left, right, landedCenter - landedWidth * 0.5f, landedCenter + landedWidth * 0.5f,
                     _tower.Count);
+                _perfectStreak = 0;
             }
 
             _pending = new Tile { CenterX = landedCenter, Width = landedWidth };
@@ -264,6 +310,7 @@ namespace SoldierADay.Net
             {
                 _perfectFlashAge = 0f;
                 _perfectFlashRow = _tower.Count;
+                _perfectFlashCombo = _perfectStreak;
                 Sfx.Play("tap", 1f, 1.2f);
             }
             else
@@ -326,6 +373,21 @@ namespace SoldierADay.Net
             if (_perfectFlashAge >= PerfectFlashDuration) _perfectFlashAge = -1f;
         }
 
+        /// <summary>공통 — 마지막 3초 하이라이트. 심장 박동처럼 0.5초 간격으로 저음 tap을 운다</summary>
+        private void TickHeartbeat(float dt)
+        {
+            if (Remaining > 3f || Remaining <= 0f)
+            {
+                _heartbeatCd = 0f;
+                return;
+            }
+
+            _heartbeatCd -= dt;
+            if (_heartbeatCd > 0f) return;
+            Sfx.Play("tap", 0.85f, 0.55f);
+            _heartbeatCd = HeartbeatInterval;
+        }
+
         private float RowTopLocal(int row, float rowH) => _area.height - (row + 1) * rowH;
 
         private Rect TileRect(Tile tile, int row, float rowH) => new Rect(
@@ -349,6 +411,17 @@ namespace SoldierADay.Net
             {
                 var tile = _tower[i];
                 var rect = TileRect(tile, i, rowH);
+
+                // A-5 벤치마크 이식 S2 — 6층 넘는 상단부는 시각만 살짝 흔든다.
+                // `tile.CenterX`(판정이 쓰는 실제 값)는 그대로다 — `rect`는 그리기
+                // 직전에만 만드는 로컬 사각형이라 여기서 밀어도 TryDrop의 겹침
+                // 계산에는 전혀 닿지 않는다
+                if (i >= SwayStartRow)
+                {
+                    var height = i - SwayStartRow;
+                    rect.x += Mathf.Sin(Time.time * 1.6f + height * 0.35f) * Mathf.Min(4f, 1f + height * 0.5f);
+                }
+
                 var accent = _perfectFlashAge >= 0f && _perfectFlashRow == i;
 
                 theme.Fill(rect, HudTheme.Paper2);
@@ -356,7 +429,10 @@ namespace SoldierADay.Net
                 if (accent)
                 {
                     var t = 1f - Mathf.Clamp01(_perfectFlashAge / PerfectFlashDuration);
-                    theme.Fill(rect, HudTheme.Accent, 0.35f * t);
+                    // 연속 퍼펙트가 쌓일수록 플래시가 밝아진다 — 3연속에서 폭
+                    // 회복까지 겹치면 확 켜져서 "지금 콤보가 터졌다"가 눈에 띈다
+                    var glow = Mathf.Clamp(0.35f + _perfectFlashCombo * 0.1f, 0.35f, 0.85f);
+                    theme.Fill(rect, HudTheme.Accent, glow * t);
                 }
             }
 
@@ -397,6 +473,12 @@ namespace SoldierADay.Net
             }
 
             theme.Border(body, HudTheme.Rule);
+
+            // 공통 — 마지막 3초 하이라이트. 본문 위 가장자리를 심장 박동에 맞춰 깜빡인다
+            if (Remaining <= 3f && Remaining > 0f && HudTheme.Pulse(2f))
+            {
+                theme.Fill(new Rect(body.x, body.y, body.width, 4f), HudTheme.Alert, 0.85f);
+            }
         }
     }
 }
