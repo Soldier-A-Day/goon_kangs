@@ -16,6 +16,16 @@ namespace SoldierADay.Net
     /// 다만 이 판은 그중 `bins`·`items`만 재해석해 쓴다 — `bins`는 우물의 폭,
     /// `items`는 지워야 할 줄 수로 다시 읽는다. `ambiguous`·`strikes`는 더는
     /// 쓰이지 않는다 — 애매한 물건도, 오답 한도도 테트리스에는 없는 개념이다.
+    ///
+    /// ── 수리 — 키 배치를 테트리스 관례대로 ────────────────────────────────
+    /// 사용자 지시: "위쪽 방향키 눌렀을 때 회전하고 스페이스바 누르면 즉시
+    /// 내려오게 해줘." ↑(위 방향키·W)가 회전, Space가 하드드롭이다. 마우스
+    /// 클릭 회전은 그대로 남긴다 — 클릭이 이미 조준하기 편한 사람에게 새
+    /// 키를 강제로 익히게 할 이유가 없다. `input.Tap`(Board.cs — 클릭 또는
+    /// Space)을 그대로 회전에 쓰면 Space가 회전과 하드드롭 둘 다를 쏘게
+    /// 되므로, 회전은 `input.Pressed`(클릭만) + 위쪽 엣지로, 하드드롭은
+    /// `Input.GetKeyDown(KeyCode.Space)`를 이 판에서 직접 읽어 갈라 둔다
+    /// (자세한 이유는 `Advance` 주석).
     /// </summary>
     public sealed class SortBoard : Board
     {
@@ -84,6 +94,12 @@ namespace SoldierADay.Net
         private float _moveCooldown;
         private float _flashTimer;
 
+        /// <summary>직전 프레임에 ↑(위 방향키·W)가 눌려 있었는가 — 회전을 "눌린 순간
+        /// 1회"로 막는 엣지 검출에 쓴다. `input.Vertical`은 축이라 누르고 있는
+        /// 동안 계속 값이 나오는데, 그걸 그대로 매 프레임 회전에 쓰면 순식간에
+        /// 여러 바퀴 돈다(§Advance 회전 주석)</summary>
+        private bool _verticalUpPrev;
+
         // 다른 판들은 `_area` 필드에 `body`를 담아 두고 Advance의 마우스 판정과
         // Draw가 같이 쓴다. 이 판은 마우스를 안 쓰니(조작이 키뿐이다) 그 필드가
         // 생기면 쓰는 곳 없이 값만 담기는 죽은 필드가 된다 — 대신 Draw 안에서
@@ -94,7 +110,7 @@ namespace SoldierADay.Net
         private int[] _cellX;
         private int[] _cellY;
 
-        public override string Instruction => "←→ 옮기고 눌러 돌려라 — 줄을 채워 지워라";
+        public override string Instruction => "←→ 옮기고 ↑ 돌려라 — Space로 즉시 내려라";
 
         public override string Status => $"줄 {_linesCleared}/{_targetLines}";
 
@@ -144,8 +160,27 @@ namespace SoldierADay.Net
                 _moveCooldown = 0f;
             }
 
-            // 회전 — Tap은 이미 단발이라(Board.cs) 따로 쿨다운이 필요 없다
-            if (input.Tap) TryRotate();
+            // 회전 — ↑(위 방향키·W) 또는 마우스 클릭. `input.Tap`(Board.cs)은
+            // "클릭 or Space"라 그대로 쓰면 Space가 회전과 하드드롭을 동시에
+            // 쏜다 — 그래서 클릭은 `input.Pressed`(마우스만, 이미 단발)로 보고,
+            // 위쪽은 `input.Vertical`을 우리가 직접 엣지 검출한다. `Vertical`은
+            // 축이라 누르고 있는 동안 계속 값이 나오는데, 매 프레임 그대로
+            // 돌리면 눌러 두는 순간 여러 바퀴 돈다(이동 쿨다운과 같은 문제,
+            // 다만 회전은 "누를 때마다 한 칸"이 관례라 반복이 아니라 완전
+            // 단발이어야 한다 — 그래서 쿨다운이 아니라 눌림 자체를 기억한다)
+            var verticalUp = input.Vertical > 0.5f;
+            if (input.Pressed || (verticalUp && !_verticalUpPrev)) TryRotate();
+            _verticalUpPrev = verticalUp;
+
+            // 하드드롭 — Space. `Input.GetKeyDown`을 판 안에서 직접 읽는 이유는
+            // 위와 같다: `input.Tap`을 쓰면 마우스 클릭까지 하드드롭을 쏘게 된다.
+            // BoardInput 계약(다른 판들이 쓰는 Tap·Confirm의 뜻)은 건드리지 않고
+            // 이 판만 Space를 따로 챙긴다.
+            if (Input.GetKeyDown(KeyCode.Space))
+            {
+                HardDrop();
+                return; // 이미 바닥에 닿았다 — 이번 프레임 낙하 타이머는 건너뛴다
+            }
 
             _fallTimer += dt;
             if (_fallTimer < FallInterval) return;
@@ -155,6 +190,34 @@ namespace SoldierADay.Net
             dropped.Y += 1;
             if (Collides(dropped)) LockPiece();
             else _piece = dropped;
+        }
+
+        /// <summary>
+        /// 즉시 낙하 — 지금 조각을 고스트가 있던 자리(더 못 내려가는 지점)까지
+        /// 옮기고 그대로 고정한다. 중력이 바닥에 닿아 `LockPiece`를 부르는 것과
+        /// 같은 경로라 줄 삭제·다음 조각 스폰이 똑같이 이어진다.
+        /// </summary>
+        private void HardDrop()
+        {
+            var dist = DropDistance(_piece);
+            if (dist > 0) _piece.Y += dist;
+            _fallTimer = 0f; // 새 조각이 남은 낙하 시간을 물려받아 곧장 한 칸 더 떨어지지 않게
+            LockPiece();
+        }
+
+        /// <summary>주어진 조각이 바로 아래로 몇 칸 더 떨어질 수 있는가. 고스트
+        /// 그림(`Draw`)과 하드드롭이 이 계산을 같이 쓴다 — 둘이 다른 계산을
+        /// 쓰면 고스트가 실제 착지 자리와 어긋나는 거짓말을 하게 된다</summary>
+        private int DropDistance(Piece p)
+        {
+            var dist = 0;
+            while (true)
+            {
+                var next = p;
+                next.Y = p.Y + dist + 1;
+                if (Collides(next)) return dist;
+                dist += 1;
+            }
         }
 
         /// <summary>
@@ -397,9 +460,29 @@ namespace SoldierADay.Net
                 theme.Fill(r, PieceColors[v - 1]);
             }
 
-            // 떨어지는 조각
             RotatedCells(_piece, _cellX, _cellY);
             var pieceColor = PieceColors[_piece.Type];
+
+            // 고스트 — Space(하드드롭)를 누르면 어디에 닿을지 미리 보여주는
+            // 반투명 실루엣. 안 보여주면 즉시 낙하는 도박이 된다(사용자 지시).
+            // 실제 조각과 같은 모양(_cellX·_cellY)에 착지 거리(DropDistance)만
+            // 더한다 — 하드드롭 자체도 같은 계산을 쓰므로 여기서 보여주는
+            // 자리와 실제로 떨어지는 자리가 어긋날 일이 없다
+            var ghostDist = DropDistance(_piece);
+            if (ghostDist > 0)
+            {
+                for (var i = 0; i < 4; i += 1)
+                {
+                    var gx = _piece.X + _cellX[i];
+                    var gy = _piece.Y + ghostDist + _cellY[i];
+                    if (gy < 0) continue;
+                    var r = new Rect(well.x + gx * cell, well.y + gy * cell, cell - 1f, cell - 1f);
+                    theme.Fill(r, pieceColor, 0.28f);
+                    theme.Border(r, HudTheme.Ink2, 1f);
+                }
+            }
+
+            // 떨어지는 조각
             for (var i = 0; i < 4; i += 1)
             {
                 var gx = _piece.X + _cellX[i];

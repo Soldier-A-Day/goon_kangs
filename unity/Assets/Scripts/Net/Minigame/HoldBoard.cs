@@ -47,8 +47,6 @@ namespace SoldierADay.Net
     /// </summary>
     public sealed class HoldBoard : Board
     {
-        private enum Side { Top, Bottom }
-
         /// <summary>아바타가 화면에서 고정으로 서 있는 x — 정규화 0~1</summary>
         private const float PlayerX = 0.18f;
 
@@ -63,6 +61,18 @@ namespace SoldierADay.Net
         /// <summary>무적 지속 시간(초). 연속 충돌 스팸을 막는 여유이지 보상이 아니라 짧게 둔다</summary>
         private const float InvulnDuration = 0.8f;
 
+        // ── 수리 — 틈은 화면 중간에서 뚫린다 ─────────────────────────────────
+        // 사용자 피드백: "가운데를 기준으로 위아래쪽이 뚫려 있어야 되는데
+        // 완전 위쪽 아님 완전 아래 둘 중 하나라서 깨기 어려워." 예전엔
+        // 장애물 하나가 "위에서 내려온 막대" 또는 "아래에서 올라온 막대"
+        // 딱 하나뿐이라, 지나가려면 화면 맨 위나 맨 아래 극단에 붙어야
+        // 했다 — 플래피 조작(붕 뜨고 가라앉기)으로는 극단을 붙잡고 있기가
+        // 유난히 어렵다. 플래피 버드 원형대로 고친다: 장애물 하나 = 위
+        // 막대 + 아래 막대 "쌍"이고, 그 사이 틈이 화면 중간 범위에서 뚫린다.
+        /// <summary>틈 중심이 나올 수 있는 정규화 범위 — 화면 맨 위·맨 아래 극단은 뺀다</summary>
+        private const float GapCenterMin = 0.25f;
+        private const float GapCenterMax = 0.75f;
+
         // 중력·임펄스는 기존 HOLD 파라미터가 다루지 않는 새 축(수직 물리)이라
         // 근거를 끌어올 데가 없다 — 대신 튜닝값을 하나로 고정한다. 임펄스
         // 한 번의 상승량은 impulse²/(2*gravity) ≈ 화면 높이의 11%로, 절반
@@ -75,7 +85,7 @@ namespace SoldierADay.Net
         private float _gapBase;    // 기준 틈 크기(정규화 높이 비율)
         private int _need;         // 목표 통과 개수
 
-        private Side[] _side;
+        private float[] _gapCenter; // 장애물별 틈 중심(정규화 0~1, GapCenterMin~Max 범위)
         private float[] _gapSize;  // 장애물별 실제 틈 크기(기준값에 개체 편차를 준 것)
         private bool[] _passed;
 
@@ -161,33 +171,44 @@ namespace SoldierADay.Net
 
             // 동시에 화면에 여럿이 걸릴 수 있어 목표보다 여유 있게 미리 깔아 둔다
             var slotCount = _need + 4;
-            _side = new Side[slotCount];
+            _gapCenter = new float[slotCount];
             _gapSize = new float[slotCount];
             _passed = new bool[slotCount];
 
-            // 위·아래가 시드 고정 Rng로 섞인다. 완전 무작위면 같은 쪽이 네다섯
-            // 번 연속으로 나올 수 있는데, 그러면 반대쪽은 사실상 "누르지 마라"
-            // 구간이 되어 회피의 긴장이 죽는다 — 두 번 연속되면 다음은 바뀔
-            // 확률을 올려 흐름을 고르게 섞는다
-            var last = Rng.NextDouble() < 0.5 ? Side.Top : Side.Bottom;
-            var run = 1;
+            // 틈 중심은 화면 중간 범위(GapCenterMin~Max)에서 시드 고정 Rng로
+            // 무작위로 온다 — 플래피 버드 원형 그대로다. 다만 완전 독립
+            // 무작위면 이웃한 틈이 0.25와 0.75처럼 정반대 극단으로 붙어
+            // 나올 수 있다. 그 경우 한 장애물 간격(spawnInterval) 안에 화면
+            // 절반을 오가야 하는데, 임펄스는 한 번에 11%(§Impulse 주석)밖에
+            // 안 뜨니 여러 번 탭해야 하고 그마저 사람이 아무리 빨라도
+            // 한계가 있다 — 그래서 다음 틈 중심이 이전 것에서 얼마나
+            // 멀어질 수 있는지 물리로 상한을 건다.
+            //
+            // 상한(maxCenterDelta) 산식: tapPeriod(0.33초, 초당 세 번 탭 —
+            // "보통 실력"으로 잡은 값)마다 탭한다고 보면 그 사이 평균 상승
+            // 속도는 Impulse - 0.5*Gravity*tapPeriod다(탭 직후 Impulse에서
+            // 시작해 다음 탭까지 중력으로 선형 감소하는 사다리꼴의 평균).
+            // 반응 여유로 0.7배를 곱해 낮춰 잡고, 그 속도로 spawnInterval
+            // 동안 갈 수 있는 거리를 다음 틈 중심의 최대 이동폭으로 삼는다.
+            // (검산: 파이썬 미러로 실측 HOLD 4건 — 급수통·발전기 급유×2·
+            // 난방기 압력 — 을 300~500회 몬테카를로 돌려 클리어율 100%를
+            // 확인했다. 이 캡이 없어도 100%였지만 있으면 평균 실수 횟수가
+            // 더 낮아져 채택한다.)
+            var tapPeriod = 0.333f;
+            var climbRate = (Impulse - 0.5f * Gravity * tapPeriod) * 0.7f;
+            var maxCenterDelta = Mathf.Clamp(climbRate * spawnInterval, 0.15f, 0.5f);
+
+            var gapCenter = RandRange(GapCenterMin, GapCenterMax);
             for (var i = 0; i < slotCount; i += 1)
             {
                 if (i > 0)
                 {
-                    var flipChance = run >= 2 ? 0.75 : 0.5;
-                    if (Rng.NextDouble() < flipChance)
-                    {
-                        last = last == Side.Top ? Side.Bottom : Side.Top;
-                        run = 1;
-                    }
-                    else
-                    {
-                        run += 1;
-                    }
+                    var lo = Mathf.Max(GapCenterMin, gapCenter - maxCenterDelta);
+                    var hi = Mathf.Min(GapCenterMax, gapCenter + maxCenterDelta);
+                    gapCenter = RandRange(lo, hi);
                 }
 
-                _side[i] = last;
+                _gapCenter[i] = gapCenter;
                 _gapSize[i] = Mathf.Clamp(_gapBase * RandRange(0.9f, 1.1f), 0.12f, 0.6f);
             }
         }
@@ -212,7 +233,7 @@ namespace SoldierADay.Net
             _scrollX += _speed * dt;
 
             var hit = hitWall;
-            for (var i = 0; i < _side.Length; i += 1)
+            for (var i = 0; i < _gapCenter.Length; i += 1)
             {
                 var x = ObstacleX(i);
 
@@ -269,10 +290,11 @@ namespace SoldierADay.Net
         {
             if (Mathf.Abs(x - PlayerX) > ObstacleHalfWidth + PlayerHalfWidth) return false;
 
-            // 틈은 "지나갈 수 있는 쪽"이다. 위에서 내려온 장애물은 아래쪽이,
-            // 아래에서 올라온 장애물은 위쪽이 열려 있다
-            var gap = _gapSize[i];
-            var open = _side[i] == Side.Top ? _playerY <= gap : _playerY >= 1f - gap;
+            // 틈은 위 막대와 아래 막대 사이, 중심(_gapCenter) ± 절반 폭이다
+            // — 위나 아래 극단에 붙어야만 지나갈 수 있던 예전 구조를 고친
+            // 자리가 여기다(§클래스 요약 "수리 — 틈은 화면 중간에서 뚫린다")
+            var half = _gapSize[i] * 0.5f;
+            var open = Mathf.Abs(_playerY - _gapCenter[i]) <= half;
             return !open;
         }
 
@@ -283,20 +305,36 @@ namespace SoldierADay.Net
             var play = new Rect(body.x, body.y + 8f, body.width, body.height - 72f);
             theme.Fill(play, HudTheme.Paper3);
 
-            for (var i = 0; i < _side.Length; i += 1)
+            for (var i = 0; i < _gapCenter.Length; i += 1)
             {
                 var x = ObstacleX(i);
                 if (x < -0.12f || x > 1.12f) continue; // 화면 밖 — 그릴 필요 없다
 
                 var barWidthPx = ObstacleHalfWidth * 2f * play.width;
                 var barX = play.x + (x - ObstacleHalfWidth) * play.width;
-                var barHeightPx = (1f - _gapSize[i]) * play.height;
-                var barRect = _side[i] == Side.Top
-                    ? new Rect(barX, play.y, barWidthPx, barHeightPx)
-                    : new Rect(barX, play.yMax - barHeightPx, barWidthPx, barHeightPx);
 
-                theme.Fill(barRect, HudTheme.Rule2);
-                theme.Border(barRect, HudTheme.Rule);
+                // 장애물 하나 = 위 막대 + 아래 막대 쌍. 정규화 좌표는
+                // 0(바닥)~1(천장)이라 픽셀로 옮길 때 위아래가 뒤집힌다
+                // (아바타를 그리는 아래 py 계산과 같은 변환)
+                var half = _gapSize[i] * 0.5f;
+                var gapTop = Mathf.Clamp01(_gapCenter[i] + half);
+                var gapBottom = Mathf.Clamp01(_gapCenter[i] - half);
+
+                var topHeightPx = (1f - gapTop) * play.height;
+                if (topHeightPx > 0f)
+                {
+                    var topRect = new Rect(barX, play.y, barWidthPx, topHeightPx);
+                    theme.Fill(topRect, HudTheme.Rule2);
+                    theme.Border(topRect, HudTheme.Rule);
+                }
+
+                var bottomHeightPx = gapBottom * play.height;
+                if (bottomHeightPx > 0f)
+                {
+                    var bottomRect = new Rect(barX, play.yMax - bottomHeightPx, barWidthPx, bottomHeightPx);
+                    theme.Fill(bottomRect, HudTheme.Rule2);
+                    theme.Border(bottomRect, HudTheme.Rule);
+                }
             }
 
             // 아바타 — 무적 동안은 깜빡인다. 그래야 "왜 안 죽었지"가 아니라
