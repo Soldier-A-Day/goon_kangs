@@ -144,6 +144,14 @@ namespace SoldierADay.EditorTools
         /// W1이 `wall_{kind}_face.png`를 아직 안 냈으면 `LoadSprite`가 null을 돌려주고
         /// 그 kind만 건너뛴다 — 예외로 씬 생성이 멈추지 않는다.
         /// </summary>
+        /// <summary>벽 정면(오블리크) 낱개 스프라이트를 담는 컨테이너. 조명 스윕이
+        /// 이 이름으로 찾아 Lit을 입힌다 — 이름이 바뀌면 벽 위/아래 밝기가 어긋난다</summary>
+        private const string WallFaceLayerName = "TM_WallFace";
+
+        /// <summary>바닥 AO 타일맵. 조명 스윕이 이 이름으로 **제외**한다 — 어둡게
+        /// 덮는 오버레이라 Lit이 되면 등 아래에서 스스로 밝아진다</summary>
+        private const string FloorAoLayerName = "TM_FloorAO";
+
         private static void BuildWallFaces(Transform grid, BaseMap map, MapCells cells, int height)
         {
             if (map.layers?.wall == null || map.layers.wall.Length == 0) return;
@@ -151,7 +159,7 @@ namespace SoldierADay.EditorTools
             var wallCells = cells.Wall;
             var floorCells = cells.Floor;
 
-            var container = new GameObject("TM_WallFace");
+            var container = new GameObject(WallFaceLayerName);
             container.transform.SetParent(grid, false);
 
             // kind별로 한 번만 로드 — 8,800칸을 훑어도 `AssetDatabase` 조회는 kind 수만큼만
@@ -240,7 +248,7 @@ namespace SoldierADay.EditorTools
             }
             if (positions.Count == 0) return;
 
-            var go = new GameObject("TM_FloorAO");
+            var go = new GameObject(FloorAoLayerName);
             go.transform.SetParent(grid, false);
             var tilemap = go.AddComponent<Tilemap>();
             var renderer = go.AddComponent<TilemapRenderer>();
@@ -763,14 +771,32 @@ namespace SoldierADay.EditorTools
             if (grid != null)
             {
                 foreach (var renderer in grid.GetComponentsInChildren<TilemapRenderer>(true))
+                {
+                    // 바닥 AO는 **빛을 받으면 안 된다.** 어둡게 덮는 오버레이라서
+                    // Lit이 되면 등 아래에서 스스로 밝아져 접지 그늘이 사라진다
+                    if (renderer.name == FloorAoLayerName) continue;
                     renderer.sharedMaterial = material;
+                }
+
+                // 벽 정면(오블리크)은 타일맵이 아니라 낱개 스프라이트다. 여기서
+                // 안 잡으면 벽 윗면만 Lit이 되어 같은 벽의 위/아래 밝기가 어긋난다
+                var wallFace = grid.Find(WallFaceLayerName);
+                if (wallFace != null)
+                {
+                    foreach (var renderer in wallFace.GetComponentsInChildren<SpriteRenderer>(true))
+                        renderer.sharedMaterial = material;
+                }
             }
 
             var zoneContainer = root.Find("구역");
             if (zoneContainer != null)
             {
                 foreach (var renderer in zoneContainer.GetComponentsInChildren<SpriteRenderer>(true))
+                {
+                    // 소품 그림자도 같은 이유로 unlit으로 남긴다(AO와 같은 성격)
+                    if (renderer.name == WorldDepth.ShadowChildName) continue;
                     renderer.sharedMaterial = material;
+                }
             }
 
             var placed = new List<Light2D>();
