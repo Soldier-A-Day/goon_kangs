@@ -256,6 +256,13 @@ _MANUAL_NEIGHBORS = {
 }
 
 
+def family_of(key: str) -> tuple[str, int] | None:
+    """`key`가 속한 계열 이름과 그 안 인덱스(명→암 순)를 돌려준다. 계열이 없는
+    단발 색(`alert` 등)이면 `None` — 호출부가 계열 제약을 걸 수 있는지 미리
+    검사할 때 쓴다(`nearest(..., family=...)` 참고)."""
+    return _FAMILY_OF.get(key)
+
+
 def neighbor(key: str, step: int) -> tuple[int, int, int]:
     """
     팔레트 **안에서** `key`의 계열 이웃을 찾는다. `step>0`은 더 밝은(하이라이트)
@@ -279,30 +286,40 @@ def neighbor(key: str, step: int) -> tuple[int, int, int]:
     return W[key]
 
 
-_NEAREST_CACHE: dict[tuple[int, int, int], tuple[int, int, int]] = {}
+_NEAREST_CACHE: dict[tuple[int, int, int, str | None], tuple[int, int, int]] = {}
 
 
-def nearest(rgb: tuple[int, int, int]) -> tuple[int, int, int]:
+def nearest(rgb: tuple[int, int, int], family: str | None = None) -> tuple[int, int, int]:
     """
     임의 RGB에 가장 가까운(유클리드 거리) §4.2 월드 팔레트(`W`) 색을 돌려준다.
 
-    W1 셰이딩·벽 정면 그라디언트처럼 밝기를 곱해 **연산으로 만든** 색은
-    팔레트 밖으로 샌다 — `_audit()`가 산출물에서 실제로 그걸 잡아낸다(§4.2
-    "팔레트 외 색 사용 금지"). 곱한 결과를 여기로 스냅해 넣으면 항상 팔레트
-    안에 있는 색만 저장된다.
+    W1 셰이딩처럼 밝기를 곱해 **연산으로 만든** 색은 팔레트 밖으로 샌다 —
+    `_audit()`가 산출물에서 실제로 그걸 잡아낸다(§4.2 "팔레트 외 색 사용
+    금지"). 곱한 결과를 여기로 스냅해 넣으면 항상 팔레트 안에 있는 색만
+    저장된다.
+
+    `family`를 주면(예: `"conc"`) **그 계열 키로만** 후보를 제한한다. 전체
+    팔레트에서 최근접을 찾으면 엉뚱한 계열로 샐 수 있다 — W1 벽 정면 타일에서
+    실제로 이 사고가 났다: 콘크리트 색을 밝히려고 곱한 값이 팔레트 전체에서
+    최근접을 찾다 보니 초록(`grass`) 계열로 스냅돼, 벽 정면이 이끼 낀 다른
+    재질처럼 보였다. `family`를 걸면 애초에 다른 계열 후보가 없으니 이 사고가
+    구조적으로 불가능해진다. (그 사고가 난 `wall_face()`는 지금은 `neighbor()`
+    로 계열 안 등록값만 골라 쓰도록 고쳐 `nearest()`를 아예 안 쓰지만, 이
+    함수를 쓰는 다른 호출부를 위해 계열 제한 자체는 남겨둔다.)
 
     `_NEAREST_CACHE`는 입력이 같으면 항상 같은 값을 돌려주는 순수 캐시일
-    뿐이다(무작위성 없음 — 이 저장소의 결정성 철칙). 동점은 `W`(곧 `WORLD`)의
-    등록 순서로 정해져 실행마다 같다.
+    뿐이다(무작위성 없음 — 이 저장소의 결정성 철칙). 동점은 `W`(곧 `WORLD`,
+    `family` 지정 시엔 `FAMILIES[family]`)의 등록 순서로 정해져 실행마다 같다.
     """
-    key = (rgb[0], rgb[1], rgb[2])
+    key = (rgb[0], rgb[1], rgb[2], family)
     cached = _NEAREST_CACHE.get(key)
     if cached is not None:
         return cached
+    candidates = [W[k] for k in FAMILIES[family]] if family is not None else W.values()
     best = None
     best_d = None
-    for c in W.values():
-        d = (c[0] - key[0]) ** 2 + (c[1] - key[1]) ** 2 + (c[2] - key[2]) ** 2
+    for c in candidates:
+        d = (c[0] - rgb[0]) ** 2 + (c[1] - rgb[1]) ** 2 + (c[2] - rgb[2]) ** 2
         if best_d is None or d < best_d:
             best_d = d
             best = c

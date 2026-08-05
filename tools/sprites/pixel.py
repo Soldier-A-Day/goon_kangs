@@ -152,13 +152,6 @@ def _clamp8(v: float) -> int:
     return 0 if v < 0 else (255 if v > 255 else int(round(v)))
 
 
-def mul_rgb(color, factor: float):
-    """RGB(A) 각 채널에 `factor`를 곱하고 0~255로 클램프한다. 알파는 그대로 둔다."""
-    r, g, b = color[0], color[1], color[2]
-    out = (_clamp8(r * factor), _clamp8(g * factor), _clamp8(b * factor))
-    return out if len(color) < 4 else out + (color[3],)
-
-
 # ─────────────────────────────────────────────────────────── W1 셰이딩 패스
 
 #: 광원은 **좌상단 45도 고정**이다(W1 발주). 여기 상수만 바꾸면 105여 종

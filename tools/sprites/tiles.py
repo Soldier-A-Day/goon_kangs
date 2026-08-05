@@ -231,8 +231,10 @@ def wall(kind: str, mask: int) -> Image.Image:
 #: `fence`는 벽이 아니라 철조망이다(위 `wall()` 주석) — 정면 타일 대상에서 뺀다
 WALL_FACE_KINDS = ("interior", "utility", "outdoor", "wood")
 WALL_FACE_H = 26
-WALL_FACE_BRIGHT_MUL = 1.4     #: 남쪽 면이 볕을 받는 쪽 — 탑다운 오토타일보다 밝게
-WALL_FACE_BOTTOM_MUL = 0.8     #: 세로 그라디언트 하단 — 접지 그늘은 아니다(런타임 담당)
+#: 그라디언트가 `face`에서 최대 몇 단 밝은 쪽까지 올라가는지(계열 끝을
+#: 넘어가면 `palette.neighbor()`가 알아서 그 자리에서 멈춘다 — night 계열은
+#: 2단뿐이라 사실상 1단에서 막힌다)
+WALL_FACE_BRIGHT_STEPS = 2
 WALL_FACE_NORMAL = (128, 60, 200, 255)   #: 정면을 보는(아래로 기운) 노멀 — 전 종류 공용
 
 
@@ -240,26 +242,41 @@ def wall_face(kind: str) -> Image.Image:
     """
     벽 정면 타일(W1 §3) — 탑다운 벽에 높이를 준다.
 
-    32×26px. 남쪽 면 색을 밝히고(`WALL_FACE_BRIGHT_MUL`) 아래로 갈수록
-    어두워지는 세로 그라디언트를 깐 다음, 최상단 2px에 윗면(`top`) 색을 한
-    번 더 밝혀 이음선을 긋는다 — 탑다운 오토타일의 윗면·남쪽 면 경계가 여기서
-    "튀어나온 모서리"로 읽힌다. 접지 그늘은 넣지 않는다(런타임 캐스트
-    섀도우가 그린다 — 다른 워커 담당, W1 발주 배경 참고).
+    32×26px. **여기서 색을 계산하지 않는다** — `face`가 속한 팔레트 계열
+    (`palette.FAMILIES`, 예 `conc`/`night`/`wood`) 안에서 `palette.neighbor()`
+    로 이미 등록된 밝은 단만 골라 쓴다. 최상단 2px는 `top`(탑다운 오토타일의
+    윗면 색을 그대로, 계산 없이)로 이음선을 긋고, 그 아래는 `face`보다
+    최대 `WALL_FACE_BRIGHT_STEPS`단 밝은 색에서 `face` 자신까지 내려오는
+    밴드 그라디언트다.
 
-    그라디언트는 직접 곱한 RGB를 `palette.nearest()`로 팔레트 안에 스냅한다
-    (§4.2 감사 통과) — 그 결과 매끈한 그라디언트가 아니라 팔레트가 허용하는
-    몇 단으로 **밴드가 진다**. 이 저장소의 다른 셰이딩(`ramp()` 계열색)도 전부
-    이런 밴드 톤이라 그림 전체와 결이 맞는다.
+    **W1 리뷰에서 실제로 난 사고**: 이전 버전은 `face` 밝기를 ×1.4로 곱한
+    뒤 `palette.nearest()`로 팔레트 전체에서 최근접을 스냅했는데, 콘크리트
+    계열(`conc`)에는 그만큼 밝은 중성 톤이 없어서 최근접이 엉뚱하게 초록
+    (`grass`) 계열로 튀었다 — interior/utility/outdoor 정면이 이끼 낀
+    다른 재질처럼 보였다(오케스트레이터가 렌더로 실측). 계열 밖 색을 아예
+    계산하지 않으면 이 사고가 구조적으로 재발할 수 없다.
+
+    접지 그늘은 넣지 않는다(런타임 캐스트 섀도우가 그린다 — 다른 워커 담당,
+    W1 발주 배경 참고).
     """
     face, top, _line = WALL_COLORS[kind]
     img = PX.blank(TILE, WALL_FACE_H)
-    edge = P.nearest(PX.mul_rgb(P.W[top], WALL_FACE_BRIGHT_MUL))
-    PX.rect(img, 0, 0, TILE - 1, 1, edge)
-    for y in range(2, WALL_FACE_H):
-        t = (y - 2) / max(1, WALL_FACE_H - 3)
-        mul = WALL_FACE_BRIGHT_MUL + t * (WALL_FACE_BOTTOM_MUL - WALL_FACE_BRIGHT_MUL)
-        color = P.nearest(PX.mul_rgb(P.W[face], mul))
-        PX.rect(img, 0, y, TILE - 1, y, color)
+    PX.rect(img, 0, 0, TILE - 1, 1, P.W[top])
+
+    # face 계열 안에서 밝은 쪽으로 최대 WALL_FACE_BRIGHT_STEPS단, face 자신까지
+    # 내려오는 밴드 목록 — 전부 palette.py에 이미 등록된 값이라 팔레트/계열
+    # 이탈이 불가능하다. 계열 끝(예: night는 2단뿐)에 닿으면 `neighbor()`가
+    # 같은 색을 돌려주므로 중복은 걸러 밴드 수를 줄인다.
+    bands: list[tuple[int, int, int]] = []
+    for step in range(WALL_FACE_BRIGHT_STEPS, -1, -1):
+        color = P.W[face] if step == 0 else P.neighbor(face, step)
+        if not bands or color != bands[-1]:
+            bands.append(color)
+
+    body_rows = WALL_FACE_H - 2
+    for i, y in enumerate(range(2, WALL_FACE_H)):
+        idx = min(len(bands) - 1, i * len(bands) // body_rows)
+        PX.rect(img, 0, y, TILE - 1, y, bands[idx])
     return img
 
 
