@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.IO;
 using UnityEditor;
 using UnityEngine;
 
@@ -29,11 +30,36 @@ namespace SoldierADay.EditorTools
         private const int CellH = 48;
         private static readonly Vector2 FootPivot = new Vector2(16f / CellW, 2f / CellH);
 
+        /// <summary>
+        /// W1 노멀맵 산출 계약(W3) — 원본과 같은 폴더에 `_n` 접미사, 크기는 원본과 같다
+        /// (예: `props/prop_13032_n.png`, `tiles/floor_concrete_n.png`).
+        /// </summary>
+        private const string NormalSuffix = "_n";
+
         private void OnPreprocessTexture()
         {
             if (!assetPath.StartsWith(Root)) return;
 
             var importer = (TextureImporter)assetImporter;
+
+            if (IsNormalMapPath(assetPath))
+            {
+                // 노멀맵 자체는 **스프라이트가 아니다** — Sprite 타입이 아니므로
+                // `LoadSprite`(BaseScene.cs)에도, `BuildSpriteAtlas`의 폴더 단위
+                // 패킹에도 안 잡힌다(둘 다 `Sprite` 서브에셋만 줍는다. 이 텍스처는
+                // NormalMap 타입이라 그 서브에셋 자체가 안 생긴다).
+                // 피벗·슬라이스는 여기서는 의미가 없어 나머지 로직을 건너뛴다
+                importer.textureType = TextureImporterType.NormalMap;
+                importer.filterMode = FilterMode.Point;
+                importer.textureCompression = TextureImporterCompression.Uncompressed;
+                importer.mipmapEnabled = false;
+                importer.maxTextureSize = 4096;
+                // `NormalMap` 타입은 엔진이 내부적으로 선형으로 읽지만, 인스펙터에
+                // sRGB 체크박스가 아예 숨겨지는 버전 차이가 있어 값도 명시해 둔다
+                importer.sRGBTexture = false;
+                return;
+            }
+
             importer.textureType = TextureImporterType.Sprite;
             importer.filterMode = FilterMode.Point;
             importer.textureCompression = TextureImporterCompression.Uncompressed;
@@ -54,6 +80,7 @@ namespace SoldierADay.EditorTools
                 settings.spritePivot = FootPivot;
                 importer.SetTextureSettings(settings);
                 SliceSheet(importer);
+                LinkNormalMapIfPresent(importer, assetPath);
                 return;
             }
 
@@ -76,6 +103,73 @@ namespace SoldierADay.EditorTools
             settings.spriteMode = (int)SpriteImportMode.Single;
             importer.SetTextureSettings(settings);
             importer.spriteImportMode = SpriteImportMode.Single;
+            LinkNormalMapIfPresent(importer, assetPath);
+        }
+
+        /// <summary>`internal` — `BuildSpriteAtlas`도 같은 판단 기준으로 노멀맵을 걸러낸다.
+        /// 접미사 규칙을 두 곳에 따로 적으면 언젠가 어긋난다</summary>
+        internal static bool IsNormalMapPath(string path) =>
+            Path.GetFileNameWithoutExtension(path).EndsWith(NormalSuffix);
+
+        private static string OriginalPathFor(string normalPath)
+        {
+            var dir = Path.GetDirectoryName(normalPath)?.Replace('\\', '/');
+            var name = Path.GetFileNameWithoutExtension(normalPath);
+            var ext = Path.GetExtension(normalPath);
+            var baseName = name.Substring(0, name.Length - NormalSuffix.Length);
+            return string.IsNullOrEmpty(dir) ? $"{baseName}{ext}" : $"{dir}/{baseName}{ext}";
+        }
+
+        private static string NormalPathFor(string originalPath)
+        {
+            var dir = Path.GetDirectoryName(originalPath)?.Replace('\\', '/');
+            var name = Path.GetFileNameWithoutExtension(originalPath);
+            var ext = Path.GetExtension(originalPath);
+            return string.IsNullOrEmpty(dir) ? $"{name}{NormalSuffix}{ext}" : $"{dir}/{name}{NormalSuffix}{ext}";
+        }
+
+        /// <summary>
+        /// W1이 낸 노멀맵을 `_NormalMap` 보조 텍스처로 잇는다.
+        ///
+        /// **없어도 아무 일도 없다** — `File.Exists`가 거짓이면 그냥 돌아간다.
+        /// 지금은 노멀맵이 하나도 없으므로 이 함수는 전부 조용히 스킵된다. 나중에
+        /// 생겨도 씬 빌더·머티리얼 쪽을 하나도 안 건드리고 자동으로 붙는다 —
+        /// Sprite-Lit-Default가 스프라이트의 보조 텍스처를 알아서 읽는다.
+        /// </summary>
+        private static void LinkNormalMapIfPresent(TextureImporter importer, string assetPath)
+        {
+            var normalPath = NormalPathFor(assetPath);
+            if (!File.Exists(normalPath)) return;
+
+            // 아직 임포트되지 않았으면 null이 온다 — `OnPostprocessAllAssets`가
+            // 노멀맵이 (재)임포트될 때마다 원본을 강제로 다시 돌려 잡아준다,
+            // 그러니 여기서 못 잡아도 다음 패스에서 잡힌다(순서 무관)
+            var normalTexture = AssetDatabase.LoadAssetAtPath<Texture2D>(normalPath);
+            if (normalTexture == null) return;
+
+            importer.secondarySpriteTextures = new[]
+            {
+                new SecondarySpriteTexture { name = "_NormalMap", texture = normalTexture },
+            };
+        }
+
+        /// <summary>
+        /// 노멀맵 파일이 (재)임포트되면 원본 스프라이트를 강제로 다시 돌린다.
+        ///
+        /// 임포트 배치 안에서 어느 파일이 먼저 처리될지는 보장되지 않는다 — 원본이
+        /// 노멀맵보다 먼저 돌면 `LinkNormalMapIfPresent`가 아직 없는 텍스처를 찾다
+        /// 조용히 실패한다. 노멀맵 쪽에서 한 번 더 밀어주면 순서에 상관없이 붙는다.
+        /// </summary>
+        private static void OnPostprocessAllAssets(string[] importedAssets, string[] deletedAssets,
+            string[] movedAssets, string[] movedFromAssetPaths)
+        {
+            foreach (var path in importedAssets)
+            {
+                if (!path.StartsWith(Root) || !IsNormalMapPath(path)) continue;
+
+                var original = OriginalPathFor(path);
+                if (File.Exists(original)) AssetDatabase.ImportAsset(original, ImportAssetOptions.ForceUpdate);
+            }
         }
 
         /// <summary>
