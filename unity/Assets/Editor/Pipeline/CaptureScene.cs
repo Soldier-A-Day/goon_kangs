@@ -35,6 +35,107 @@ namespace SoldierADay.EditorTools
             var ortho = Arg("-ortho");
             if (ortho != null) camera.orthographicSize = float.Parse(ortho);
 
+            // B2 전수 점검 전용 — `WorldLighting`/`WeatherGrading`은 [ExecuteAlways]가
+            // 아니라서 Update/LateUpdate가 Edit 모드(-batchmode)에서는 아예 안 돈다.
+            // 즉 아무 플래그 없이 캡처하면 씬 빌더가 심어둔 **기준 세기 그대로**(낮/밤
+            // 게이팅 미적용) 찍힌다 — 사실상 "실내등도 항상 켜진" 상태다.
+            // 실제 낮 플레이 화면과 비교하려면 이 스위치로 그 게이팅을 흉내 내야 한다.
+            //   -simulateDay  : nightBoost=true(방·복도 등)만 끈다 — 실제 낮 게임 화면과 동일
+            //   -lightsOff    : 로컬 광원을 전부 끈다 — WorldLighting 전체 토글 OFF와 동일
+            // B2 진단 — 전역광(Global Light2D) 자체가 렌더에 기여하는지 격리 테스트.
+            // 로컬 Point 광원 ON/OFF가 픽셀 단위로 완전히 같게 나와서(§HANDOFF 참고),
+            // 2D 라이팅 파이프라인 자체가 죽었는지(전역광도 무효) 아니면 Point 광원만
+            // 문제인지 갈라야 한다.
+            var globalOff = HasFlag("-globalOff");
+            var globalIntensity = Arg("-globalIntensity");
+            if (globalOff || globalIntensity != null)
+            {
+                foreach (var l in Object.FindObjectsByType<UnityEngine.Rendering.Universal.Light2D>(FindObjectsSortMode.None))
+                {
+                    if (l.lightType != UnityEngine.Rendering.Universal.Light2D.LightType.Global) continue;
+                    if (globalOff) l.enabled = false;
+                    if (globalIntensity != null) l.intensity = float.Parse(globalIntensity);
+                }
+            }
+
+            var simulateDay = HasFlag("-simulateDay");
+            var lightsOff = HasFlag("-lightsOff");
+            if (simulateDay || lightsOff)
+            {
+                var worldLighting = Object.FindFirstObjectByType<SoldierADay.Net.WorldLighting>();
+                if (worldLighting == null)
+                {
+                    Debug.LogWarning("[캡처] WorldLighting 없음 — 조명 시뮬레이션 건너뜀");
+                }
+                else
+                {
+                    for (var i = 0; i < worldLighting.lights.Length; i += 1)
+                    {
+                        var light = worldLighting.lights[i];
+                        if (light == null) continue;
+                        if (lightsOff) { light.enabled = false; continue; }
+                        var boost = i < worldLighting.nightBoost.Length && worldLighting.nightBoost[i];
+                        light.enabled = !boost;
+                    }
+                }
+            }
+
+            // B2 진단 전용 — 라이트 ON/OFF가 렌더에 전혀 영향을 안 주는 것으로 보여서
+            // (동일 좌표·동일 ortho 캡처 3장이 픽셀 단위로 완전히 같았다) 원인 후보를
+            // 로그로 남긴다: 광원 트랜스폼·반경·활성 여부, 그리고 실제로 셰이더가
+            // Lit으로 바뀌었는지(재질 이름). 씬은 건드리지 않고 읽기만 한다.
+            if (HasFlag("-diagLighting"))
+            {
+                var worldLighting = Object.FindFirstObjectByType<SoldierADay.Net.WorldLighting>();
+                if (worldLighting == null)
+                {
+                    Debug.Log("[진단] WorldLighting 없음");
+                }
+                else
+                {
+                    Debug.Log($"[진단] lights.Length={worldLighting.lights.Length}");
+                    var filter = Arg("-diagZone");
+                    for (var i = 0; i < worldLighting.lights.Length; i += 1)
+                    {
+                        var l = worldLighting.lights[i];
+                        if (l == null) { Debug.Log($"[진단] light[{i}] = null"); continue; }
+                        if (filter != null && !l.name.Contains(filter)) continue;
+                        Debug.Log($"[진단] light[{i}] name={l.name} pos={l.transform.position} " +
+                                  $"enabled={l.enabled} intensity={l.intensity} type={l.lightType} " +
+                                  $"inner={l.pointLightInnerRadius} outer={l.pointLightOuterRadius} " +
+                                  $"blendStyle={l.blendStyleIndex} sortingLayers=[{string.Join(",", l.targetSortingLayers)}] " +
+                                  $"color={l.color}");
+                    }
+                }
+
+                var grid = GameObject.Find("Grid");
+                if (grid != null)
+                {
+                    var wallFace = grid.transform.Find("TM_WallFace");
+                    if (wallFace != null)
+                    {
+                        var r = wallFace.GetComponentInChildren<SpriteRenderer>();
+                        if (r != null)
+                            Debug.Log($"[진단] WallFace 재질={r.sharedMaterial?.name} 셰이더={r.sharedMaterial?.shader?.name} " +
+                                      $"sortingLayer={r.sortingLayerName}");
+                    }
+                    foreach (var tr in grid.GetComponentsInChildren<UnityEngine.Tilemaps.TilemapRenderer>(true))
+                    {
+                        Debug.Log($"[진단] Tilemap={tr.name} 재질={tr.sharedMaterial?.name} " +
+                                  $"셰이더={tr.sharedMaterial?.shader?.name} sortingLayer={tr.sortingLayerName}");
+                    }
+                }
+
+                var zoneContainer = GameObject.Find("구역");
+                if (zoneContainer != null)
+                {
+                    var r = zoneContainer.GetComponentInChildren<SpriteRenderer>();
+                    if (r != null)
+                        Debug.Log($"[진단] 구역 소품 샘플={r.name} 재질={r.sharedMaterial?.name} " +
+                                  $"셰이더={r.sharedMaterial?.shader?.name} sortingLayer={r.sortingLayerName}");
+                }
+            }
+
             var rt = new RenderTexture(width, height, 24, RenderTextureFormat.ARGB32);
 
             // SRP에서 Camera.Render()는 지원되지 않는 레거시 경로라 결과가 실행마다
@@ -75,6 +176,15 @@ namespace SoldierADay.EditorTools
             var args = System.Environment.GetCommandLineArgs();
             for (var i = 0; i < args.Length - 1; i += 1) if (args[i] == key) return args[i + 1];
             return null;
+        }
+
+        /// <summary>값 없는 부울 스위치(예: `-simulateDay`)용. `Arg`는 다음 토큰을 값으로
+        /// 소비하므로 이런 플래그에는 못 쓴다</summary>
+        private static bool HasFlag(string key)
+        {
+            var args = System.Environment.GetCommandLineArgs();
+            foreach (var a in args) if (a == key) return true;
+            return false;
         }
     }
 }
