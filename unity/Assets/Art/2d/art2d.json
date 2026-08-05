@@ -1498,6 +1498,24 @@
    "tiles/snow_2.png",
    "tiles/snow_3.png"
   ],
+  "wallFaces": [
+   {
+    "kind": "interior",
+    "file": "tiles/wall_interior_face.png"
+   },
+   {
+    "kind": "utility",
+    "file": "tiles/wall_utility_face.png"
+   },
+   {
+    "kind": "outdoor",
+    "file": "tiles/wall_outdoor_face.png"
+   },
+   {
+    "kind": "wood",
+    "file": "tiles/wall_wood_face.png"
+   }
+  ],
   "labels": []
  },
  "vfx": {
