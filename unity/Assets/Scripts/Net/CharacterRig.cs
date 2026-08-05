@@ -27,6 +27,45 @@ namespace SoldierADay.Net
         private SpriteLibrary _library;
         private SortingGroup _group;
 
+        // ────────────────────────────────────────────────── WC — 캐릭터도 조명 받게
+
+        /// <summary>
+        /// 월드 정적 스프라이트와 **같은 셰이더 이름**(`BaseScene.WorldLitShaderName`).
+        /// 상수를 공유하지 않는 이유: 저쪽은 에디터 전용(`BaseScene.cs`)이라 이
+        /// 런타임 어셈블리(WebGL 빌드 포함)에서 참조할 수 없다 — 문자열이
+        /// 갈라지면 사고이므로, 바꿀 일이 생기면 두 파일 다 고쳐야 한다.
+        /// </summary>
+        private const string LitShaderName = "Universal Render Pipeline/2D/Sprite-Lit-Default";
+
+        /// <summary>
+        /// 캐릭터 전체가 공유하는 런타임 Lit 머티리얼. `BaseScene.EnsureWorldLitMaterial`이
+        /// 씬 빌드 시각에 이 셰이더를 Always Included Shaders에 등록해 두므로(에디터
+        /// 전용 코드, 여기서는 안 건드린다) WebGL 빌드에서도 `Shader.Find`가 성공한다.
+        ///
+        /// 노멀맵은 아직 없다(아트 워커 이번 배치 범위 밖) — 그래도 Lit 셰이더는
+        /// 법선 없이도 `Light2D`의 색·세기를 곱해 받으므로, 어두운 방에서 캐릭터가
+        /// 소품·타일맵과 함께 어두워진다. 이게 이번 작업의 목표다.
+        ///
+        /// 셰이더를 못 찾으면(패키지 문제 등) `null`을 반환해 렌더러가 기본
+        /// 머티리얼(unlit)에 남는다 — 지금 화면이 이 작업이 깨질 때의 유일하게
+        /// 안전한 실패 방식이다(`BaseScene.ApplyWorldLighting`과 같은 원칙).
+        /// </summary>
+        private static Material _litMaterial;
+        private static bool _litMaterialSearched;
+
+        private static Material LitMaterial
+        {
+            get
+            {
+                if (_litMaterialSearched) return _litMaterial;
+                _litMaterialSearched = true;
+                var shader = Shader.Find(LitShaderName);
+                if (shader == null) return null;
+                _litMaterial = new Material(shader) { name = "SAD_CharacterLit_Runtime" };
+                return _litMaterial;
+            }
+        }
+
         /// <summary>
         /// 8레이어 + 눈 오버레이가 매달리는 자식. **루트(`transform`)가 아니다.**
         ///
@@ -230,6 +269,10 @@ namespace SoldierADay.Net
                 go.transform.SetParent(_visual, false);
                 var renderer = go.AddComponent<SpriteRenderer>();
                 renderer.sortingOrder = i;   // 그룹 안에서의 위아래
+                // WC — 8레이어 전부 Lit. 발밑 그림자("그림자")는 이 8레이어에
+                // 안 속한다 — `WorldDepthShadowManager`가 `rig.transform`(루트) 밑에
+                // 별도 자식으로 붙이므로 여기서 만드는 렌더러 목록에 애초에 안 잡힌다
+                if (LitMaterial != null) renderer.sharedMaterial = LitMaterial;
                 _renderers[i] = renderer;
             }
 
@@ -247,6 +290,9 @@ namespace SoldierADay.Net
             renderer.sprite = EyeSprite;
             renderer.sortingOrder = Layers.Length;
             renderer.enabled = false;
+            // WC — 눈 오버레이도 8레이어와 같은 재질이어야 한다. Lit이 아니면 방이
+            // 어두워져도 눈만 원래 밝기로 둥둥 떠 보인다
+            if (LitMaterial != null) renderer.sharedMaterial = LitMaterial;
             return renderer;
         }
 
