@@ -1018,6 +1018,25 @@ PROPS: dict[str, tuple[int, int, object, bool]] = {
     "토사 퇴적": (2, 1, _sandbag, False),
 }
 
+# ── C3 소품 조각 합성 ─────────────────────────────────────────────────────
+# 가족별 모듈이 `BUILDERS`에 등록한 이름은 위 표의 **그리는 함수만** 갈아 끼운다.
+# 타일 크기(w, h)와 통행 가능 여부는 그대로 둔다 — `base_map.json`이 그 크기로
+# 이미 배치돼 있어서 크기가 바뀌면 맵 전체가 어긋난다.
+#
+# 모듈을 셋으로 나눈 이유는 세 워커가 같은 파일을 동시에 고치면 충돌하기 때문이다.
+# 여기서 한 번에 합치므로 각 모듈은 서로를 몰라도 된다.
+import props_furniture as _pf
+import props_utility as _pu
+import props_outdoor as _po
+
+for _mod in (_pf, _pu, _po):
+    for _name, _draw in getattr(_mod, "BUILDERS", {}).items():
+        if _name not in PROPS:
+            raise KeyError(f"{_mod.__name__}: 없는 소품 이름 {_name!r}")
+        _w, _h, _old, _walk = PROPS[_name]
+        PROPS[_name] = (_w, _h, _draw, _walk)
+
+
 
 # ══════════════════════════════════════════════════════════════════════ 표식
 #
