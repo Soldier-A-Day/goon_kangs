@@ -363,6 +363,14 @@ export class Room {
         this.broadcastSnapshot(true);
         break;
 
+      case "dayEndAck":
+        // D1 — 마감 큐의 마지막 확인. 전원이 보내면 sim이 곧바로 다음 날을
+        // 열어(`finishDay`) day·phase가 한 번에 갱신되므로, 그 결과를 다음
+        // 10Hz 스냅샷까지 기다리게 두지 않는다(하달 창 조기 종료와 같은 이유).
+        this.apply({ type: "dayEndAck", memberId });
+        this.broadcastSnapshot(true);
+        break;
+
       case "fileClaim":
         // 청구서는 행정병만 쓴다 — 자격 검증은 sim이 한다 (11.0)
         this.apply({ type: "fileClaim", memberId, items: intent.items });
@@ -458,6 +466,11 @@ export class Room {
     // 사람은 여기서 신고를 대신 흘려 나머지 인원이 못 닫는 일이 없게 한다.
     // 유예 안에 돌아와도 무해하다 — 재확정은 창이 열려 있는 한 다시 보낼 수 있다.
     this.apply({ type: "delegationDone", memberId });
+    // D1 — 하루 마감 창도 같은 이유로 같은 자리에서 대신 신고한다. 안 그러면
+    // 접속이 끊긴 사람 때문에 나머지 인원이 확인을 다 눌러도 방이 안 넘어간다
+    // (백스톱이 넘길 때까지 기다려야 하는데, 그건 마지막 안전장치이지 정상
+    // 경로가 아니다).
+    this.apply({ type: "dayEndAck", memberId });
     this.broadcastSnapshot(true);
   }
 

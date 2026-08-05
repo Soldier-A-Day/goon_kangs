@@ -11,7 +11,7 @@ import {
   unlocked,
   type RunState,
 } from "../src/index.js";
-import { beginDay, completeRequired, fullSquad, toPhase } from "./helpers.js";
+import { ackAllDayEnd, beginDay, completeRequired, fullSquad, toPhase } from "./helpers.js";
 
 /**
  * 표 14-1 해금 일정 — **문서가 아니라 규칙이다.**
@@ -154,6 +154,10 @@ describe("F-1 — 실시간 하한 (스킵 투표로 우회 못 한다)", () => 
     for (let i = 0; i < 30 && state.status === "running" && state.day < 4; i += 1) {
       state = step(state, { type: "skipPhase" }).state;
       completeRequired(state);
+      // D1 — 스킵만으로 마지막 칸에 닿아도 판정 후에는 하루 마감 창이 확인을
+      // 기다린다. 여긴 실제 tick을 한 번도 안 주는 것이 이 테스트의 핵심이라
+      // 백스톱(시간 기반)에 기댈 수 없다 — 대신 확인을 흉내 낸다.
+      state = ackAllDayEnd(state);
     }
 
     expect(state.day).toBeGreaterThanOrEqual(4); // 스킵만으로 D-4까지 밀렸다

@@ -56,6 +56,7 @@ describe("스냅샷 스키마", () => {
     status: "running" as const,
     day: 1,
     totalDays: 18,
+    dayEndWindowMsLeft: 0,
     phase: {
       id: "morning" as const,
       index: 1,

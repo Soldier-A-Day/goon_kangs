@@ -356,6 +356,61 @@ describe("하달 창 조기 종료", () => {
   });
 });
 
+describe("D1 — 하루 마감 창", () => {
+  /** 실제로는 `settleDay`가 판정 뒤에 연다 — 테스트 편의상 직접 연다 */
+  function openWindow(room: Room): void {
+    if (!room.run) throw new Error("런 없음");
+    room.run.dayEndWindowMsLeft = 90_000;
+    for (const member of room.run.members) member.dayEndAcked = false;
+  }
+
+  it("dayEndAck 의도가 sim까지 전달된다 — 전원 확인 시 즉시 닫히고 다음 날이 열린다", () => {
+    const h = harness();
+    const ids = fourPlayers(h.room);
+    h.room.start();
+    const day = h.room.run?.day;
+    openWindow(h.room);
+
+    for (const id of ids.slice(0, 3)) {
+      h.room.handleIntent(id as string, { type: "dayEndAck" });
+    }
+    expect(h.room.run?.dayEndWindowMsLeft).toBe(90_000);
+    expect(h.room.run?.day).toBe(day);
+
+    h.room.handleIntent(ids[3] as string, { type: "dayEndAck" });
+    expect(h.room.run?.dayEndWindowMsLeft).toBe(0);
+    expect(h.room.run?.day).toBe((day ?? 1) + 1);
+  });
+
+  it("접속이 끊긴 사람은 확인 대기 집계에서 빠진다", () => {
+    const h = harness();
+    const ids = fourPlayers(h.room);
+    h.room.start();
+    const day = h.room.run?.day;
+    openWindow(h.room);
+
+    // 미접속 — 게임서버가 대신 확인을 흘려 나머지가 못 넘기는 일이 없게 한다
+    h.room.disconnect(ids[0] as string);
+    for (const id of ids.slice(1)) {
+      h.room.handleIntent(id as string, { type: "dayEndAck" });
+    }
+    expect(h.room.run?.dayEndWindowMsLeft).toBe(0);
+    expect(h.room.run?.day).toBe((day ?? 1) + 1);
+  });
+
+  it("창이 열려 있는 동안은 tick으로도 하루가 안 넘어간다 — 백스톱 전까지는", () => {
+    const h = harness();
+    fourPlayers(h.room);
+    h.room.start();
+    const day = h.room.run?.day;
+    openWindow(h.room);
+
+    h.room.tick(10_000);
+    expect(h.room.run?.day).toBe(day);
+    expect(h.room.run?.dayEndWindowMsLeft).toBe(80_000);
+  });
+});
+
 describe("채널", () => {
   it("근접 채팅은 같은 구역에만 간다", () => {
     const h = harness();

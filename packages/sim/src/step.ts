@@ -88,6 +88,9 @@ export function step(state: RunState, event: SimEvent): StepResult {
     case "delegationDone":
       markDelegationDone(next, event.memberId, effects);
       break;
+    case "dayEndAck":
+      markDayEndAck(next, event.memberId, effects);
+      break;
     case "leaderReassign":
       leaderReassign(next, event.leaderId, event.questId, event.toId, effects);
       break;
@@ -120,6 +123,12 @@ export function step(state: RunState, event: SimEvent): StepResult {
 function beginDay(state: RunState, effects: Effect[]): void {
   state.phaseIndex = 0;
   state.carryoverMs = 0;
+  // D1 — 이 날을 새로 시작하는 시점에는 마감 창이 열려 있으면 안 된다. 정상
+  // 흐름(`finishDay`)에서는 이미 0이지만, 방어적으로 한 번 더 비운다 — 헤드리스
+  // 시뮬·테스트가 `beginDay` 이벤트를 직접 쏴서 하루를 재구성하는 경로가 있고,
+  // 그 경로가 확인 대기 중인 이전 창을 그대로 물고 오면 다음 날 tick이 그
+  // 잔여 시간을 또 까먹는 사고가 난다.
+  state.dayEndWindowMsLeft = 0;
 
   // 기온은 하루의 시작에 딱 한 번 뽑힌다. 밴드가 그날의 일과표 자체를 바꾸므로(1.0),
   // 퀘스트 배정보다 먼저 확정되어야 한다.
@@ -194,6 +203,20 @@ function applyTick(state: RunState, elapsedMs: number, effects: Effect[]): void 
 
   let remaining = elapsedMs;
 
+  // D1 — 하루 마감 창이 열려 있는 동안은 다음 날로 넘어가지 않는다. 판정·승급·
+  // 취침 정산은 이미 `settleDay`가 끝냈고, 남은 것은 확인 대기뿐이다. 하달
+  // 창과 같은 자리·같은 방식으로 처리한다 — 창 잔여를 이번 틱에서 먼저
+  // 까먹고, 그러다 0에 닿으면(전원 확인은 `markDayEndAck`가 즉시 처리하므로
+  // 여기서는 백스톱 초과만 해당한다) `finishDay`가 다음 날을 연다.
+  if (state.dayEndWindowMsLeft > 0) {
+    const consumed = Math.min(state.dayEndWindowMsLeft, remaining);
+    state.dayEndWindowMsLeft -= consumed;
+    remaining -= consumed;
+    if (state.dayEndWindowMsLeft <= 0) {
+      finishDay(state, effects);
+    }
+  }
+
   // 하달 창이 열려 있는 동안은 시간대 타이머가 멈춰 있다
   if (state.delegationWindowMsLeft > 0) {
     const consumed = Math.min(state.delegationWindowMsLeft, remaining);
@@ -201,7 +224,10 @@ function applyTick(state: RunState, elapsedMs: number, effects: Effect[]): void 
     remaining -= consumed;
   }
 
-  while (remaining > 0 && state.status === "running") {
+  // 하루 마감 창이 여전히 열려 있으면(확인 대기 중) 시간대 타이머를 더
+  // 돌리지 않는다 — `endPhase`가 마지막 칸에서 창을 막 열었을 수도 있으므로
+  // 매 반복 다시 확인한다(안 그러면 같은 칸에서 `endPhase`가 무한히 재호출된다)
+  while (remaining > 0 && state.status === "running" && state.dayEndWindowMsLeft <= 0) {
     const left = state.phaseDurationMs - state.phaseElapsedMs;
     if (remaining < left) {
       state.phaseElapsedMs += remaining;
@@ -247,7 +273,7 @@ function endPhase(state: RunState, effects: Effect[]): void {
   effects.push({ type: "phaseEnded", phase: phase.id, lockedQuestIds: locked });
 
   if (state.phaseIndex >= PHASE_COUNT - 1) {
-    endDay(state, effects);
+    settleDay(state, effects);
     return;
   }
 
@@ -308,10 +334,79 @@ function skipPhase(state: RunState, effects: Effect[]): void {
 }
 
 /**
- * 하루 마감. 점호 판정(JDG-01)이 여기서 내려지고, 통과해야만 다음 날이 온다 —
- * 세이브·리트라이의 단위는 하루다(1.0).
+ * D1 — 하루 마감 확인 창의 백스톱.
+ *
+ * 사람 참석자 전원이 확인을 보내면 그 즉시 닫히지만(`markDayEndAck`), 한 명이
+ * 창을 열어둔 채 방치하거나(자리를 비웠거나) 접속이 끊긴 채 유예 시간마저
+ * 넘기면 방 전체가 영원히 D일에 갇힌다. 하달 창(20초, 단발 결정)보다 넉넉히
+ * 잡는다 — 이쪽은 판정·군기 변화·승급·취침 정산까지 여러 화면을 읽어야 하는
+ * "확인" 창이라 한 번의 짧은 판단과는 성격이 다르다. 90초는 넷이 각자 화면을
+ * 넘기고도 여유가 남는 값이고, 그래도 무한 정지보다는 훨씬 짧다.
  */
-function endDay(state: RunState, effects: Effect[]): void {
+export const DAY_END_BACKSTOP_MS = 90_000;
+
+/** 하루 마감 창이 열려 있는가 — 열려 있으면 `state.day`는 아직 오르지 않은 채다 */
+export function isDayEndWindow(state: RunState): boolean {
+  return state.dayEndWindowMsLeft > 0;
+}
+
+/**
+ * 하루 마감 창을 연다. `settleDay`가 그날의 판정·승급·취침 정산을 다 끝낸
+ * 뒤에만 호출된다 — 런이 여기서 끝났으면(discharged·cleared·disbanded) 다음
+ * 날이 없으므로 이 함수까지 오지 않는다(`settleDay`의 조기 반환들).
+ */
+function openDayEndWindow(state: RunState): void {
+  state.dayEndWindowMsLeft = DAY_END_BACKSTOP_MS;
+  for (const member of state.members) {
+    member.dayEndAcked = false;
+  }
+}
+
+/**
+ * D1 — 하루 마감 창 확인 신고.
+ *
+ * "요약을 다 봤다"는 신고이며, 사람 참석자(`presence === "player"`)만 센다 —
+ * NPC 대리·후송자는 애초에 볼 화면이 없다. 접속이 끊긴 사람은 게임서버가
+ * 접속 종료 시점에 이 이벤트를 대신 흘려보낸다(`services/gameserver/src/room.ts`
+ * disconnect, 하달 창 조기 종료와 같은 자리·같은 방식). 창이 이미 닫혀
+ * 있으면(백스톱을 넘겼거나 아직 안 열렸으면) 조용히 무시한다.
+ *
+ * 전원이 확인하는 즉시(백스톱을 기다리지 않고) `finishDay`를 불러 다음 날을 연다.
+ */
+export function markDayEndAck(
+  state: RunState,
+  memberId: string,
+  effects: Effect[],
+): void {
+  const member = state.members.find((m) => m.id === memberId);
+  if (!member || member.presence !== "player") return;
+  if (state.dayEndWindowMsLeft <= 0) return;
+
+  member.dayEndAcked = true;
+
+  const pending = state.members.some(
+    (m) => m.presence === "player" && !m.dayEndAcked,
+  );
+  if (pending) return;
+
+  effects.push({ type: "log", message: "dayEndWindowClosed" });
+  finishDay(state, effects);
+}
+
+/**
+ * 하루 마감 — 판정 단계.
+ *
+ * 점호 판정(JDG-01)이 여기서 내려지고, 통과해야만 다음 날로 이어질 여지가
+ * 생긴다 — 세이브·리트라이의 단위는 하루다(1.0). **`state.day`는 여기서
+ * 올리지 않는다** — 판정·군기 변화·승급·취침 정산을 화면이 다 보여준 뒤
+ * 사람 참석자 전원이 확인하거나(`markDayEndAck`) 백스톱을 넘겨야
+ * (`applyTick`) `finishDay`가 다음 날을 연다. 그래야 확인을 누르기 전까지
+ * 클라가 읽는 스냅샷이 여전히 "오늘(D)"이고, 확인 전에 시간대 타이머도 멈춰
+ * 있다(D1 — 예전에는 이 함수가 판정 직후 곧바로 `state.day += 1`과
+ * `beginDay`까지 동기로 끝내버려서, 확인 창을 보는 동안 이미 다음 날이
+ * 시작돼 있었다).
+ */
+function settleDay(state: RunState, effects: Effect[]): void {
   // 그날의 성과를 군기와 복무 점수에 먼저 반영한 뒤 판정한다 (DISC-01 · 표 13-1)
   applyDailyDiscipline(state, effects);
   applyDailyServiceScore(state);
@@ -333,6 +428,19 @@ function endDay(state: RunState, effects: Effect[]): void {
   // 점호 통과 → 야간 경계 배정 → 취침 정산 (COND-02)
   applySleep(state, effects);
 
+  // 여기까지 왔으면 런은 계속된다(위 조기 반환 어디에도 안 걸렸다) — 다음
+  // 날은 확인이 다 모이거나 백스톱을 넘겨야 열린다
+  openDayEndWindow(state);
+}
+
+/**
+ * 하루 마감 — 다음 날 진입.
+ *
+ * `settleDay`가 이미 그날 판정을 전부 끝내고 마감 창까지 닫힌 뒤에만
+ * 호출된다(전원 확인 — `markDayEndAck`, 또는 백스톱 — `applyTick`). 여기서
+ * 비로소 `state.day`가 오르고 다음 날 배정이 시작된다.
+ */
+function finishDay(state: RunState, effects: Effect[]): void {
   state.day += 1;
   for (const member of state.members) {
     member.vetoUsedToday = false;

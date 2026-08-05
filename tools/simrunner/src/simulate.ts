@@ -3,6 +3,7 @@ import {
   careRecovery,
   createRngState,
   createRun,
+  markDayEndAck,
   OFFICER_RELIEF_TRUST_THRESHOLD,
   phaseAt,
   PHASES,
@@ -145,6 +146,13 @@ export function simulateRun(
         ) {
           useOfficerRelief(state, state.leaderId ?? SQUAD[0].id, []);
         }
+      }
+      // D1 — 판정이 끝나면 하루 마감 창이 열려 다음 날 진입이 미뤄진다. 이
+      // 봇에는 눈으로 확인할 사람이 없으니 즉시 전원 확인한 것으로 친다 —
+      // 안 그러면 매일 백스톱(DAY_END_BACKSTOP_MS)만큼 헛도는 틱이 쌓여
+      // 밸런스 배치(수천 런)가 눈에 띄게 느려진다.
+      if (state.dayEndWindowMsLeft > 0) {
+        for (const member of SQUAD) markDayEndAck(state, member.id, []);
       }
       if (guard++ > 200) throw new Error(`하루가 끝나지 않는다: D-${day}`);
     }

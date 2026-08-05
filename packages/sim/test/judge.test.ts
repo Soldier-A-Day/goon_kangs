@@ -12,7 +12,16 @@ import {
   type Quest,
   type RunState,
 } from "../src/index.js";
-import { FULL_DAY, SECOND, beginDay, fullSquad, playDays, toPhase, withQuests } from "./helpers.js";
+import {
+  FULL_DAY,
+  SECOND,
+  ackAllDayEnd,
+  beginDay,
+  fullSquad,
+  playDays,
+  toPhase,
+  withQuests,
+} from "./helpers.js";
 
 function quest(overrides: Partial<Quest> = {}): Quest {
   return {
@@ -137,6 +146,9 @@ describe("구제권 (총량 3회 — 발동형)", () => {
     state.leaderId = "p1";
     state = step(state, { type: "useRelief", leaderId: "p1", questId: "b" }).state;
     state = step(state, { type: "tick", elapsedMs: FULL_DAY }).state;
+    // D1 — 판정은 끝났지만 하루 마감 창이 확인을 기다린다. 백스톱 대신
+    // 전원 확인을 흉내 내 곧바로 다음 날로 넘긴다.
+    state = ackAllDayEnd(state);
 
     expect(state.status).toBe("running");
     expect(state.day).toBe(2);
@@ -160,6 +172,9 @@ describe("구제권 (총량 3회 — 발동형)", () => {
 
     state = step(state, { type: "skipPhase" }).state; // 개인정비 종료 → 점호 칸
     state = step(state, { type: "skipPhase" }).state; // 점호 종료 → 판정
+    // D1 — 판정은 끝났지만 하루 마감 창이 확인을 기다린다. 백스톱 대신
+    // 전원 확인을 흉내 내 곧바로 다음 날로 넘긴다.
+    state = ackAllDayEnd(state);
 
     expect(state.status).toBe("running");
     expect(state.day).toBe(2);

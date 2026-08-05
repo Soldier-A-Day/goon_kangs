@@ -43,6 +43,10 @@ export function projectSnapshot(
     status: state.status,
     day: state.day,
     totalDays: state.config.totalDays,
+    // D1 — 0보다 크면 그날 판정·승급·취침 정산은 끝났지만 다음 날로는 아직
+    // 안 넘어간 채다. 클라는 이 값이 있는 동안 마감 큐 화면(오늘 D의 스냅샷)을
+    // 그대로 보여주면 된다 — 날짜를 보정할 필요가 없다.
+    dayEndWindowMsLeft: Math.round(state.dayEndWindowMsLeft),
     phase: {
       id: phase.id,
       index: state.phaseIndex,

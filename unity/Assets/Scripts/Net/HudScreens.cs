@@ -415,11 +415,31 @@ namespace SoldierADay.Net
 
         /// <summary>지금 화면을 접고 큐에서 다음 화면을 꺼낸다. 큐가 비었으면 닫는다.
         /// RollCall(6.4초 고정 연출)이 끝나는 지점과, 아래 <see cref="UpdateDayEndAdvance"/>가
-        /// Rank·Sleep 화면을 넘길 때 둘 다 이걸 거쳐서 화면이 큐 순서를 벗어나지 않는다.</summary>
+        /// Rank·Sleep 화면을 넘길 때 둘 다 이걸 거쳐서 화면이 큐 순서를 벗어나지 않는다.
+        ///
+        /// D1 — 큐가 여기서 완전히 비면(다음 화면이 없어 <see cref="Screen.None"/>으로
+        /// 떨어지면) 그게 곧 "마감 큐를 끝까지 봤다"는 확인이다. 그 순간
+        /// `dayEndAck`를 보낸다 — 사람 참석자 전원이 보내야 서버가 다음 날을 연다
+        /// (`packages/sim/src/step.ts` `markDayEndAck`). 예전에는 서버가 판정 직후
+        /// 곧바로 `state.day`를 올려버려서, 이 큐는 순전히 화면 연출 페이싱일
+        /// 뿐이었다 — 이제는 이 마지막 닫힘이 실제로 다음 날을 여는 신호가 된다.
+        /// 판정이 실패로 끝난 날(큐가 애초에 비어 있던 날)에도 이 신고는 나가지만
+        /// 무해하다 — 그날은 마감 창 자체가 안 열렸으므로 서버가 조용히 무시한다
+        /// (`markDayEndAck`가 `dayEndWindowMsLeft <= 0`이면 그냥 반환한다).
+        ///
+        /// ScreenLab 미리보기(`LabPreviewOnly`)에서는 이 전송만 건너뛴다 — 랩은
+        /// 텔레포트 move·voteSkip 외엔 실전 서버로 아무것도 보내면 안 된다(클래스
+        /// 상단 `LabPreviewOnly` 주석 참고). 화면을 닫는 것 자체는 그대로 둔다.</summary>
         private void AdvanceDayEnd()
         {
-            _screen = _dayEndQueue.Count > 0 ? _dayEndQueue.Dequeue() : Screen.None;
+            var closingQueue = _dayEndQueue.Count == 0;
+            _screen = closingQueue ? Screen.None : _dayEndQueue.Dequeue();
             _dayEndScreenStart = Time.unscaledTime;
+
+            if (closingQueue && !LabPreviewOnly)
+            {
+                Client.Send(new Intent { type = IntentTypeValues.DayEndAck });
+            }
         }
 
         /// <summary>큐 화면(판정·승급·취침)이 "다 읽었다"로 치는 최소 시간 — 이

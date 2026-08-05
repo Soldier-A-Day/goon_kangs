@@ -339,6 +339,14 @@ export const intentSchema = z.discriminatedUnion("type", [
    * (`packages/sim/src/delegation.ts` `markDelegationDone`).
    */
   z.object({ type: z.literal("delegationDone") }),
+  /**
+   * D1 — 하루 마감 창 확인. "요약을 다 봤다"는 신고이며, 마감 큐의 마지막
+   * 화면(취침 정산)에서 확인을 누르는 순간 보낸다. 사람 참석자
+   * (`presence === "player"`) 전원이 보내야 다음 날로 넘어간다 — sim이
+   * 판정한다(`packages/sim/src/step.ts` `markDayEndAck`). 한 명이 방치하거나
+   * 접속이 끊긴 채로 남으면 백스톱을 넘긴 시점에 서버가 자동으로 닫는다.
+   */
+  z.object({ type: z.literal("dayEndAck") }),
   z.object({
     type: z.literal("leaderReassign"),
     questId: z.string(),
@@ -653,6 +661,15 @@ export const snapshotSchema = z.object({
   status: z.enum(["running", "cleared", "discharged", "disbanded"]),
   day: z.number(),
   totalDays: z.number(),
+  /**
+   * D1 — 하루 마감 창 잔여 ms. 0보다 크면 그날의 판정·승급·취침 정산은 이미
+   * 끝났지만 `day`는 아직 오르지 않은 채다 — 사람 참석자 전원이 확인하거나
+   * (`dayEndAck`) 백스톱을 넘겨야 다음 날로 넘어간다. 마감 큐(판정 → 승급 →
+   * 취침 정산)를 다 보여준 화면이 이 값이 0보다 큰 동안 "확인" 버튼을 띄우고,
+   * 마지막 확인에서 `dayEndAck`를 보낸다. 시간대 안이 아니라 하루 경계의
+   * 일이라 `phase` 밑이 아니라 여기 최상위에 있다.
+   */
+  dayEndWindowMsLeft: z.number(),
   phase: z.object({
     id: phaseIdSchema,
     index: z.number(),

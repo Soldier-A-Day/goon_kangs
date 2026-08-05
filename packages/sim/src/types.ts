@@ -189,6 +189,18 @@ export interface Member {
    * `delegationWindowMsLeft`가 즉시 0이 된다.
    */
   delegationDone: boolean;
+  /**
+   * D1 — 하루 마감 창 확인.
+   *
+   * 판정·승급·취침 정산까지 끝난 뒤에도 하루는 곧바로 다음 날로 안 넘어간다 —
+   * 요약 화면(판정 → 승급 → 취침 정산)을 다 보고 확인해야 한다. 그러지 않으면
+   * 서버가 확인을 기다리지 않고 이미 `state.day + 1`을 시작해버려 "확인을
+   * 누르면 다음 날 요약이 뜬다"·"확인 전에 시간이 간다"는 사고가 난다.
+   * 창이 열릴 때마다 초기화되고, 사람 참석자(`presence === "player"`) 전원이
+   * 이걸 세우면 `dayEndWindowMsLeft`가 즉시 0이 되어 `finishDay`가 다음 날을 연다
+   * (`step.ts` `markDayEndAck`).
+   */
+  dayEndAcked: boolean;
   /** 열사병 2단계 진입 후 경과 — 60초를 버티면 쓰러진다 (5.0) */
   collapseTimerMs: number;
   /** 후송 횟수. 1회라도 있으면 모범 전역이 불가능해진다 (JDG-03) */
@@ -498,6 +510,17 @@ export interface RunState {
   nightGuardIds: string[];
   /** 하달 창 잔여 시간. 0보다 크면 시간대 타이머가 멈춰 있다 (QST-04) */
   delegationWindowMsLeft: number;
+  /**
+   * D1 — 하루 마감 창 잔여 ms.
+   *
+   * 판정·해산검사·히든·보급포인트·승급·취침 정산까지 끝난 뒤(`step.ts`
+   * `settleDay`) 열리고, 0보다 크면 `state.day`가 아직 오르지 않은 채다 —
+   * 시간대 타이머도, 다음 날 진입도 멈춰 있다(`applyTick`). 사람 참석자
+   * (`presence === "player"`) 전원이 확인하면(`dayEndAck`) 즉시, 그러지
+   * 않으면 백스톱(`DAY_END_BACKSTOP_MS`)을 넘기면 자동으로 닫히고
+   * `finishDay`가 다음 날을 연다.
+   */
+  dayEndWindowMsLeft: number;
   /** 분대장이 개입한 시간대 인덱스 — 1회/시간대 */
   leaderOverridePhase: number;
   /** 런 종료 시 공개되는 하달 장부 */
@@ -607,6 +630,13 @@ export type SimEvent =
    * 보내면 남은 창 시간을 기다리지 않고 시간대 타이머가 다시 흐른다.
    */
   | { readonly type: "delegationDone"; readonly memberId: string }
+  /**
+   * D1 — 하루 마감 창 확인. "요약을 다 봤다"는 신고이며, 사람 참석자
+   * (`presence === "player"`) 전원이 보내야 다음 날로 넘어간다
+   * (`step.ts` `markDayEndAck`). 창이 닫혀 있으면(아직 안 열렸거나 이미
+   * 닫혔으면) 조용히 무시된다.
+   */
+  | { readonly type: "dayEndAck"; readonly memberId: string }
   /** 분대장 개입 — 1회/시간대 */
   | {
       readonly type: "leaderReassign";

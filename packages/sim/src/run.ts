@@ -116,6 +116,7 @@ export function createRun(options: CreateRunOptions): RunState {
 
     nightGuardIds: [],
     delegationWindowMsLeft: 0,
+    dayEndWindowMsLeft: 0,
     leaderOverridePhase: -1,
     ledger: [],
     supplyPoints: SUPPLY_START,
@@ -147,6 +148,7 @@ function makeMember(
     vetoUsedToday: false,
     delegatedThisWindow: 0,
     delegationDone: false,
+    dayEndAcked: false,
     collapseTimerMs: 0,
     warmthRemainingMs: 0,
     frostbitten: false,

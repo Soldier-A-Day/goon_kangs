@@ -33,6 +33,25 @@ export function beginDay(state: RunState): RunState {
   return step(state, { type: "beginDay" }).state;
 }
 
+/**
+ * D1 — 하루 마감 창이 열려 있으면 사람 참석자 전원의 확인을 대신 보낸다.
+ *
+ * 창이 열려 있지 않으면(아직 판정 전이거나, 이미 닫혔거나, 런이 끝났으면)
+ * 조용히 원래 state를 그대로 돌려준다 — `markDayEndAck`(step.ts)가 이미
+ * 그렇게 무해하게 무시하므로 이 헬퍼도 매 tick 뒤에 안전하게 끼워 넣을 수
+ * 있다. 백스톱(`DAY_END_BACKSTOP_MS`)에 기대는 대신 테스트가 "다들 확인
+ * 버튼을 눌렀다"는 실제 흐름을 그대로 재현한다 — 아니면 모든 일차 전환
+ * 테스트가 백스톱 상수 값에 조용히 종속된다.
+ */
+export function ackAllDayEnd(state: RunState): RunState {
+  let next = state;
+  for (const member of next.members) {
+    if (member.presence !== "player") continue;
+    next = step(next, { type: "dayEndAck", memberId: member.id }).state;
+  }
+  return next;
+}
+
 /** 그날 배정된 필수를 전부 끝낸 것으로 친다 — 판정 외의 규칙을 시험할 때 쓴다 */
 export function completeRequired(state: RunState): RunState {
   for (const quest of state.quests) {
@@ -99,6 +118,9 @@ export function playDays(state: RunState, days: number): RunState {
       current = step(current, { type: "tick", elapsedMs: 30 * SECOND }).state;
       // 그 칸에 들어서면 그 칸의 회복 행동을 한다 — 이상적인 런은 먹고 씻는다
       current = completeCareNow(current);
+      // D1 — 판정이 끝나면 하루 마감 창이 열린다. 백스톱을 기다리지 않고
+      // 곧바로 확인해서 다음 날로 넘긴다(창이 안 열려 있으면 무해하게 무시된다)
+      current = ackAllDayEnd(current);
       if (guard++ > 100) throw new Error(`하루가 끝나지 않는다: D-${day}`);
     }
     if (current.status !== "running") break;

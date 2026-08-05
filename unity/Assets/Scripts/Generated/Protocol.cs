@@ -1004,6 +1004,7 @@ namespace SoldierADay.Protocol
         public const string DelegateChore = "delegateChore";
         public const string VetoChore = "vetoChore";
         public const string DelegationDone = "delegationDone";
+        public const string DayEndAck = "dayEndAck";
         public const string LeaderReassign = "leaderReassign";
         public const string VoteLeader = "voteLeader";
         public const string FileClaim = "fileClaim";
@@ -1096,6 +1097,7 @@ namespace SoldierADay.Protocol
         public string status;
         public double day;
         public double totalDays;
+        public double dayEndWindowMsLeft;
         public SnapshotPhase phase;
         public SnapshotWeather weather;
         public SnapshotWeeklyModifier weeklyModifier;
@@ -1488,6 +1490,8 @@ namespace SoldierADay.Protocol
         public double day;
         // 선택적 — variant에 따라 없을 수 있다
         public double totalDays;
+        // 선택적 — variant에 따라 없을 수 있다
+        public double dayEndWindowMsLeft;
         // 선택적 — variant에 따라 없을 수 있다
         public ServerMessagePhase phase;
         // 선택적 — variant에 따라 없을 수 있다
