@@ -235,7 +235,11 @@ def wall(kind: str, mask: int) -> Image.Image:
 
 #: `fence`는 벽이 아니라 철조망이다(위 `wall()` 주석) — 정면 타일 대상에서 뺀다
 WALL_FACE_KINDS = ("interior", "utility", "outdoor", "wood")
-WALL_FACE_H = 32   # WA — 26에서 32로. 벽이 확실히 서 보이려면 한 타일 통으로 서야 한다
+#: 정면 높이(px). **한 타일(32)을 쓰면 안 된다** — 정면은 벽 칸 *안쪽*에 그려지는데
+#: 한 타일이면 윗면이 완전히 가려지고, 예전처럼 아래 칸으로 흘리면 걸을 수 있는
+#: 바닥이 벽으로 보여 "막힌 줄 알았는데 통과된다"는 사고가 난다(사용자 지적).
+#: 절반이면 윗면·정면 두 평면이 다 보이면서 콜라이더(벽 한 칸)와도 어긋나지 않는다.
+WALL_FACE_H = 16
 WALL_FACE_NORMAL = (128, 60, 200, 255)   #: 정면을 보는(아래로 기운) 노멀 — 전 종류 공용
 
 #: 정면 그라디언트 4단의 픽셀 폭 — 위부터 [광원 립, 윗면 톤, 남쪽 면 톤, 접지선].
@@ -247,7 +251,7 @@ WALL_FACE_NORMAL = (128, 60, 200, 255)   #: 정면을 보는(아래로 기운) �
 #: `outdoor`처럼 `face`가 다른(훨씬 어두운) 계열이면 몸통에 16px씩 깔면 정면
 #: 절반이 거의 검은 판때기가 된다(리뷰에서 실측: 중간 밝기가 윗면의 35%로
 #: 추락). 아래 `_WALL_FACE_FOOT_PX` 분기 참고.
-_WALL_FACE_RIM_PX = 3
+_WALL_FACE_RIM_PX = 2
 _WALL_FACE_GROUND_PX = 2
 _WALL_FACE_TOP_FRACTION = 0.4   # 몸통 중 윗면 톤이 차지하는 비율. 나머지는 남쪽 면 톤
 
@@ -255,7 +259,7 @@ _WALL_FACE_TOP_FRACTION = 0.4   # 몸통 중 윗면 톤이 차지하는 비율. 
 #: 몸통에 쓰지 않고 접지 바로 위 얇은 발치에만 쓰는 폭. 접지선(`line`, 그
 #: 계열의 더 어두운 단)과 합쳐도 5px을 넘지 않아 중간 높이 표본은 항상
 #: 몸통(=top, 자기 계열 안)에 걸린다.
-_WALL_FACE_FOOT_PX = 3
+_WALL_FACE_FOOT_PX = 2
 
 
 def wall_face(kind: str) -> Image.Image:

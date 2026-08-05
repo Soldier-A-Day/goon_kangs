@@ -210,11 +210,18 @@ namespace SoldierADay.EditorTools
             var wallBottomY = height - ty - 1;   // 벽 칸의 아랫변 = 남쪽 바닥 칸의 윗변
             var bounds = sprite.bounds;
 
+            // **정면은 벽 칸 안쪽(아래 절반)에 그린다.** 아래 바닥 칸으로 흘리면
+            // 걸을 수 있는 바닥이 벽으로 보여 "막힌 줄 알았는데 통과된다"가 되고
+            // (콜라이더는 벽 한 칸뿐이다), 그 칸의 바닥 AO까지 정면에 가려
+            // 벽 밑 그림자가 듬성듬성해진다 — 둘 다 사용자가 지적한 증상이다.
+            // 칸 안에 두면 콜라이더와 보이는 것이 일치하고 AO도 살아난다.
+            var faceTop = wallBottomY + bounds.size.y;
+
             var go = new GameObject($"WallFace_{tx}_{ty}");
             go.transform.SetParent(parent, false);
             go.transform.position = new Vector3(
                 (tx + 0.5f) - bounds.center.x,
-                wallBottomY - bounds.max.y,
+                faceTop - bounds.max.y,
                 0f);
 
             var renderer = go.AddComponent<SpriteRenderer>();
@@ -223,7 +230,9 @@ namespace SoldierADay.EditorTools
             // 정면의 실제 밑변(월드 y)이 Y소트 기준선이다 — 소품·캐릭터와 같은
             // 공식(§6.2). 캐릭터가 그보다 남쪽(작은 y)이면 앞, 북쪽(큰 y)이면
             // 정면에 가려진다
-            var splitY = wallBottomY - bounds.size.y;
+            // 정면의 밑변 = 벽 칸의 밑변이다(칸 안에 그리므로). 남쪽에 선 캐릭터는
+            // y가 더 작아 정렬값이 커지므로 정면 앞에 온다
+            var splitY = wallBottomY;
             renderer.sortingOrder = Mathf.Clamp(Mathf.RoundToInt(-splitY * SortScale), -29000, 32000);
         }
 
