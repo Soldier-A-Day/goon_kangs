@@ -146,3 +146,188 @@ def sheet(frames: list[Image.Image], cell: tuple[int, int]) -> Image.Image:
 def scale(img: Image.Image, factor: int) -> Image.Image:
     """정수배 확대. 픽셀 폰트·아이콘은 정수배만 허용된다(§11 주의)."""
     return img.resize((img.width * factor, img.height * factor), Image.NEAREST)
+
+
+def _clamp8(v: float) -> int:
+    return 0 if v < 0 else (255 if v > 255 else int(round(v)))
+
+
+def mul_rgb(color, factor: float):
+    """RGB(A) 각 채널에 `factor`를 곱하고 0~255로 클램프한다. 알파는 그대로 둔다."""
+    r, g, b = color[0], color[1], color[2]
+    out = (_clamp8(r * factor), _clamp8(g * factor), _clamp8(b * factor))
+    return out if len(color) < 4 else out + (color[3],)
+
+
+# ─────────────────────────────────────────────────────────── W1 셰이딩 패스
+
+#: 광원은 **좌상단 45도 고정**이다(W1 발주). 여기 상수만 바꾸면 105여 종
+#: 소품·벽 정면 타일 전부의 셰이딩이 한 번에 바뀐다 — 개별 함수마다 계수를
+#: 흩어두면(예전 `_box()`의 `neighbor(body, ±1)` 방식) 톤을 조절할 때마다
+#: 호출부 90여 곳을 손봐야 한다.
+SHADE_TOP_BAND_PX = 2       #: 각 열 첫 불투명 픽셀부터 이 폭까지 — 윗면(하이라이트)
+SHADE_TOP_MUL = 1.22
+SHADE_BOTTOM_BAND_PX = 3    #: 각 열 마지막 불투명 픽셀까지 이 폭 — 아랫면(그림자)
+SHADE_BOTTOM_MUL = 0.70
+SHADE_EDGE_MUL = 0.52       #: 알파 경계(투명과 맞닿거나 캔버스 가장자리) 1px — 외곽선
+
+
+def shade(img: Image.Image, *, snap=None) -> None:
+    """
+    알파 마스크만 보고 좌상단 45도 광원을 자동 적용한다(W1 §1).
+
+    도형이 무엇이든 상관없다 — `_box()` 사각 실루엣이든 `_tree()`처럼 구멍이
+    숭숭 뚫린 캐노피든, 각 **열(column)**에서 첫 불투명 픽셀 쪽 `SHADE_TOP_BAND_PX`
+    는 밝게, 마지막 불투명 픽셀 쪽 `SHADE_BOTTOM_BAND_PX`는 어둡게 곱하고,
+    투명과 맞닿은(또는 캔버스 밖으로 나가는) 알파 경계 1px는 한 번 더 어둡게
+    곱한다. 세 규칙이 겹치는 픽셀(예: 상단 하이라이트이면서 동시에 왼쪽
+    가장자리인 모서리)은 **곱을 누적**한다 — 모서리에 옅은 다크림이 생겨
+    "물건 귀퉁이"가 실제로 읽힌다.
+
+    직접 RGB를 곱하면 §4.2 팔레트 밖 색이 생긴다. 호출부가 `snap`(예:
+    `palette.nearest`)을 넘기면 계산한 색을 팔레트 안으로 스냅한다 —
+    `pixel.py`는 팔레트를 모르는 채로 남고(이 파일은 범용 헬퍼다), 팔레트
+    규칙을 아는 쪽(`tiles.py`)이 결정한다.
+    """
+    w, h = img.size
+    px = img.load()
+
+    tops: list[int | None] = [None] * w
+    bottoms: list[int | None] = [None] * w
+    for x in range(w):
+        for y in range(h):
+            if px[x, y][3] != 0:
+                if tops[x] is None:
+                    tops[x] = y
+                bottoms[x] = y
+
+    def opaque(x: int, y: int) -> bool:
+        return 0 <= x < w and 0 <= y < h and px[x, y][3] != 0
+
+    for x in range(w):
+        top = tops[x]
+        if top is None:
+            continue
+        bottom = bottoms[x]
+        for y in range(top, bottom + 1):
+            r, g, b, a = px[x, y]
+            if a == 0:
+                continue
+            mul = 1.0
+            if y - top < SHADE_TOP_BAND_PX:
+                mul = SHADE_TOP_MUL
+            elif bottom - y < SHADE_BOTTOM_BAND_PX:
+                mul = SHADE_BOTTOM_MUL
+            is_edge = (
+                x == 0 or y == 0 or x == w - 1 or y == h - 1
+                or not opaque(x - 1, y) or not opaque(x + 1, y)
+                or not opaque(x, y - 1) or not opaque(x, y + 1)
+            )
+            if is_edge:
+                mul *= SHADE_EDGE_MUL
+            if mul == 1.0:
+                continue
+            nr, ng, nb = _clamp8(r * mul), _clamp8(g * mul), _clamp8(b * mul)
+            if snap is not None:
+                nr, ng, nb = snap((nr, ng, nb))
+            px[x, y] = (nr, ng, nb, a)
+
+
+# ────────────────────────────────────────────────────────────── W1 노멀맵
+
+#: 소품 가장자리가 이 폭(px) 안에서 둥글게 떨어진다. 그 안쪽은 높이가 포화돼
+#: 완전히 평평하다(윗면) — 알파 투명 구간이 전혀 없는 타일(바닥·벽 오토타일처럼
+#: 칸 전체가 불투명)은 거리변환의 "씨앗"(투명 픽셀)이 없으므로 전체가 이
+#: 포화값으로 채워져 그대로 평평한 노멀 `(128,128,255)`이 된다 — 별도 분기
+#: 없이 알고리즘 자체가 그렇게 수렴한다.
+NORMAL_EDGE_PLATEAU_PX = 3.0
+NORMAL_STRENGTH = 1.6
+NORMAL_FLAT = (128, 128, 255)
+
+
+def normal_map(img: Image.Image, *, strength: float = NORMAL_STRENGTH,
+               plateau: float = NORMAL_EDGE_PLATEAU_PX) -> Image.Image:
+    """
+    알파 마스크의 거리변환 → 높이장 → 기울기 → 탄젠트 공간 노멀(W1 §4).
+
+    실시간 2D 조명을 켜려면 노멀맵이 있어야 한다. 손으로 그리는 대신 이미
+    갖고 있는 알파 마스크에서 뽑는다 — 불투명 영역 안쪽으로 갈수록(투명과
+    멀어질수록) 높다고 가정하면(§4 "가장자리가 둥글게 떨어지고 윗면은
+    평평하게") 소품이 둥근 상자처럼 도드라져 보인다.
+
+    1) 체임퍼 거리변환(2-패스, `random` 없이 정수/부동소수 연산만 — 결정적)으로
+       각 불투명 픽셀에서 가장 가까운 투명 픽셀까지 거리를 구한다.
+    2) `plateau`에서 포화시켜 높이장으로 쓴다(그 밖은 평평한 윗면).
+    3) 중심차분으로 기울기를 구해 `(-dx, -dy, 1)`을 정규화 → RGB로 인코딩.
+
+    투명 픽셀은 알파 0으로 그대로 두어(원본과 같은 실루엣) 노멀맵도 스프라이트
+    잘라내기에 맞는다.
+    """
+    w, h = img.size
+    a = img.getchannel("A")
+    apx = a.load()
+
+    inf = float(w + h)
+    dist = [[0.0 if apx[x, y] == 0 else inf for x in range(w)] for y in range(h)]
+
+    diag = 1.4142135623730951
+    for y in range(h):
+        row = dist[y]
+        prev = dist[y - 1] if y > 0 else None
+        for x in range(w):
+            if row[x] == 0.0:
+                continue
+            best = row[x]
+            if x > 0:
+                best = min(best, row[x - 1] + 1.0)
+            if prev is not None:
+                best = min(best, prev[x] + 1.0)
+                if x > 0:
+                    best = min(best, prev[x - 1] + diag)
+                if x < w - 1:
+                    best = min(best, prev[x + 1] + diag)
+            row[x] = best
+    for y in range(h - 1, -1, -1):
+        row = dist[y]
+        nxt = dist[y + 1] if y < h - 1 else None
+        for x in range(w - 1, -1, -1):
+            if row[x] == 0.0:
+                continue
+            best = row[x]
+            if x < w - 1:
+                best = min(best, row[x + 1] + 1.0)
+            if nxt is not None:
+                best = min(best, nxt[x] + 1.0)
+                if x < w - 1:
+                    best = min(best, nxt[x + 1] + diag)
+                if x > 0:
+                    best = min(best, nxt[x - 1] + diag)
+            row[x] = best
+
+    height = [[dist[y][x] if dist[y][x] < plateau else plateau for x in range(w)] for y in range(h)]
+
+    out = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+    op = out.load()
+    for y in range(h):
+        hrow = height[y]
+        hup = height[y - 1] if y > 0 else hrow
+        hdn = height[y + 1] if y < h - 1 else hrow
+        for x in range(w):
+            if apx[x, y] == 0:
+                continue
+            hl = hrow[x - 1] if x > 0 else hrow[x]
+            hr = hrow[x + 1] if x < w - 1 else hrow[x]
+            hu = hup[x]
+            hd = hdn[x]
+            dx = (hr - hl) * 0.5 * strength
+            dy = (hd - hu) * 0.5 * strength
+            nx, ny, nz = -dx, -dy, 1.0
+            length = (nx * nx + ny * ny + nz * nz) ** 0.5
+            nx, ny, nz = nx / length, ny / length, nz / length
+            op[x, y] = (
+                _clamp8((nx * 0.5 + 0.5) * 255),
+                _clamp8((ny * 0.5 + 0.5) * 255),
+                _clamp8((nz * 0.5 + 0.5) * 255),
+                255,
+            )
+    return out

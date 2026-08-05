@@ -49,11 +49,16 @@ def _audit(directory: str) -> list[str]:
 
     규칙을 문서에만 적어두면 지켜지지 않는다. 온도 밴드 그레이딩(§4.3)이 팔레트를
     통째로 밀어내는 방식이라 원본이 흔들리면 6밴드가 전부 어긋난다.
+
+    W1 §4가 만드는 `_n.png` 노멀맵은 여기서 뺀다 — RGB가 색이 아니라 탄젠트
+    공간 표면 방향을 인코딩한 것이라(예: 평평한 면 `(128,128,255)`) 애초에
+    §4.2 팔레트 대상이 아니다. 걸러내지 않으면 노멀맵을 뽑을 때마다 감사가
+    "팔레트 밖 색"으로 오탐해 빌드가 실패한다.
     """
     bad: list[str] = []
     for root, _, files in os.walk(directory):
         for name in files:
-            if not name.endswith(".png"):
+            if not name.endswith(".png") or name.endswith("_n.png"):
                 continue
             path = os.path.join(root, name)
             strays = P.check(Image.open(path))
@@ -61,6 +66,26 @@ def _audit(directory: str) -> list[str]:
                 rel = os.path.relpath(path, directory)
                 bad.append(f"{rel}: {sorted(set(strays))[:4]}")
     return bad
+
+
+def _with_normals(names: set[str]) -> set[str]:
+    """
+    `keep` 집합에 `_n.png` 노멀맵 파일명도 더한다(W1 §4 계약 — 원본 옆
+    `_n` 접미사, 같은 이름 규칙).
+
+    `tiles.generate()`는 노멀맵을 **`index`에 등록하지 않는다**(아틀라스·
+    매니페스트에서 빼야 하므로, `tiles._save_pair()` 참고) — 그래서
+    `_prune_orphans()`에 넘기는 `keep` 집합도 원본 파일명만 갖고 있다.
+    등록하지 않은 파일은 이번 실행이 안 만든 것으로 보여 그대로 두면
+    `_prune_orphans()`가 고아로 오인해 지워버린다. 원본 이름에서 기계적으로
+    유도할 수 있으므로(항상 `{stem}_n.png`) 여기서 파생시켜 지키는 편이,
+    `tiles.py` 쪽에 별도 반환값을 만들어 매니페스트와 뒤섞는 것보다 낫다.
+    """
+    out = set(names)
+    for name in names:
+        if name.endswith(".png"):
+            out.add(f"{name[:-4]}_n.png")
+    return out
 
 
 def _prune_orphans(directory: str, keep: set[str]) -> list[str]:
@@ -109,15 +134,17 @@ def main() -> int:
     # ── §6.3 타일 · 소품 ──
     tile_index = tiles.generate(OUT)
     print(f"타일    바닥 {len(tile_index['floors'])}종 · "
-          f"벽 {len(tile_index['walls'])}종×16 · 소품 {len(tile_index['props'])}종")
+          f"벽 {len(tile_index['walls'])}종×16 · 벽 정면 {len(tile_index.get('wallFaces', []))}종 · "
+          f"소품 {len(tile_index['props'])}종")
     orphans += _prune_orphans(
         os.path.join(OUT, "props"),
-        {os.path.basename(p["file"]) for p in tile_index["props"]})
+        _with_normals({os.path.basename(p["file"]) for p in tile_index["props"]}))
     tiles_keep = {os.path.basename(f["file"]) for f in tile_index["floors"]}
     tiles_keep |= {os.path.basename(f) for f in tile_index.get("snow", [])}
     for w in tile_index["walls"]:
         tiles_keep |= {os.path.basename(f) for f in w["files"]}
-    orphans += _prune_orphans(os.path.join(OUT, "tiles"), tiles_keep)
+    tiles_keep |= {os.path.basename(f["file"]) for f in tile_index.get("wallFaces", [])}
+    orphans += _prune_orphans(os.path.join(OUT, "tiles"), _with_normals(tiles_keep))
     orphans += _prune_orphans(
         os.path.join(OUT, "markers"),
         {os.path.basename(m["file"]) for m in tile_index["markers"]})

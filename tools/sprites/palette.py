@@ -279,6 +279,37 @@ def neighbor(key: str, step: int) -> tuple[int, int, int]:
     return W[key]
 
 
+_NEAREST_CACHE: dict[tuple[int, int, int], tuple[int, int, int]] = {}
+
+
+def nearest(rgb: tuple[int, int, int]) -> tuple[int, int, int]:
+    """
+    임의 RGB에 가장 가까운(유클리드 거리) §4.2 월드 팔레트(`W`) 색을 돌려준다.
+
+    W1 셰이딩·벽 정면 그라디언트처럼 밝기를 곱해 **연산으로 만든** 색은
+    팔레트 밖으로 샌다 — `_audit()`가 산출물에서 실제로 그걸 잡아낸다(§4.2
+    "팔레트 외 색 사용 금지"). 곱한 결과를 여기로 스냅해 넣으면 항상 팔레트
+    안에 있는 색만 저장된다.
+
+    `_NEAREST_CACHE`는 입력이 같으면 항상 같은 값을 돌려주는 순수 캐시일
+    뿐이다(무작위성 없음 — 이 저장소의 결정성 철칙). 동점은 `W`(곧 `WORLD`)의
+    등록 순서로 정해져 실행마다 같다.
+    """
+    key = (rgb[0], rgb[1], rgb[2])
+    cached = _NEAREST_CACHE.get(key)
+    if cached is not None:
+        return cached
+    best = None
+    best_d = None
+    for c in W.values():
+        d = (c[0] - key[0]) ** 2 + (c[1] - key[1]) ** 2 + (c[2] - key[2]) ** 2
+        if best_d is None or d < best_d:
+            best_d = d
+            best = c
+    _NEAREST_CACHE[key] = best
+    return best
+
+
 def check(image) -> list[tuple[int, int, int]]:
     """이미지에 팔레트 밖 색이 있으면 그 목록을 돌려준다. 없으면 빈 목록."""
     out = []

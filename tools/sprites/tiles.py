@@ -175,6 +175,21 @@ def floor(kind: str, variant: int = 0) -> Image.Image:
 
 # ══════════════════════════════════════════════════════════════════════ 벽
 
+#: 벽 종류 → (남쪽 면 색, 윗면 색, 마감선 색). `wall()`(탑다운 오토타일)과
+#: `wall_face()`(W1 §3 신규 정면 타일)가 같이 쓴다 — 두 함수가 각자 색 표를
+#: 따로 들면 종류를 하나 추가할 때마다 두 곳을 고쳐야 한다.
+#:
+#: 벽은 **바닥보다 두 단계 이상 어두워야** 한다. 실내 바닥이 `conc0`인데 벽이
+#: `conc1~2`면 밝기 차가 한 칸뿐이라 탑다운에서 어디까지 걸을 수 있는지 안 읽힌다
+WALL_COLORS = {
+    "interior": ("conc3", "conc2", "night0"),
+    "utility": ("night0", "conc3", "night1"),
+    "outdoor": ("night0", "conc3", "night1"),
+    "wood": ("wood2", "wood1", "night1"),
+    "fence": ("metal2", "metal1", "night0"),
+}
+
+
 #: 비트마스크 — 1 위, 2 오른쪽, 4 아래, 8 왼쪽. 켜진 방향은 **같은 벽이 이어진다**
 def wall(kind: str, mask: int) -> Image.Image:
     """
@@ -183,17 +198,7 @@ def wall(kind: str, mask: int) -> Image.Image:
     탑다운에서 벽은 두께가 있어야 벽으로 읽힌다. 윗면(밝은 면)과 남쪽 면(어두운
     면)을 나눠 그리고, 이웃이 없는 쪽에만 마감선을 넣는다.
     """
-    # 벽은 **바닥보다 어두워야** 한다. 실내 바닥이 `conc0`인데 벽도 그 근처면
-    # 방 경계가 사라지고, 탑다운에서 어디까지 걸을 수 있는지가 안 읽힌다
-    # 벽은 **바닥보다 두 단계 이상 어두워야** 한다. 실내 바닥이 `conc0`인데
-    # 벽이 `conc1~2`면 밝기 차가 한 칸뿐이라 어디까지 걸을 수 있는지 안 읽힌다
-    face, top, line = {
-        "interior": ("conc3", "conc2", "night0"),
-        "utility": ("night0", "conc3", "night1"),
-        "outdoor": ("night0", "conc3", "night1"),
-        "wood": ("wood2", "wood1", "night1"),
-        "fence": ("metal2", "metal1", "night0"),
-    }[kind]
+    face, top, line = WALL_COLORS[kind]
 
     img = PX.blank(TILE, TILE)
 
@@ -223,6 +228,54 @@ def wall(kind: str, mask: int) -> Image.Image:
     return img
 
 
+#: `fence`는 벽이 아니라 철조망이다(위 `wall()` 주석) — 정면 타일 대상에서 뺀다
+WALL_FACE_KINDS = ("interior", "utility", "outdoor", "wood")
+WALL_FACE_H = 26
+WALL_FACE_BRIGHT_MUL = 1.4     #: 남쪽 면이 볕을 받는 쪽 — 탑다운 오토타일보다 밝게
+WALL_FACE_BOTTOM_MUL = 0.8     #: 세로 그라디언트 하단 — 접지 그늘은 아니다(런타임 담당)
+WALL_FACE_NORMAL = (128, 60, 200, 255)   #: 정면을 보는(아래로 기운) 노멀 — 전 종류 공용
+
+
+def wall_face(kind: str) -> Image.Image:
+    """
+    벽 정면 타일(W1 §3) — 탑다운 벽에 높이를 준다.
+
+    32×26px. 남쪽 면 색을 밝히고(`WALL_FACE_BRIGHT_MUL`) 아래로 갈수록
+    어두워지는 세로 그라디언트를 깐 다음, 최상단 2px에 윗면(`top`) 색을 한
+    번 더 밝혀 이음선을 긋는다 — 탑다운 오토타일의 윗면·남쪽 면 경계가 여기서
+    "튀어나온 모서리"로 읽힌다. 접지 그늘은 넣지 않는다(런타임 캐스트
+    섀도우가 그린다 — 다른 워커 담당, W1 발주 배경 참고).
+
+    그라디언트는 직접 곱한 RGB를 `palette.nearest()`로 팔레트 안에 스냅한다
+    (§4.2 감사 통과) — 그 결과 매끈한 그라디언트가 아니라 팔레트가 허용하는
+    몇 단으로 **밴드가 진다**. 이 저장소의 다른 셰이딩(`ramp()` 계열색)도 전부
+    이런 밴드 톤이라 그림 전체와 결이 맞는다.
+    """
+    face, top, _line = WALL_COLORS[kind]
+    img = PX.blank(TILE, WALL_FACE_H)
+    edge = P.nearest(PX.mul_rgb(P.W[top], WALL_FACE_BRIGHT_MUL))
+    PX.rect(img, 0, 0, TILE - 1, 1, edge)
+    for y in range(2, WALL_FACE_H):
+        t = (y - 2) / max(1, WALL_FACE_H - 3)
+        mul = WALL_FACE_BRIGHT_MUL + t * (WALL_FACE_BOTTOM_MUL - WALL_FACE_BRIGHT_MUL)
+        color = P.nearest(PX.mul_rgb(P.W[face], mul))
+        PX.rect(img, 0, y, TILE - 1, y, color)
+    return img
+
+
+def wall_face_normal() -> Image.Image:
+    """
+    벽 정면 타일의 노멀 — 정면을 보는(아래로 살짝 기운) 방향으로 고정.
+
+    `wall_face()`는 칸 전체가 불투명이라 `PX.normal_map()`의 알파-거리변환
+    알고리즘을 그대로 태우면 평평한 `(128,128,255)`으로 수렴한다(높낮이 씨앗이
+    될 투명 픽셀이 없어서다) — 그건 "천장을 보는 바닥 노멀"이지 "남쪽을 보는
+    벽 노멀"이 아니다. 정면 타일은 실제로 카메라를 향해 서 있는 면이므로
+    W1 §4 계약대로 고정된 방향 노멀을 채워 넣는다.
+    """
+    return Image.new("RGBA", (TILE, WALL_FACE_H), WALL_FACE_NORMAL)
+
+
 # ═══════════════════════════════════════════════════════════════════ 오브젝트
 #
 # §6.2대로 TM_Object는 Y-sort 대상이라 Tilemap이 아니라 개별 스프라이트로 나간다.
@@ -232,36 +285,24 @@ def _box(w: int, h: int, body: str, top: str, line: str) -> Image.Image:
     """
     소품 상자 프리미티브. 소품 90여 종이 이 함수를 공유한다(BENCHMARK §3).
 
-    이전엔 상변만 밝고 좌/우/하변이 전부 `line`이라 광원이 위 한쪽에서만
-    오는 것처럼 보였다. 좌상 하이라이트 + 우하 그림자로 통일한다 — 색은
-    `body`의 팔레트 계열 이웃에서 `palette.neighbor()`로 뽑아(D-1 §3) 105종이
-    같은 색 이동 규칙(`ramp()`이 이미 그 계열에 심어둔 한랭/온난 이동) 아래
-    놓이게 한다. **새 색을 계산하지 않고** 등록된 팔레트 안에서만 고르는
-    이유는 §4.3 온도 밴드 그레이딩이 팔레트를 통째로 밀어내는 방식이라,
-    새로 계산한 색은 날씨가 바뀌어도 그레이딩을 안 타기 때문이다.
+    W1 이전에는 이 함수가 좌상 하이라이트 + 우하 그림자(밑변 타원)를 직접
+    구워 넣었다. 지금은 **굽지 않는다** — 몸통을 `body` 단색으로만 채우고,
+    광원(좌상단 45도 고정)은 `generate()`가 완성된 이미지 전체에 `PX.shade()`
+    로 한 번에 먹인다(알파 마스크만 보고 자동 적용, `pixel.py` "W1 셰이딩 패스"
+    참고). 그래야 `_box()`를 안 쓰는 커스텀 소품(`_tree`, `_sandbag` 등)까지
+    같은 규칙 아래 놓이고, 계수를 바꿀 곳도 한 곳(`pixel.py`의 `SHADE_*`
+    상수)으로 줄어든다.
 
-    `top`/`line`은 호출부가 소재별로 골라준 값인데, 실루엣마다 제각각이라
-    광원 방향을 통일하는 목적과는 안 맞아 여기서는 더 안 쓴다 — 시그니처는
+    **밑변 타원 그림자도 뺐다** — 곧 런타임 캐스트 섀도우 + 실시간 조명이
+    들어오므로(W1 발주 배경) 구워 넣은 그림자를 남기면 이중으로 진다. 그림자는
+    런타임이 그린다.
+
+    `top`/`line`은 호출부가 소재별로 골라준 값이지만 이제 안 쓴다 — 시그니처는
     90여 개 호출부를 건드리지 않으려고 그대로 둔다.
-
-    그림자는 직선 밴드 대신 밑변에 걸친 타원으로 찍는다(D-1 §1 "발밑
-    그림자"와 같은 프리미티브) — 각진 경계는 조명이 아니라 재질 경계로
-    읽히고, 타원은 "물건이 바닥을 누르는" 인상을 준다.
     """
     del top, line
     img = PX.blank(w * TILE, h * TILE)
-    W_, H_ = w * TILE, h * TILE
-    body_c = P.W[body]
-    hi = P.neighbor(body, 1)
-    lo = P.neighbor(body, -1)
-
-    PX.rect(img, 0, 0, W_ - 1, H_ - 1, body_c)
-    # 좌상 하이라이트 — 위쪽 6px + 왼쪽 1px
-    PX.rect(img, 0, 0, W_ - 1, 5, hi)
-    PX.rect(img, 0, 0, 0, H_ - 1, hi)
-    # 우하 그림자 — 밑변 타원(발밑 그림자 원리) + 오른쪽 1px
-    PX.ellipse(img, W_ / 2, H_ - 1, W_ * 0.46, 5, lo)
-    PX.rect(img, W_ - 1, 0, W_ - 1, H_ - 1, lo)
+    PX.rect(img, 0, 0, w * TILE - 1, h * TILE - 1, P.W[body])
     return img
 
 
@@ -925,6 +966,20 @@ def marker_door() -> Image.Image:
 
 # ══════════════════════════════════════════════════════════════════════ 산출
 
+def _save_pair(img: Image.Image, path: str) -> None:
+    """
+    원본과 노멀맵을 나란히 저장한다(W1 §4 계약 — 원본 옆 `_n` 접미사, 같은 크기).
+
+    노멀맵은 여기서 **파일만 쓴다** — `index`(→ `art2d.json`)에는 등록하지
+    않는다. `BuildSpriteAtlas.cs`가 `Assets/Art/2d/props` 폴더째로 아틀라스에
+    묶으므로(C# 쪽, 이 파일 소관 밖) 매니페스트에서 빼는 것만으로는 아틀라스
+    편입을 막지 못한다 — 알려진 제한 사항으로 보고에 남긴다.
+    """
+    assert path.endswith(".png")
+    img.save(path)
+    PX.normal_map(img).save(path[:-4] + "_n.png")
+
+
 def generate(out_dir: str) -> dict:
     """
     §6.3 타일셋을 뽑는다.
@@ -948,14 +1003,14 @@ def generate(out_dir: str) -> dict:
         index["markers"].append({"name": name, "file": f"markers/{name}.png"})
 
     for kind in FLOORS:
-        floor(kind).save(os.path.join(tiles_dir, f"floor_{kind}.png"))
+        _save_pair(floor(kind), os.path.join(tiles_dir, f"floor_{kind}.png"))
         index["floors"].append({"kind": kind, "file": f"tiles/floor_{kind}.png"})
         # D-2 반복 깨기 — 이 바닥이 variant를 갖는다면 나머지도 구워 등록한다.
         # kind 이름 그대로("concrete") + 접미 번호("concrete2","concrete3")로
         # 나가고, `basemap.py`의 `floor_variant()`가 좌표 해시로 섞어 고른다
         for v in range(1, FLOOR_VARIANTS.get(kind, 1)):
             vkind = f"{kind}{v + 1}"
-            floor(kind, variant=v).save(os.path.join(tiles_dir, f"floor_{vkind}.png"))
+            _save_pair(floor(kind, variant=v), os.path.join(tiles_dir, f"floor_{vkind}.png"))
             index["floors"].append({"kind": vkind, "file": f"tiles/floor_{vkind}.png"})
 
     # §6.3 `TS_Snow` 오버레이
@@ -969,9 +1024,18 @@ def generate(out_dir: str) -> dict:
         files = []
         for mask in range(16):
             name = f"wall_{kind}_{mask:02d}.png"
-            wall(kind, mask).save(os.path.join(tiles_dir, name))
+            _save_pair(wall(kind, mask), os.path.join(tiles_dir, name))
             files.append(f"tiles/{name}")
         index["walls"].append({"kind": kind, "files": files})
+
+    # W1 §3 — 벽 정면 타일 (fence 제외, `WALL_FACE_KINDS`)
+    index["wallFaces"] = []
+    for kind in WALL_FACE_KINDS:
+        name = f"wall_{kind}_face.png"
+        path = os.path.join(tiles_dir, name)
+        wall_face(kind).save(path)
+        wall_face_normal().save(path[:-4] + "_n.png")
+        index["wallFaces"].append({"kind": kind, "file": f"tiles/{name}"})
 
     labels_dir = os.path.join(out_dir, "labels")
     os.makedirs(labels_dir, exist_ok=True)
@@ -984,11 +1048,15 @@ def generate(out_dir: str) -> dict:
     for name, (w, h, fn, walkable) in PROPS.items():
         safe = f"prop_{abs(_hash(sum(map(ord, name)), len(name))) % 100000:05d}"
         img = fn(w, h)
+        # W1 §1·§2 — 좌상단 45도 광원을 알파 마스크만 보고 전 소품에 일괄 적용.
+        # `_box()` 기반이든 커스텀 실루엣이든 여기 한 곳만 거치면 다 셰이딩된다.
+        # `palette.nearest()`로 스냅해 §4.2 팔레트 감사를 계속 통과시킨다.
+        PX.shade(img, snap=P.nearest)
         dupe_key = img.tobytes()
         variant = seen.get(dupe_key, 0)
         seen[dupe_key] = variant + 1
         _stencil(img, variant)
-        img.save(os.path.join(props_dir, f"{safe}.png"))
+        _save_pair(img, os.path.join(props_dir, f"{safe}.png"))
         index["props"].append({"name": name, "file": f"props/{safe}.png",
                                "w": w, "h": h, "walkable": walkable})
 
