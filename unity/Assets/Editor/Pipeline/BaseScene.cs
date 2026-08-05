@@ -152,10 +152,6 @@ namespace SoldierADay.EditorTools
         /// 덮는 오버레이라 Lit이 되면 등 아래에서 스스로 밝아진다</summary>
         private const string FloorAoLayerName = "TM_FloorAO";
 
-        /// <summary>벽 타일이 제 아래쪽에 굽고 있는 남쪽 면의 높이(`tiles.wall()`의
-        /// 10px). 정면 스프라이트가 이만큼 위로 올라가 그 구간을 덮는다</summary>
-        private const float WallBakedFaceHeight = 10f / 32f;
-
         private static void BuildWallFaces(Transform grid, BaseMap map, MapCells cells, int height)
         {
             if (map.layers?.wall == null || map.layers.wall.Length == 0) return;
@@ -201,48 +197,33 @@ namespace SoldierADay.EditorTools
         /// <summary>
         /// 정면 스프라이트 하나를 놓는다. 피벗이 무엇이든(Sprite2DImport는 `tiles/`
         /// 아래를 전부 Center로 놓는다 — 실측해 확인했다) `sprite.bounds`로 실측해
-        /// 자리를 잡는다 — 위 변이 벽 밑변에 맞닿고, 가로 중심이 칸 중앙에 오도록.
+        /// 자리를 잡는다 — 위 변이 벽 칸 밑변에 맞닿고, 가로 중심이 칸 중앙에 오도록.
         ///
-        /// **좌표 검증(§W4)**: `wall_interior_face.png`(32×26, Center 피벗)를 (tx=25,
-        /// ty=5, height=224)에 넣으면 `wallBottomY=218`, `bounds.max.y=13/32=0.40625`
-        /// → position.y = 218 − 0.40625 = 217.59375, 스프라이트가 실제로 차지하는
-        /// 구간은 [217.59375−0.40625, 217.59375+0.40625) = **[217.1875, 218)**.
-        /// 정확히 과제가 요구한 [223−ty−0.8125, 223−ty) = [217.1875, 218)와 일치한다.
-        /// 즉 자리는 원래도 맞았다(씬 파일에 구운 실제 좌표로 재확인함).
+        /// §WB — 예전에는 벽 타일이 제 아래 10px에 남쪽 면을 같이 굽고 있어서 정면을
+        /// 그만큼 위로 올려 덮어야 했다. 아트 쪽이 그 남쪽 면 베이크를 빼고 정면을
+        /// 32×32(1타일)로 키웠으므로, 정면은 다시 벽 칸 밑변 **바로 아래**에 그대로
+        /// 붙인다 — 크기를 하드코딩하지 않고 `sprite.bounds` 실측을 쓰므로 정면
+        /// 스프라이트가 몇 px든 자동으로 맞는다.
         /// </summary>
         private static void PlaceWallFace(Transform parent, Sprite sprite, int tx, int ty, int height)
         {
             var wallBottomY = height - ty - 1;   // 벽 칸의 아랫변 = 남쪽 바닥 칸의 윗변
             var bounds = sprite.bounds;
 
-            // **정면은 벽 칸 밑변이 아니라 그보다 위에서 시작한다.** 벽 타일은 제
-            // 아래 10px에 남쪽 면을 이미 굽고 있어서(`tiles.wall()`), 정면을 밑변에
-            // 딱 붙여 놓으면 "구운 남쪽 면 → 정면"이 연달아 두 번 나와 벽 무늬가
-            // 겹쳐 보인다. 정면이 그 10px를 **덮도록** 올려서, 벽 윗면 → 정면 →
-            // 바닥이 한 번씩만 나오게 한다(정면 스프라이트도 맨 위가 벽 윗면 색으로
-            // 시작하도록 다시 그렸다 — `tiles.wall_face()`).
-            var top = wallBottomY + WallBakedFaceHeight;
-
             var go = new GameObject($"WallFace_{tx}_{ty}");
             go.transform.SetParent(parent, false);
             go.transform.position = new Vector3(
                 (tx + 0.5f) - bounds.center.x,
-                top - bounds.max.y,
+                wallBottomY - bounds.max.y,
                 0f);
 
             var renderer = go.AddComponent<SpriteRenderer>();
             renderer.sprite = sprite;
 
-            // §W4 실측: 벽 타일(`wall_*_15.png`) 자체가 이미 32px 안에 밑단
-            // 어두운 톤(예: RGB 103,104,71)을 굽고 있고, 정면 PNG의 **끝 쪽**(파일
-            // 기준 아래쪽 행)이 정확히 같은 톤이다 — 두 톤이 이어지도록 만든 자산이다.
-            // 하지만 위치 계산과 무관하게 스프라이트를 "제 위" 그대로 그리면 벽의
-            // 어두운 끝단 바로 아래에 정면의 밝은 시작 행이 와서 톤이 다시 밝아졌다
-            // 어두워지는 이음매가 생기고, 이게 "벽 무늬가 두 번 나온다"는 밝은 띠로
-            // 보인다. 세로로 뒤집으면(FlipY) 같은 톤끼리 맞닿아 이음매가 사라지고
-            // 정면의 "밑변"이 Y소트 기준선이다 — 소품·캐릭터와 같은 공식(§6.2).
-            // 캐릭터가 그보다 남쪽(작은 y)이면 앞, 북쪽(큰 y)이면 정면에 가려진다
-            var splitY = top - bounds.size.y;
+            // 정면의 실제 밑변(월드 y)이 Y소트 기준선이다 — 소품·캐릭터와 같은
+            // 공식(§6.2). 캐릭터가 그보다 남쪽(작은 y)이면 앞, 북쪽(큰 y)이면
+            // 정면에 가려진다
+            var splitY = wallBottomY - bounds.size.y;
             renderer.sortingOrder = Mathf.Clamp(Mathf.RoundToInt(-splitY * SortScale), -29000, 32000);
         }
 
@@ -507,13 +488,29 @@ namespace SoldierADay.EditorTools
             return tile;
         }
 
-        private static Sprite _shadowSpriteCache;
         private static Sprite _aoSpriteCache;
 
-        /// <summary>§W2 소품 그림자용 절차적 스프라이트. 캐릭터(런타임)와 같은 픽셀을 `WorldDepth`에서 만든다</summary>
-        private static Sprite ShadowSprite() =>
-            _shadowSpriteCache ??= BakeProceduralSprite(
-                "WorldDepth_Shadow", WorldDepth.BuildShadowTexture, WorldDepth.BuildShadowSprite);
+        /// <summary>
+        /// §WB 소품별 접지 그림자 캐시. **같은 아트 파일(`def.file`)끼리 캐시**해서
+        /// 493개 배치가 있어도 고유 소품 파일 수만큼만 실루엣 텍스처를 굽는다 —
+        /// 대부분의 배치가 몇 안 되는 소품 종류를 반복해서 쓰기 때문에 효과가 크다.
+        /// </summary>
+        private static readonly Dictionary<string, Sprite> _footShadowCache = new Dictionary<string, Sprite>();
+
+        /// <summary>대상 스프라이트의 알파 실루엣에서 뽑은 접지 그림자(§WB). 소품 파일
+        /// 경로를 키로 캐시하므로 같은 소품이 몇 번 배치되든 텍스처는 한 번만 굽는다</summary>
+        private static Sprite FootShadowSprite(Sprite source, string cacheKey)
+        {
+            if (_footShadowCache.TryGetValue(cacheKey, out var cached)) return cached;
+
+            var safeName = cacheKey.Replace('/', '_').Replace('.', '_');
+            var sprite = BakeProceduralSprite($"FootShadow_{safeName}",
+                () => WorldDepth.BuildFootShadowTexture(source),
+                texture => WorldDepth.BuildFootShadowSprite(texture, source.pixelsPerUnit));
+
+            _footShadowCache[cacheKey] = sprite;
+            return sprite;
+        }
 
         /// <summary>§W4 바닥 AO 그라디언트 스프라이트. 렌더러 색(alpha)이 강도를 준다(상수 하나)</summary>
         private static Sprite AoEdgeSprite() =>
@@ -602,9 +599,11 @@ namespace SoldierADay.EditorTools
                 // 침상 위쪽을 지나면 가려지고 아래쪽을 지나면 가린다
                 renderer.sortingOrder = Mathf.Clamp(Mathf.RoundToInt(-y * SortScale), -29000, 32000);
 
-                // §W2 ② 캐스트 섀도우(정적) — 우하단 고정, 소품 높이(타일)에 비례.
-                // 소품은 움직이지 않으니 절대 sortingOrder를 한 번만 계산하면 계속 맞는다
-                WorldDepth.AttachStaticShadow(go.transform, ShadowSprite(), placement.h, renderer.sortingOrder);
+                // §WB 접지 그림자(정적) — 대상 알파 실루엣에서 뽑아 폭·모양이 그대로
+                // 따라온다(공용 작은 타원 금지). 같은 아트 파일(`def.file`)을 쓰는
+                // 소품끼리는 그림자 텍스처도 하나만 굽는다. 소품은 움직이지 않으니
+                // 절대 sortingOrder를 한 번만 계산하면 계속 맞는다
+                WorldDepth.AttachStaticShadow(go.transform, FootShadowSprite(sprite, def.file), renderer.sortingOrder);
 
                 if (!placement.walkable)
                 {
