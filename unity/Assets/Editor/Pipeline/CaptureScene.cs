@@ -59,6 +59,28 @@ namespace SoldierADay.EditorTools
             }
 
             var simulateDay = HasFlag("-simulateDay");
+            // **배치 캡처의 함정**: URP `Light2D`는 `LateUpdate`에서만 `UpdateMesh()`를
+            // 부른다(패키지 Light2D.cs). 배치모드는 플레이 모드가 아니라 `LateUpdate`가
+            // 돌지 않아 **Point 광원 메시가 아예 안 만들어지고**, 그래서 캡처에서만
+            // 로컬 조명이 통째로 사라진다 — 실제 게임(런타임)과 다른 결과가 나온다.
+            // `-bakeLights`는 그 내부 메서드를 리플렉션으로 한 번 돌려 런타임과 같은
+            // 상태를 만든다. 진단 전용이며 씬을 저장하지 않는다.
+            if (HasFlag("-bakeLights"))
+            {
+                var baked = 0;
+                foreach (var l in Object.FindObjectsByType<UnityEngine.Rendering.Universal.Light2D>(FindObjectsSortMode.None))
+                {
+                    if (l.lightType == UnityEngine.Rendering.Universal.Light2D.LightType.Global) continue;
+                    var t = l.GetType();
+                    var um = t.GetMethod("UpdateMesh", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                    var ub = t.GetMethod("UpdateBoundingSphere", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                    if (um != null) um.Invoke(l, new object[] { true });
+                    if (ub != null) ub.Invoke(l, null);
+                    baked += 1;
+                }
+                Debug.Log($"[캡처] 광원 메시 강제 생성 {baked}개");
+            }
+
             var lightsOff = HasFlag("-lightsOff");
             if (simulateDay || lightsOff)
             {
