@@ -102,6 +102,60 @@ namespace SoldierADay.EditorTools
                 }
             }
 
+            // C2 검증 전용 — `WeatherGrading.Update()`/`WorldLighting.LateUpdate()`는
+            // 배치모드(Edit 모드)에서 안 돈다. 그래서 밤·실내 어두움에 따라 전역광이
+            // 어두워지고 실내등이 밝아지는 결과는 캡처에 절대 저절로 안 나온다.
+            // `-simulateDay`가 "야간 게이팅"을 흉내 내는 것과 같은 이유로, 여기서는
+            // 임의의 어두움 값(0~1) 하나로 `WeatherGrading.Update()`가 실제로 하는
+            // **같은 두 일**(전역광 Lerp · 실내등 세기 배율)을 그대로 재현한다.
+            //   -simulateDarkness 0     : 낮·실내 어두움 없음 (C2 상수=0과 동일한 겉모습)
+            //   -simulateDarkness 0.55  : `WeatherGrading.IndoorDarkAmount` 기본값
+            //   -simulateDarkness 1     : 야간 포화 (실내 여부와 무관하게 최대치)
+            var simulateDarknessArg = Arg("-simulateDarkness");
+            if (simulateDarknessArg != null)
+            {
+                var darkness = Mathf.Clamp01(float.Parse(simulateDarknessArg));
+                var grading = Object.FindFirstObjectByType<SoldierADay.Net.WeatherGrading>();
+                var worldLighting = Object.FindFirstObjectByType<SoldierADay.Net.WorldLighting>();
+
+                if (grading == null || grading.globalLight == null)
+                {
+                    Debug.LogWarning("[캡처] WeatherGrading/전역광 없음 — 어두움 시뮬레이션 건너뜀");
+                }
+                else
+                {
+                    // `NightLight`는 private static — 캡처 쪽에 색을 따로 베껴 두면
+                    // 나중에 수치를 바꿨을 때 캡처만 낡은 값을 검증하게 된다
+                    var nightLightField = grading.GetType().GetField("NightLight",
+                        System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
+                    if (nightLightField != null)
+                    {
+                        var nightEntry = nightLightField.GetValue(null);
+                        var net = nightEntry.GetType();
+                        var nightColor = (Color)net.GetField("Item1").GetValue(nightEntry);
+                        var nightIntensity = (float)net.GetField("Item2").GetValue(nightEntry);
+                        grading.globalLight.color = Color.Lerp(grading.globalLight.color, nightColor, darkness);
+                        grading.globalLight.intensity =
+                            Mathf.Lerp(grading.globalLight.intensity, nightIntensity, darkness);
+                    }
+                }
+
+                if (worldLighting != null)
+                {
+                    for (var i = 0; i < worldLighting.lights.Length; i += 1)
+                    {
+                        var light = worldLighting.lights[i];
+                        if (light == null) continue;
+                        var boost = i < worldLighting.nightBoost.Length && worldLighting.nightBoost[i];
+                        if (!boost) continue; // 창 등은 밤낮·실내외 무관하게 그대로 둔다
+                        light.enabled = darkness > 0f;
+                        if (darkness > 0f) light.intensity *= darkness;
+                    }
+                }
+
+                Debug.Log($"[캡처] C2 어두움 시뮬레이션 darkness={darkness}");
+            }
+
             // B2 진단 전용 — 라이트 ON/OFF가 렌더에 전혀 영향을 안 주는 것으로 보여서
             // (동일 좌표·동일 ortho 캡처 3장이 픽셀 단위로 완전히 같았다) 원인 후보를
             // 로그로 남긴다: 광원 트랜스폼·반경·활성 여부, 그리고 실제로 셰이더가

@@ -13,8 +13,9 @@ namespace SoldierADay.Net
     /// 이 컴포넌트가 하는 일은 넷이다.
     ///   1. 화면 밖 광원 끄기
     ///   2. 화면당 활성 광원 상한(`MaxActiveLights`)
-    ///   3. 밤 연동 — 실내(방·복도) 등은 밝은 낮에는 완전히 꺼져 있고, 어두워질수록
-    ///      (`WeatherGrading.NightAmount`) 서서히 밝아진다
+    ///   3. 어두움 연동 — 실내(방·복도) 등은 밝을 때는 완전히 꺼져 있고, 어두워질수록
+    ///      (`WeatherGrading.DarknessAmount` — 밤이든 지붕 아래(C2)든 원인은 안 가린다)
+    ///      서서히 밝아진다
     ///   4. 위 세 판정이 만드는 **모든** on/off·세기 변화를 시간에 걸쳐 페이드한다 —
     ///      `Light2D.enabled`를 즉시 토글하지 않는다(WC 발주 "지금 그냥 on/off야" 지적)
     ///
@@ -49,14 +50,16 @@ namespace SoldierADay.Net
 
         /// <summary>
         /// `lights`와 같은 길이 · 같은 순서. 실내(방·복도) 등만 참이고, 그 등은
-        /// 밤에 밝아진다(낮에는 완전히 꺼진다). 창 광원은 거짓이라 밤낮 상관없이
+        /// 어두워질수록 밝아진다(밤이든, C2로 실내가 낮에도 어두워진 것이든 —
+        /// 밝을 때는 완전히 꺼진다). 창 광원은 거짓이라 밤낮·실내외 상관없이
         /// 일정하다 — 창은 "실내 조명"이 아니라 바깥빛이 새어 드는 구조물이라는
         /// 씬 빌더 쪽 판단을 그대로 따른다(`BaseScene.PlaceRoomLights`/`PlaceCorridorLights`
         /// 는 boost=true, 창 배치 자리는 boost=false로 채운다).
         /// </summary>
         public bool[] nightBoost = System.Array.Empty<bool>();
 
-        /// <summary>밤 블렌드를 읽는다. 없으면 항상 낮 취급(에디터 단독 재생 등)</summary>
+        /// <summary>어두움 블렌드(밤·실내 합산, `WeatherGrading.DarknessAmount`)를 읽는다.
+        /// 없으면 항상 밝은 낮 취급(에디터 단독 재생 등)</summary>
         public WeatherGrading grading;
 
         /// <summary>화면 판정 기준 카메라. 비워두면 `Camera.main`</summary>
@@ -138,7 +141,9 @@ namespace SoldierADay.Net
                 return;
             }
 
-            var night = grading != null ? grading.NightAmount : 0f;
+            // C2 — 밤·실내(지붕) 어느 쪽이 원인이든 같은 값 하나로 판정한다.
+            // `WeatherGrading.DarknessAmount`가 이미 "더 어두운 쪽" 하나로 합쳐 뒀다
+            var darkness = grading != null ? grading.DarknessAmount : 0f;
             var cam = worldCamera != null ? worldCamera : Camera.main;
 
             var hasView = cam != null;
@@ -152,9 +157,9 @@ namespace SoldierADay.Net
             }
 
             // 1단계 — 이번 프레임 목표 배율을 전부 0으로 리셋하고, 화면 안 +
-            // 밤 연동상 "잠재적으로 켜질 수 있는"(potential > 0) 광원만 상한
-            // 후보에 올린다. 잠재값이 이미 0인 광원(밤 연동 실내등 + 밝은 낮)을
-            // 후보에서 아예 빼면, 상한 8개 슬롯을 "어차피 꺼질 등"이 낭비하지
+            // 어두움 연동상 "잠재적으로 켜질 수 있는"(potential > 0) 광원만 상한
+            // 후보에 올린다. 잠재값이 이미 0인 광원(어두움 연동 실내등 + 밝은 낮의
+            // 실외)을 후보에서 아예 빼면, 상한 8개 슬롯을 "어차피 꺼질 등"이 낭비하지
             // 않고 실제로 보여야 할 등(창 등 등)에게 돌아간다 — 성능 이득은
             // `light.enabled = false`뿐 아니라 상한 슬롯 배분에서도 지킨다.
             var topCount = 0;
@@ -167,9 +172,9 @@ namespace SoldierADay.Net
                 if (light == null) continue;
 
                 var boost = i < nightBoost.Length && nightBoost[i];
-                // WC 발주 #2 — 실내등은 밤 연동, 창 등은 항상 잠재값 1
-                var potential = boost ? night : 1f;
-                if (potential <= 0f) continue;   // 낮의 실내등 — 후보에도 안 올린다
+                // WC 발주 #2 / C2 — 실내등은 어두움 연동(밤 또는 실내), 창 등은 항상 잠재값 1
+                var potential = boost ? darkness : 1f;
+                if (potential <= 0f) continue;   // 밝은 낮의 실내등 — 후보에도 안 올린다
 
                 var pos = _transforms[i].position;
                 var onScreen = !hasView
@@ -209,7 +214,7 @@ namespace SoldierADay.Net
             {
                 var i = _topIndex[k];
                 var boost = i < nightBoost.Length && nightBoost[i];
-                _targetScale[i] = boost ? night : 1f;
+                _targetScale[i] = boost ? darkness : 1f;
             }
 
             // 2단계 — 목표 배율을 향해 `FadeSeconds`에 걸쳐 실제 세기를 이동한다.

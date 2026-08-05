@@ -24,6 +24,15 @@ namespace SoldierADay.Net
         public GameClient client;
         public Light2D globalLight;
 
+        /// <summary>
+        /// C2 — 실내 판정을 읽기 위한 참조. `ZoneWorld`가 이미 구역 종류(방·복도·실외)를
+        /// 판정해 `HereIndoor`로 들고 있으므로 여기서 새로 만들지 않는다. 씬 빌더가
+        /// 배선하지 않아도 되도록(`BaseScene.cs`는 이번 작업 범위 밖) `Awake`에서
+        /// 부모 쪽에서 찾아 채운다 — "그레이딩"과 `ZoneWorld`(루트 "부대")가 항상
+        /// 같은 계층에 있다는 씬 빌더의 기존 구조에 기댄다.
+        /// </summary>
+        public ZoneWorld zoneWorld;
+
         /// <summary>씬 빌더가 밴드 순서대로 채운다. 마지막 하나가 야간(중첩)이다</summary>
         public Volume[] bands = System.Array.Empty<Volume>();
         public Volume nightVolume;
@@ -75,12 +84,51 @@ namespace SoldierADay.Net
         public float Panic { get; private set; }
 
         /// <summary>
-        /// 0(낮)~1(야간) 블렌드 — `WorldLighting`(W3)이 읽어서 실내등을 밤에
-        /// 밝힌다. `_night`는 이미 있던 값이고 여기서는 읽기 전용으로만 연다.
+        /// 0(낮)~1(야간) 블렌드. C2 이전에는 `WorldLighting`이 이 값만 보고 실내등을
+        /// 밤에만 밝혔다 — 지금은 `DarknessAmount`가 그 자리를 대신한다(아래).
+        /// 이 값 자체는 "순수 밤" 신호로 남겨 둔다.
         /// </summary>
         public float NightAmount => _night;
 
-        private void Awake() => _weights[2] = 1f;
+        /// <summary>
+        /// C2 — 실내(방·복도)에 있을 때 앰비언트를 얼마나 죽일지. `_night`와 같은
+        /// 좌표계(0~1, "night 100%일 때의 어두움"을 1로 잡은 값)를 쓴다.
+        ///
+        /// **0이면 이 기능이 완전히 꺼진다** — `DarknessAmount`가 `_night` 그대로가
+        /// 되어 C2 이전과 동일해진다(롤백 안전장치).
+        /// </summary>
+        private const float IndoorDarkAmount = 0.55f;
+
+        /// <summary>
+        /// C2 — 실내 판정이 문턱을 넘을 때 앰비언트가 튀지 않게 거는 시간(초).
+        /// `WorldLighting.FadeSeconds`와 같은 방식(`Time.deltaTime` 기반 `MoveTowards`)
+        /// 이고, 같은 이유로 상수로 뺐다 — 문을 지나는 순간 화면이 훅 어두워지거나
+        /// 밝아지면 조명이 아니라 버그로 읽힌다.
+        /// </summary>
+        private const float IndoorFadeSeconds = 0.5f;
+
+        private float _indoor;        // 지금 실제로 적용 중인 실내 블렌드(0~1)
+        private float _indoorTarget;  // 이번 프레임 목표(문 안쪽이면 1, 아니면 0)
+
+        /// <summary>
+        /// C2 — "지금 얼마나 어두워야 하는가"를 밤·실내 두 원인 중 **더 어두운 쪽
+        /// 하나**로 합친 값. `WorldLighting`은 이제 `NightAmount` 대신 이 값을 읽어서
+        /// 실내등 잠재값을 정한다 — 어두움의 원인이 밤이든 지붕이든 등은 같은 방식
+        /// 으로 켜져야 한다는 발주 요구를 그대로 옮긴 것이다.
+        ///
+        /// **곱하지 않고 `Max`를 쓴다.** 밤에 실내에 들어가면 두 원인이 겹치는데,
+        /// 곱하면(예: 두 값을 각각 어두운 쪽으로 블렌드한 뒤 다시 블렌드) 밤 실내가
+        /// 낮 실내보다 훨씬 더 어두워져 "밤 실내가 검게 죽지 않게"라는 요구를
+        /// 어긴다. `Max`는 밤 실내를 "그냥 밤만큼만" 어둡게 만들어 이 문제가
+        /// 애초에 생기지 않는다.
+        /// </summary>
+        public float DarknessAmount => Mathf.Max(_night, _indoor * IndoorDarkAmount);
+
+        private void Awake()
+        {
+            _weights[2] = 1f;
+            if (zoneWorld == null) zoneWorld = GetComponentInParent<ZoneWorld>();
+        }
 
         private void OnEnable()
         {
@@ -150,11 +198,19 @@ namespace SoldierADay.Net
             _state = Mathf.MoveTowards(_state, _stateTarget, k);
             if (stateVolume != null) stateVolume.weight = _state;
 
+            // C2 — 실내 판정. 새로 계산하지 않는다 — `ZoneWorld.HereIndoor`가 이미
+            // 구역 종류(room·corridor=실내, outdoor=실외)로 판정해 둔 것을 그대로 쓴다.
+            // `IndoorDarkAmount`가 0이면(기능 off) 목표는 항상 0이고, 아래 `DarknessAmount`는
+            // `_night` 그대로가 되어 이 기능이 있기 전과 같아진다.
+            _indoorTarget = IndoorDarkAmount > 0f && zoneWorld != null && zoneWorld.HereIndoor ? 1f : 0f;
+            _indoor = Mathf.MoveTowards(_indoor, _indoorTarget, Time.deltaTime / IndoorFadeSeconds);
+
             if (globalLight == null) return;
 
             var (color, intensity) = Lights[Mathf.Clamp(_target, 0, Lights.Length - 1)];
-            globalLight.color = Color.Lerp(color, NightLight.color, _night);
-            globalLight.intensity = Mathf.Lerp(intensity, NightLight.intensity, _night);
+            var darkness = DarknessAmount;
+            globalLight.color = Color.Lerp(color, NightLight.color, darkness);
+            globalLight.intensity = Mathf.Lerp(intensity, NightLight.intensity, darkness);
         }
 
         /// <summary>
