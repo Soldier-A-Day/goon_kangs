@@ -28,7 +28,7 @@ namespace SoldierADay.Net
 
         /// <summary>캐스트 섀도우 알파(반투명 검정). §W4에서 0.32→0.42 — AO를 낮추는 김에
         /// 그림자가 바닥과 구분되도록 소폭 또렷하게 했다(모양은 그대로, 부드러운 타원)</summary>
-        public const float ShadowAlpha = 0.42f;
+        public const float ShadowAlpha = 0.5f;
 
         /// <summary>
         /// 바닥 AO **최대**(벽 접촉부) 알파. §W4 "0.2 이하 권장" — 0.3은 과했다.
