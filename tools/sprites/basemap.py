@@ -393,21 +393,30 @@ def build() -> dict:
     zones: list[dict] = []
     props: list[dict] = []
     doors: list[dict] = []
+    # 문·출입구·게이트가 뚫어놓은 칸 — C1 남향 벽 승격에서 반드시 제외한다.
+    # 실제로 벽을 지우는 자리마다 여기 적립하고, 승격 단계는 이 표만 본다
+    # (문 목록 `doors`는 통로 한쪽만 기록하는 곳이 있어 그것만으론 못 믿는다)
+    protected: set[tuple[int, int]] = set()
 
-    _outdoor(ground, walls, zones, props)
+    _outdoor(ground, walls, zones, props, protected)
 
     for building in BUILDINGS:
-        _building(building, ground, walls, zones, props, doors)
+        _building(building, ground, walls, zones, props, doors, protected)
 
     # 보일러실은 어느 동에도 속하지 않는 단독 건물이라 위 루프가 문을 안 낸다.
     # 두 동(여기선 야외 소품과 B1)이 다 그려진 뒤에 불러야 벽이 안 덮인다
-    _connect_boiler_to_washroom(ground, walls, doors)
+    _connect_boiler_to_washroom(ground, walls, doors, protected)
 
     # 외곽 철조망 — PLAN 01. **부대만** 두른다. 훈련장은 그 밖이고,
     # 정문(Z18)으로 나가서 간다 — 사격장도 숙영지도 원래 위병소를 지나 간다
     walls.outline(1, 1, BASE_W - 2, BASE_H - 2, "wall:fence")
 
-    _training(ground, walls, zones, props)
+    _training(ground, walls, zones, props, protected)
+
+    # C1 — 남향 벽을 2타일로 두껍게. 눈(snow)은 벽 위에 안 쌓으므로 최종
+    # 벽 배치가 끝난 뒤에 계산해야 한다 — 승격 전에 돌리면 방금 벽이 된 칸에
+    # 눈이 먼저 깔린다
+    _thicken_south_walls(walls, zones, props, protected)
 
     snow = _snow(zones, walls)
 
@@ -439,6 +448,60 @@ def build() -> dict:
         "doors": doors,
         "snow": snow,
     }
+
+
+def _thicken_south_walls(walls: Grid, zones: list[dict], props: list[dict],
+                          protected: set[tuple[int, int]]) -> int:
+    """
+    C1 — 남향 벽을 2타일로 두껍게.
+
+    탑다운에서 벽 칸의 정면 그래픽은 관례상 그 칸 **남쪽으로 흘러 그려진다**
+    (칸보다 큰 그림을 아래로 밀어 그리는 것이 이 장르의 표준 기법이다). 벽이
+    1타일이면 캐릭터(역시 1타일)가 그 남쪽 칸에 서는 순간 몸이 정면을 통째로
+    가려 "벽 안에 서 있다"로 보인다. 그 남쪽 칸을 마저 벽으로 만들면 캐릭터는
+    한 칸 더 물러서야 하고, 원래 벽 칸이 그대로 남아 눈에 벽으로 읽힌다.
+
+    **원본 스냅샷 기준으로 한 번만 승격한다.** 승격되어 새로 벽이 된 칸을
+    또 벽으로 보고 그 남쪽을 잇달아 승격하면(캐스케이드) 복도가 여러 칸씩
+    잠식된다 — "2타일"이라는 약속이 깨진다.
+
+    승격에서 제외하는 것 — 어느 하나라도 어기면 게임이 막힌다:
+
+      **문·출입구·게이트 칸** (`protected`) — 유일한 통로다
+      **소품이 놓인 칸**                    — 벽 안에 소품이 갇힌다
+      **구역 스폰 좌표**                    — 스폰이 벽 안이면 즉시 끼인다
+      **1칸짜리 틈**                        — 승격하면 그 통로가 완전히 막힌다
+                                              (남쪽 두 칸째가 이미 벽이면 폭이
+                                              1이었다는 뜻이고, 승격하면 0이 된다)
+    """
+    occupied: set[tuple[int, int]] = set()
+    for p in props:
+        for y in range(p["y"], p["y"] + p["h"]):
+            for x in range(p["x"], p["x"] + p["w"]):
+                occupied.add((x, y))
+
+    spawns = {(z["spawn"]["x"], z["spawn"]["y"]) for z in zones}
+
+    # 스냅샷 — 이 시점의 벽만 승격 후보의 기준으로 쓴다(캐스케이드 방지)
+    snapshot = list(walls.cells.items())
+    promoted = 0
+    for (x, y), _value in snapshot:
+        ny = y + 1
+        if ny >= walls.h:
+            continue
+        if walls.get(x, ny) is not None:
+            continue  # 이미 벽 — 승격할 남향 벽이 아니다
+        if (x, ny) in protected or (x, ny) in occupied or (x, ny) in spawns:
+            continue
+
+        beyond = y + 2
+        if beyond >= walls.h or walls.get(x, beyond) is not None:
+            continue  # 1칸짜리 틈 — 승격하면 폭이 0이 된다
+
+        walls.set(x, ny, walls.get(x, y))
+        promoted += 1
+
+    return promoted
 
 
 def _snow(zones: list[dict], walls: Grid) -> list[dict]:
@@ -714,7 +777,8 @@ def _assert_no_overlap(zones: list[dict]) -> None:
 
 
 def _building(b: dict, ground: Grid, walls: Grid,
-              zones: list[dict], props: list[dict], doors: list[dict]) -> None:
+              zones: list[dict], props: list[dict], doors: list[dict],
+              protected: set[tuple[int, int]]) -> None:
     """
     동 하나 — 외벽 · 복도 · 방들 · 출입구.
 
@@ -764,6 +828,7 @@ def _building(b: dict, ground: Grid, walls: Grid,
         for (dx, dy) in span:
             walls.clear(dx, dy)
             ground.set_floor(dx, dy, "concreteLight")
+            protected.add((dx, dy))
 
         ox, oy = _outward(r["door"])
         head = span[0]
@@ -793,6 +858,7 @@ def _building(b: dict, ground: Grid, walls: Grid,
         for y in range(cy, cy + CORRIDOR):
             walls.clear(wall_x, y)
             ground.set_floor(wall_x, y, "concreteLight")
+            protected.add((wall_x, y))
 
         ox = -1 if side == "west" else 1
         doors.append({
@@ -811,7 +877,8 @@ def _building(b: dict, ground: Grid, walls: Grid,
                 ground.set_floor(wall_x + ox * i, y, "concrete")
 
 
-def _training(ground: Grid, walls: Grid, zones: list[dict], props: list[dict]) -> None:
+def _training(ground: Grid, walls: Grid, zones: list[dict], props: list[dict],
+              protected: set[tuple[int, int]]) -> None:
     """
     훈련 맵 7종을 월드에 얹는다 (§6.4 TR01~TR10 중 탑다운).
 
@@ -827,6 +894,7 @@ def _training(ground: Grid, walls: Grid, zones: list[dict], props: list[dict]) -
         for (dx, dy) in door_span(rect, "south"):
             walls.clear(dx, dy)
             ground.set_floor(dx, dy, "concrete")
+            protected.add((dx, dy))
 
         zones.append(_zone_entry(spec, indoor=False, kind="outdoor"))
         props.extend(_place_props(spec))
@@ -879,7 +947,8 @@ def _is_outer(b: dict, x: int, y: int) -> bool:
     return x in (b["x"], b["x"] + b["w"] - 1) or y in (b["y"], b["y"] + b["h"] - 1)
 
 
-def _connect_boiler_to_washroom(ground: Grid, walls: Grid, doors: list[dict]) -> None:
+def _connect_boiler_to_washroom(ground: Grid, walls: Grid, doors: list[dict],
+                                 protected: set[tuple[int, int]]) -> None:
     """
     보일러실(Z14) ↔ 세면장(Z03) — 보일러실의 유일한 문.
 
@@ -903,6 +972,8 @@ def _connect_boiler_to_washroom(ground: Grid, walls: Grid, doors: list[dict]) ->
         walls.clear(washroom_wall_x, by)
         ground.set_floor(bx, by, "concreteLight")
         ground.set_floor(washroom_wall_x, by, "concreteLight")
+        protected.add((bx, by))
+        protected.add((washroom_wall_x, by))
 
     # 세면장에서 볼 때와 보일러실에서 볼 때 할 말이 다르다 — 동 출입구가
     # `name`(밖에서 볼 때) · `exitLabel`(안에서 볼 때)을 나누는 것과 같은 규칙.
@@ -915,7 +986,8 @@ def _connect_boiler_to_washroom(ground: Grid, walls: Grid, doors: list[dict]) ->
     })
 
 
-def _outdoor(ground: Grid, walls: Grid, zones: list[dict], props: list[dict]) -> None:
+def _outdoor(ground: Grid, walls: Grid, zones: list[dict], props: list[dict],
+             protected: set[tuple[int, int]]) -> None:
     for o in OUTDOOR:
         ground.fill_floor(o["x"], o["y"], o["w"], o["h"], o["floor"])
 
@@ -942,15 +1014,19 @@ def _outdoor(ground: Grid, walls: Grid, zones: list[dict], props: list[dict]) ->
                     if side == "north":
                         walls.clear(cx + i, rect["y"])
                         ground.set_floor(cx + i, rect["y"], "concrete")
+                        protected.add((cx + i, rect["y"]))
                     elif side == "south":
                         walls.clear(cx + i, rect["y"] + rect["h"] - 1)
                         ground.set_floor(cx + i, rect["y"] + rect["h"] - 1, "concrete")
+                        protected.add((cx + i, rect["y"] + rect["h"] - 1))
                     elif side == "east":
                         walls.clear(rect["x"] + rect["w"] - 1, cy + i)
                         ground.set_floor(rect["x"] + rect["w"] - 1, cy + i, "concrete")
+                        protected.add((rect["x"] + rect["w"] - 1, cy + i))
                     else:
                         walls.clear(rect["x"], cy + i)
                         ground.set_floor(rect["x"], cy + i, "concrete")
+                        protected.add((rect["x"], cy + i))
 
             open_fence(1)
             if o.get("double"):
