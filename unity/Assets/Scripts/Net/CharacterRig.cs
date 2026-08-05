@@ -170,7 +170,14 @@ namespace SoldierADay.Net
         private const float BlinkMinGap = 2f;
         private const float BlinkMaxGap = 5f;
         private const float BlinkExposeSeconds = 0.1f;
-        private float _blinkAt = Random.Range(BlinkMinGap, BlinkMaxGap);
+        /// <summary>
+        /// 다음 깜빡임까지 남은 시간. **초기값은 `Awake`에서 뽑는다** — 필드
+        /// 초기화식은 생성자 컨텍스트라 `Random.Range`가
+        /// `UnityException: Range is not allowed to be called from a MonoBehaviour
+        /// constructor`로 터진다. 그러면 분대원 넷의 깜빡임 위상이 흩어지지 않고
+        /// 같은 박자로 붙어 버려, 일부러 어긋내 둔 idle 연출과 정면으로 충돌한다.
+        /// </summary>
+        private float _blinkAt;
         private bool _blinking;
 
         private static Sprite _eyeSprite;
@@ -242,6 +249,8 @@ namespace SoldierADay.Net
         private void Awake()
         {
             _group = GetComponent<SortingGroup>();
+            // 캐릭터마다 다른 값을 뽑아야 넷의 깜빡임 박자가 어긋난다
+            _blinkAt = Random.Range(BlinkMinGap, BlinkMaxGap);
             BuildLayers();
         }
 
