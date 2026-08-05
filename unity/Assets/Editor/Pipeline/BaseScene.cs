@@ -152,6 +152,10 @@ namespace SoldierADay.EditorTools
         /// 덮는 오버레이라 Lit이 되면 등 아래에서 스스로 밝아진다</summary>
         private const string FloorAoLayerName = "TM_FloorAO";
 
+        /// <summary>벽 타일이 제 아래쪽에 굽고 있는 남쪽 면의 높이(`tiles.wall()`의
+        /// 10px). 정면 스프라이트가 이만큼 위로 올라가 그 구간을 덮는다</summary>
+        private const float WallBakedFaceHeight = 10f / 32f;
+
         private static void BuildWallFaces(Transform grid, BaseMap map, MapCells cells, int height)
         {
             if (map.layers?.wall == null || map.layers.wall.Length == 0) return;
@@ -211,11 +215,19 @@ namespace SoldierADay.EditorTools
             var wallBottomY = height - ty - 1;   // 벽 칸의 아랫변 = 남쪽 바닥 칸의 윗변
             var bounds = sprite.bounds;
 
+            // **정면은 벽 칸 밑변이 아니라 그보다 위에서 시작한다.** 벽 타일은 제
+            // 아래 10px에 남쪽 면을 이미 굽고 있어서(`tiles.wall()`), 정면을 밑변에
+            // 딱 붙여 놓으면 "구운 남쪽 면 → 정면"이 연달아 두 번 나와 벽 무늬가
+            // 겹쳐 보인다. 정면이 그 10px를 **덮도록** 올려서, 벽 윗면 → 정면 →
+            // 바닥이 한 번씩만 나오게 한다(정면 스프라이트도 맨 위가 벽 윗면 색으로
+            // 시작하도록 다시 그렸다 — `tiles.wall_face()`).
+            var top = wallBottomY + WallBakedFaceHeight;
+
             var go = new GameObject($"WallFace_{tx}_{ty}");
             go.transform.SetParent(parent, false);
             go.transform.position = new Vector3(
                 (tx + 0.5f) - bounds.center.x,
-                wallBottomY - bounds.max.y,
+                top - bounds.max.y,
                 0f);
 
             var renderer = go.AddComponent<SpriteRenderer>();
@@ -228,13 +240,9 @@ namespace SoldierADay.EditorTools
             // 어두운 끝단 바로 아래에 정면의 밝은 시작 행이 와서 톤이 다시 밝아졌다
             // 어두워지는 이음매가 생기고, 이게 "벽 무늬가 두 번 나온다"는 밝은 띠로
             // 보인다. 세로로 뒤집으면(FlipY) 같은 톤끼리 맞닿아 이음매가 사라지고
-            // 정면 전체가 벽→바닥으로 이어지는 단일 그라디언트로 읽힌다. 위치(좌표)는
-            // 그대로다 — bounds는 FlipY 영향을 받지 않는다
-            renderer.flipY = true;
-
             // 정면의 "밑변"이 Y소트 기준선이다 — 소품·캐릭터와 같은 공식(§6.2).
             // 캐릭터가 그보다 남쪽(작은 y)이면 앞, 북쪽(큰 y)이면 정면에 가려진다
-            var splitY = wallBottomY - bounds.size.y;
+            var splitY = top - bounds.size.y;
             renderer.sortingOrder = Mathf.Clamp(Mathf.RoundToInt(-splitY * SortScale), -29000, 32000);
         }
 
