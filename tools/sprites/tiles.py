@@ -242,9 +242,20 @@ WALL_FACE_NORMAL = (128, 60, 200, 255)   #: 정면을 보는(아래로 기운) �
 #: 나머지(`WALL_FACE_H - _RIM - _GROUND`)를 립·접지선 몫으로 뺀 뒤 윗면:남쪽면
 #: 비율로 나눈다. 광원이 위쪽이므로(WA 지시) 아래로 갈수록 어두운 톤이 더
 #: 넓게 깔린다 — 그래서 남쪽 면 몫이 윗면 몫보다 크다.
+#:
+#: **단, 이 4단 비율은 `face`가 `top`과 같은 계열일 때만 쓴다** — `utility`·
+#: `outdoor`처럼 `face`가 다른(훨씬 어두운) 계열이면 몸통에 16px씩 깔면 정면
+#: 절반이 거의 검은 판때기가 된다(리뷰에서 실측: 중간 밝기가 윗면의 35%로
+#: 추락). 아래 `_WALL_FACE_FOOT_PX` 분기 참고.
 _WALL_FACE_RIM_PX = 3
 _WALL_FACE_GROUND_PX = 2
 _WALL_FACE_TOP_FRACTION = 0.4   # 몸통 중 윗면 톤이 차지하는 비율. 나머지는 남쪽 면 톤
+
+#: `face`가 `top`과 다른 계열일 때(예: utility/outdoor의 `night0` vs `conc3`)
+#: 몸통에 쓰지 않고 접지 바로 위 얇은 발치에만 쓰는 폭. 접지선(`line`, 그
+#: 계열의 더 어두운 단)과 합쳐도 5px을 넘지 않아 중간 높이 표본은 항상
+#: 몸통(=top, 자기 계열 안)에 걸린다.
+_WALL_FACE_FOOT_PX = 3
 
 
 def wall_face(kind: str) -> Image.Image:
@@ -264,7 +275,8 @@ def wall_face(kind: str) -> Image.Image:
     `face` 남쪽 면)과, `palette.neighbor()`로 고른 그 계열의 등록된 이웃
     단 하나만 쓴다. 전부 §4.2 팔레트에 등록된 값이라 계열 이탈이 불가능하다.
 
-    위→아래 4단(광원은 위쪽, WA 지시):
+    위→아래 4단(광원은 위쪽, WA 지시) — **`face`가 `top`과 같은 계열일 때만**
+    (`interior`·`wood`):
       1. 립(`_WALL_FACE_RIM_PX`) — `neighbor(top, +1)`. 윗면보다 한 단 밝다.
          벽 타일의 윗면(정확히 `top` 색)과 맞닿는 이음매에 밝은 선이 생겨,
          정면이 윗면과 **다른 평면**으로 읽힌다(이게 없으면 어디까지가 윗면이고
@@ -273,6 +285,20 @@ def wall_face(kind: str) -> Image.Image:
       3. 남쪽 면 톤(`face`) — 벽의 남쪽 면과 같은 색. 몸통 대부분을 차지한다.
       4. 접지선(`_WALL_FACE_GROUND_PX`) — `line`(벽 마감선 색, 이미 등록된
          야간 계열 어두운 톤). 바닥과 닿는 자리를 확실히 죽인다.
+
+    **`face`가 `top`과 다른(훨씬 어두운) 계열이면 위 3번을 쓰지 않는다**
+    (`utility`·`outdoor` — `face`가 `night0`, `top`은 `conc3`). 초판은 이
+    구분 없이 항상 3번 자리에 16px를 깔았는데, 콘크리트 계열 옆에 `night0`
+    (거의 검은 남색)을 정면 절반 크기로 붙이자 벽면이 아니라 **뚫린 구멍**
+    처럼 보였다(리뷰 실측: 중간 높이 밝기가 윗면의 35%까지 떨어짐 — 판정
+    기준은 55% 이상). 그래서 계열이 다르면:
+      1. 립 — 위와 동일, `top` 계열 안에서 한 단 밝게
+      2. 몸통 — `top` 그대로, `_WALL_FACE_FOOT_PX`·접지선을 뺀 나머지 전부.
+         **몸통은 항상 벽 자신의 재질 계열(`top`) 안에 머문다** — 몸통에
+         다른 계열 색을 절대 섞지 않는다
+      3. 발치(`_WALL_FACE_FOOT_PX`) — `face`(다른 계열의 어두운 색)를 여기서만,
+         얇게 쓴다. 이게 원래 벽 타일이 굽던 "그늘진 밑단"의 자리다
+      4. 접지선 — 위와 동일, `line`
 
     **여기서 두 번 사고가 났다(WA 이전, 지금도 유효한 금지 사항).**
       1차: `face`를 ×1.4 곱하고 팔레트 전체에서 최근접 스냅 → 콘크리트 계열에
@@ -291,16 +317,32 @@ def wall_face(kind: str) -> Image.Image:
     img = PX.blank(TILE, WALL_FACE_H)
 
     rim = P.neighbor(top, 1)
-    body_h = WALL_FACE_H - _WALL_FACE_RIM_PX - _WALL_FACE_GROUND_PX
-    top_h = max(1, round(body_h * _WALL_FACE_TOP_FRACTION))
-    face_h = body_h - top_h
 
-    bands: list[tuple[int, tuple[int, int, int]]] = [
-        (_WALL_FACE_RIM_PX, rim),
-        (top_h, P.W[top]),
-        (face_h, P.W[face]),
-        (_WALL_FACE_GROUND_PX, P.W[line]),
-    ]
+    top_fam = P.family_of(top)
+    face_fam = P.family_of(face)
+    same_family = top_fam is not None and face_fam is not None and top_fam[0] == face_fam[0]
+
+    if same_family:
+        body_h = WALL_FACE_H - _WALL_FACE_RIM_PX - _WALL_FACE_GROUND_PX
+        top_h = max(1, round(body_h * _WALL_FACE_TOP_FRACTION))
+        face_h = body_h - top_h
+        bands: list[tuple[int, tuple[int, int, int]]] = [
+            (_WALL_FACE_RIM_PX, rim),
+            (top_h, P.W[top]),
+            (face_h, P.W[face]),
+            (_WALL_FACE_GROUND_PX, P.W[line]),
+        ]
+    else:
+        # `face`가 `top`과 다른 계열(예: night0 vs conc3) — 몸통은 `top`
+        # 계열 안에만 머물고, `face`는 접지 바로 위 얇은 발치로만 쓴다
+        # (이 함수 docstring "위→아래 4단" 두 번째 갈래 참고)
+        body_h = WALL_FACE_H - _WALL_FACE_RIM_PX - _WALL_FACE_FOOT_PX - _WALL_FACE_GROUND_PX
+        bands = [
+            (_WALL_FACE_RIM_PX, rim),
+            (body_h, P.W[top]),
+            (_WALL_FACE_FOOT_PX, P.W[face]),
+            (_WALL_FACE_GROUND_PX, P.W[line]),
+        ]
 
     y = 0
     for h, color in bands:
