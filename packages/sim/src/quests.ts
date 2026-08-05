@@ -39,7 +39,11 @@ interface CareTemplate {
 }
 
 const COUNTS = questTable.counts;
-const CARE_POOL = questTable.care as readonly CareTemplate[];
+// quests.json의 각 항목은 recovery에서 서로 다른 부분집합의 키만 채운다(문서상
+// 정상 데이터) — 그 결과 리터럴 타입들의 유니온이 되어 인덱스 시그니처가 없는
+// `Readonly<Record<string, number>>`와 "충분히 겹치지 않는다"는 TS2352가 난다.
+// 값이 전부 number라는 건 위 스키마 주석대로 보장되므로 unknown을 거쳐 단언한다.
+const CARE_POOL = questTable.care as unknown as readonly CareTemplate[];
 const ROLE_POOL = questTable.role as Record<string, readonly QuestTemplate[]>;
 const CHORE_POOL = questTable.chores as readonly QuestTemplate[];
 const SURPRISE_POOL = questTable.surprise as readonly QuestTemplate[];
