@@ -32,6 +32,8 @@ namespace SoldierADay.EditorTools
         /// <summary>§12.2 폴더 구조의 `Settings/Volumes/` — 밴드별 프로파일 7종</summary>
         private const string VolumeDir = "Assets/Settings/Volumes";
         private const string MaterialDir = "Assets/Settings/Materials";
+        /// <summary>§W2 절차적 그림자·AO 스프라이트가 사는 곳. Art/2d 밖에 둔다 — 손으로 그린 자산이 아니다</summary>
+        private const string DepthDir = "Assets/Settings/WorldDepth";
 
         /// <summary>정적 소품과 캐릭터가 **같은 공식**을 써야 서로 가린다</summary>
         private const float SortScale = CharacterRig.SortScale;
@@ -105,8 +107,196 @@ namespace SoldierADay.EditorTools
                     CompositeCollider2D.GeometryType.Polygons;
             }
 
+            // §W2 벽 높이(오블리크) 배치 · 바닥 AO — 콜라이더는 위에서 이미 끝났다.
+            // 둘 다 시각 전용이라 걷기 판정에는 영향이 없다. 벽·바닥 칸 집합은
+            // 둘이 같이 쓰므로 한 번만 모은다(8,800칸을 두 번 훑지 않는다)
+            var cells = CollectMapCells(map);
+            BuildWallFaces(grid.transform, map, cells, height);
+            BuildFloorAo(grid.transform, cells, height);
+
+            // §W2 ② 캐스트 섀도우(캐릭터, 런타임). 플레이어는 씬 빌드 시점에 이미
+            // 있지만 분대원은 스냅샷 이후 `SquadView`가 늦게 만든다 — 그래서 소품처럼
+            // 미리 구워둘 수 없고, 낮은 주기로 찾아 붙이는 매니저 하나를 심어둔다
+            var depth = new GameObject("WorldDepth");
+            depth.transform.SetParent(parent, false);
+            depth.AddComponent<WorldDepthShadowManager>();
+
             return BuildSnow(grid.transform, map, tiles, height);
         }
+
+        /* ══════════════════════════════════════ §W2 벽 오블리크 정면 · 바닥 AO */
+
+        /// <summary>계약(§W2)상 정면 스프라이트가 있는 kind. `fence`는 없다 — 조용히 건너뛴다</summary>
+        private static readonly HashSet<string> WallFaceKinds =
+            new HashSet<string> { "interior", "utility", "outdoor", "wood" };
+
+        /// <summary>
+        /// §W2 ① 벽 정면(오블리크) 배치.
+        ///
+        /// 남쪽 이웃이 벽이 아니고 남쪽에 바닥이 있는 벽 칸 아래에, 그 칸 바로
+        /// 아래 26px를 덮는 정면 스프라이트를 얹는다(바닥 위에 그려진다). 콜라이더는
+        /// 건드리지 않는다 — 걷기 판정은 위 `TM_Wall`이 그대로 맡는다.
+        ///
+        /// W1이 `wall_{kind}_face.png`를 아직 안 냈으면 `LoadSprite`가 null을 돌려주고
+        /// 그 kind만 건너뛴다 — 예외로 씬 생성이 멈추지 않는다.
+        /// </summary>
+        private static void BuildWallFaces(Transform grid, BaseMap map, MapCells cells, int height)
+        {
+            if (map.layers?.wall == null || map.layers.wall.Length == 0) return;
+
+            var wallCells = cells.Wall;
+            var floorCells = cells.Floor;
+
+            var container = new GameObject("TM_WallFace");
+            container.transform.SetParent(grid, false);
+
+            // kind별로 한 번만 로드 — 8,800칸을 훑어도 `AssetDatabase` 조회는 kind 수만큼만
+            var spriteByKind = new Dictionary<string, Sprite>();
+
+            foreach (var run in map.layers.wall)
+            {
+                if (string.IsNullOrEmpty(run.tile) || run.cells == null) continue;
+                var kind = run.tile.StartsWith("wall:") ? run.tile.Substring(5) : run.tile;
+
+                for (var i = 0; i + 1 < run.cells.Length; i += 2)
+                {
+                    var tx = run.cells[i];
+                    var ty = run.cells[i + 1];
+
+                    // 타일 좌표는 아래로 증가한다(§ 클래스 주석) — 남쪽은 ty + 1
+                    var south = CellKey(tx, ty + 1);
+                    if (wallCells.Contains(south)) continue;    // 남쪽도 벽 — 정면 없음
+                    if (!floorCells.Contains(south)) continue;  // 남쪽에 바닥이 없다
+
+                    if (!spriteByKind.TryGetValue(kind, out var sprite))
+                    {
+                        sprite = LoadSprite($"tiles/wall_{kind}_face.png");
+                        spriteByKind[kind] = sprite;   // null도 캐시한다 — 재조회 방지
+                        if (sprite == null && WallFaceKinds.Contains(kind))
+                            Debug.Log($"[부대] 벽 정면 아직 없음(건너뜀): wall_{kind}_face.png");
+                    }
+                    if (sprite == null) continue;
+
+                    PlaceWallFace(container.transform, sprite, tx, ty, height);
+                }
+            }
+        }
+
+        /// <summary>
+        /// 정면 스프라이트 하나를 놓는다. 피벗이 무엇이든(Sprite2DImport는 W3 소유라
+        /// 가정하지 않는다) `sprite.bounds`로 실측해 자리를 잡는다 — 위 변이 벽
+        /// 밑변에 맞닿고, 가로 중심이 칸 중앙에 오도록.
+        /// </summary>
+        private static void PlaceWallFace(Transform parent, Sprite sprite, int tx, int ty, int height)
+        {
+            var wallBottomY = height - ty - 1;   // 벽 칸의 아랫변 = 남쪽 바닥 칸의 윗변
+            var bounds = sprite.bounds;
+
+            var go = new GameObject($"WallFace_{tx}_{ty}");
+            go.transform.SetParent(parent, false);
+            go.transform.position = new Vector3(
+                (tx + 0.5f) - bounds.center.x,
+                wallBottomY - bounds.max.y,
+                0f);
+
+            var renderer = go.AddComponent<SpriteRenderer>();
+            renderer.sprite = sprite;
+
+            // 정면의 "밑변"이 Y소트 기준선이다 — 소품·캐릭터와 같은 공식(§6.2).
+            // 캐릭터가 그보다 남쪽(작은 y)이면 앞, 북쪽(큰 y)이면 정면에 가려진다
+            var splitY = wallBottomY - bounds.size.y;
+            renderer.sortingOrder = Mathf.Clamp(Mathf.RoundToInt(-splitY * SortScale), -29000, 32000);
+        }
+
+        /// <summary>
+        /// §W2 ③ 바닥 AO. 벽에 4방향으로 붙은 바닥 칸을 살짝 어둡게 해 방을 상자로
+        /// 읽히게 한다. 강도는 `WorldDepth.AoAlpha` 하나 — 실시간 조명(W3)이 들어오면
+        /// 그 값만 낮추면 된다.
+        /// </summary>
+        private static void BuildFloorAo(Transform grid, MapCells cells, int height)
+        {
+            var wallCells = cells.Wall;
+            var floorCells = cells.Floor;
+            if (wallCells.Count == 0 || floorCells.Count == 0) return;
+
+            var positions = new List<Vector3Int>();
+            foreach (var key in floorCells)
+            {
+                var tx = (int)(key >> 32);
+                var ty = (int)(key & 0xFFFFFFFFL);
+
+                var adjacent =
+                    wallCells.Contains(CellKey(tx, ty - 1)) ||
+                    wallCells.Contains(CellKey(tx, ty + 1)) ||
+                    wallCells.Contains(CellKey(tx - 1, ty)) ||
+                    wallCells.Contains(CellKey(tx + 1, ty));
+                if (!adjacent) continue;
+
+                positions.Add(new Vector3Int(tx, height - ty - 1, 0));
+            }
+            if (positions.Count == 0) return;
+
+            var go = new GameObject("TM_FloorAO");
+            go.transform.SetParent(grid, false);
+            var tilemap = go.AddComponent<Tilemap>();
+            var renderer = go.AddComponent<TilemapRenderer>();
+            // 눈(-30500) 위, 벽(-30000) 아래 — 벽 칸 자체에는 안 깔리니 겹칠 일은
+            // 없지만, 눈 위에 그림자가 얹히는 쪽이 자연스럽다
+            renderer.sortingOrder = -30200;
+            renderer.mode = TilemapRenderer.Mode.Chunk;
+
+            var tile = ScriptableObject.CreateInstance<Tile>();
+            tile.sprite = AoSprite();
+            tile.color = new Color(0f, 0f, 0f, WorldDepth.AoAlpha);
+            tile.colliderType = Tile.ColliderType.None;
+
+            var assets = new TileBase[positions.Count];
+            for (var i = 0; i < assets.Length; i += 1) assets[i] = tile;
+            tilemap.SetTiles(positions.ToArray(), assets);
+        }
+
+        /// <summary>벽 칸 · 바닥 칸 집합. `BuildWallFaces`와 `BuildFloorAo`가 같이 쓰므로 한 번만 모은다</summary>
+        private readonly struct MapCells
+        {
+            public readonly HashSet<long> Wall;
+            public readonly HashSet<long> Floor;
+
+            public MapCells(HashSet<long> wall, HashSet<long> floor)
+            {
+                Wall = wall;
+                Floor = floor;
+            }
+        }
+
+        private static MapCells CollectMapCells(BaseMap map)
+        {
+            var wall = new HashSet<long>();
+            var floor = new HashSet<long>();
+            if (map.layers != null)
+            {
+                CollectCells(wall, map.layers.wall);
+                CollectCells(floor, map.layers.ground);
+                CollectCells(floor, map.layers.groundDeco);
+            }
+            return new MapCells(wall, floor);
+        }
+
+        /// <summary>배열 전체를 모은다. `runs`가 null이어도(레이어가 비어 있어도) 안전하다</summary>
+        private static void CollectCells(HashSet<long> set, BaseMap.TileRun[] runs)
+        {
+            if (runs == null) return;
+            foreach (var run in runs) CollectCells(set, run);
+        }
+
+        private static void CollectCells(HashSet<long> set, BaseMap.TileRun run)
+        {
+            if (run?.cells == null) return;
+            for (var i = 0; i + 1 < run.cells.Length; i += 2)
+                set.Add(CellKey(run.cells[i], run.cells[i + 1]));
+        }
+
+        /// <summary>타일 좌표 (x, y) → 해시 키. 맵 크기(≪2^31)에서 충돌 없이 하나로 접는다</summary>
+        private static long CellKey(int x, int y) => ((long)x << 32) | (uint)y;
 
         /// <summary>
         /// §6.3 눈 오버레이.
@@ -261,6 +451,45 @@ namespace SoldierADay.EditorTools
             return tile;
         }
 
+        private static Sprite _shadowSpriteCache;
+        private static Sprite _aoSpriteCache;
+
+        /// <summary>§W2 소품 그림자용 절차적 스프라이트. 캐릭터(런타임)와 같은 픽셀을 `WorldDepth`에서 만든다</summary>
+        private static Sprite ShadowSprite() =>
+            _shadowSpriteCache ??= BakeProceduralSprite(
+                "WorldDepth_Shadow", WorldDepth.BuildShadowTexture, WorldDepth.BuildShadowSprite);
+
+        /// <summary>§W2 바닥 AO 타일용 절차적 스프라이트. 알파는 `Tile.color`가 준다(강도는 상수 하나)</summary>
+        private static Sprite AoSprite() =>
+            _aoSpriteCache ??= BakeProceduralSprite(
+                "WorldDepth_AO", WorldDepth.BuildAoTexture, WorldDepth.BuildAoSprite);
+
+        /// <summary>
+        /// 절차적으로 만든 스프라이트를 **에셋으로 저장한다.** `MakeTile`과 같은 이유다 —
+        /// `Sprite.Create`로만 만든 것은 메모리에 있어 씬 저장 시 참조가 끊긴다.
+        /// 텍스처를 메인 자산으로, 스프라이트를 그 서브 자산으로 같이 묶는다.
+        /// </summary>
+        private static Sprite BakeProceduralSprite(string name, System.Func<Texture2D> makeTexture,
+                                                   System.Func<Texture2D, Sprite> makeSprite)
+        {
+            var path = $"{DepthDir}/{name}.asset";
+            var existing = AssetDatabase.LoadAssetAtPath<Sprite>(path);
+            if (existing != null) return existing;
+
+            Directory.CreateDirectory(DepthDir);
+            var texture = makeTexture();
+            AssetDatabase.CreateAsset(texture, path);
+
+            var sprite = makeSprite(texture);
+            sprite.name = name;
+            AssetDatabase.AddObjectToAsset(sprite, texture);
+
+            EditorUtility.SetDirty(texture);
+            AssetDatabase.SaveAssets();
+            AssetDatabase.ImportAsset(path);
+            return AssetDatabase.LoadAssetAtPath<Sprite>(path);
+        }
+
         /* ══════════════════════════════════════════════════════ 구역 */
 
         private static List<ZoneMap> BuildZones(Transform parent, BaseMap map, Art2D art, int height,
@@ -316,6 +545,10 @@ namespace SoldierADay.EditorTools
                 // 캐릭터와 같은 공식. 아랫변이 화면 아래일수록 앞이므로,
                 // 침상 위쪽을 지나면 가려지고 아래쪽을 지나면 가린다
                 renderer.sortingOrder = Mathf.Clamp(Mathf.RoundToInt(-y * SortScale), -29000, 32000);
+
+                // §W2 ② 캐스트 섀도우(정적) — 우하단 고정, 소품 높이(타일)에 비례.
+                // 소품은 움직이지 않으니 절대 sortingOrder를 한 번만 계산하면 계속 맞는다
+                WorldDepth.AttachStaticShadow(go.transform, ShadowSprite(), placement.h, renderer.sortingOrder);
 
                 if (!placement.walkable)
                 {
