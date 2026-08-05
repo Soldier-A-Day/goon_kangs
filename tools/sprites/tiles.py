@@ -193,10 +193,18 @@ WALL_COLORS = {
 #: 비트마스크 — 1 위, 2 오른쪽, 4 아래, 8 왼쪽. 켜진 방향은 **같은 벽이 이어진다**
 def wall(kind: str, mask: int) -> Image.Image:
     """
-    벽 오토타일 1장.
+    벽 오토타일 1장 — **윗면만** 그린다.
 
-    탑다운에서 벽은 두께가 있어야 벽으로 읽힌다. 윗면(밝은 면)과 남쪽 면(어두운
-    면)을 나눠 그리고, 이웃이 없는 쪽에만 마감선을 넣는다.
+    WA "구운 남쪽 면 제거" 이전에는 이 함수가 남쪽 면(두께 10px, 어두운 면)까지
+    구워 넣고, `wall_face()`가 그 위를 덮어쓰도록 배치해 벽에 두께감을 냈다.
+    그런데 벽 타일 자체가 이미 남쪽 면을 굽고 있어서 `wall_face()`를 벽보다
+    밝게 칠할 수 없었다(덮어쓰는 순간 무늬가 두 번 나온다) — 그래서 정면의
+    입체감이 죽었다. 지금은 **한 평면(윗면)만** 여기서 맡는다. 남쪽 면은
+    `wall_face()`가 별도 타일로 그려 벽 칸 **바로 아래**에 붙인다(C# `PlaceWallFace`).
+
+    이웃 없는 쪽 마감선(`line`)은 그대로 유지한다. 남쪽에 벽이 또 있는 칸
+    (벽이 여러 겹인 구간)은 `mask & 4`가 켜져 있어 마감선도 정면도 붙지
+    않는다 — 그런 칸은 윗면만 나오는 게 맞다(정면이 필요 없는 칸이다).
     """
     face, top, line = WALL_COLORS[kind]
 
@@ -212,9 +220,6 @@ def wall(kind: str, mask: int) -> Image.Image:
         return img
 
     PX.rect(img, 0, 0, TILE - 1, TILE - 1, P.W[top])
-    # 남쪽 면 — 두께 10px. 여기가 벽을 세워 보이게 한다
-    PX.rect(img, 0, 22, TILE - 1, TILE - 1, P.W[face])
-    PX.rect(img, 0, 22, TILE - 1, 22, P.W[line])
 
     if not mask & 1:
         PX.rect(img, 0, 0, TILE - 1, 0, P.W[line])
@@ -230,43 +235,79 @@ def wall(kind: str, mask: int) -> Image.Image:
 
 #: `fence`는 벽이 아니라 철조망이다(위 `wall()` 주석) — 정면 타일 대상에서 뺀다
 WALL_FACE_KINDS = ("interior", "utility", "outdoor", "wood")
-WALL_FACE_H = 26
+WALL_FACE_H = 32   # WA — 26에서 32로. 벽이 확실히 서 보이려면 한 타일 통으로 서야 한다
 WALL_FACE_NORMAL = (128, 60, 200, 255)   #: 정면을 보는(아래로 기운) 노멀 — 전 종류 공용
+
+#: 정면 그라디언트 4단의 픽셀 폭 — 위부터 [광원 립, 윗면 톤, 남쪽 면 톤, 접지선].
+#: 나머지(`WALL_FACE_H - _RIM - _GROUND`)를 립·접지선 몫으로 뺀 뒤 윗면:남쪽면
+#: 비율로 나눈다. 광원이 위쪽이므로(WA 지시) 아래로 갈수록 어두운 톤이 더
+#: 넓게 깔린다 — 그래서 남쪽 면 몫이 윗면 몫보다 크다.
+_WALL_FACE_RIM_PX = 3
+_WALL_FACE_GROUND_PX = 2
+_WALL_FACE_TOP_FRACTION = 0.4   # 몸통 중 윗면 톤이 차지하는 비율. 나머지는 남쪽 면 톤
 
 
 def wall_face(kind: str) -> Image.Image:
     """
-    벽 정면 타일(W1 §3) — 탑다운 벽에 높이를 준다.
+    벽 정면 타일 — 탑다운 벽에 높이를 준다("빛 받는 정면"으로 다시 그린 버전).
 
-    32×26px. **여기서 색을 계산하지 않는다** — 벽 타일이 이미 쓰는 두 색
-    (`top` 윗면 · `face` 남쪽 면)과 `palette.neighbor()`로 고른 한 단 어두운
-    접지색만 쓴다. 전부 팔레트에 등록된 값이라 계열 이탈이 불가능하다.
+    32×32px(한 타일 전체). **WA 이전**에는 벽 타일(`wall()`)이 남쪽 면(어두운
+    두께 10px)을 이미 굽고 있었고, 이 함수는 그 위를 **덮어쓰도록** 배치돼
+    무늬 중복을 가렸다 — 그 대가로 정면을 벽보다 밝게 칠할 수 없어(덮으면
+    벽의 어두운 무늬가 비쳐 띠가 생겼다, 아래 사고 기록 참고) 입체감이 약했다.
+    **WA**가 `wall()`에서 남쪽 면을 완전히 뺐으므로(그 함수 docstring 참고)
+    이제 여기가 유일하게 벽의 "옆면"을 그리는 곳이고, 벽 칸 **바로 아래**에
+    붙는다(덮지 않는다, C# `PlaceWallFace`) — 가릴 것이 없으니 자유롭게
+    그린다.
+
+    **여기서 색을 계산하지 않는다.** 벽이 이미 쓰는 두 색(`top` 윗면 ·
+    `face` 남쪽 면)과, `palette.neighbor()`로 고른 그 계열의 등록된 이웃
+    단 하나만 쓴다. 전부 §4.2 팔레트에 등록된 값이라 계열 이탈이 불가능하다.
+
+    위→아래 4단(광원은 위쪽, WA 지시):
+      1. 립(`_WALL_FACE_RIM_PX`) — `neighbor(top, +1)`. 윗면보다 한 단 밝다.
+         벽 타일의 윗면(정확히 `top` 색)과 맞닿는 이음매에 밝은 선이 생겨,
+         정면이 윗면과 **다른 평면**으로 읽힌다(이게 없으면 어디까지가 윗면이고
+         어디부터가 정면인지 색만으로는 안 보인다).
+      2. 윗면 톤(`top`) — 벽의 윗면과 같은 색. 립에서 자연스럽게 이어진다.
+      3. 남쪽 면 톤(`face`) — 벽의 남쪽 면과 같은 색. 몸통 대부분을 차지한다.
+      4. 접지선(`_WALL_FACE_GROUND_PX`) — `line`(벽 마감선 색, 이미 등록된
+         야간 계열 어두운 톤). 바닥과 닿는 자리를 확실히 죽인다.
+
+    **여기서 두 번 사고가 났다(WA 이전, 지금도 유효한 금지 사항).**
+      1차: `face`를 ×1.4 곱하고 팔레트 전체에서 최근접 스냅 → 콘크리트 계열에
+           그만큼 밝은 중성 톤이 없어 초록(`grass`)으로 튐. 정면이 이끼처럼 보였다
+      2차: 계열 안에서 `face`보다 밝게 시작 → 그 위(WA 이전 배치)에 그려지는
+           벽 타일의 구운 남쪽 면(어두움)과 맞닿아 밝은 띠가 벽 사이에 낀 것처럼
+           보였다
+    그래서 지금도 **밝기를 곱하지 않는다.** 4단 전부 `WALL_COLORS`에 이미
+    등록된 값이거나 `neighbor()`가 그 계열 안에서 고른 값이다 — 계산으로
+    새 색을 만들지 않으므로 계열 이탈도, 곱셈발 사고도 구조적으로 불가능하다.
+    2차 사고는 "정면이 위(벽 타일)를 덮어쓴다"는 배치 전제 때문이었는데
+    WA가 그 배치를 없앴으므로(정면은 이제 아래에 붙는다) 재발 조건 자체가
+    사라졌다 — 그래도 신호가 되도록 여기 남겨둔다.
     """
-    face, top, _line = WALL_COLORS[kind]
+    face, top, line = WALL_COLORS[kind]
     img = PX.blank(TILE, WALL_FACE_H)
 
-    # **정면은 벽 타일의 남쪽 면(아래 10px)을 덮어쓰도록 배치된다**(`PlaceWallFace`).
-    # 그래서 맨 위를 `top`(벽 윗면 색)에서 시작해 `face`까지 내려온 뒤 한 단
-    # 더 어두워지는 순서로 놓으면, 화면에서는 벽 윗면 → 정면 → 바닥이 끊김
-    # 없이 이어진다.
-    #
-    # **여기서 두 번 사고가 났다. 둘 다 "띠"로 나타났다.**
-    #   1차: `face`를 ×1.4 곱하고 팔레트 전체에서 최근접 스냅 → 콘크리트 계열에
-    #        그만큼 밝은 중성 톤이 없어 초록(`grass`)으로 튐. 정면이 이끼처럼 보였다
-    #   2차: 계열 안에서 `face`보다 **밝게** 시작 → 그 위에 그려지는 벽 타일의
-    #        구운 남쪽 면(어두움)과 맞닿아 밝은 띠가 벽 사이에 낀 것처럼 보였다
-    # 그래서 지금은 **밝히지 않는다.** 벽이 이미 가진 두 색(`top`→`face`) 사이를
-    # 잇고 접지부만 한 단 어둡게 할 뿐이라, 계열 이탈도 밝기 역전도 생길 수 없다.
-    # 접지 그늘은 여기서 굽지 않는다 — `face`는 이미 제 계열의 가장 어두운
-    # 단이라 `neighbor(face, -1)`이 자기 자신을 돌려주고(죽은 코드가 된다),
-    # 바닥 쪽 그늘은 `BuildFloorAo`의 벽 가장자리 그라디언트가 그린다.
-    bands: list[tuple[int, int, int]] = [P.W[top], P.W[face]]
-    if bands[0] == bands[1]:
-        bands = [P.W[face]]
+    rim = P.neighbor(top, 1)
+    body_h = WALL_FACE_H - _WALL_FACE_RIM_PX - _WALL_FACE_GROUND_PX
+    top_h = max(1, round(body_h * _WALL_FACE_TOP_FRACTION))
+    face_h = body_h - top_h
 
-    for i, y in enumerate(range(WALL_FACE_H)):
-        idx = min(len(bands) - 1, i * len(bands) // WALL_FACE_H)
-        PX.rect(img, 0, y, TILE - 1, y, bands[idx])
+    bands: list[tuple[int, tuple[int, int, int]]] = [
+        (_WALL_FACE_RIM_PX, rim),
+        (top_h, P.W[top]),
+        (face_h, P.W[face]),
+        (_WALL_FACE_GROUND_PX, P.W[line]),
+    ]
+
+    y = 0
+    for h, color in bands:
+        if h <= 0:
+            continue
+        PX.rect(img, 0, y, TILE - 1, y + h - 1, color)
+        y += h
     return img
 
 
