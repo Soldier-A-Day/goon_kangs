@@ -31,12 +31,15 @@ namespace SoldierADay.Net
         public const float ShadowAlpha = 0.5f;
 
         /// <summary>
-        /// 바닥 AO **최대**(벽 접촉부) 알파. §W4 "0.2 이하 권장" — 0.3은 과했다.
+        /// 바닥 AO **최대**(벽 접촉부) 알파. 예전 0.3이 과했던 것은 값이 커서가
+        /// 아니라 **타일 단위 균일 알파**여서 각진 사각형으로 보였기 때문이다.
+        /// 지금은 벽에서 멀어지며 사라지는 그라디언트라 같은 0.3이 "벽 밑 그늘"로
+        /// 읽힌다(사용자 요청으로 0.18 → 0.3). 0으로 두면 AO 자체가 꺼진다.
         /// 실제 강도는 이 값에 `BuildAoEdgeTexture`의 제곱 그라디언트가 곱해져 벽에서
         /// 멀어질수록 0까지 부드럽게 빠진다(타일 단위 하드에지 금지). 조명(W3)이 이미
         /// 구석을 어둡게 하므로 AO는 거들기만 하면 된다 — 0으로 두면 완전히 꺼진다.
         /// </summary>
-        public const float AoAlpha = 0.18f;
+        public const float AoAlpha = 0.3f;
 
         /// <summary>그림자 자식 오브젝트 이름. 매니저가 "이미 붙었는지" 판별하는 표식이기도 하다</summary>
         public const string ShadowChildName = "그림자";
