@@ -195,9 +195,16 @@ namespace SoldierADay.EditorTools
         }
 
         /// <summary>
-        /// 정면 스프라이트 하나를 놓는다. 피벗이 무엇이든(Sprite2DImport는 W3 소유라
-        /// 가정하지 않는다) `sprite.bounds`로 실측해 자리를 잡는다 — 위 변이 벽
-        /// 밑변에 맞닿고, 가로 중심이 칸 중앙에 오도록.
+        /// 정면 스프라이트 하나를 놓는다. 피벗이 무엇이든(Sprite2DImport는 `tiles/`
+        /// 아래를 전부 Center로 놓는다 — 실측해 확인했다) `sprite.bounds`로 실측해
+        /// 자리를 잡는다 — 위 변이 벽 밑변에 맞닿고, 가로 중심이 칸 중앙에 오도록.
+        ///
+        /// **좌표 검증(§W4)**: `wall_interior_face.png`(32×26, Center 피벗)를 (tx=25,
+        /// ty=5, height=224)에 넣으면 `wallBottomY=218`, `bounds.max.y=13/32=0.40625`
+        /// → position.y = 218 − 0.40625 = 217.59375, 스프라이트가 실제로 차지하는
+        /// 구간은 [217.59375−0.40625, 217.59375+0.40625) = **[217.1875, 218)**.
+        /// 정확히 과제가 요구한 [223−ty−0.8125, 223−ty) = [217.1875, 218)와 일치한다.
+        /// 즉 자리는 원래도 맞았다(씬 파일에 구운 실제 좌표로 재확인함).
         /// </summary>
         private static void PlaceWallFace(Transform parent, Sprite sprite, int tx, int ty, int height)
         {
@@ -214,6 +221,17 @@ namespace SoldierADay.EditorTools
             var renderer = go.AddComponent<SpriteRenderer>();
             renderer.sprite = sprite;
 
+            // §W4 실측: 벽 타일(`wall_*_15.png`) 자체가 이미 32px 안에 밑단
+            // 어두운 톤(예: RGB 103,104,71)을 굽고 있고, 정면 PNG의 **끝 쪽**(파일
+            // 기준 아래쪽 행)이 정확히 같은 톤이다 — 두 톤이 이어지도록 만든 자산이다.
+            // 하지만 위치 계산과 무관하게 스프라이트를 "제 위" 그대로 그리면 벽의
+            // 어두운 끝단 바로 아래에 정면의 밝은 시작 행이 와서 톤이 다시 밝아졌다
+            // 어두워지는 이음매가 생기고, 이게 "벽 무늬가 두 번 나온다"는 밝은 띠로
+            // 보인다. 세로로 뒤집으면(FlipY) 같은 톤끼리 맞닿아 이음매가 사라지고
+            // 정면 전체가 벽→바닥으로 이어지는 단일 그라디언트로 읽힌다. 위치(좌표)는
+            // 그대로다 — bounds는 FlipY 영향을 받지 않는다
+            renderer.flipY = true;
+
             // 정면의 "밑변"이 Y소트 기준선이다 — 소품·캐릭터와 같은 공식(§6.2).
             // 캐릭터가 그보다 남쪽(작은 y)이면 앞, 북쪽(큰 y)이면 정면에 가려진다
             var splitY = wallBottomY - bounds.size.y;
@@ -221,50 +239,68 @@ namespace SoldierADay.EditorTools
         }
 
         /// <summary>
-        /// §W2 ③ 바닥 AO. 벽에 4방향으로 붙은 바닥 칸을 살짝 어둡게 해 방을 상자로
-        /// 읽히게 한다. 강도는 `WorldDepth.AoAlpha` 하나 — 실시간 조명(W3)이 들어오면
-        /// 그 값만 낮추면 된다.
+        /// §W4 바닥 AO 방향별 회전각. 텍스처(`WorldDepth.BuildAoEdgeTexture`)는 "북쪽에
+        /// 벽이 있다"(위가 진하다) 방향 하나만 굽는다 — 나머지는 90°씩 돌려 재사용한다.
+        /// 남쪽은 180°(위→아래), 서쪽은 +90°(위→왼쪽), 동쪽은 −90°(위→오른쪽)다.
+        /// </summary>
+        private static readonly (int dx, int dy, float rotZ)[] AoEdgeDirs =
+        {
+            (0, -1, 0f),     // 북쪽(ty-1)에 벽 — 진한 쪽이 위(회전 없음)
+            (0, 1, 180f),    // 남쪽(ty+1)에 벽 — 진한 쪽이 아래
+            (-1, 0, 90f),    // 서쪽(tx-1)에 벽 — 진한 쪽이 왼쪽
+            (1, 0, -90f),    // 동쪽(tx+1)에 벽 — 진한 쪽이 오른쪽
+        };
+
+        /// <summary>
+        /// §W2/§W4 바닥 AO. 벽에 붙은 바닥 칸마다, 벽이 있는 쪽으로 회전한 그라디언트
+        /// 스프라이트를 얹는다 — 벽 쪽이 진하고 칸 안쪽으로 갈수록 0까지 부드럽게
+        /// 빠진다. **타일 단위 균일 알파(예전 방식)는 계단 현상이 났다** — 벽 정면과
+        /// 같은 "낱개 스프라이트" 방식으로 바꿔 일관되게 만들었다. 강도는
+        /// `WorldDepth.AoAlpha` 하나 — 0으로 두면 완전히 꺼진다.
         /// </summary>
         private static void BuildFloorAo(Transform grid, MapCells cells, int height)
         {
             var wallCells = cells.Wall;
             var floorCells = cells.Floor;
             if (wallCells.Count == 0 || floorCells.Count == 0) return;
+            if (WorldDepth.AoAlpha <= 0f) return;   // 상수 하나로 끌 수 있다
 
-            var positions = new List<Vector3Int>();
+            var sprite = AoEdgeSprite();
+            if (sprite == null) return;
+
+            // 일반 GameObject(타일맵이 아니다) — 조명 스윕(`ApplyWorldLighting`)은
+            // "Grid" 밑의 `TilemapRenderer`와, 이름이 `TM_WallFace`인 컨테이너만
+            // 콕 집어 Lit을 입힌다. 이 컨테이너는 둘 중 어디에도 안 걸리므로 손대지
+            // 않아도 자동으로 unlit으로 남는다(AO는 빛을 받으면 안 된다 — §W2)
+            var container = new GameObject(FloorAoLayerName);
+            container.transform.SetParent(grid, false);
+
             foreach (var key in floorCells)
             {
                 var tx = (int)(key >> 32);
                 var ty = (int)(key & 0xFFFFFFFFL);
 
-                var adjacent =
-                    wallCells.Contains(CellKey(tx, ty - 1)) ||
-                    wallCells.Contains(CellKey(tx, ty + 1)) ||
-                    wallCells.Contains(CellKey(tx - 1, ty)) ||
-                    wallCells.Contains(CellKey(tx + 1, ty));
-                if (!adjacent) continue;
-
-                positions.Add(new Vector3Int(tx, height - ty - 1, 0));
+                foreach (var (dx, dy, rotZ) in AoEdgeDirs)
+                {
+                    if (!wallCells.Contains(CellKey(tx + dx, ty + dy))) continue;
+                    PlaceAoEdge(container.transform, sprite, tx, height - ty - 1, rotZ);
+                }
             }
-            if (positions.Count == 0) return;
+        }
 
-            var go = new GameObject(FloorAoLayerName);
-            go.transform.SetParent(grid, false);
-            var tilemap = go.AddComponent<Tilemap>();
-            var renderer = go.AddComponent<TilemapRenderer>();
-            // 눈(-30500) 위, 벽(-30000) 아래 — 벽 칸 자체에는 안 깔리니 겹칠 일은
-            // 없지만, 눈 위에 그림자가 얹히는 쪽이 자연스럽다
+        /// <summary>AO 그라디언트 한 장을 셀 중앙에 놓고 벽 쪽으로 회전시킨다</summary>
+        private static void PlaceAoEdge(Transform parent, Sprite sprite, int tx, int worldY, float rotZ)
+        {
+            var go = new GameObject($"AO_{tx}_{worldY}_{rotZ}");
+            go.transform.SetParent(parent, false);
+            go.transform.position = new Vector3(tx + 0.5f, worldY + 0.5f, 0f);
+            go.transform.rotation = Quaternion.Euler(0f, 0f, rotZ);
+
+            var renderer = go.AddComponent<SpriteRenderer>();
+            renderer.sprite = sprite;
+            renderer.color = new Color(0f, 0f, 0f, WorldDepth.AoAlpha);
+            // 눈(-30500) 위, 벽(-30000) 아래 — 예전 타일맵과 같은 자리
             renderer.sortingOrder = -30200;
-            renderer.mode = TilemapRenderer.Mode.Chunk;
-
-            var tile = ScriptableObject.CreateInstance<Tile>();
-            tile.sprite = AoSprite();
-            tile.color = new Color(0f, 0f, 0f, WorldDepth.AoAlpha);
-            tile.colliderType = Tile.ColliderType.None;
-
-            var assets = new TileBase[positions.Count];
-            for (var i = 0; i < assets.Length; i += 1) assets[i] = tile;
-            tilemap.SetTiles(positions.ToArray(), assets);
         }
 
         /// <summary>벽 칸 · 바닥 칸 집합. `BuildWallFaces`와 `BuildFloorAo`가 같이 쓰므로 한 번만 모은다</summary>
@@ -471,10 +507,10 @@ namespace SoldierADay.EditorTools
             _shadowSpriteCache ??= BakeProceduralSprite(
                 "WorldDepth_Shadow", WorldDepth.BuildShadowTexture, WorldDepth.BuildShadowSprite);
 
-        /// <summary>§W2 바닥 AO 타일용 절차적 스프라이트. 알파는 `Tile.color`가 준다(강도는 상수 하나)</summary>
-        private static Sprite AoSprite() =>
+        /// <summary>§W4 바닥 AO 그라디언트 스프라이트. 렌더러 색(alpha)이 강도를 준다(상수 하나)</summary>
+        private static Sprite AoEdgeSprite() =>
             _aoSpriteCache ??= BakeProceduralSprite(
-                "WorldDepth_AO", WorldDepth.BuildAoTexture, WorldDepth.BuildAoSprite);
+                "WorldDepth_AOEdge", WorldDepth.BuildAoEdgeTexture, WorldDepth.BuildAoEdgeSprite);
 
         /// <summary>
         /// 절차적으로 만든 스프라이트를 **에셋으로 저장한다.** `MakeTile`과 같은 이유다 —

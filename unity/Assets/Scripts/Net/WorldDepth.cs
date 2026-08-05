@@ -10,7 +10,8 @@ namespace SoldierADay.Net
     ///
     ///  1. 벽 아래 26px 오블리크 정면 — `BaseScene`이 씬 빌드 시각에 굽는다(정적)
     ///  2. 소품·캐릭터 아래 캐스트 섀도우 — 우하단 고정, 대상 높이에 비례
-    ///  3. 벽에 인접한 바닥 AO — `BaseScene`이 타일맵으로 굽는다(정적)
+    ///  3. 벽에 인접한 바닥 AO — `BaseScene`이 벽 쪽마다 낱개 그라디언트 스프라이트로
+    ///     굽는다(정적, §W4부터 타일맵 균일 알파 대신 이 방식을 쓴다 — 계단 현상 방지)
     ///
     /// 이 파일은 **런타임 조립**(플레이 빌드에도 포함)이라 `UnityEditor`를 참조하지
     /// 않는다. 씬에 저장돼야 하는 것(AO 타일 · 소품 그림자 스프라이트)의 자산화는
@@ -22,11 +23,17 @@ namespace SoldierADay.Net
     {
         /* ══════════════════════════════════ 강도 · 형태 상수 — 전부 여기 한 곳 */
 
-        /// <summary>캐스트 섀도우 알파(반투명 검정)</summary>
-        public const float ShadowAlpha = 0.32f;
+        /// <summary>캐스트 섀도우 알파(반투명 검정). §W4에서 0.32→0.42 — AO를 낮추는 김에
+        /// 그림자가 바닥과 구분되도록 소폭 또렷하게 했다(모양은 그대로, 부드러운 타원)</summary>
+        public const float ShadowAlpha = 0.42f;
 
-        /// <summary>바닥 AO 알파. §W2 "알파 0.35 이하 권장" — 실시간 조명(W3)이 들어오면 여기만 낮추면 된다</summary>
-        public const float AoAlpha = 0.3f;
+        /// <summary>
+        /// 바닥 AO **최대**(벽 접촉부) 알파. §W4 "0.2 이하 권장" — 0.3은 과했다.
+        /// 실제 강도는 이 값에 `BuildAoEdgeTexture`의 제곱 그라디언트가 곱해져 벽에서
+        /// 멀어질수록 0까지 부드럽게 빠진다(타일 단위 하드에지 금지). 조명(W3)이 이미
+        /// 구석을 어둡게 하므로 AO는 거들기만 하면 된다 — 0으로 두면 완전히 꺼진다.
+        /// </summary>
+        public const float AoAlpha = 0.18f;
 
         /// <summary>그림자 자식 오브젝트 이름. 매니저가 "이미 붙었는지" 판별하는 표식이기도 하다</summary>
         public const string ShadowChildName = "그림자";
@@ -90,24 +97,48 @@ namespace SoldierADay.Net
             Sprite.Create(texture, new Rect(0f, 0f, texture.width, texture.height),
                           new Vector2(0.5f, 0.5f), CameraRig.PPU);
 
+        private const int AoTexSize = 32;
+
         /// <summary>
-        /// AO 타일이 쓸 1×1 흰 텍스처. 알파를 텍스처가 아니라 `Tile.color`로 주는 이유는
-        /// §W2 "강도를 상수로 빼라"다 — 텍스처를 다시 굽지 않고 값 하나만 바꾸면 된다.
+        /// §W4 바닥 AO 그라디언트 텍스처. **타일 단위 균일 알파는 그라디언트가 될 수
+        /// 없다**(계단 현상의 원인이었다) — 대신 위(벽 쪽, +Y)가 진하고 아래(바닥 안쪽,
+        /// -Y)로 갈수록 0까지 부드럽게 빠지는 세로 그라디언트를 굽는다. 제곱 커브를 쓰는
+        /// 이유는 선형이면 그라디언트 끝에서 여전히 눈에 띄는 경계가 생기기 때문이다.
+        ///
+        /// 이 텍스처 자체는 "북쪽에 벽이 있다"(위가 진하다) 방향 하나만 표현한다 —
+        /// 나머지 3방향은 `BaseScene.PlaceAoEdge`가 90°씩 돌려서 재사용한다.
+        /// 실제 강도(색)는 여기서 굽지 않고 `AoAlpha`를 렌더러 색으로 곱한다 — 그래야
+        /// 텍스처를 다시 굽지 않고 상수 하나만 바꿔도(0까지) 강도가 바뀐다.
         /// </summary>
-        public static Texture2D BuildAoTexture()
+        public static Texture2D BuildAoEdgeTexture()
         {
-            var tex = new Texture2D(1, 1, TextureFormat.RGBA32, false)
+            var tex = new Texture2D(AoTexSize, AoTexSize, TextureFormat.RGBA32, false)
             {
-                name = "WorldDepth_AO",
-                filterMode = FilterMode.Point,
+                name = "WorldDepth_AOEdge",
+                filterMode = FilterMode.Bilinear,
+                wrapMode = TextureWrapMode.Clamp,
             };
-            tex.SetPixel(0, 0, Color.white);
+
+            var pixels = new Color32[AoTexSize * AoTexSize];
+            for (var y = 0; y < AoTexSize; y += 1)
+            {
+                // 텍스처 좌표는 아래가 0이다(Unity 관례) — y가 클수록(위, +Y) 벽에 가깝다
+                var t = y / (float)(AoTexSize - 1);
+                var a = t * t;
+                for (var x = 0; x < AoTexSize; x += 1)
+                    pixels[y * AoTexSize + x] = new Color(0f, 0f, 0f, a);
+            }
+
+            tex.SetPixels32(pixels);
             tex.Apply(false, true);
             return tex;
         }
 
-        public static Sprite BuildAoSprite(Texture2D texture) =>
-            Sprite.Create(texture, new Rect(0f, 0f, 1f, 1f), new Vector2(0.5f, 0.5f), 1f);
+        /// <summary>1유닛 셀을 정확히 채우는 Center 피벗 스프라이트로 감싼다 — 회전만으로
+        /// 4방향 전부를 커버하려면 피벗이 셀 중심이어야 한다</summary>
+        public static Sprite BuildAoEdgeSprite(Texture2D texture) =>
+            Sprite.Create(texture, new Rect(0f, 0f, texture.width, texture.height),
+                          new Vector2(0.5f, 0.5f), texture.width);
 
         /* ══════════════════════════════════════════════════════ 그림자 배치 */
 
