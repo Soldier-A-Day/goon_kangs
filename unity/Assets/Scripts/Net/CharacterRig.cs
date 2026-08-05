@@ -131,7 +131,7 @@ namespace SoldierADay.Net
         private const float BlinkMinGap = 2f;
         private const float BlinkMaxGap = 5f;
         private const float BlinkExposeSeconds = 0.1f;
-        private float _blinkAt = Random.Range(BlinkMinGap, BlinkMaxGap);
+        private float _blinkAt;
         private bool _blinking;
 
         private static Sprite _eyeSprite;
@@ -204,6 +204,10 @@ namespace SoldierADay.Net
         {
             _group = GetComponent<SortingGroup>();
             BuildLayers();
+            // D-3 #3 — 필드 초기화식에서 Random.Range를 부르면
+            // "Range is not allowed to be called from a MonoBehaviour constructor"
+            // 예외가 매 생성마다 났다(필드 초기화식은 생성자 취급). Awake로 옮김.
+            _blinkAt = Random.Range(BlinkMinGap, BlinkMaxGap);
         }
 
         public void Bind(SpriteLibrary library)
