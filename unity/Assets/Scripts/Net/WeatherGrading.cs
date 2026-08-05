@@ -74,6 +74,12 @@ namespace SoldierADay.Net
         public float FrostBite { get; private set; }
         public float Panic { get; private set; }
 
+        /// <summary>
+        /// 0(낮)~1(야간) 블렌드 — `WorldLighting`(W3)이 읽어서 실내등을 밤에
+        /// 밝힌다. `_night`는 이미 있던 값이고 여기서는 읽기 전용으로만 연다.
+        /// </summary>
+        public float NightAmount => _night;
+
         private void Awake() => _weights[2] = 1f;
 
         private void OnEnable()

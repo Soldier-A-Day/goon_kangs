@@ -62,6 +62,10 @@ namespace SoldierADay.EditorTools
             var vfx = BuildParticles(root.transform, camera, steamAt, art);
             BuildRuntime(root.transform, library, world, camera, zones, grading, screenFx, vfx, snow, map, height);
 
+            // §9.3 W3 — 조명·머티리얼. `BuildRuntime` 다음에 두는 것은 `grading`·
+            // `camera`가 그때서야 배선할 준비가 끝나 있어서다(둘 다 그 앞에서 만들어짐)
+            ApplyWorldLighting(root.transform, map, zones, grading, camera);
+
             Directory.CreateDirectory(SceneDir);
             EditorSceneManager.SaveScene(scene, ScenePath);
 
@@ -717,6 +721,244 @@ namespace SoldierADay.EditorTools
             grading.globalLight = light;
 
             return grading;
+        }
+
+        /* ══════════════════════════════════════════════ §9.3 로컬 조명 (W3) */
+
+        /// <summary>URP 2D 스프라이트·타일맵 Lit 셰이더 — 월드만 이걸로 간다(HUD는 IMGUI라 무관하다)</summary>
+        private const string WorldLitShaderName = "Universal Render Pipeline/2D/Sprite-Lit-Default";
+
+        /// <summary>§9.3 방 천장등 격자 간격(월드 유닛 = 타일 1개)</summary>
+        private const float RoomLightSpacing = 7f;
+        /// <summary>§9.3 복도 등 간격</summary>
+        private const float CorridorLightSpacing = 6f;
+
+        /// <summary>실내 방·복도 등 — 따뜻한 색(§9.3). 밤에 `WorldLighting`이 이 값까지 밝힌다</summary>
+        private static readonly Color IndoorLightColor = HudTheme.Hex("FFE3B0");
+        /// <summary>창 등 — 찬 색(§9.3). `HudTheme.Cold`를 그대로 써 온도 밴드 색과 어휘를 맞춘다</summary>
+        private static readonly Color WindowLightColor = HudTheme.Cold;
+
+        /// <summary>맵 데이터에 창(구조)이 있다고 나오는 유일한 소품. §9.3 "창이 있다면"의 근거</summary>
+        private const string WindowPropName = "감시창";
+
+        /// <summary>
+        /// 월드 스프라이트를 Lit으로 바꾸고, 맵 데이터 기반 규칙으로 로컬 광원을 놓는다.
+        ///
+        /// **HUD·VFX·캐릭터는 건드리지 않는다** — 블랭킷 순회 대신 "Grid"(타일맵)와
+        /// "구역"(소품) 두 컨테이너만 이름으로 콕 집는다(둘 다 `BuildTilemaps`·
+        /// `BuildZones`가 이미 그렇게 지어 둔 이름이다). HUD는 IMGUI라 SpriteRenderer가
+        /// 없고, 캐릭터(`CharacterRig`)와 VFX(`파티클`)는 이 두 컨테이너 밖에 있으므로
+        /// `GetComponentsInChildren`이 애초에 닿지 않는다.
+        ///
+        /// 셰이더를 못 찾으면(패키지 문제 등) **아무것도 바꾸지 않고 돌아간다** — 지금
+        /// (unlit) 그대로 남는 것이 이 작업이 깨질 때의 유일하게 안전한 실패 방식이다.
+        /// </summary>
+        private static void ApplyWorldLighting(Transform root, BaseMap map, List<ZoneMap> zones,
+                                               WeatherGrading grading, CameraRig camera)
+        {
+            var material = EnsureWorldLitMaterial();
+            if (material == null) return;
+
+            var grid = root.Find("Grid");
+            if (grid != null)
+            {
+                foreach (var renderer in grid.GetComponentsInChildren<TilemapRenderer>(true))
+                    renderer.sharedMaterial = material;
+            }
+
+            var zoneContainer = root.Find("구역");
+            if (zoneContainer != null)
+            {
+                foreach (var renderer in zoneContainer.GetComponentsInChildren<SpriteRenderer>(true))
+                    renderer.sharedMaterial = material;
+            }
+
+            var placed = new List<Light2D>();
+            var boost = new List<bool>();
+
+            foreach (var zone in zones)
+            {
+                switch (zone.kind)
+                {
+                    case "room":
+                        PlaceRoomLights(zone, placed, boost);
+                        break;
+                    case "corridor":
+                        PlaceCorridorLights(zone, placed, boost);
+                        break;
+                    // "outdoor" — 로컬 광원 없음. 야외는 Global이 주야를 전담한다(§9.3
+                    // "로컬 광원 최소"). "lane"(사이드뷰 훈련 코스)은 이 발주 범위 밖이다
+                }
+            }
+
+            var height = map.height;
+            foreach (var placement in map.props ?? System.Array.Empty<BaseMap.PropPlacement>())
+            {
+                if (placement.name != WindowPropName) continue;
+
+                // BuildZones의 소품 배치 공식과 동일하다(§6.2 좌표 규약)
+                var x = placement.x + placement.w * 0.5f;
+                var y = height - placement.y - placement.h;
+                placed.Add(MakeLight("조명_창", new Vector2(x, y), WindowLightColor,
+                                     intensity: 0.6f, inner: 0.5f, outer: 3f));
+                boost.Add(false);
+            }
+
+            var container = new GameObject("조명");
+            container.transform.SetParent(root, false);
+            foreach (var light in placed) light.transform.SetParent(container.transform, true);
+
+            var lighting = container.AddComponent<WorldLighting>();
+            lighting.lights = placed.ToArray();
+            lighting.nightBoost = boost.ToArray();
+            lighting.grading = grading;
+            lighting.worldCamera = camera != null ? camera.GetComponent<Camera>() : null;
+        }
+
+        /// <summary>§9.3 "천장등을 방 크기에 따라 격자로" — 작은 방은 자연히 1개로 접힌다</summary>
+        private static void PlaceRoomLights(ZoneMap zone, List<Light2D> placed, List<bool> boost)
+        {
+            var area = zone.area;
+            var cols = Mathf.Clamp(Mathf.RoundToInt(area.width / RoomLightSpacing), 1, 6);
+            var rows = Mathf.Clamp(Mathf.RoundToInt(area.height / RoomLightSpacing), 1, 6);
+
+            for (var r = 0; r < rows; r += 1)
+            {
+                for (var c = 0; c < cols; c += 1)
+                {
+                    var x = area.xMin + (c + 0.5f) * area.width / cols;
+                    var y = area.yMin + (r + 0.5f) * area.height / rows;
+                    // §9.3 반경 4~6타일 — 중간값 5로 고정한다(격자 위치가 이미
+                    // 방마다 달라지므로 반경까지 무작위로 흔들면 재현성만 잃는다)
+                    placed.Add(MakeLight($"조명_{zone.id}_{r}_{c}", new Vector2(x, y),
+                                        IndoorLightColor, intensity: 1f, inner: 1.5f, outer: 5f));
+                    boost.Add(true);
+                }
+            }
+        }
+
+        /// <summary>§9.3 "복도: 일정 간격 등" — 긴 축을 따라 등간격으로</summary>
+        private static void PlaceCorridorLights(ZoneMap zone, List<Light2D> placed, List<bool> boost)
+        {
+            var area = zone.area;
+            var horizontal = area.width >= area.height;
+            var length = horizontal ? area.width : area.height;
+            var count = Mathf.Clamp(Mathf.RoundToInt(length / CorridorLightSpacing), 1, 12);
+
+            for (var i = 0; i < count; i += 1)
+            {
+                var t = (i + 0.5f) / count;
+                var at = horizontal
+                    ? new Vector2(area.xMin + t * area.width, area.center.y)
+                    : new Vector2(area.center.x, area.yMin + t * area.height);
+                placed.Add(MakeLight($"조명_{zone.id}_{i}", at,
+                                    IndoorLightColor, intensity: 0.85f, inner: 1f, outer: 3.5f));
+                boost.Add(true);
+            }
+        }
+
+        private static Light2D MakeLight(string name, Vector2 position, Color color,
+                                         float intensity, float inner, float outer)
+        {
+            var go = new GameObject(name);
+            go.transform.position = new Vector3(position.x, position.y, 0f);
+
+            var light = go.AddComponent<Light2D>();
+            light.lightType = Light2D.LightType.Point;
+            light.color = color;
+            light.intensity = intensity;
+            light.pointLightInnerRadius = inner;
+            light.pointLightOuterRadius = outer;
+
+            // 그림자 캐스터는 이번 발주 제외다(W2가 가짜 그림자를 담당) — 굳이
+            // 계산을 태우지 않게 명시적으로 끈다. 캐스터가 없어도 기본값은
+            // true라 계산 자체는 시도되므로, 꺼 두는 편이 안전하다
+            light.shadowsEnabled = false;
+
+            // 노멀맵이 나중에 연결되면(`Sprite2DImport`) 여기서 방향감이 생긴다.
+            // 지금처럼 노멀맵이 없어도 Disabled였을 때와 렌더 결과가 같아 사고가 나지 않는다
+            EnableNormalMapSampling(light);
+
+            return light;
+        }
+
+        /// <summary>
+        /// `Light2D.normalMapQuality`는 공개 setter가 없다 — 인스펙터 전용 필드다.
+        /// `URP_Renderer2D` 렌더러 피처를 얹을 때(`EnsureScreenEffectsPass`)와 같은
+        /// 이유로 `SerializedObject`를 직접 쓴다.
+        /// </summary>
+        private static void EnableNormalMapSampling(Light2D light)
+        {
+            var serialized = new SerializedObject(light);
+            var property = serialized.FindProperty("m_NormalMapQuality");
+            if (property == null) return;   // 엔진 버전이 달라 필드가 없으면 조용히 넘어간다
+
+            // `enumValueIndex`는 인스펙터 표시 순서를 가리키고 실제 저장값과 다르다
+            // (`Fast`는 선언 순서로 둘째지만 값은 0이다) — 헷갈리지 않게 `intValue`로
+            // 실제 저장값을 바로 넣는다
+            property.intValue = (int)Light2D.NormalMapQuality.Fast;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        /// <summary>
+        /// 월드 스프라이트·타일맵 공용 Lit 머티리얼 — 하나만 만들어 전부 공유한다.
+        ///
+        /// 스프라이트별 그림은 재질이 아니라 자기 텍스처(타일이면 `Tile.sprite`,
+        /// 소품이면 `SpriteRenderer.sprite`)에서 오므로 재질 하나로 충분하다.
+        /// 노멀맵은 여기 안 걸린다 — `Sprite2DImport`가 스프라이트별 보조 텍스처로
+        /// 실어 두면 Sprite-Lit-Default가 렌더러 쪽에서 자동으로 읽는다.
+        ///
+        /// 다른 머티리얼(`ParticleMaterial` 등)과 같은 이유로 **에셋으로 저장한다**
+        /// — 메모리에만 있으면 씬 저장 시 참조가 끊긴다.
+        /// </summary>
+        private static Material EnsureWorldLitMaterial()
+        {
+            var shader = Shader.Find(WorldLitShaderName);
+            if (shader == null)
+            {
+                Debug.LogWarning($"[부대] 셰이더가 없다: {WorldLitShaderName} — 월드가 unlit로 남는다");
+                return null;
+            }
+            EnsureAlwaysIncluded(shader);
+
+            Directory.CreateDirectory(MaterialDir);
+            var path = $"{MaterialDir}/SAD_WorldLit.mat";
+            var material = AssetDatabase.LoadAssetAtPath<Material>(path);
+            if (material == null)
+            {
+                material = new Material(shader);
+                AssetDatabase.CreateAsset(material, path);
+            }
+            material.shader = shader;
+            EditorUtility.SetDirty(material);
+            return material;
+        }
+
+        /// <summary>
+        /// Lit 셰이더를 Always Included Shaders에 박아 둔다.
+        ///
+        /// 씬에 참조된 머티리얼이 있으면(있다, 위에서 막 만들었다) 보통 스트리핑에서
+        /// 살아남지만, "에디터에선 되는데 WebGL 빌드에서 분홍색"이 이 저장소의 전형적
+        /// 사고다(발주서 §2). 이중 안전장치로 명시적으로도 넣는다. 이미 있으면 스킵한다.
+        /// </summary>
+        private static void EnsureAlwaysIncluded(Shader shader)
+        {
+            var settings = AssetDatabase.LoadAssetAtPath<GraphicsSettings>("ProjectSettings/GraphicsSettings.asset");
+            if (settings == null) return;
+
+            var serialized = new SerializedObject(settings);
+            var list = serialized.FindProperty("m_AlwaysIncludedShaders");
+            if (list == null) return;
+
+            for (var i = 0; i < list.arraySize; i += 1)
+            {
+                if (list.GetArrayElementAtIndex(i).objectReferenceValue == shader) return;
+            }
+
+            list.arraySize += 1;
+            list.GetArrayElementAtIndex(list.arraySize - 1).objectReferenceValue = shader;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+            AssetDatabase.SaveAssets();
         }
 
         /* ══════════════════════════════════════ §9.2 풀스크린 셰이더 6종 */

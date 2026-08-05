@@ -1,3 +1,6 @@
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using UnityEditor;
 using UnityEditor.U2D;
 using UnityEngine;
@@ -101,13 +104,58 @@ namespace SoldierADay.EditorTools
                 AssetDatabase.CreateAsset(atlas, atlasPath);
             }
 
-            var folderAsset = AssetDatabase.LoadAssetAtPath<DefaultAsset>(folder);
-            SpriteAtlasExtensions.Add(atlas, new Object[] { folderAsset });
+            // **폴더째로 넣지 않는다.** W3(노멀맵) 이전에는 폴더 안이 전부 스프라이트라
+            // 상관없었지만, 이제 같은 폴더에 `_n.png`(노멀맵)가 섞인다. 폴더 단위
+            // `Add`는 폴더 밑의 `Sprite` 서브에셋을 전부 줍는데, `_n.png`는
+            // `Sprite2DImport`가 `TextureImporterType.NormalMap`으로 임포트해 애초에
+            // `Sprite` 서브에셋이 안 생기므로 폴더째 넣어도 딸려 들어가지는 않는다 —
+            // 그래도 그 사실에 기대지 않는다. 파일 단위로 직접 골라 스프라이트가
+            // 아니면(`LoadAssetAtPath<Sprite>`가 null) 넣지 않으므로 이중으로 막힌다.
+            var packables = CollectSprites(folder, out var totalPng, out var normalMapCount);
+            SpriteAtlasExtensions.Add(atlas, packables);
 
             EditorUtility.SetDirty(atlas);
             AssetDatabase.SaveAssets();
 
-            Debug.Log($"[아틀라스] {atlasPath} ← {folder}");
+            // 검증용 — PNG 총계 · 노멀맵 제외분 · 실제 팩된 스프라이트 수가 항상
+            // `총계 = 팩 + 노멀맵`으로 맞아야 한다. 노멀맵이 하나도 없으면(지금)
+            // 팩 개수는 노멀맵 도입 전과 같다
+            Debug.Log($"[아틀라스] {atlasPath} ← {folder} — PNG {totalPng}개 중 " +
+                      $"스프라이트 {packables.Length}개 팩 · 노멀맵 {normalMapCount}개 제외");
+        }
+
+        /// <summary>
+        /// 폴더 안의 `.png`를 훑어 **실제로 스프라이트로 임포트된 것만** 골라낸다.
+        ///
+        /// `_n.png`(노멀맵)는 `Sprite2DImport`가 `TextureImporterType.NormalMap`으로
+        /// 돌리므로 `Sprite` 서브에셋이 없다 — `LoadAssetAtPath&lt;Sprite&gt;`가 null을
+        /// 돌려주고, 그러면 여기서 자연히 빠진다. 이름 규칙(`IsNormalMapPath`)으로도
+        /// 한 번 더 거른다 — 어느 한쪽이 어긋나도 나머지가 막는다.
+        /// </summary>
+        private static Object[] CollectSprites(string folder, out int totalPng, out int normalMapCount)
+        {
+            var absolute = folder.Substring("Assets/".Length);
+            var root = Path.Combine(Application.dataPath, absolute);
+
+            totalPng = 0;
+            normalMapCount = 0;
+            var sprites = new List<Object>();
+            foreach (var file in Directory.GetFiles(root, "*.png", SearchOption.AllDirectories)
+                                          .OrderBy(f => f, System.StringComparer.Ordinal))
+            {
+                totalPng += 1;
+                var assetPath = "Assets" + file.Substring(Application.dataPath.Length)
+                                               .Replace('\\', '/');
+                if (Sprite2DImport.IsNormalMapPath(assetPath))
+                {
+                    normalMapCount += 1;
+                    continue;
+                }
+
+                var sprite = AssetDatabase.LoadAssetAtPath<Sprite>(assetPath);
+                if (sprite != null) sprites.Add(sprite);
+            }
+            return sprites.ToArray();
         }
 
         private static void Fail(string message)
