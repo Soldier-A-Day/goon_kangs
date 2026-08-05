@@ -134,7 +134,12 @@ namespace SoldierADay.EditorTools
                         var net = nightEntry.GetType();
                         var nightColor = (Color)net.GetField("Item1").GetValue(nightEntry);
                         var nightIntensity = (float)net.GetField("Item2").GetValue(nightEntry);
-                        grading.globalLight.color = Color.Lerp(grading.globalLight.color, nightColor, darkness);
+                        // `WeatherGrading.Update`와 **같은 규칙**이어야 한다:
+                        // 색은 밤(`-simulateNight`)만 밀고, 밝기는 어두움 전체를 따른다.
+                        // (실내 어두움은 지붕 그늘이지 일몰이 아니므로 색을 밀면 안 된다)
+                        var nightArg = Arg("-simulateNight");
+                        var night = nightArg != null ? Mathf.Clamp01(float.Parse(nightArg)) : 0f;
+                        grading.globalLight.color = Color.Lerp(grading.globalLight.color, nightColor, night);
                         grading.globalLight.intensity =
                             Mathf.Lerp(grading.globalLight.intensity, nightIntensity, darkness);
                     }

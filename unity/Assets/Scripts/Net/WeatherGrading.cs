@@ -97,7 +97,11 @@ namespace SoldierADay.Net
         /// **0이면 이 기능이 완전히 꺼진다** — `DarknessAmount`가 `_night` 그대로가
         /// 되어 C2 이전과 동일해진다(롤백 안전장치).
         /// </summary>
-        private const float IndoorDarkAmount = 0.55f;
+        /// 색 이동을 밤에만 주도록 바꾼 뒤(아래 `Update` 참고) 0.55는 체감이 약했다 —
+        /// 실측(보일러실 캡처, 실내 명암 폭): 0.55 → 104.7 / 0.75 → 111.0 / 0.9 → 115.3.
+        /// 평균 밝기보다 **명암 폭**이 중요하다. 등이 만든 밝은 자리는 그대로 두고
+        /// 구석만 떨어져야 "등이 켜져 있다"로 읽히기 때문이다. 0.8이 그 절충이다.
+        private const float IndoorDarkAmount = 0.8f;
 
         /// <summary>
         /// C2 — 실내 판정이 문턱을 넘을 때 앰비언트가 튀지 않게 거는 시간(초).
@@ -208,8 +212,12 @@ namespace SoldierADay.Net
             if (globalLight == null) return;
 
             var (color, intensity) = Lights[Mathf.Clamp(_target, 0, Lights.Length - 1)];
+            // **색은 밤에만 밀고, 밝기는 어두움 전체를 따른다.**
+            // 실내가 어두운 것은 지붕이 햇빛을 가려서지 해가 진 게 아니다 — 색까지
+            // `NightLight`(청색조)로 밀면 대낮 실내가 푸르게 떠서 "밤인가?"로 읽힌다.
+            // 그래서 색 Lerp는 `_night`만, 밝기 Lerp는 `DarknessAmount`를 쓴다.
             var darkness = DarknessAmount;
-            globalLight.color = Color.Lerp(color, NightLight.color, darkness);
+            globalLight.color = Color.Lerp(color, NightLight.color, _night);
             globalLight.intensity = Mathf.Lerp(intensity, NightLight.intensity, darkness);
         }
 
