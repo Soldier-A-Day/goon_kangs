@@ -41,7 +41,10 @@ namespace SoldierADay.Net
     ///   - watch·TRACE — 안쪽 판을 아예 돌리지 않고(Tick 자체를 안 부른다)
     ///     `TraceBoard.DrawSolved`로 스크램블 전 배치를 정적으로 그린다.
     ///   - operate·SEQ — `SeqBoard.NoReveal`을 켜 노출 단계 자체를 지운다.
-    ///   - operate·TRACE — 그대로. 스크램블된 판을 직접 돌린다.
+    ///   - operate·TRACE — `TraceBoard.NoReveal`을 켜 관 방향·연결(lit)·물을
+    ///     안 그린다(재작업 전에는 스크램블된 판을 그대로 다 보여줬다 —
+    ///     혼자 다 보고 혼자 풀 수 있었다). 스크램블된 판은 여전히 직접
+    ///     돌린다 — 조작(`Advance`·`Flow`)은 그대로고 그림만 가린다.
     /// 이 갈림은 `OpenRound`(안쪽 판 인스턴스에 스위치를 꽂는 곳)와
     /// `Advance`·`Draw`(그 스위치에 맞게 부르는 곳)에 있다.
     ///
@@ -122,6 +125,15 @@ namespace SoldierADay.Net
             {
                 seq.Locked = IsWatch;
                 seq.NoReveal = IsOperate;
+            }
+            // 사용자 지시(재작업) — TRACE 조작 역할도 정답(관 방향·연결·물)을
+            // 보면 안 된다. watch는 이미 별도 경로다(Advance가 Tick 자체를
+            // 안 부르고, Draw가 DrawSolved를 부른다) — 여기서는 operate만
+            // 다루면 된다. 이름은 SeqBoard와 맞춰 하나로 통일했다
+            // (TraceBoard.cs "B-1 재수리" 참고).
+            else if (_inner is TraceBoard trace)
+            {
+                trace.NoReveal = IsOperate;
             }
 
             _inner.Begin(Spec, Limit, seed);

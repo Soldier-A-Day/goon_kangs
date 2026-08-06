@@ -31,9 +31,38 @@ namespace SoldierADay.Net
     /// `_solvedPipe`에 미리 복제해 두고, 그걸 회전 없이 전부 lit로 그린다 —
     /// 조작 역할이 실제로 돌리는 `_pipe`는 절대 안 건드리는 별도 경로다
     /// (`JointBoard`가 역할에 따라 `Draw` 대신 이걸 부른다).
+    ///
+    /// ── B-1 재수리 — 조작 역할도 정답을 보면 안 된다(`NoReveal`) ──────────
+    /// 위 문단은 정답 역할 쪽만 막았다. 조작 역할은 여전히 이 판의 일반
+    /// `Draw`를 그대로 받았는데, 거기엔 관 방향·연결(lit) 색·물이 다 있어서
+    /// 정답 역할 없이 혼자 다 보고 혼자 풀 수 있었다. `NoReveal`이 켜지면
+    /// `Draw`가 `DrawBlind`로 빠져 그 셋을 전부 뺀다 — 남는 것은 칸이
+    /// 있다는 것과 포커스뿐이다. `JointBoard.OpenRound`가 `SeqBoard.Locked`/
+    /// `NoReveal`과 같은 자리에서 `trace.NoReveal = IsOperate`를 꽂는다.
     /// </summary>
     public sealed class TraceBoard : Board
     {
+        /// <summary>
+        /// 사용자 지시 — "trace 게임에서 협동할 때 조작하는 사람은 타일이
+        /// 안 보여야지." 지금까지 조작(`operate`) 역할은 `JointBoard.Draw`가
+        /// `_inner.Draw`(이 클래스의 일반 `Draw`)를 그대로 불러서, 관 방향·
+        /// 이어졌는지(lit)·물 찬 자리가 전부 보였다 — 정답 역할 없이 혼자
+        /// 다 보고 혼자 풀 수 있었다.
+        ///
+        /// `JointBoard.OpenRound`가 `SeqBoard.Locked`/`NoReveal`과 같은 자리에
+        /// `trace.NoReveal = IsOperate`를 꽂는다(그 파일의 유일한 변경점 —
+        /// `TraceBoard.cs` 하나만으로는 조작 역할이 이 값을 켜 줄 방법이 없다.
+        /// 아래 참고). 이 값이 켜지면 `Draw`는 `DrawBlind`로 빠진다: 칸이
+        /// 있다/없다와 지금 포커스가 어디인지만 보이고, 관 십자선·lit 색·물은
+        /// 하나도 그리지 않는다. **판정(`Advance`·`Flow`·`UpdateWater`·
+        /// `Miss`)은 그대로 돈다** — 가리는 것은 순전히 그림뿐이다.
+        ///
+        /// 단독판(비대칭 꺼짐, `JointBoard`를 안 거치는 `BoardLab` 등)에서는
+        /// `IsOperate`가 존재하지 않으니 이 값이 항상 `false`고, 지금까지와
+        /// 완전히 같다.
+        /// </summary>
+        public bool NoReveal { get; set; }
+
         /// <summary>칸이 뚫린 방향 — 비트 0:위 1:오른쪽 2:아래 3:왼쪽</summary>
         private int[] _pipe;
 
@@ -104,6 +133,12 @@ namespace SoldierADay.Net
         {
             get
             {
+                // 연결 칸 수·수위·"물이 막혔다"는 전부 지금 이어졌는지(=정답에
+                // 얼마나 가까운지)를 그대로 흘리는 채널이다 — 조작 역할에게는
+                // 화면(`DrawBlind`)뿐 아니라 이 한 줄도 정답을 새면 안 된다.
+                // 돌린 횟수는 자기 행동의 기록이라 정답이 아니므로 남긴다.
+                if (NoReveal) return $"돌린 횟수 {_turns}  ·  정답은 다른 사람 화면에 있다";
+
                 var lit = 0;
                 if (_live != null) foreach (var l in _live) if (l) lit += 1;
                 var water = _waterState switch
@@ -444,6 +479,13 @@ namespace SoldierADay.Net
         public override void Draw(HudTheme theme, Rect body)
         {
             _area = body;
+
+            if (NoReveal)
+            {
+                DrawBlind(theme, body);
+                return;
+            }
+
             theme.Fill(body, HudTheme.Paper3);
 
             // 물 — 이어진 칸을 따라 차오른 것을 옅은 파랑으로 겹쳐 그린다. 관
@@ -507,6 +549,58 @@ namespace SoldierADay.Net
                     $"물이 {Mathf.CeilToInt(_waterTimer)}초 뒤 찬다",
                     theme.At(theme.Small, 14, HudTheme.Cold, TextAnchor.MiddleCenter));
             }
+
+            theme.Border(body, HudTheme.Rule);
+            FinalStretchDraw(theme, body);
+        }
+
+        /// <summary>
+        /// 조작 역할 전용 화면(`NoReveal`). 정답으로 이어지는 채널 — 관 방향
+        /// 십자선 · lit 색 구분 · 물 오버레이 · "물이 막혔다" 안내 · `_end`
+        /// 테두리의 도달 여부(Accent/Alert) — 을 전부 뺀다. 남기는 것은
+        /// 칸이 있는지(빈 칸은 원래처럼 흐리게), 시작/끝이 어딘지, 지금
+        /// 키보드 포커스가 어딘지뿐이다 — 전부 "어디를 누를 수 있는가"에
+        /// 필요한 정보고, "지금 맞는가"는 하나도 없다.
+        ///
+        /// 회전 트윈(`_rotSince`)도 굳이 태우지 않는다 — 돌아가는 방향을
+        /// 보여주는 애니메이션 자체가 방향 정보이므로, 트윈 없이 즉시
+        /// 칸을 그대로 둔다.
+        /// </summary>
+        private void DrawBlind(HudTheme theme, Rect body)
+        {
+            theme.Fill(body, HudTheme.Paper3);
+
+            for (var i = 0; i < _pipe.Length; i += 1)
+            {
+                var cell = CellRect(i);
+                if (_pipe[i] == 0)
+                {
+                    theme.Fill(cell, HudTheme.Paper2, 0.4f);
+                    continue;
+                }
+                // 방향·연결 여부를 알 수 없는 중립 칸 — "여기 관이 있고 누를 수
+                // 있다"만 보인다. 실제 판(lit 상태)과 같은 팔레트를 쓰되 항상
+                // 미연결(Rule2·Paper) 쪽 색으로 고정해 lit이 정답을 새지 않는다
+                theme.Fill(cell, HudTheme.Paper);
+                theme.Border(cell, HudTheme.Rule2);
+            }
+
+            // 시작/끝 칸 위치는 두 화면(조작·정답) 모두 같은 판 구조라 이미
+            // 공유된 정보다 — 어디가 시작인지는 숨길 정답이 아니다. 다만 `_end`
+            // 테두리 색을 도달 여부로 바꾸던 것(Accent/Alert)은 "지금 다
+            // 맞았는가"를 그대로 알려주므로 고정색 하나로 통일한다
+            theme.Border(CellRect(_start), HudTheme.Heat, 3f);
+            theme.Border(CellRect(_end), HudTheme.Rule2, 3f);
+            GUI.Label(new Rect(CellRect(_start).x, CellRect(_start).y - 24f, 80f, 20f), "시작",
+                theme.At(theme.Label, 12, HudTheme.Heat));
+            GUI.Label(new Rect(CellRect(_end).x, CellRect(_end).y - 24f, 80f, 20f), "끝",
+                theme.At(theme.Label, 12, HudTheme.Ink3));
+
+            if (_usingKeyboard) theme.Border(CellRect(_focus), HudTheme.Cold, 3f);
+
+            GUI.Label(new Rect(body.x, body.y + 6f, body.width, 24f),
+                "정답은 안 보인다 — 불러주는 대로 눌러라",
+                theme.At(theme.Small, 14, HudTheme.Ink3, TextAnchor.MiddleCenter));
 
             theme.Border(body, HudTheme.Rule);
             FinalStretchDraw(theme, body);
