@@ -56,6 +56,7 @@ namespace SoldierADay.EditorTools
             var snow = BuildTilemaps(root.transform, map, art, height);
             var steamAt = new List<Transform>();
             var zones = BuildZones(root.transform, map, art, height, steamAt);
+            BuildOfficerNpcs(root.transform, library, height);   // §E3 보직별 간부 NPC
             var camera = BuildCamera(root.transform);
             var grading = BuildGrading(root.transform);
             var screenFx = BuildScreenEffects(root.transform, grading);
@@ -636,6 +637,76 @@ namespace SoldierADay.EditorTools
         {
             "난로", "보일러 본체", "세척대", "배식대",
         };
+
+        /* ══════════════════════════════════════════════ §E3 보직별 간부 NPC */
+
+        /// <summary>
+        /// §E3 "각 보직별 간부 NPC" — 보직 4종(소총·통신·의무·행정)마다 그 보직이
+        /// 일하는 구역에 한 명씩, **제자리에 서 있는 연출용 인물**을 세운다.
+        ///
+        /// 걸어다니는 분대원(`SquadView`가 서버 스냅샷을 따라 만드는 대리 NPC)과는
+        /// 다른 존재다 — 서버 권위가 없는 순수 연출이라 좌표를 여기 하드코딩한다.
+        /// 각 자리는 `base_map.json`의 소품 배치(§요구 3)를 실측해, 소품·벽 칸과
+        /// 한 칸 이상 띄워 겹치지 않는 바닥 칸만 손으로 골랐다(월무기고 Z09 서가
+        /// 사이, 통신실 Z06·의무실 Z05·행정반 Z04는 각각 콘솔·처치대·서류함 열을
+        /// 피한 자리).
+        /// </summary>
+        private static readonly (string zone, string role, int tx, int ty)[] OfficerPosts =
+        {
+            ("Z09", "rifle", 67, 33),  // 무기고(통제구역) — 총기 거치대 사이, 재물대장 아래
+            ("Z06", "comms", 94, 50),  // 통신실 — 무전 콘솔·배터리함 사이
+            ("Z05", "medic", 80, 49),  // 의무실 — 처치대 두 대 사이
+            ("Z04", "admin", 87, 61),  // 행정반 · CP — 인원대장과 서류함 열 사이
+        };
+
+        /// <summary>§5.4 최고 계급(3줄 + 상단 점) — 분대원 기본값("private")보다
+        /// 뚜렷이 높은 계급장으로 간부임을 알린다. `CharacterRig`가 이미
+        /// 지원하는 표식이라 새로 만들 것이 없다(§요구 4)</summary>
+        private const string OfficerRank = "sergeant";
+
+        /// <summary>
+        /// 보직별 간부 4명을 세운다. **`SquadView`와 절대 섞지 않는다** — 그쪽은
+        /// 서버 스냅샷을 따라 매 프레임 자리를 갱신하지만, 이쪽은 씬 빌드 시점에
+        /// 한 번 세우고 끝이다(§요구 6 "매 프레임 도는 코드를 새로 만들지 마라").
+        /// `Play("idle")` 이후로는 아무것도 걸지 않는다 — 걷기 클립을 걸 이유가
+        /// 없다(§요구 5 "걷지 않는다").
+        /// </summary>
+        private static void BuildOfficerNpcs(Transform parent, SpriteLibrary library, int height)
+        {
+            var container = new GameObject("간부");
+            container.transform.SetParent(parent, false);
+
+            foreach (var post in OfficerPosts)
+            {
+                var go = new GameObject($"간부_{post.role}_{post.zone}");
+                go.transform.SetParent(container.transform, false);
+                // 소품·캐릭터와 같은 자리 공식(`Cell`) — 발이 타일 중앙에 온다.
+                // 이 계산은 `ZoneMap`의 spawn/door 자리와 같은 함수를 쓴다
+                go.transform.position = Cell(post.tx, post.ty, height);
+
+                var rig = go.AddComponent<CharacterRig>();
+                rig.Bind(library);
+                rig.SetLook(post.role, OfficerRank);
+                rig.Play("idle");
+
+                // `_library`·`_clip`은 직렬화되지 않는 사설 필드다 — 위 세 줄은
+                // 씬을 저장하고 다시 열면(=실제 플레이) 사라진다. 플레이어·분대원과
+                // 달리 이 NPC는 서버 스냅샷을 안 타서 그때 다시 입혀 줄 존재가
+                // 없으므로, `OfficerNpc`가 실제 로드 시점에 `Start`에서 스스로
+                // 다시 입는다(runtime/OfficerNpc.cs)
+                var officer = go.AddComponent<OfficerNpc>();
+                officer.role = post.role;
+                officer.rank = OfficerRank;
+
+                // 넷이 같은 박자로 숨 쉬면 로봇처럼 보인다(D-3 #1·#7과 같은 이유) —
+                // idle만 돌아도 위상은 어긋내 둔다. 걷지 않으므로 배속은 체감상
+                // 무의미하지만, `Step`을 거치지 않는 이 NPC들에겐 idle 프레임
+                // 어긋냄이 유일한 변주 수단이라 같이 준다
+                var seed = CharacterRig.StableHash(post.zone + post.role);
+                rig.OffsetPhase(seed);
+                rig.SetPaceSeed(seed);
+            }
+        }
 
         /// <summary>
         /// §9.0 사이드뷰 코스를 런타임 형태로 옮긴다.
