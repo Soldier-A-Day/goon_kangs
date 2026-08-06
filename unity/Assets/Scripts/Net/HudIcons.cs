@@ -317,6 +317,32 @@ namespace SoldierADay.Net
         /* ═════════════════════════════════════ §7.1.3+§7.9 사람 마커 — 보직 형태 */
 
         /// <summary>
+        /// 사용자 지시 — "다른 인원 위치 마커가 흐리고 작아서 잘 안 보인다. 더
+        /// 잘 보이게 마커 키우고 색상도 또렷하게 해줘." 값은 여기 상수 넷에만
+        /// 있다 — 조절할 곳이 하나로 끝난다.
+        ///
+        /// 호출부(`Hud.cs` 미니맵 점, `HudScreens.cs` 범례)는 그대로다 — rect
+        /// 크기를 바꾸지 않고 `RoleShape` 안에서 중심을 기준으로 키운다. 두
+        /// 파일 다 이번 작업 범위 밖이라(다른 워커·소유 파일 제한) 여기서
+        /// 흡수하는 것이 유일한 방법이다.
+        /// </summary>
+        private const float RoleMarkerScale = 1.35f;
+
+        /// <summary>
+        /// 대비 테두리 두께(각 변, px). 보직 기본색(소총=올리브 `6E7A50`)이
+        /// 배경(§4.1 Paper/Rule 올리브 계열)과 명도가 가까워, 색을 아무리
+        /// 올려도 어두운 바닥에서는 묻힌다 — 팔레트 밖 색을 새로 꾸미는 대신
+        /// `HudTheme.Paper`로 얇게 테를 둘러 윤곽 자체를 잡는다.
+        /// </summary>
+        private const float RoleMarkerHaloWidth = 2f;
+
+        /// <summary>채도 보정 — `HudTheme.RoleColor`가 주는 색상은 그대로 두고 강도만 올린다</summary>
+        private const float RoleMarkerSaturationBoost = 1.3f;
+
+        /// <summary>명도 보정 — 소총 기본색처럼 어두운 색에 효과가 크다</summary>
+        private const float RoleMarkerValueBoost = 1.25f;
+
+        /// <summary>
         /// 미니맵·부대 지도의 분대원 점 — 보직별 형태 (H-4 색각 이상 대응).
         ///
         /// 지금까지 보직 구분은 `HudTheme.RoleColor` 색 하나뿐이었다. 적록색각에서는
@@ -327,8 +353,25 @@ namespace SoldierADay.Net
         /// 소총=원 · 통신=사각 · 의무=십자 · 행정=삼각. 같은 구역/타 구역 구분은
         /// 더 이상 이 형태가 아니라 호출자가 넘기는 색의 **알파**로 갈린다 —
         /// 형태 축을 보직에 내주면서 옮긴 것이다(Hud.cs "5. 사람" 참고).
+        ///
+        /// **크기·대비·채도는 여기서 보정한다.** `r`은 호출부가 넘긴 원래 자리 —
+        /// 중심은 그대로 두고 `RoleMarkerScale`만큼 키운 뒤, 배경과 겹치는 색도
+        /// 항상 윤곽이 잡히도록 `HudTheme.Paper` 대비 테두리를 먼저 깔고 그 위에
+        /// 채도·명도를 올린 색으로 실제 도형을 그린다. 형태(원·사각·십자·삼각)는
+        /// 손대지 않는다 — 색각 접근성 축이라 그대로 유지한다.
         /// </summary>
         public static void RoleShape(string role, Rect r, Color c)
+        {
+            var scaled = ScaleRect(r, RoleMarkerScale);
+            var vivid = Vivid(c);
+
+            var halo = Grow(scaled, RoleMarkerHaloWidth * 2f);
+            var haloColor = new Color(HudTheme.Paper.r, HudTheme.Paper.g, HudTheme.Paper.b, vivid.a);
+            DrawRoleGlyph(role, halo, haloColor);
+            DrawRoleGlyph(role, scaled, vivid);
+        }
+
+        private static void DrawRoleGlyph(string role, Rect r, Color c)
         {
             switch (role)
             {
@@ -352,6 +395,32 @@ namespace SoldierADay.Net
                     Dot(r, c);
                     break;
             }
+        }
+
+        /// <summary>중심 고정, 배율만큼 확대/축소</summary>
+        private static Rect ScaleRect(Rect r, float factor)
+        {
+            var w = r.width * factor;
+            var h = r.height * factor;
+            return new Rect(r.center.x - w * 0.5f, r.center.y - h * 0.5f, w, h);
+        }
+
+        /// <summary>중심 고정, 각 변으로 `total`만큼 커진다(대비 테두리용)</summary>
+        private static Rect Grow(Rect r, float total) =>
+            new Rect(r.x - total * 0.5f, r.y - total * 0.5f, r.width + total, r.height + total);
+
+        /// <summary>
+        /// 색상(Hue)은 그대로 두고 채도·명도만 올린다 — `HudTheme.RoleColor`가
+        /// 정한 팔레트 밖으로 나가지 않으면서 "흐리다"는 지적만 없앤다.
+        /// 알파(같은 구역/타 구역 가시성, Hud.cs가 넘긴다)는 그대로 보존한다.
+        /// </summary>
+        private static Color Vivid(Color c)
+        {
+            Color.RGBToHSV(c, out var h, out var s, out var v);
+            var result = Color.HSVToRGB(h, Mathf.Clamp01(s * RoleMarkerSaturationBoost),
+                Mathf.Clamp01(v * RoleMarkerValueBoost));
+            result.a = c.a;
+            return result;
         }
 
         /// <summary>위로 뾰족한 채운 삼각형. `Band`의 "warm" 반원과 같은 방식으로
