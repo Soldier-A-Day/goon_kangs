@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { evaluateRadio, refreshRadio, step, type Quest, type RunState } from "../src/index.js";
+import { createRun } from "../src/index.js";
 import { beginDay, fullSquad, SECOND, withQuests } from "./helpers.js";
 
 function upkeep(overrides: Partial<Quest> = {}): Quest {
@@ -86,5 +87,35 @@ describe("8.0 무전 상태", () => {
     const ended = step(state, { type: "tick", elapsedMs: 10 * 60 * SECOND });
     expect(ended.state.radio).toBe("weak");
     expect(ended.effects.some((e) => e.type === "radioChanged")).toBe(true);
+  });
+});
+
+describe("런 시작 무전 상태", () => {
+  it("통신병이 NPC면 시작부터 두절이다 — 첫 시간대만 살아 있는 척하지 않는다", () => {
+    // 회귀: `createRun`이 `radio: "ok"`를 하드코딩해 두고 "첫 tick에서 갱신된다"고
+    // 적어 뒀는데, 실제 `refreshRadio`는 `endPhase`(시간대 경계)에서만 돈다.
+    // 그래서 통신병이 NPC인 편성에서 기상·점호 내내 무전이 살아 있다가
+    // 오전 일과가 시작하는 순간 두절로 뒤집혔다(사용자 신고).
+    const state = createRun({
+      runId: "r-npc-comms",
+      seed: 1,
+      members: [{ id: "p1", name: "소총", role: "rifle" }],
+    });
+
+    const comms = state.members.find((m) => m.role === "comms");
+    expect(comms?.presence).toBe("npcVacant");
+    expect(state.radio).toBe("down");
+  });
+
+  it("사람 통신병이 있으면 시작은 정상이다", () => {
+    const state = createRun({
+      runId: "r-human-comms",
+      seed: 1,
+      members: [
+        { id: "p1", name: "소총", role: "rifle" },
+        { id: "p2", name: "통신", role: "comms" },
+      ],
+    });
+    expect(state.radio).toBe("ok");
   });
 });

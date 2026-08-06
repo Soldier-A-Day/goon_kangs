@@ -1,4 +1,5 @@
 import { rollWeeklyModifier } from "./modifier.js";
+import { evaluateRadio } from "./radio.js";
 import { LEADER_RELIEF_LIMIT, OFFICER_RELIEF_LIMIT } from "./relief.js";
 import { createRngState, roll } from "./rng.js";
 import { STARTING_KIT, SUPPLY_START } from "./supply.js";
@@ -70,7 +71,7 @@ export function createRun(options: CreateRunOptions): RunState {
   // 여기서 메인 RNG를 소비하면 계절 확률이 밀리므로 rngAfterSeason에는 손대지 않는다.
   const weeklyModifier = rollWeeklyModifier(options.seed).id;
 
-  return {
+  const state: RunState = {
     runId: options.runId,
     seed: options.seed,
     rngState: rngAfterSeason,
@@ -94,7 +95,8 @@ export function createRun(options: CreateRunOptions): RunState {
       windSpeed: 0,
       rain: false,
     },
-    // 통신병이 자리에 있는 편성으로 시작한다. 첫 tick에서 실제 상태로 갱신된다
+    // 편성을 보고 정한다 — 아래에서 `evaluateRadio`로 덮는다.
+    // (여기 리터럴은 형태를 맞추기 위한 자리이며 실제 값이 아니다)
     radio: "ok",
     members,
     quests: [],
@@ -126,6 +128,16 @@ export function createRun(options: CreateRunOptions): RunState {
     judgements: [],
     firstConditionBreach: {},
   };
+
+  // **시작 무전 상태는 편성에서 나온다.**
+  // 예전에는 `"ok"`로 시작해 놓고 "첫 tick에서 갱신된다"고 적어 뒀는데, 실제로
+  // `refreshRadio`는 `endPhase`(시간대 경계)에서만 돈다 — 매 틱 퀘스트 배열을
+  // 훑으면 배치 시뮬이 수백만 번 순회하기 때문이다. 그래서 **첫 시간대(기상·점호)
+  // 내내 무전이 살아 있는 것처럼 보이다가 오전 일과가 시작하는 순간 두절로 뒤집혔다.**
+  // 통신병이 NPC인 편성에서 사용자가 실제로 그 증상을 보고했다.
+  // 시작할 때 한 번 제대로 재면 그 거짓말이 사라진다(비용은 런당 1회).
+  state.radio = evaluateRadio(state);
+  return state;
 }
 
 function makeMember(
