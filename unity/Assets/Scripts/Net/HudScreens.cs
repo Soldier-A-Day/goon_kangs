@@ -17,7 +17,16 @@ namespace SoldierADay.Net
     {
         private readonly Hud _hud;
 
-        private enum Screen { None, Notebook, Map, Schedule, Delegation, RollCall, Sleep, Rank }
+        /// <summary>지시 1(사용자 지시 — "일과표랑 수첩을 창을 합치자") — 일과표가
+        /// 더 이상 독자 화면이 아니다. `Screen.Notebook` 하나가 이제 일과표·수첩을
+        /// 다 아우르는 "그 창"이고, 그 안에서 뭘 보여줄지는 <see cref="_notebookTab"/>
+        /// 이 고른다. Map(§7.9 미니맵 전체화면)만 별도 화면으로 남는다.</summary>
+        private enum Screen { None, Notebook, Map, Delegation, RollCall, Sleep, Rank }
+
+        /// <summary>지시 1 — 합쳐진 창 안의 탭 셋. 순서 그대로 TAB이 순환한다
+        /// (일과표 → 일과요약 → 기록 → 닫힘). 첫 탭이 일과표인 이유는 지시 2
+        /// (데이 시작 자동 표시)가 이 탭에서 열려야 하기 때문이다.</summary>
+        private enum NotebookTab { Schedule, Summary, Journal }
 
         private Screen _screen = Screen.None;
         private bool _radialOpen;
@@ -58,9 +67,9 @@ namespace SoldierADay.Net
         private ServerEvent _lastRefusal;
         private float _refusalAt = -10f;
 
-        /// <summary>E-3 — 수첩(Tab) 안의 페이지 선택. 기본은 기존 4분할 요약이고,
-        /// 눌러야 "오늘의 기록"으로 넘어간다 — 예전 화면을 대체하지 않고 옆에 얹는다</summary>
-        private bool _notebookJournal;
+        /// <summary>지시 1 — 합쳐진 창(TAB) 안에서 지금 보이는 탭. 창이 열릴 때마다
+        /// 일과표부터 시작한다(TAB 첫 누름 = 일과표).</summary>
+        private NotebookTab _notebookTab = NotebookTab.Schedule;
 
         public HudScreens(Hud hud) => _hud = hud;
 
@@ -155,19 +164,24 @@ namespace SoldierADay.Net
                 return;
             }
 
-            // TAB은 수첩을 순환한다 — 한 번에 일과 요약, 한 번 더에 오늘의 기록,
-            // 한 번 더(또는 Esc)에 닫기. 탭 전환을 마우스에만 맡기면 수첩을
-            // 여닫는 손(키보드)과 탭을 고르는 손(마우스)이 갈라진다.
+            // 지시 1(사용자 지시 — "일과표랑 수첩을 창을 합치자") — TAB이 합쳐진
+            // 창 하나를 순환한다: 닫힘 → 일과표 → 일과요약 → 기록 → 닫힘. 일과표는
+            // 더 이상 Space의 독자 화면이 아니라 이 순환의 첫 탭이다(지시 2가
+            // 이 탭을 자동으로 여는 이유이기도 하다 — 아래 OnSnapshot 참고).
             if (Input.GetKeyDown(KeyCode.Tab))
             {
                 if (_screen != Screen.Notebook)
                 {
                     _screen = Screen.Notebook;
-                    _notebookJournal = false;
+                    _notebookTab = NotebookTab.Schedule;
                 }
-                else if (!_notebookJournal)
+                else if (_notebookTab == NotebookTab.Schedule)
                 {
-                    _notebookJournal = true;
+                    _notebookTab = NotebookTab.Summary;
+                }
+                else if (_notebookTab == NotebookTab.Summary)
+                {
+                    _notebookTab = NotebookTab.Journal;
                 }
                 else
                 {
@@ -176,10 +190,6 @@ namespace SoldierADay.Net
             }
             if (Input.GetKeyDown(KeyCode.M))
                 _screen = _screen == Screen.Map ? Screen.None : Screen.Map;
-            // 일과표는 Space로 열고 닫는다. 하루에 몇 번씩 여는 화면이라
-            // 손이 가장 먼저 닿는 키에 둔다
-            if (Input.GetKeyDown(KeyCode.Space))
-                _screen = _screen == Screen.Schedule ? Screen.None : Screen.Schedule;
 
             if (Input.GetKeyDown(KeyCode.Escape) && _screen != Screen.None)
                 _screen = Screen.None;
@@ -229,10 +239,21 @@ namespace SoldierADay.Net
             // 창이 닫히면 확정 표시를 푼다 — 다음 시간대에 다시 열려야 한다
             if (snapshot.phase.delegationWindowMsLeft <= 0d) _delegationDone = null;
 
-            // §7.4 일과표는 매일 아침 전면 표시
+            // §7.4 일과표는 매일 아침 전면 표시 — 지시 1로 일과표가 합쳐진 창의
+            // 한 탭이 됐으므로, 여는 것도 "그 창을 일과표 탭으로" 연다(지시 2).
             if (snapshot.day != _lastDay)
             {
-                if (_lastDay >= 0d && _screen == Screen.None) _screen = Screen.Schedule;
+                if (_lastDay >= 0d && _screen == Screen.None)
+                {
+                    _screen = Screen.Notebook;
+                    _notebookTab = NotebookTab.Schedule;
+                }
+
+                // 지시 4 — "다음 날이 실제로 시작됐다"를 확정하는 지점이 여기다
+                // (DayEndInProgress가 이미 위에서 풀렸으니 확인 큐 도중이 아니다).
+                // Hud.cs의 "오늘의 기록"을 정확히 이 순간에 비운다 — 근거는
+                // `Hud.ClearJournalForNewDay` 주석 참고.
+                _hud.ClearJournalForNewDay(snapshot.day);
                 _lastDay = snapshot.day;
             }
 
@@ -385,10 +406,14 @@ namespace SoldierADay.Net
             _pickedTarget = 0;
         }
 
+        /// <summary>지시 1로 일과표가 합쳐진 창의 한 탭이 됐으므로, 랩 미리보기도
+        /// 실전과 같은 경로(Screen.Notebook + 일과표 탭)를 연다 — 이름은 호출부
+        /// (`ScreenLab.cs` — 소유 밖이라 이름을 바꾸지 않는다) 호환을 위해 유지한다.</summary>
         public void DebugOpenSchedule()
         {
             _dayEndQueue.Clear();
-            _screen = Screen.Schedule;
+            _screen = Screen.Notebook;
+            _notebookTab = NotebookTab.Schedule;
         }
 
         /// <summary>ScreenLab이 화면을 고를 때마다 이걸로 먼저 접는다 — Esc 없이 닫는 통로</summary>
@@ -552,9 +577,8 @@ namespace SoldierADay.Net
 
             switch (_screen)
             {
-                case Screen.Notebook: DrawNotebook(theme, snapshot); break;
+                case Screen.Notebook: DrawNotebookWindow(theme, snapshot); break;
                 case Screen.Map: DrawBaseMap(theme, snapshot); break;
-                case Screen.Schedule: DrawSchedule(theme, snapshot); break;
                 case Screen.Delegation: DrawDelegation(theme, snapshot); break;
                 case Screen.RollCall: DrawRollCall(theme, snapshot); break;
                 case Screen.Sleep: DrawSleep(theme, snapshot); break;
@@ -604,18 +628,99 @@ namespace SoldierADay.Net
             }
         }
 
-        /* ═══════════════════════════════════════════ §7.2 수첩 (Tab) */
+        /* ═══════════════════════════════════════════ §7.2 일과표·수첩 통합 창 (TAB) */
 
-        private void DrawNotebook(HudTheme theme, Snapshot snapshot)
+        /// <summary>지시 1(사용자 지시 — "일과표랑 수첩을 창을 합치자") — TAB 하나가
+        /// 여는 창 전체의 진입점. 예전에는 일과표(Space)·수첩(Tab, 내부 탭 2개)이
+        /// 서로 다른 화면·다른 실측 크기(1600×880 / 1440×840)였다. 그 둘을 각자의
+        /// 목업 좌표 그대로 재사용하기 위해, 바깥 배경은 **더 큰 쪽(일과표)** 기준으로
+        /// 잡고 내브바 아래 각 탭은 자기 원래 크기의 콘텐츠 영역만 쓴다 — 요약·기록
+        /// 탭은 그만큼 오른쪽·아래에 여백이 남지만, 픽셀을 다시 재는 것보다 안전하다.</summary>
+        private const float NotebookNavHeight = 64f;
+        private const float ScheduleContentW = 1600f, ScheduleContentH = 880f;
+        private const float NotebookContentW = 1440f, NotebookContentH = 840f;
+
+        private void DrawNotebookWindow(HudTheme theme, Snapshot snapshot)
         {
-            // 목업 실측: 1440×840 @ 중앙
-            var panel = Backdrop(theme, 1440f, 840f);
+            var width = Mathf.Max(ScheduleContentW, NotebookContentW);
+            var height = NotebookNavHeight + Mathf.Max(ScheduleContentH, NotebookContentH);
+            var outer = Backdrop(theme, width, height, 0.74f);
+
+            DrawWindowTabs(theme, new Rect(outer.x, outer.y, outer.width, NotebookNavHeight));
+            var content = new Rect(outer.x, outer.y + NotebookNavHeight, 0f, 0f);
+
+            switch (_notebookTab)
+            {
+                case NotebookTab.Schedule:
+                    DrawSchedule(theme, snapshot,
+                        new Rect(content.x, content.y, ScheduleContentW, ScheduleContentH));
+                    break;
+                case NotebookTab.Summary:
+                    DrawNotebookBody(theme, snapshot,
+                        new Rect(content.x, content.y, NotebookContentW, NotebookContentH));
+                    break;
+                case NotebookTab.Journal:
+                    DrawNotebookHeader(theme,
+                        new Rect(content.x, content.y, NotebookContentW, NotebookContentH), snapshot);
+                    DrawJournal(theme, new Rect(content.x, content.y + 88f, NotebookContentW, NotebookContentH - 88f));
+                    break;
+            }
+        }
+
+        /// <summary>지시 1 — 일과표·일과요약·기록 세 탭을 **창 위쪽에 붙여 크게**
+        /// 그린다. 예전(E-3)에는 수첩 본문 안에 144×26짜리 작은 탭 두 개가 끼어
+        /// 있었다("수첩 안에 두 개 넣은 것처럼 하지 말고"라는 사용자 지시로 폐기) —
+        /// 이제 탭은 콘텐츠 밖(내브바)으로 승격되고 폭은 창 전체, 높이는
+        /// 26 → <see cref="NotebookNavHeight"/>(64)로 커진다.</summary>
+        private void DrawWindowTabs(HudTheme theme, Rect strip)
+        {
+            theme.Fill(strip, HudTheme.Paper2);
+
+            var tabs = NotebookTabs;
+            var tabWidth = strip.width / tabs.Length;
+            for (var i = 0; i < tabs.Length; i += 1)
+            {
+                var (tab, label) = tabs[i];
+                var rect = new Rect(strip.x + i * tabWidth, strip.y, tabWidth, strip.height);
+                var active = _notebookTab == tab;
+
+                theme.Fill(rect, active ? HudTheme.AccentW : HudTheme.Paper2);
+                if (active) theme.Spine(rect, HudTheme.Accent, 5f);
+                if (i > 0) theme.Fill(new Rect(rect.x, rect.y + 14f, 1f, rect.height - 28f), HudTheme.Rule);
+
+                GUI.Label(rect, label,
+                    theme.At(theme.Heading, 22, active ? HudTheme.Accent : HudTheme.Ink2, TextAnchor.MiddleCenter));
+
+                if (GUI.Button(rect, "", GUIStyle.none)) _notebookTab = tab;
+            }
+
+            theme.Fill(new Rect(strip.x, strip.yMax - 2f, strip.width, 2f), HudTheme.Ink);
+        }
+
+        /// <summary>탭 이름은 사용자 지시 그대로 정확히 이 세 글자다 —
+        /// "일과표 · 일과요약 · 기록".</summary>
+        private static readonly (NotebookTab tab, string label)[] NotebookTabs =
+        {
+            (NotebookTab.Schedule, "일과표"),
+            (NotebookTab.Summary, "일과요약"),
+            (NotebookTab.Journal, "기록"),
+        };
+
+        /// <summary>"일과요약"·"기록" 두 탭이 공유하는 머리(제목 · 남은 필수
+        /// 카운터 · 간부 구제 버튼). 통합 전 `DrawNotebook`이 `_notebookJournal`
+        /// 분기와 무관하게 이 부분을 한 번만 그리던 것과 같은 모양이다 — 탭
+        /// 선택지가 내브바로 옮겨갔을 뿐 이 관례는 그대로 둔다.</summary>
+        private Counts DrawNotebookHeader(HudTheme theme, Rect panel, Snapshot snapshot)
+        {
+            theme.Fill(panel, HudTheme.Paper);
+            theme.Border(panel, HudTheme.Rule, 2f);
+
             var counts = CountQuests(snapshot, Client.MemberId);
             var left = counts.requiredTotal - counts.requiredDone;
 
             // E-1 — 구제권 잔여를 수첩에도 한 줄. 점호 화면 6.4초 동안만 보이던 값이라
             // "어디 있냐"는 질문이 실제로 나왔다 — 상시 화면 두 곳(일과표·수첩)에 심는다.
-            Head(theme, panel, 88f, "NOTEBOOK  [TAB]", "수 첩",
+            Head(theme, panel, 88f, "NOTEBOOK", "수 첩",
                 snapshot == null ? "" :
                 $"D-{snapshot.day:00} · {HudTheme.PhaseLabel(snapshot.phase?.id)} · " +
                 $"잔여 {Remaining(snapshot)} · 구제권 {snapshot.reliefsRemaining:0}장");
@@ -648,25 +753,23 @@ namespace SoldierADay.Net
             GUI.Label(new Rect(counter.x - 100f, counter.y, 92f, 24f), "남은 필수",
                 theme.At(theme.Small, 13, HudTheme.Ink2, TextAnchor.MiddleRight));
 
-            // E-3 — 수첩 안에 페이지 탭 둘. 기존 4분할 요약을 지우거나 옮기지 않고
-            // "오늘의 기록" 페이지를 그 위에 얹는다(WORKORDER.md E-3). 탭 한 줄을
-            // 위해 4분할 시작선을 28px 내린다 — 아래 회복 칸의 여유(26px)를 거의
-            // 그대로 쓰는 값이라 패널 밖으로 넘치지 않는다.
-            var tabStrip = new Rect(panel.x + 32f, panel.y + 92f, 300f, 26f);
-            DrawNotebookTabs(theme, tabStrip);
-            if (_notebookJournal)
-            {
-                DrawJournal(theme, new Rect(panel.x, tabStrip.yMax + 6f, panel.width, panel.height - (tabStrip.yMax + 6f - panel.y)));
-                return;
-            }
+            return counts;
+        }
+
+        /// <summary>"일과요약" 탭 — 기존 4분할 요약(§7.2)을 그대로 살렸다(지시 1 —
+        /// "기존 일과표 화면의 내용은 그대로 살려서"는 일과표 탭 얘기지만, 이
+        /// 수첩 4분할도 같은 원칙으로 기능을 하나도 지우지 않았다). 내브바로 탭이
+        /// 옮겨가며 본문 안의 26px 탭줄이 사라졌으므로 위쪽 여백은 통합 전
+        /// (E-3 이전) 값으로 되돌린다.</summary>
+        private void DrawNotebookBody(HudTheme theme, Snapshot snapshot, Rect panel)
+        {
+            var counts = DrawNotebookHeader(theme, panel, snapshot);
 
             // 4분할 — 각 720×376 (목업 실측)
-            var top = panel.y + 88f + 28f;
+            var top = panel.y + 88f;
             var midX = panel.x + panel.width * 0.5f;
             var midY = top + 376f;
-            // E-3 탭 한 줄만큼 위 `top`을 28px 내렸으므로 세로줄 길이도 그만큼 줄여
-            // 패널 밖으로 넘치지 않게 한다
-            theme.Fill(new Rect(midX - 1f, top, 2f, panel.height - 88f - 28f), HudTheme.Rule);
+            theme.Fill(new Rect(midX - 1f, top, 2f, panel.height - 88f), HudTheme.Rule);
             theme.Fill(new Rect(panel.x, midY, panel.width, 2f), HudTheme.Rule);
 
             Quadrant(theme, new Rect(panel.x + 40f, top + 30f, 680f, 346f),
@@ -693,41 +796,24 @@ namespace SoldierADay.Net
             bool IsMine(SnapshotQuestsItem q) => q.ownerId == Client.MemberId;
         }
 
-        /// <summary>E-3 — 수첩 페이지 탭 두 개. 클릭으로 전환한다(마우스만 — Tab/M/Space는
-        /// 이미 다른 화면 전환에 예약돼 있어 새 단축키를 얹지 않는다)</summary>
-        private void DrawNotebookTabs(HudTheme theme, Rect strip)
-        {
-            var tabWidth = 144f;
-            var summary = new Rect(strip.x, strip.y, tabWidth, strip.height);
-            var journal = new Rect(strip.x + tabWidth + 8f, strip.y, tabWidth, strip.height);
-
-            DrawTab(theme, summary, "일과 요약", !_notebookJournal);
-            if (GUI.Button(summary, "", GUIStyle.none)) _notebookJournal = false;
-
-            DrawTab(theme, journal, "오늘의 기록", _notebookJournal);
-            if (GUI.Button(journal, "", GUIStyle.none)) _notebookJournal = true;
-
-            static void DrawTab(HudTheme t, Rect rect, string label, bool active)
-            {
-                t.Fill(rect, active ? HudTheme.AccentW : HudTheme.Paper3);
-                if (active) t.Spine(rect, HudTheme.Accent);
-                GUI.Label(rect, label,
-                    t.At(t.Small, 14, active ? HudTheme.Accent : HudTheme.Ink2, TextAnchor.MiddleCenter));
-            }
-        }
-
-        /// <summary>E-3 — "오늘의 기록" 스크롤 위치. 하루가 바뀌어 목록이 비워지면
-        /// 다음 프레임부터 자연히 맨 위(0,0)에서 다시 시작한다</summary>
+        /// <summary>지시 3 — "오늘의 기록" 스크롤 위치. 하루가 바뀌어 목록이 비워지면
+        /// 다음 프레임부터 자연히 맨 위(0,0)에서 다시 시작한다. 목록이 이제
+        /// 아래로 자라므로(오래된 것이 위, 최신이 아래 — `Hud.PushJournal`/
+        /// `CollectJournal` 참고) 새 줄이 쌓일 때마다 바닥으로 스크롤을 따라
+        /// 보낸다 — 채팅창과 같은 손맛이다. `_journalScrollCount`로 "지난 프레임과
+        /// 줄 수가 달라졌다"만 감지한다(그 프레임에만 스냅, 이후 사용자가 위로
+        /// 스크롤해 올려도 다음 새 줄이 오기 전까지는 그대로 둔다).</summary>
         private Vector2 _journalScroll;
+        private int _journalScrollCount = -1;
 
         /// <summary>
-        /// E-3 — "오늘의 기록" 페이지. 그날 이펙트를 시간순(최신 위)으로, 종류별
-        /// 색 점과 함께 늘어놓는다 — RimWorld식 일지(WORKORDER.md E-3).
+        /// "기록" 탭 — 그날 이펙트를 시간순으로, 종류별 색 점과 함께 늘어놓는다
+        /// (RimWorld식 일지, WORKORDER.md E-3). 지시 3으로 정렬이 뒤집혀 이제
+        /// **먼저 한 것이 위, 최신이 아래**다.
         ///
         /// 목록은 `Hud.CollectJournal`이 채운다(세션 로컬, 서버 저장 아님 — 재접속하면
-        /// 유실되는 게 알려진 제한이다). 하루가 넘어가면 그쪽에서 통째로 비운다 —
-        /// 구분선 대신 리스트 자체를 갈아 끼우는 쪽을 골랐다. 오늘의 기록이지
-        /// 어제 것을 이어 보여줄 이유가 없어서다.
+        /// 유실되는 게 알려진 제한이다). 비우는 시점은 지시 4로 "다음 날 시작"에
+        /// 못박았다 — `Hud.ClearJournalForNewDay` 주석 참고.
         /// </summary>
         private void DrawJournal(HudTheme theme, Rect area)
         {
@@ -738,12 +824,23 @@ namespace SoldierADay.Net
             {
                 GUI.Label(new Rect(area.x + 40f, area.y + 24f, area.width - 80f, 26f),
                     "오늘은 아직 기록이 없다", theme.At(theme.Body, 16, HudTheme.Ink3));
+                _journalScrollCount = 0;
                 return;
             }
 
             const float rowHeight = 34f;
             var viewport = new Rect(area.x + 8f, area.y + 8f, area.width - 16f, area.height - 16f);
             var content = new Rect(0f, 0f, viewport.width - 20f, rowHeight * entries.Count);
+
+            // 지시 3 — 새 줄은 이제 바닥에 붙는다(최신이 아래). 지난 프레임보다
+            // 줄 수가 늘었으면(또는 하루가 바뀌어 줄어들었으면) 스크롤을 바닥으로
+            // 밀어 새 줄이 화면 밖에 숨어 있지 않게 한다.
+            if (entries.Count != _journalScrollCount)
+            {
+                _journalScroll.y = Mathf.Max(0f, content.height - viewport.height);
+                _journalScrollCount = entries.Count;
+            }
+
             _journalScroll = GUI.BeginScrollView(viewport, _journalScroll, content);
 
             var y = 0f;
@@ -1434,10 +1531,14 @@ namespace SoldierADay.Net
         /// 그래서 칸에는 이름만 적고, 무엇인지는 **색으로만** 가른다.
         ///   합동 accent · 필수 ink · 선택 ink2 · 끝난 것은 취소선
         /// </summary>
-        private void DrawSchedule(HudTheme theme, Snapshot snapshot)
+        /// <summary>"일과표" 탭. 지시 1 — "기존 일과표 화면의 내용은 그대로 살려서
+        /// 첫 탭으로 넣어라"에 따라 그리기 로직은 손대지 않았다. 예전에는 이
+        /// 함수가 직접 `Backdrop`을 불러 독자 창(1600×880)을 열었지만, 지금은
+        /// `DrawNotebookWindow`가 이미 배경·테두리를 그린 뒤 그 안쪽 콘텐츠
+        /// 영역(panel 파라미터, 여전히 1600×880 그대로)만 넘겨준다 — 목업 실측
+        /// 좌표(panel.x/y 기준 오프셋들)를 단 하나도 다시 잴 필요가 없었다.</summary>
+        private void DrawSchedule(HudTheme theme, Snapshot snapshot, Rect panel)
         {
-            // 목업 실측: 1600×880 @ (160,100)
-            var panel = Backdrop(theme, 1600f, 880f, 0.8f);
             if (snapshot == null) return;
 
             theme.Header(panel, 120f);
@@ -1732,13 +1833,20 @@ namespace SoldierADay.Net
                 theme.At(theme.Body, 17, HudTheme.Ink2));
 
             /* ── 하단 ── */
+            // 지시 1 — 수첩이 더 이상 별도 화면이 아니라 이 창의 다른 탭이다.
+            // "[TAB]로 딴 창을 연다"가 아니라 "위 [일과요약] 탭으로 넘어가라"로
+            // 문구를 고친다 — 안 그러면 사용자가 이미 같은 창 안에서 존재하지
+            // 않는 창을 찾아 헤매게 된다.
             GUI.Label(new Rect(panel.x + 36f, panel.y + 818f, 1040f, 44f),
-                "상세는 수첩 [TAB] — 체크박스 · 요구 인원 · 하달 내역이 그쪽에 있다",
+                "상세는 [일과요약] 탭 — 체크박스 · 요구 인원 · 하달 내역이 그쪽에 있다",
                 theme.At(theme.Small, 14, HudTheme.Ink3));
 
+            // 예전에는 Space가 이 화면 하나를 독자적으로 닫았다 — 이제 Space는
+            // 아무 동작도 없고(합쳐진 창은 TAB으로만 순환·닫는다), 이 칸은 그
+            // 새 조작을 알리는 안내문으로만 쓴다(클릭 핸들러 없음 — 예전에도 없었다)
             var confirm = new Rect(panel.x + 1264f, panel.y + 818f, 264f, 44f);
             theme.Fill(confirm, HudTheme.Accent);
-            GUI.Label(confirm, "확인  ·  SPACE",
+            GUI.Label(confirm, "다음 탭 · TAB",
                 theme.At(theme.Heading, 18, HudTheme.Paper, TextAnchor.MiddleCenter));
         }
 
@@ -1789,6 +1897,18 @@ namespace SoldierADay.Net
         /// <summary>§7.5 연출 순서 — 조건 A/B/C/D가 0.6초 간격으로 열린다</summary>
         private static readonly float[] Reveal = { 1.6f, 2.2f, 2.8f, 3.4f };
 
+        /// <summary>지시 5(사용자 지시 — "점호 판정할 때 창 위쪽으로 좀 더 올리고")
+        /// — 목업 원안(452f)에서 위로 152px 옮긴다. 창 위에 보직 4종 정렬 줄
+        /// (<see cref="RollCallLineupY"/>~)이 새로 들어가는데, 원래 y라면 그 줄이
+        /// 화면 상단 HUD(페이즈 바 등)와 겹친다.</summary>
+        private const float RollCallPanelY = 300f;
+
+        /// <summary>지시 5 — 창 위 보직 4종 정렬 줄의 세로 자리. 패널이
+        /// <see cref="RollCallPanelY"/>에서 시작하므로 그 위 [64, 274] 구간에
+        /// 인형(64×158) + 이름표 2줄(46px)이 들어간다.</summary>
+        private const float RollCallLineupY = 64f;
+        private const float RollCallLineupHeight = 210f;
+
         private void DrawRollCall(HudTheme theme, Snapshot snapshot)
         {
             theme.Fill(new Rect(0f, 0f, HudTheme.ViewWidth, HudTheme.ViewHeight), HudTheme.Dim, 0.92f);
@@ -1798,18 +1918,25 @@ namespace SoldierADay.Net
             var failed = !_judgement.passed;
             var failedAt = _judgement.failedAt;
 
+            // 지시 5 — 목업(MOCKUP_06)은 정렬 장면(인형들)을 먼저 그리고 그 위에
+            // "실패 그레이딩"(아래 alert 톤 필름)을 덮는다. 순서를 그대로 따른다 —
+            // 실패한 날은 인형도 같이 붉게 물든다.
+            DrawRollCallLineup(theme,
+                new Rect(360f, RollCallLineupY, 1200f, RollCallLineupHeight), snapshot, failedAt);
+
             // 실패 시 화면 전체가 alert 톤으로 전환된다(§7.5)
             if (failed && t > 4f)
                 theme.Fill(new Rect(0f, 0f, HudTheme.ViewWidth, HudTheme.ViewHeight),
                     HudTheme.Alert, 0.13f);
 
-            // 목업 실측: 1200×556 @ (360, 452). 아래쪽에 64px(`ConfirmAreaHeight`)를
-            // 더 얹었다 — 수리 1로 결과 문구 밑에 [확인] 버튼이 새로 들어가는데,
-            // 원래 556 높이는 결과 띠(108px)가 패널 바닥에 딱 맞춰져 있어 버튼이
-            // 들어갈 자리가 없었다(ViewHeight는 항상 ≥1080이라 이만큼 늘려도
-            // 화면 밖으로 안 밀린다 — Backdrop 주석 참고).
+            // 목업 실측 1200×556 @ (360, 452)에서 y만 지시 5로 위로 옮겼다(위 상수
+            // 참고). 아래쪽에 64px(`ConfirmAreaHeight`)를 더 얹은 것은 그대로다 —
+            // 수리 1로 결과 문구 밑에 [확인] 버튼이 새로 들어가는데, 원래 556 높이는
+            // 결과 띠(108px)가 패널 바닥에 딱 맞춰져 있어 버튼이 들어갈 자리가
+            // 없었다(ViewHeight는 항상 ≥1080이라 이만큼 늘려도 화면 밖으로 안
+            // 밀린다 — Backdrop 주석 참고).
             const float ConfirmAreaHeight = 64f;
-            var panel = new Rect(360f, 452f, 1200f, 556f + ConfirmAreaHeight);
+            var panel = new Rect(360f, RollCallPanelY, 1200f, 556f + ConfirmAreaHeight);
             theme.Fill(panel, HudTheme.Paper);
             theme.Border(panel, failed ? HudTheme.Alert : HudTheme.Accent, 3f);
 
@@ -1968,6 +2095,153 @@ namespace SoldierADay.Net
             // 받는다(강제 흘림 문턱은 UpdateRollCallAdvance 주석 참고).
             var buttonRect = new Rect(panel.center.x - 115f, panel.yMax - 52f, 230f, 44f);
             if (DrawConfirmButton(theme, buttonRect, t >= 6.4f)) AdvanceDayEnd();
+        }
+
+        /// <summary>지시 5 — 판정 창 위에 세울 보직 4종. 목업(MOCKUP_06)의 정렬
+        /// 순서(소총·통신·의무·행정)를 그대로 따른다.</summary>
+        private static readonly string[] RollCallLineupRoles =
+        {
+            SnapshotMembersItemRoleValues.Rifle,
+            SnapshotMembersItemRoleValues.Comms,
+            SnapshotMembersItemRoleValues.Medic,
+            SnapshotMembersItemRoleValues.Admin,
+        };
+
+        /// <summary>
+        /// 지시 5(사용자 지시 — "창 위에 각 보직 캐릭터 넣고, 어떤 캐릭터가
+        /// 실패했는지 표시하기") — 목업 `mock-img/files-3/MOCKUP_06_점호판정.svg`의
+        /// 정렬 장면을 옮긴다.
+        ///
+        /// **왜 실사 캐릭터가 아니라 색 인형인가.** 목업의 `#stand` 심볼 자체가
+        /// 실제 캐릭터 시트가 아니라 사각형만 쌓아 만든 사람 모양이다 — 그러니
+        /// "이미 있는 것을 써라"의 목업 쪽 해석은 이 사각형 실루엣이다. 실제
+        /// `SpriteLibrary`/`CharacterRig`(§5.2 8레이어 합성)를 그대로 가져오려면
+        /// `SpriteRenderer` 기반 컴포넌트를 IMGUI(`OnGUI`)에서 그려야 하는데,
+        /// `CharacterRig`는 8레이어 스프라이트를 담는 배열이 전부 `private`이고
+        /// 외부에 꺼낼 통로가 없다 — 그 접근자를 새로 내려면 소유 파일(Hud.cs·
+        /// HudScreens.cs) 밖인 `CharacterRig.cs`를 고쳐야 하므로 이번 발주
+        /// 범위(발주문 "이 둘만") 밖이다. 그래서 발주가 명시한 대체안("보직 색
+        /// 배지 등")을 목업의 인형 형태로 확장해 그린다 — 새 아트(텍스처·스프라이트)는
+        /// 하나도 안 만들고 전부 `theme.Fill`/`theme.Border` 사각형이다.
+        /// </summary>
+        private void DrawRollCallLineup(HudTheme theme, Rect band, Snapshot snapshot, string failedAt)
+        {
+            if (snapshot?.members == null) return;
+
+            var slotWidth = band.width / RollCallLineupRoles.Length;
+            for (var i = 0; i < RollCallLineupRoles.Length; i += 1)
+            {
+                var role = RollCallLineupRoles[i];
+                var slot = new Rect(band.x + i * slotWidth, band.y, slotWidth, band.height);
+                DrawRollCallStand(theme, slot, role, FindMemberByRole(snapshot, role), snapshot, failedAt);
+            }
+        }
+
+        private static SnapshotMembersItem FindMemberByRole(Snapshot snapshot, string role)
+        {
+            foreach (var member in snapshot.members)
+            {
+                if (member != null && member.role == role) return member;
+            }
+            return null;
+        }
+
+        /// <summary>judge.ts `HYGIENE_FLOOR`(§10.0 조건 D)와 같은 값의 미러다.
+        /// 서버 상수를 클라가 import할 수 없어 값을 그대로 옮겨 적는다 — 이 파일이
+        /// 이미 조건 C의 "≥ 40"(`DISCIPLINE_FLOOR`)을 같은 방식으로 미러링해 온
+        /// 관례를 그대로 따른다(위 DrawRollCall의 `conditions` 배열 참고).</summary>
+        private const double RollCallHygieneFloor = 20d;
+
+        /// <summary>
+        /// 지시 5 — "어떤 캐릭터가 실패했는지" 귀속.
+        ///
+        /// 서버 판정(`Judgement`)은 조건 한 글자(`failedAt`)만 보낼 뿐 그게 누구
+        /// 탓인지는 말하지 않는다. A(필수 미달)·D(복장·장비)는 스냅샷에서 역으로
+        /// 짚을 수 있다 — A는 그 인원이 주인인 필수 퀘스트 중 미완료가 있는지,
+        /// D는 `judge.ts`의 조건 그대로(위생 20 미만 또는 필수 장비 미소지)다.
+        /// B(합동)·C(군기)는 분대 전체 책임이라 원래 개인 소유가 없다 — 특정
+        /// 인원을 지목하면 오히려 화면이 거짓말하는 것이므로 그 둘은 아무도
+        /// 짚지 않는다(ARCH-02와 같은 원칙 — 없는 값을 지어내지 않는다).
+        /// </summary>
+        private static bool MemberCausedFailure(SnapshotMembersItem member, Snapshot snapshot, string failedAt)
+        {
+            if (member == null || failedAt == null || snapshot == null) return false;
+
+            switch (failedAt)
+            {
+                case "A":
+                    if (snapshot.quests == null) return false;
+                    foreach (var quest in snapshot.quests)
+                    {
+                        if (quest == null || quest.ownerId != member.id || !quest.required) continue;
+                        if (quest.status != SnapshotQuestsItemStatusValues.Done) return true;
+                    }
+                    return false;
+
+                case "D":
+                    if (member.presence != SnapshotMembersItemPresenceValues.Player) return false;
+                    if (member.stats != null && member.stats.hygiene < RollCallHygieneFloor) return true;
+                    return member.missingGear != null && member.missingGear.Length > 0;
+
+                default:
+                    return false;
+            }
+        }
+
+        /// <summary>인형 한 명 — 몸통은 보직 색(`HudTheme.RoleColor`, 완장 색과 같은
+        /// 값이라 월드·수첩·일과표와 이미 통일돼 있다), 실패 원인이면 경고색 테두리 +
+        /// "!" 배지를 덧댄다. 공석(후송·휴가 등, `presence != Player`)이면 목업의
+        /// 점선 인형 대신(IMGUI엔 점선이 없다) 옅은 경고색 채움 + 사유 라벨로 표시한다.</summary>
+        private void DrawRollCallStand(HudTheme theme, Rect slot, string role,
+            SnapshotMembersItem member, Snapshot snapshot, string failedAt)
+        {
+            const float standW = 64f;
+            const float standH = 158f;
+            var standX = slot.x + (slot.width - standW) * 0.5f;
+            var standY = slot.yMax - standH - 46f;
+            var stand = new Rect(standX, standY, standW, standH);
+            var labelRow1 = new Rect(slot.x, standY + standH + 6f, slot.width, 20f);
+            var labelRow2 = new Rect(slot.x, standY + standH + 24f, slot.width, 18f);
+
+            var vacant = member == null || member.presence != SnapshotMembersItemPresenceValues.Player;
+            if (vacant)
+            {
+                theme.Fill(stand, HudTheme.Alert, 0.10f);
+                theme.Border(stand, HudTheme.Alert, 2f);
+
+                var reason = member == null ? "공석"
+                    : member.presence == SnapshotMembersItemPresenceValues.NpcEvac ||
+                      member.presence == SnapshotMembersItemPresenceValues.Evacuated ? "공석 · 후송"
+                    : member.presence == SnapshotMembersItemPresenceValues.NpcLeave ? "공석 · 휴가"
+                    : "공석";
+                GUI.Label(labelRow1, reason, theme.At(theme.Small, 14, HudTheme.Alert, TextAnchor.MiddleCenter));
+                GUI.Label(labelRow2, HudTheme.RoleName(role),
+                    theme.At(theme.Small, 12, HudTheme.Ink3, TextAnchor.MiddleCenter));
+                return;
+            }
+
+            var atFault = MemberCausedFailure(member, snapshot, failedAt);
+            var roleColor = HudTheme.RoleColor(role);
+
+            // 머리 · 몸통(보직 색) · 다리 — 목업 #stand 심볼과 같은 3단 실루엣
+            theme.Fill(new Rect(stand.x + standW * 0.5f - 13f, stand.y, 26f, 26f), HudTheme.Ink2);
+            theme.Fill(new Rect(stand.x + 6f, stand.y + 26f, standW - 12f, 74f), roleColor);
+            theme.Fill(new Rect(stand.x + 12f, stand.y + 100f, standW - 24f, 58f), HudTheme.Ink3);
+
+            if (atFault)
+            {
+                var glow = new Rect(stand.x - 6f, stand.y - 6f, stand.width + 12f, stand.height + 12f);
+                theme.Border(glow, HudTheme.Alert, 3f);
+                var badge = new Rect(stand.xMax - 20f, stand.y - 10f, 26f, 26f);
+                theme.Fill(badge, HudTheme.Alert);
+                GUI.Label(badge, "!", theme.At(theme.Heading, 16, HudTheme.Paper, TextAnchor.MiddleCenter));
+            }
+
+            var nameColor = atFault ? HudTheme.Alert : HudTheme.Ink;
+            GUI.Label(labelRow1, $"{member.name} · {HudTheme.RoleTag(role)}",
+                theme.At(theme.Body, 15, nameColor, TextAnchor.MiddleCenter));
+            GUI.Label(labelRow2, atFault ? "미달" : HudTheme.RoleName(role),
+                theme.At(theme.Small, 12, atFault ? HudTheme.Alert : HudTheme.Ink3, TextAnchor.MiddleCenter));
         }
 
         /* ═══════════════════════════════════════════ §7.6 취침 정산 */

@@ -2330,7 +2330,14 @@ namespace SoldierADay.Net
         private readonly List<JournalEntry> _journal = new List<JournalEntry>();
         private double _journalDay = -1d;
 
-        /// <summary>수첩 "오늘의 기록" 탭이 읽는다. 최신이 [0](시간순, 최신 위)</summary>
+        /// <summary>수첩 "기록" 탭이 읽는다.
+        ///
+        /// 지시 3(사용자 반려 — "먼저 한 순서부터 위에서 아래로 쌓여야 되는데 최근
+        /// 게 위로 쌓임") — 먼저 기록된 것이 [0](시간순, 오래된 것이 위 · 최신이
+        /// 아래). 예전에는 `Insert(0, ...)`로 매번 맨 앞에 꽂아 최신이 위로
+        /// 쌓였다 — 지금은 `PushJournal`/`CollectJournal`이 `Add(...)`로 뒤에
+        /// 붙인다(아래 두 메서드 참고). `HudScreens.DrawJournal`의 스크롤도 같이
+        /// 맞춰, 새 줄이 아래에 쌓이면 스크롤이 바닥까지 따라간다.</summary>
         public IReadOnlyList<JournalEntry> Journal => _journal;
 
         /// <summary>
@@ -2353,13 +2360,9 @@ namespace SoldierADay.Net
         {
             if (snapshot?.quests == null) return;
 
-            if (snapshot.day != _journalDay)
-            {
-                _journal.Clear();
-                _journalDay = snapshot.day;
-                _questStatusSeen.Clear();
-                _questJournalPrimed = false;
-            }
+            // 지시 4 — 기록을 여기서 날짜 diff만 보고 비우지 않는다. 아래
+            // `ClearJournalForNewDay` 주석 참고(비우는 시점은 HudScreens가
+            // "다음 날이 실제로 시작됐다"를 확정하는 그 순간으로 옮겼다).
 
             foreach (var quest in snapshot.quests)
             {
@@ -2396,21 +2399,20 @@ namespace SoldierADay.Net
         {
             var clock = client?.Latest?.phase?.clock ?? "";
             var phaseLabel = HudTheme.PhaseLabel(client?.Latest?.phase?.id);
-            _journal.Insert(0, new JournalEntry(clock, phaseLabel, tag, text, color));
-            if (_journal.Count > 200) _journal.RemoveAt(_journal.Count - 1);
+            // 지시 3 — 먼저 기록된 것이 위(인덱스 0), 최신이 아래(끝에 Add)
+            _journal.Add(new JournalEntry(clock, phaseLabel, tag, text, color));
+            // 안전판으로 자를 때도 "오래된 것"이 인덱스 0이니 거기서 잘라낸다
+            if (_journal.Count > 200) _journal.RemoveAt(0);
         }
 
         private void CollectJournal(ServerEvent item)
         {
             if (item == null) return;
 
-            // 하루가 바뀌면 통째로 비운다 — "오늘의" 기록이지 어제 것이 아니다
-            var day = client?.Latest?.day ?? _journalDay;
-            if (day != _journalDay)
-            {
-                _journal.Clear();
-                _journalDay = day;
-            }
+            // 지시 4 — 여기서도 날짜 diff로 비우지 않는다(위 CollectQuestJournal과
+            // 같은 이유 — 비우는 시점은 ClearJournalForNewDay로 옮겼다). 판정
+            // (DayJudged 등) 이벤트는 아직 "오늘"의 마지막 기록이므로, 확인 화면이
+            // 떠 있는 동안에도 여기 그대로 쌓여야 한다.
 
             string tag;
             string text;
@@ -2504,9 +2506,40 @@ namespace SoldierADay.Net
 
             var clock = client?.Latest?.phase?.clock ?? "";
             var phaseLabel = HudTheme.PhaseLabel(client?.Latest?.phase?.id);
-            _journal.Insert(0, new JournalEntry(clock, phaseLabel, tag, text, color));
-            // 하루는 유한하다 — 안전판으로만 자른다
-            if (_journal.Count > 200) _journal.RemoveAt(_journal.Count - 1);
+            // 지시 3 — 먼저 기록된 것이 위, 최신이 아래
+            _journal.Add(new JournalEntry(clock, phaseLabel, tag, text, color));
+            // 하루는 유한하다 — 안전판으로만 자른다(오래된 것부터)
+            if (_journal.Count > 200) _journal.RemoveAt(0);
+        }
+
+        /// <summary>
+        /// 지시 4(사용자 신고 — "점호 끝났는데 성공 실패 여부 상관없이 오늘의 기록이
+        /// 초기화가 안 되는 버그") — "오늘의 기록"을 비우는 유일한 통로.
+        ///
+        /// **왜 여기 하나로 모았는가.** 예전에는 `CollectQuestJournal`·`CollectJournal`
+        /// 이 각자 `snapshot.day`/`client.Latest.day`를 자기 나름대로 비교해 날짜가
+        /// 바뀌면 비웠다. "하루 마감 확인 게이트"(`dayEndWindowMsLeft`)가 들어온
+        /// 뒤로 `state.day`는 판정 즉시가 아니라 **참석자 전원이 [확인]을 누르거나
+        /// 백스톱을 넘겨야**(`packages/sim/src/step.ts` `finishDay`) 오른다 — 그
+        /// 전까지 두 함수가 보는 날짜 값은 계속 "오늘"이라 클리어가 걸리지 않고,
+        /// 판정·승급·취침 화면이 각기 다른 프레임에 각기 다른 값을 참조하면서
+        /// 정리 타이밍이 어긋나기 쉬웠다(신고된 증상의 원인).
+        ///
+        /// **비우는 시점을 "다음 날 시작"으로 못박는다.** 판정 화면이 그날 기록을
+        /// 읽어야 한다면(점호 판정 자체가 그날의 마지막 사건이다) 확인 큐가 도는
+        /// 동안은 절대 비우면 안 되고, 그 큐가 끝나 서버가 실제로 다음 날을 연
+        /// 뒤에야 비워야 한다. `HudScreens.OnSnapshot`은 §7.4(아침 일과표 자동
+        /// 표시)에서 이미 "`snapshot.day != _lastDay`"로 그 순간을 정확히 잡고
+        /// 있고, 그 코드는 `DayEndInProgress`가 풀린 뒤에만 실행되므로(그 함수
+        /// 맨 위 가드) 확인 큐 도중에는 절대 불리지 않는다 — 새 신호를 만들지
+        /// 않고 그 지점에서 이 메서드를 그대로 호출한다.
+        /// </summary>
+        internal void ClearJournalForNewDay(double day)
+        {
+            _journal.Clear();
+            _journalDay = day;
+            _questStatusSeen.Clear();
+            _questJournalPrimed = false;
         }
 
         /// <summary>E-3 — 승급 심사 요약. 전체 표는 승급 화면이 이미 보여주므로
