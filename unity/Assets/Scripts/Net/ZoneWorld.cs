@@ -57,6 +57,12 @@ namespace SoldierADay.Net
         public Building[] buildings = System.Array.Empty<Building>();
         public Door[] doors = System.Array.Empty<Door>();
 
+        /// <summary>
+        /// 위병소 → 훈련장 길. 지도가 그린다 — 바닥 타일은 지도에 안 나오므로
+        /// 이게 없으면 부대 밖이 통째로 빈 종이가 되고, 훈련장을 눈대중으로 찾게 된다
+        /// </summary>
+        public Rect[] roads = System.Array.Empty<Rect>();
+
         /// <summary>지금 서 있는 구역. 없으면(도로·공터) null</summary>
         public ZoneMap Here => _current;
 

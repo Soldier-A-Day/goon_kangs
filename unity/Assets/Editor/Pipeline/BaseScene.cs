@@ -1731,6 +1731,8 @@ namespace SoldierADay.EditorTools
                     zone = d.zone, name = d.name, exitLabel = d.exitLabel, isExit = d.exit,
                     area = new Rect(d.x, height - d.y - d.h, d.w, d.h),
                 });
+            world.roads = System.Array.ConvertAll(map.roads ?? System.Array.Empty<BaseMap.RoadDef>(),
+                r => new Rect(r.x, height - r.y - r.h, r.w, r.h));
 
             boot.squad = squadView;
             boot.world = world;

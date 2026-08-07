@@ -152,6 +152,11 @@ namespace SoldierADay.Net
         public ZoneDef[] zones;
         public PropPlacement[] props;
         public DoorDef[] doors;
+        /// <summary>
+        /// 위병소에서 훈련장까지 깔린 길. 바닥 타일(`asphalt`)로도 깔려 있지만
+        /// 지도는 바닥을 그리지 않으므로 사각형 목록으로 따로 받는다
+        /// </summary>
+        public RoadDef[] roads;
         /// <summary>지도를 동 단위로 묶어 그리기 위한 것</summary>
         public BuildingDef[] buildings;
         /// <summary>§6.3 야외에 쌓인 눈 — 구역별로 묶여 있다</summary>
@@ -256,6 +261,15 @@ namespace SoldierADay.Net
             public bool exit;
             /// <summary>나가는 쪽에 보여줄 문구</summary>
             public string exitLabel;
+        }
+
+        [Serializable]
+        public sealed class RoadDef
+        {
+            public int x;
+            public int y;
+            public int w;
+            public int h;
         }
     }
 }

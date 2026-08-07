@@ -431,11 +431,13 @@ def build() -> dict:
         walls.clear(gx, gate_y)
         protected.add((gx, gate_y))    # 남향 벽 두껍게 등 후속 처리가 다시 막지 않게
 
-    _training(ground, walls, zones, props, protected)
+    _training(ground, walls, zones, props, doors, protected)
 
-    # 위병소 → 훈련장(TR04) 길. `_training` 뒤에 불러야 한다 — TR04의 남쪽
-    # 문(door_span)이 그 안에서 뚫리고, 길이 그 문턱까지 덮어써야 이어진다
-    road_cells = _road(ground)
+    # 위병소 → 훈련장 7곳 전부를 잇는 길. `_training` 뒤에 불러야 한다 —
+    # 각 훈련장의 남쪽 문(door_span)이 그 안에서 뚫리고, 길이 그 문턱까지
+    # 덮어써야 이어진다
+    roads = _road(ground)
+    road_cells = _road_cells(roads)
 
     # **벽은 한 줄로 둔다.** 남향 벽을 2타일로 두껍게 해 본 적이 있다(캐릭터가
     # 1타일이라 벽 앞에 서면 벽을 통째로 가리는 문제 때문). 통행 폭이 줄고 화면이
@@ -451,6 +453,8 @@ def build() -> dict:
     _assert_doors_meet_corridor(BUILDINGS)
     _assert_matches_sim(zones)
     _assert_road_clear(road_cells, walls, props, zones)
+    _assert_road_connected(roads, road_cells)
+    _assert_training_reachable(walls, zones, props)
 
     return {
         "tile": TILE,
@@ -471,6 +475,9 @@ def build() -> dict:
         ],
         "props": props,
         "doors": doors,
+        # 길. 바닥 타일로도 깔리지만(`asphalt`) 미니맵은 바닥을 그리지 않아
+        # 사각형 목록으로도 함께 내보낸다 — 지도에 길이 보여야 훈련장을 찾아간다
+        "roads": roads,
         "snow": snow,
     }
 
@@ -849,7 +856,7 @@ def _building(b: dict, ground: Grid, walls: Grid,
 
 
 def _training(ground: Grid, walls: Grid, zones: list[dict], props: list[dict],
-              protected: set[tuple[int, int]]) -> None:
+              doors: list[dict], protected: set[tuple[int, int]]) -> None:
     """
     훈련 맵 7종을 월드에 얹는다 (§6.4 TR01~TR10 중 탑다운).
 
@@ -862,10 +869,26 @@ def _training(ground: Grid, walls: Grid, zones: list[dict], props: list[dict],
 
         # 남쪽 가운데를 연다 — 부대에서 걸어 들어가는 입구
         rect = dict(x=spec["x"], y=spec["y"], w=spec["w"], h=spec["h"])
-        for (dx, dy) in door_span(rect, "south"):
+        span = door_span(rect, "south")
+        for (dx, dy) in span:
             walls.clear(dx, dy)
             ground.set_floor(dx, dy, "concrete")
             protected.add((dx, dy))
+
+        # **입구를 문 목록에 올린다.** 벽만 뚫어 두면 지도에 아무 표시가
+        # 없어서, 길을 따라와도 40타일짜리 담장 어디가 입구인지 알 수 없다.
+        # 여기 올리면 미니맵·부대 지도가 주황색 문선으로 그리고, 가까이 가면
+        # HUD가 이름을 띄운다(`ZoneWorld.NearestDoor`). `exit`인 이유는 이
+        # 문이 방문이 아니라 **바깥에서 들어오는 출입구**이기 때문이다
+        doors.append({
+            "zone": spec["id"],
+            "name": spec["name"],
+            "exitLabel": "부대로",
+            "x": span[0][0], "y": span[0][1],
+            "w": len(span), "h": 1,
+            "side": "south",
+            "exit": True,
+        })
 
         zones.append(_zone_entry(spec, indoor=False, kind="outdoor"))
         props.extend(_place_props(spec))
@@ -914,54 +937,114 @@ def _lanes(ground: Grid, walls: Grid, zones: list[dict], props: list[dict]) -> N
             indoor=False, kind="lane"))
 
 
-#: 위병소 → 훈련장 길의 목표 지점. 훈련 맵 7종 중 정문에서 직선거리가 가장
-#: 짧은 곳이 TR04(숙영지)다 — TR05는 남쪽 문이라 그 남쪽 끝까지 더 돌아야
-#: 하고, TR01·TR02는 더 북쪽이라 더 멀다. 훈련 맵은 전부 x=120부터 시작하므로
-#: 그 앞(서쪽)은 어느 동도 어느 구역도 앉지 않은 빈 마사토 — 길을 놓을 여백이다
-_ROAD_TARGET = "TR04"
+#: 길 폭(타일). 문(`DOOR_W`=2)보다 한 칸 넓게 잡아 길이라는 게 한눈에 보이게 한다
+ROAD_W = 3
 
 
-def _road(ground: Grid) -> list[tuple[int, int]]:
+def _road(ground: Grid) -> list[dict]:
     """
-    정문 밖에서 시작해 훈련장(TR04) 문턱까지 아스팔트를 깐다.
+    정문 밖에서 시작해 **탑다운 훈련장 7곳 전부**의 문턱까지 아스팔트를 깐다.
 
-    **`_training` 뒤에 불러야 한다.** TR04 남쪽 문(door_span)이 그 함수 안에서
-    뚫리고 문턱 바닥이 콘크리트로 깔리는데, 길이 그 위까지 덮어써야 문턱에서
-    끊기지 않는다 — 순서를 바꾸면 문턱 두 칸만 다시 콘크리트로 되돌아간다.
+    **`_training` 뒤에 불러야 한다.** 각 훈련장의 남쪽 문(`door_span`)이 그
+    함수 안에서 뚫리고 문턱 바닥이 콘크리트로 깔리는데, 길이 그 위까지
+    덮어써야 문턱에서 끊기지 않는다 — 순서를 바꾸면 문턱 두 칸만 다시
+    콘크리트로 되돌아간다.
 
-    경로는 꺾인 사각형 다섯 개다. 전부 어느 동·구역·훈련 맵의 벽 바깥이라
-    직선으로 이어도 벽을 가로지르지 않는다:
+    ── 좌표를 적지 않는다 ────────────────────────────────────────────────
+    직전 판은 훈련장 한 곳(TR04)까지만 가는 길이었고, 꺾이는 자리를 전부
+    숫자로 적어 두고 "`trainmap.py`가 바뀌면 이 상수도 다시 맞춰야 한다"는
+    주석을 달았다. 훈련장이 7곳이 되면 그런 상수가 20개가 넘고, 그중 하나만
+    묵으면 길이 조용히 벽을 뚫거나 문 앞에서 한 칸 못 미쳐 끊긴다.
 
-      1. 정문 담장 바로 밖(정문 폭 5칸의 가운데 3칸)
-      2. 동쪽으로 — 훈련 맵 열의 서쪽 앞마당(맵이 전부 x=120부터 시작해
-         그 앞은 빈 땅)까지
-      3. 북쪽으로 — TR04 남쪽 문 높이까지. x=120 담장 한 칸 앞(x=117~119)에
-         붙여서 TR04·TR05 서쪽 벽을 스치지 않는다
-      4. 동쪽으로 — TR04와 TR05 사이 4칸 틈(TR04 남쪽 y=85, TR05 북쪽 y=90)을
-         타고 문 앞까지
-      5. 북쪽으로 — 문턱(y=85)까지 마지막 세 칸
+    그래서 **훈련 맵 사각형에서 계산한다.** `trainmap.build()`가 맵을 세로로
+    쌓고 넘치면 오른쪽 열로 옮기는데(`x += column_w + 4`), 그 배치가 그대로
+    길의 뼈대가 된다:
 
-    폭 3타일 — 문(`DOOR_W`=2)보다 살짝 넓게 잡아 길이라는 게 한눈에 보이게 한다.
+      간선(trunk)  열마다 하나. 그 열 왼쪽 담장 바로 앞을 세로로 달린다.
+                   열 사이 간격이 4칸이라 폭 3이 딱 들어가고 한 칸이 남는다
+      지선(spur)   맵마다 하나. 남쪽 변 **바로 아래 빈 띠**를 타고 간선에서
+                   그 맵의 문 앞까지 간다. 맵을 4칸 띄워 쌓으므로(`h + 4`)
+                   그 띠는 언제나 비어 있다
+      문턱(stub)   지선에서 문 두 칸까지 올라붙는 마지막 조각
+      남측 연결로  제일 아래 맵보다 더 아래를 가로질러 열의 간선끼리 잇는다.
+                   이것이 없으면 두 번째 열은 첫 열과 따로 놀아 못 간다
+      정문 진입로  정문 밖 → 동쪽 → 첫 열 간선
+
+    폭은 `ROAD_W`. 반환값은 사각형 목록이고, 그대로 `base_map.json`의
+    `roads`가 되어 미니맵이 길을 그리는 데 쓴다.
     """
-    tr04 = next(s for s in TR.build()["topdown"] if s["id"] == _ROAD_TARGET)
-    door_x0, door_y = 141, tr04["y"] + tr04["h"] - 1
-    assert tr04["x"] < door_x0 < door_x0 + 1 < tr04["x"] + tr04["w"], \
-        "TR04 문 좌표가 어긋났다 — trainmap.py가 바뀌면 이 상수도 다시 맞춰야 한다"
+    maps = TR.build()["topdown"]
 
-    segments = [
-        (53, BASE_H - 2, 3, 4),        # 정문 밖 남쪽 스퍼
-        (54, 95, 66, 3),               # 동쪽 — 훈련 맵 열 앞까지
-        (117, 87, 3, 11),              # 북쪽 — TR04 문 높이까지
-        (117, 86, 26, 3),              # 동쪽 — TR04 문 앞까지
-        (door_x0, door_y, 2, 4),       # 문턱
-    ]
-    for (x0, y0, w, h) in segments:
-        ground.fill_floor(x0, y0, w, h, "asphalt")
+    # 열 = 같은 x에서 시작하는 맵들. `trainmap.build()`가 세로로 쌓은 그 단위다
+    columns: dict[int, list[dict]] = {}
+    for spec in maps:
+        columns.setdefault(spec["x"], []).append(spec)
+    column_x = sorted(columns)
 
-    cells: list[tuple[int, int]] = []
-    for (x0, y0, w, h) in segments:
-        cells.extend((x, y) for y in range(y0, y0 + h) for x in range(x0, x0 + w))
-    return cells
+    # 간선이 설 자리 — 그 열 왼쪽 담장 바로 앞 `ROAD_W`칸
+    trunk_x = {cx: cx - ROAD_W for cx in column_x}
+
+    # 왼쪽 열의 가장 넓은 맵이 오른쪽 열 간선 자리를 침범하지 않는가.
+    # `trainmap.build()`의 `+ 4` 간격에 기대는 부분이라 어긋나면 여기서 죽는다
+    for left, right in zip(column_x, column_x[1:]):
+        widest = max(s["x"] + s["w"] for s in columns[left])
+        assert widest <= trunk_x[right], (
+            f"훈련 맵 열 간격이 좁아 길이 들어갈 자리가 없다: "
+            f"x={left} 열이 {widest}까지 오는데 간선은 {trunk_x[right]}부터다. "
+            f"trainmap.build()의 열 간격(+4)을 ROAD_W({ROAD_W})보다 넓게 유지해라")
+
+    segments: list[dict] = []
+
+    def lay(x, y, w, h):
+        segments.append({"x": x, "y": y, "w": w, "h": h})
+
+    # 남측 연결로가 달릴 높이 — 모든 맵보다 아래. 여기서 열의 간선이 만난다
+    link_y = max(s["y"] + s["h"] for s in maps) + 1
+
+    for cx in column_x:
+        tx = trunk_x[cx]
+        spur_ys = []
+
+        for spec in columns[cx]:
+            rect = dict(x=spec["x"], y=spec["y"], w=spec["w"], h=spec["h"])
+            span = door_span(rect, "south")
+            door_x0, door_y = span[0][0], span[0][1]
+            door_x1 = span[-1][0]
+
+            # 지선은 맵 남쪽 변 바로 아래 띠. 맵을 `h + 4`로 띄워 쌓으므로 빈 띠다
+            spur_y = spec["y"] + spec["h"]
+            spur_ys.append(spur_y)
+            lay(tx, spur_y, door_x1 + 2 - tx, ROAD_W)
+
+            # 문턱 — 문 두 칸에서 지선까지. 문이 남쪽 변(y+h-1)이라 두 줄이면 닿는다
+            lay(door_x0, door_y, door_x1 - door_x0 + 1, spur_y - door_y + 1)
+
+        # 간선 — 그 열 맨 위 지선부터 남측 연결로까지 한 줄로
+        top = min(spur_ys)
+        lay(tx, top, ROAD_W, link_y + ROAD_W - top)
+
+    # 남측 연결로 — 열의 간선을 전부 꿴다
+    first, last = trunk_x[column_x[0]], trunk_x[column_x[-1]]
+    lay(first, link_y, last + ROAD_W - first, ROAD_W)
+
+    # 정문 진입로 — 정문 폭 5칸의 가운데 `ROAD_W`칸으로 나가 동쪽으로 달린다.
+    # 철조망 남쪽 변(y = BASE_H - 2)에서 시작해야 문턱이 흙으로 남지 않는다
+    gate_x = GATE_X0 + (GATE_X1 - GATE_X0 + 1 - ROAD_W) // 2
+    approach_y = BASE_H + 1
+    lay(gate_x, BASE_H - 2, ROAD_W, approach_y + ROAD_W - (BASE_H - 2))
+    lay(gate_x, approach_y, first + ROAD_W - gate_x, ROAD_W)
+
+    for seg in segments:
+        ground.fill_floor(seg["x"], seg["y"], seg["w"], seg["h"], "asphalt")
+
+    return segments
+
+
+def _road_cells(roads: list[dict]) -> list[tuple[int, int]]:
+    return [(x, y)
+            for r in roads
+            for y in range(r["y"], r["y"] + r["h"])
+            for x in range(r["x"], r["x"] + r["w"])]
 
 
 def _assert_road_clear(road_cells: list[tuple[int, int]], walls: Grid,
@@ -993,6 +1076,92 @@ def _assert_road_clear(road_cells: list[tuple[int, int]], walls: Grid,
 
     if bad:
         raise SystemExit("위병소-훈련장 길이 침범했다:\n  " + "\n  ".join(bad))
+
+
+def _assert_road_connected(roads: list[dict], road_cells: list[tuple[int, int]]) -> None:
+    """
+    길이 정문에서 훈련장 입구까지 **한 덩어리로** 이어지는가.
+
+    바로 아래 `_assert_training_reachable`과 목적이 다르다. 부대 밖은 벽이
+    없는 트인 땅이라 길을 한 칸도 안 깔아도 도달성 검사는 통과한다 — 즉
+    그 검사는 "갈 수 있는가"를 보증할 뿐 **길이 이어졌는가**는 못 본다.
+    지선 하나가 간선에 한 칸 못 미쳐 떠 있어도 조용히 넘어간다는 뜻이다.
+    길은 길로 증명한다.
+    """
+    road_set = set(road_cells)
+    start = (GATE_X0 + 2, BASE_H - 2)
+    assert start in road_set, f"정문 칸 {start}이 길 위에 없다"
+
+    seen = {start}
+    stack = [start]
+    while stack:
+        (x, y) = stack.pop()
+        for step in ((x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)):
+            if step in seen or step not in road_set: continue
+            seen.add(step)
+            stack.append(step)
+
+    orphan = len(road_set) - len(seen)
+    if orphan:
+        example = next(c for c in sorted(road_set) if c not in seen)
+        raise SystemExit(
+            f"길이 끊겼다 — 정문에서 못 닿는 길 {orphan}칸 (예: {example})")
+
+    for spec in TR.build()["topdown"]:
+        rect = dict(x=spec["x"], y=spec["y"], w=spec["w"], h=spec["h"])
+        missing = [c for c in door_span(rect, "south") if c not in seen]
+        if missing:
+            raise SystemExit(
+                f"{spec['id']} {spec['name']} 입구가 길에 안 닿는다: {missing}")
+
+
+def _assert_training_reachable(walls: Grid, zones: list[dict],
+                               props: list[dict]) -> None:
+    """
+    생활관에서 **걸어서** 훈련장 전부에 닿는가 — 실제 플러드필.
+
+    이 검사는 뒤늦게 넣었다. 그 전에는 "정문으로 나가서 간다"는 주석만 있고
+    철조망에 구멍이 없었는데, 코드 어디에도 그걸 잡는 장치가 없어서 훈련장
+    10곳이 통째로 도달 불가인 채 배포됐다 — `curriculum.json`이 D-03부터
+    사격장을 배정하므로 3일차에 게임이 멈추는 상태였다. 사용자가 플레이해서
+    발견했다. 통행은 사람 눈이 아니라 여기서 증명한다.
+
+    **소품도 막는 것으로 센다.** 벽만 보면 길 한복판에 물자 상자가 놓여도
+    통과로 나오는데, 실제로는 콜라이더가 있어 못 지나간다.
+    """
+    blocked = {(x, y) for (x, y) in walls.cells}
+    for prop in props:
+        if prop.get("walkable"):
+            continue
+        blocked.update((x, y)
+                       for x in range(prop["x"], prop["x"] + prop["w"])
+                       for y in range(prop["y"], prop["y"] + prop["h"]))
+
+    start_zone = next(z for z in zones if z["id"] == "Z01")
+    start = (start_zone["spawn"]["x"], start_zone["spawn"]["y"])
+
+    seen = {start}
+    stack = [start]
+    while stack:
+        (x, y) = stack.pop()
+        for (nx, ny) in ((x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)):
+            if not (0 <= nx < WIDTH and 0 <= ny < HEIGHT): continue
+            if (nx, ny) in seen or (nx, ny) in blocked: continue
+            seen.add((nx, ny))
+            stack.append((nx, ny))
+
+    # 사이드뷰 코스(`kind == "lane"`)는 제외한다 — 걸어가는 곳이 아니라
+    # 훈련 시작 시 전용 무대로 넘어가는 화면이다
+    unreachable = [
+        f"{z['id']} {z['name']}"
+        for z in zones
+        if z["id"].startswith("TR") and z["kind"] != "lane"
+        and (z["spawn"]["x"], z["spawn"]["y"]) not in seen
+    ]
+    if unreachable:
+        raise SystemExit(
+            f"생활관({start})에서 걸어서 못 가는 훈련장이 있다:\n  "
+            + "\n  ".join(unreachable))
 
 
 def _is_outer(b: dict, x: int, y: int) -> bool:

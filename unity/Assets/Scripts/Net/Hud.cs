@@ -1275,6 +1275,51 @@ namespace SoldierADay.Net
         }
 
         /// <summary>
+        /// 지금 그려야 할 권역.
+        ///
+        /// 구역 안에 서 있으면 그 구역의 권역이 곧 답이다. 문제는 **밖**이다 —
+        /// 도로와 공터는 어느 구역에도 속하지 않아(`ZoneWorld.Here == null`)
+        /// `CurrentZone`이 마지막으로 있던 구역에 그대로 멈춰 있다. 그대로
+        /// 쓰면 정문을 나서는 순간부터 훈련장 문턱을 밟을 때까지 내내 부대
+        /// 지도만 보게 되는데, **그 구간이 바로 지도가 가장 필요한 구간**이다.
+        ///
+        /// 그래서 밖에서는 몸이 있는 쪽으로 고른다. 부대와 훈련장은 걸어서
+        /// 이어져 있어도 한 장에 그릴 것은 아니므로(그리면 둘 다 손톱만 해진다)
+        /// 둘 중 가까운 쪽을 고르는 것이 맞다.
+        /// </summary>
+        private string CurrentRegion()
+        {
+            if (world?.Here != null) return RegionOf(world.Here.id);
+
+            var last = RegionOf(visibility != null ? visibility.CurrentZone : null);
+            if (world?.player == null || world.zones == null) return last;
+
+            // 사이드뷰는 후보가 아니다 — 걸어 나갈 수 있는 곳이 아니라
+            // 훈련이 시작되면 넘어가는 전용 화면이다
+            var at = (Vector2)world.player.transform.position;
+            var best = last;
+            var nearest = float.MaxValue;
+            foreach (var zone in world.zones)
+            {
+                if (zone == null) continue;
+                var region = RegionOf(zone.id);
+                if (region == "lane") continue;
+                var d = SqrDistanceTo(zone.area, at);
+                if (d >= nearest) continue;
+                nearest = d;
+                best = region;
+            }
+            return best;
+        }
+
+        private static float SqrDistanceTo(Rect r, Vector2 at)
+        {
+            var dx = Mathf.Max(r.xMin - at.x, 0f, at.x - r.xMax);
+            var dy = Mathf.Max(r.yMin - at.y, 0f, at.y - r.yMax);
+            return dx * dx + dy * dy;
+        }
+
+        /// <summary>
         /// 부대 배치도 (§7.9). 미니맵과 부대 지도가 **같은 그림**을 쓴다 —
         /// 두 화면의 배치가 다르면 익힌 지도가 쓸모없어진다.
         ///
@@ -1297,7 +1342,7 @@ namespace SoldierADay.Net
 
             // 지금 있는 권역만 그린다. 훈련 맵까지 한 장에 넣으면 부대가
             // 손톱만 해지고, 지도의 목적은 "여기가 어디인가"이지 세계의 크기가 아니다
-            var region = RegionOf(visibility != null ? visibility.CurrentZone : null);
+            var region = CurrentRegion();
 
             var min = new Vector2(float.MaxValue, float.MaxValue);
             var max = new Vector2(float.MinValue, float.MinValue);
@@ -1321,9 +1366,15 @@ namespace SoldierADay.Net
             // 내가 어느 방에 있는지는 알아도 **그 방 안 어디인지**를 알 수 없다.
             // 부대 전체 배치는 지도 창(TAB)이 맡고, 여기는 "지금 여기"만 본다.
             // 둘레를 조금 남기는 것은 옆방으로 가는 문이 보여야 하기 때문이다.
-            if (!detailed && world.Here != null)
+            if (!detailed && (world.Here != null || world.player != null))
             {
-                var seen = world.Here.area;
+                // **밖에서도 따라간다.** 예전에는 구역 안에 있을 때만 확대했고,
+                // 도로로 나서는 순간 권역 전체를 패널에 욱여넣는 쪽으로 떨어졌다.
+                // 부대는 그래도 읽혔지만 훈련장 권역은 110×124타일이라 지도가
+                // 손톱만 해졌다 — 길을 따라 걷는 내내 아무것도 안 보였다는 뜻이다.
+                // 구역이 없으면 기준 사각형도 없으니 `MaxView` 한 판을 그대로 쓴다
+                var seen = world.Here != null ? world.Here.area
+                                              : new Rect(0f, 0f, MaxView, MaxView);
 
                 // 구역과 그 둘레 55%가 패널을 채우는 배율 — 방에서는 지금까지와 같다
                 var fit = Mathf.Min(inner.width / (seen.width * 2.1f),
@@ -1452,12 +1503,66 @@ namespace SoldierADay.Net
                     : new Rect(box.xMin, box.center.y - thick * 0.5f, box.width, thick);
             }
 
+            /// 훈련장 입구에만 다는 바깥쪽 꼬리.
+            ///
+            /// 훈련장은 한 변이 40타일을 넘는 큰 사각형이고 입구는 그 위의
+            /// 2타일이다. 문선만으로는 긴 담장에 난 얼룩과 구별되지 않아,
+            /// 길을 따라 도착하고도 어디로 들어가는지 한 번 더 찾게 된다.
+            /// 바깥으로 짧은 꼬리를 달면 "여기로 들어간다"가 형태가 된다.
+            ///
+            /// 방향은 **그 구역 중심의 반대쪽**으로 잡는다. 지금은 입구가
+            /// 전부 남쪽이지만(`_training`), 그 사실을 여기 적어 두면
+            /// 생성기가 바뀌는 날 꼬리만 조용히 안쪽으로 뻗는다.
+            void EntranceTick(ZoneWorld.Door door)
+            {
+                if (string.IsNullOrEmpty(door.zone) || !door.zone.StartsWith("TR")) return;
+
+                ZoneMap owner = null;
+                foreach (var zone in world.zones)
+                {
+                    if (zone != null && zone.id == door.zone) { owner = zone; break; }
+                }
+                if (owner == null) return;
+
+                var box = BoxOf(door.area);
+                var stem = Mathf.Max(3f, k * 1.5f);
+
+                // 화면 y는 아래로 증가한다 — 월드에서 남쪽이면 화면에서는 아래다
+                var away = box.center - BoxOf(owner.area).center;
+                var rect = Mathf.Abs(away.x) > Mathf.Abs(away.y)
+                    ? new Rect(away.x > 0f ? box.xMax : box.xMin - stem,
+                               box.center.y - heavy * 0.5f, stem, heavy)
+                    : new Rect(box.center.x - heavy * 0.5f,
+                               away.y > 0f ? box.yMax : box.yMin - stem, heavy, stem);
+                _theme.Fill(Snap(rect), HudTheme.Heat);
+            }
+
             /* ── 1. 지금 서 있는 구역 — 유일한 채움 ── */
             foreach (var zone in world.zones)
             {
                 if (zone == null || zone.id != here) continue;
                 if (RegionOf(zone.id) != region) continue;
                 _theme.Fill(BoxOf(zone.area), HudTheme.Accent, 0.30f);
+            }
+
+            /* ── 1.5 길 ──
+             *
+             * 위병소에서 훈련장 7곳으로 나가는 길이다. 월드에서는 아스팔트
+             * **바닥 타일**이지만 이 지도는 바닥을 한 장도 그리지 않으므로
+             * (그리면 도면이 아니라 축소된 게임 화면이 된다) 길만 사각형으로
+             * 따로 받아 여기서 깐다.
+             *
+             * 길이 없으면 부대 밖은 통째로 빈 종이가 되고, 훈련장은 그 빈
+             * 종이 위에 떠 있는 상자 일곱 개가 된다 — 어디로 걸어야 저기에
+             * 닿는지가 지도에 없다.
+             *
+             * **벽보다 먼저 그린다.** 길은 바닥이고 벽은 그 위에 선다.
+             * 색은 종이보다 한 단 밝은 무채(Rule3) — 초록 벽선과 주황 문을
+             * 가리지 않으면서 "여기가 지나갈 수 있는 자리"만 말하는 정도다. */
+            foreach (var road in world.roads)
+            {
+                if (!InFrame(road)) continue;
+                _theme.Fill(Snap(BoxOf(road)), HudTheme.Rule3, 0.85f);
             }
 
             /* ── 2. 벽 ── */
@@ -1585,6 +1690,7 @@ namespace SoldierADay.Net
             {
                 if (!InFrame(door.area)) continue;
                 _theme.Fill(Snap(DoorLine(door)), HudTheme.Heat);
+                EntranceTick(door);
             }
 
             /* ── 4. 이름 ──
