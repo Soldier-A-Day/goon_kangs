@@ -251,6 +251,13 @@ function LobbyForm() {
 
         <div className="flex gap-4">
           <a
+            href="/tutorial"
+            className="flex h-[52px] w-[170px] items-center justify-center border text-base"
+            style={{ borderColor: "var(--accent)", color: "var(--accent)" }}
+          >
+            튜토리얼
+          </a>
+          <a
             href="/settings"
             className="flex h-[52px] w-[170px] items-center justify-center border text-base"
             style={{ borderColor: "var(--ink-2)", color: "var(--ink-2)" }}
