@@ -411,6 +411,16 @@ def build() -> dict:
     # 정문(Z18)으로 나가서 간다 — 사격장도 숙영지도 원래 위병소를 지나 간다
     walls.outline(1, 1, BASE_W - 2, BASE_H - 2, "wall:fence")
 
+    # **정문을 실제로 뚫는다.** 위 주석이 "정문(Z18)으로 나가서 간다"고 적어 놓고도
+    # 철조망에 구멍이 없었다 — 그래서 훈련장 10곳(사격장·유격장·행군로·숙영지 …)이
+    # 걸어서 도달 불가였고, D-03 사격훈련부터 진행이 막혔다(사용자 신고).
+    # 위병소 Z18(x46~62)의 가운데를 남쪽 철조망에서 걷어낸다.
+    GATE_X0, GATE_X1 = 52, 56          # 정문 폭 5칸 — 4인이 함께 지나갈 만큼
+    gate_y = BASE_H - 2                # `outline`이 그린 남쪽 변
+    for gx in range(GATE_X0, GATE_X1 + 1):
+        walls.clear(gx, gate_y)
+        protected.add((gx, gate_y))    # 남향 벽 두껍게 등 후속 처리가 다시 막지 않게
+
     _training(ground, walls, zones, props, protected)
 
     # **벽은 한 줄로 둔다.** 남향 벽을 2타일로 두껍게 해 본 적이 있다(캐릭터가
