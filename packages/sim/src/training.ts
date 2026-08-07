@@ -1,4 +1,16 @@
+import trainingTable from "../data/training.json";
 import type { TempBand, Zone } from "./types.js";
+
+/**
+ * 훈련장까지 걸어가는 **편도** 시간(초). 시간대 길이에 더해진다
+ * (`phases.ts` `phaseDurationMsFor`). 근거·측정법은 `data/training.json` 주석에.
+ */
+const TRAVEL_SECONDS = trainingTable.travelSeconds as Record<string, number>;
+
+/** 그 훈련장까지의 편도 도보 시간(초). 모르는 구역이면 0 — 시간을 더 주지 않는다 */
+export function travelSecondsToZone(zone: string): number {
+  return TRAVEL_SECONDS[zone] ?? 0;
+}
 
 /**
  * 9.0 훈련 — 어디서 하는가.

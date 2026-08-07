@@ -59,6 +59,29 @@ export type Send = (memberId: string, message: ServerMessage) => void;
  * 방은 상태를 소유하고 sim을 돌린다. 클라이언트가 보내는 것은 의도뿐이며,
  * 진척·판정·기온은 전부 여기서 결정된다 — 판정이 곧 승패이므로 클라를 신뢰할 수 없다.
  */
+/**
+ * 런 하나를 가리키는 id.
+ *
+ * **예전에는 `run-${code}`였다 — 그러면 방을 가리키지 런을 가리키지 않는다.**
+ * 같은 방에서 재시작하면(`restart()`) 코드가 그대로라 새 런이 옛 런과 같은
+ * id를 달았고, 두 가지가 조용히 깨졌다:
+ *
+ *   1. **기록이 서로 덮어썼다.** 완주 기록은 Supabase에 `run_id`로 저장되고
+ *      `/ledger/:runId`가 그걸로 조회한다 — 같은 방에서 두 번 하면 앞 판의
+ *      장부가 뒤 판으로 바뀐다
+ *   2. **클라이언트가 새 런을 알아볼 수 없었다.** 그래서 재시작해도 "오늘의
+ *      기록"에 이전 판 일지가 그대로 남았다(사용자 신고). 날짜로는 못 잡는다 —
+ *      1일차에 끝나고 재시작하면 `day`가 1 → 1이라 바뀐 것이 없다
+ *
+ * 시각을 섞어 판마다 새 id를 만든다. 재시작은 이미 시드를 `Math.random()`으로
+ * 뽑으므로(같은 시드면 진 판을 외워서 다시 하는 것이 최적해가 된다) 이 자리에
+ * 비결정성이 들어오는 것은 새로 생기는 문제가 아니다. 런 **안**의 진행은
+ * 여전히 시드로 완전히 결정된다.
+ */
+function newRunId(code: string): string {
+  return `run-${code}-${Date.now().toString(36)}`;
+}
+
 export class Room {
   readonly code: string;
   readonly seats: Seat[];
@@ -183,7 +206,7 @@ export class Room {
     if (members.length === 0) return false;
 
     this.run = createRun({
-      runId: `run-${this.code}`,
+      runId: newRunId(this.code),
       seed: this.seed,
       members,
       config: this.config,
@@ -216,7 +239,7 @@ export class Room {
     if (members.length === 0) return false;
 
     this.run = createRun({
-      runId: `run-${this.code}`,
+      runId: newRunId(this.code),
       seed: Math.floor(Math.random() * (2 ** 31 - 1)) + 1,
       members,
       config: this.config,

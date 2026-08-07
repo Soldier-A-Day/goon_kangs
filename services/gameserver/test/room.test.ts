@@ -868,3 +868,70 @@ describe("17.0 이어하기와 기록", () => {
     expect(await storage.records.list()).toHaveLength(1);
   });
 });
+
+describe("재시작", () => {
+  /**
+   * 같은 방에서 다시 시작하면 **새 런이다.**
+   *
+   * 예전에는 `runId`가 `run-${code}`라 방을 가리켰지, 런을 가리키지 않았다.
+   * 그래서 두 가지가 조용히 깨졌다 — 완주 기록이 `run_id`로 저장되므로 앞
+   * 판의 장부가 뒤 판으로 덮어써졌고, 클라이언트가 새 판을 알아볼 수 없어
+   * "오늘의 기록"에 이전 판 일지가 그대로 남았다(사용자 신고).
+   *
+   * **날짜로는 못 잡는다** — 정규 난이도는 필수 미달 한 번에 끝나므로 1일차
+   * 종료가 흔하고, 그러면 재시작해도 `day`가 1 → 1이라 바뀐 것이 없다.
+   */
+  function playUntilOver(h: Harness): void {
+    if (!h.room.run) throw new Error("런 없음");
+    h.room.run.reliefsRemaining = 0;
+    let guard = 0;
+    while (h.room.run.status === "running" && guard++ < 200) {
+      h.room.tick(5_000);
+    }
+  }
+
+  it("재시작하면 런 id가 바뀐다", () => {
+    const h = harness();
+    fourPlayers(h.room);
+    h.room.start();
+    const first = h.room.run?.runId;
+    expect(first).toBeTruthy();
+
+    playUntilOver(h);
+    expect(h.room.restart()).toBe(true);
+
+    expect(h.room.run?.runId).toBeTruthy();
+    expect(h.room.run?.runId).not.toBe(first);
+  });
+
+  it("런 id가 스냅샷에 실려 나간다 — 클라이언트가 새 판을 알아보는 근거다", () => {
+    const h = harness();
+    fourPlayers(h.room);
+    h.room.start();
+    const before = h.lastSnapshot()?.runId;
+
+    playUntilOver(h);
+    h.room.restart();
+
+    const after = h.lastSnapshot()?.runId;
+    expect(before).toBeTruthy();
+    expect(after).toBeTruthy();
+    expect(after).not.toBe(before);
+  });
+
+  it("1일차에 끝나고 재시작해도 — 날짜는 그대로 1이지만 런 id는 다르다", () => {
+    const h = harness();
+    fourPlayers(h.room);
+    h.room.start();
+    const first = h.room.run?.runId;
+
+    playUntilOver(h);
+    h.room.restart();
+
+    // 날짜만 보던 옛 판정이 왜 실패했는지를 그대로 적어 둔다
+    if (h.room.run?.day === 1) {
+      expect(h.room.run?.runId).not.toBe(first);
+    }
+    expect(h.room.run?.day).toBe(1);
+  });
+});

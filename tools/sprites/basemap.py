@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import json
 import os
+from collections import deque
 
 import tiles as T
 import trainmap as TR
@@ -455,6 +456,7 @@ def build() -> dict:
     _assert_road_clear(road_cells, walls, props, zones)
     _assert_road_connected(roads, road_cells)
     _assert_training_reachable(walls, zones, props)
+    _assert_training_travel_time(walls, zones, props, doors)
 
     return {
         "tile": TILE,
@@ -1129,6 +1131,30 @@ def _assert_training_reachable(walls: Grid, zones: list[dict],
     **소품도 막는 것으로 센다.** 벽만 보면 길 한복판에 물자 상자가 놓여도
     통과로 나오는데, 실제로는 콜라이더가 있어 못 지나간다.
     """
+    start, steps = _walk_distances(walls, zones, props)
+
+    # 사이드뷰 코스(`kind == "lane"`)는 제외한다 — 걸어가는 곳이 아니라
+    # 훈련 시작 시 전용 무대로 넘어가는 화면이다
+    unreachable = [
+        f"{z['id']} {z['name']}"
+        for z in zones
+        if z["id"].startswith("TR") and z["kind"] != "lane"
+        and (z["spawn"]["x"], z["spawn"]["y"]) not in steps
+    ]
+    if unreachable:
+        raise SystemExit(
+            f"생활관({start})에서 걸어서 못 가는 훈련장이 있다:\n  "
+            + "\n  ".join(unreachable))
+
+
+def _walk_distances(walls: Grid, zones: list[dict],
+                    props: list[dict]) -> tuple[tuple[int, int], dict]:
+    """
+    생활관(Z01) 스폰에서 각 칸까지 **걸어서 몇 칸인가**. (시작점, 거리표).
+
+    벽과 못 지나가는 소품을 막힌 것으로 센다 — 벽만 보면 길 한복판에 물자
+    상자가 놓여도 통과로 나오는데, 실제로는 콜라이더가 있어 못 지나간다.
+    """
     blocked = {(x, y) for (x, y) in walls.cells}
     for prop in props:
         if prop.get("walkable"):
@@ -1140,28 +1166,69 @@ def _assert_training_reachable(walls: Grid, zones: list[dict],
     start_zone = next(z for z in zones if z["id"] == "Z01")
     start = (start_zone["spawn"]["x"], start_zone["spawn"]["y"])
 
-    seen = {start}
-    stack = [start]
-    while stack:
-        (x, y) = stack.pop()
+    # 너비 우선 — 최단 거리를 재야 하므로 스택(깊이 우선)이면 안 된다
+    steps = {start: 0}
+    queue = deque([start])
+    while queue:
+        (x, y) = queue.popleft()
         for (nx, ny) in ((x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)):
             if not (0 <= nx < WIDTH and 0 <= ny < HEIGHT): continue
-            if (nx, ny) in seen or (nx, ny) in blocked: continue
-            seen.add((nx, ny))
-            stack.append((nx, ny))
+            if (nx, ny) in steps or (nx, ny) in blocked: continue
+            steps[(nx, ny)] = steps[(x, y)] + 1
+            queue.append((nx, ny))
 
-    # 사이드뷰 코스(`kind == "lane"`)는 제외한다 — 걸어가는 곳이 아니라
-    # 훈련 시작 시 전용 무대로 넘어가는 화면이다
-    unreachable = [
-        f"{z['id']} {z['name']}"
-        for z in zones
-        if z["id"].startswith("TR") and z["kind"] != "lane"
-        and (z["spawn"]["x"], z["spawn"]["y"]) not in seen
-    ]
-    if unreachable:
-        raise SystemExit(
-            f"생활관({start})에서 걸어서 못 가는 훈련장이 있다:\n  "
-            + "\n  ".join(unreachable))
+    return start, steps
+
+
+def _assert_training_travel_time(walls: Grid, zones: list[dict],
+                                 props: list[dict], doors: list[dict]) -> None:
+    """
+    훈련장까지 걸어가는 시간이 sim이 주는 이동 시간 안에 드는가.
+
+    **이 검사가 없어서 훈련일 필수가 수행 불가였다.** 시간대는 60초 고정인데
+    생활관에서 사격장까지 왕복이 61초, 혹서기 급수 라인은 71초다 — 걷기만
+    해도 시간대가 끝나서 훈련 체크포인트를 시작조차 못 했다. 훈련장 7곳으로
+    길을 넓히면서 더 멀어졌고, 사용자가 플레이하다 신고했다.
+
+    `packages/sim/data/training.json`이 훈련장별 **편도** 이동 시간을 들고
+    있고 `phases.ts`가 그만큼 시간대를 늘린다. 그 표가 맵과 어긋나면 —
+    맵을 고쳐 길이 멀어졌는데 표는 그대로면 — 같은 사고가 조용히 돌아온다.
+    여기서 실측해 대조한다. 아트와 규칙이 따로 사는 값을 잇는 자리다
+    (`_assert_matches_sim`이 구역 정의를 같은 방식으로 잇는다).
+    """
+    with open(os.path.join(ROOT, "packages", "sim", "data", "training.json"),
+              encoding="utf-8") as f:
+        table = json.load(f)
+    allowance = table["travelSeconds"]
+    tiles_per_second = table["_tileSpeed"]
+
+    _start, steps = _walk_distances(walls, zones, props)
+
+    # 목적지는 **입구**다. 구역 스폰이 아니라 — 사람은 문으로 들어간다
+    targets = {d["zone"]: (d["x"], d["y"])
+               for d in doors if d["zone"].startswith("TR")}
+    # 사이드뷰 코스는 문이 없다(담장을 두르지 않는다) — 스폰을 쓴다
+    for zone in zones:
+        if zone["id"].startswith("TR") and zone["id"] not in targets:
+            targets[zone["id"]] = (zone["spawn"]["x"], zone["spawn"]["y"])
+
+    bad = []
+    for zone_id, at in sorted(targets.items()):
+        distance = steps.get(at)
+        if distance is None:
+            bad.append(f"{zone_id}: 입구 {at}에 걸어서 못 간다")
+            continue
+        walk = distance / tiles_per_second
+        given = allowance.get(zone_id)
+        if given is None:
+            bad.append(f"{zone_id}: training.json에 이동 시간이 없다 "
+                       f"(실측 편도 {walk:.1f}초)")
+        elif walk > given:
+            bad.append(f"{zone_id}: 편도 {walk:.1f}초인데 {given}초만 준다 "
+                       f"— training.json의 travelSeconds를 올려라")
+
+    if bad:
+        raise SystemExit("훈련장 이동 시간이 모자란다:\n  " + "\n  ".join(bad))
 
 
 def _is_outer(b: dict, x: int, y: int) -> bool:

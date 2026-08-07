@@ -39,6 +39,9 @@ namespace SoldierADay.Net
         private Snapshot _beforeSleep;
         private double _lastDay = -1d;
 
+        /// <summary>마지막으로 본 런 id. 바뀌면 새 판이다 — 오늘의 기록을 비운다</summary>
+        private string _lastRunId;
+
         /// <summary>하루 마감에서 판정 다음으로 보여줄 화면들(승급 → 취침 정산 순).
         ///
         /// 서버는 하루 마감 이펙트를 한 WS 메시지로 묶어 보내고(room.ts:506),
@@ -191,8 +194,13 @@ namespace SoldierADay.Net
             if (Input.GetKeyDown(KeyCode.M))
                 _screen = _screen == Screen.Map ? Screen.None : Screen.Map;
 
-            if (Input.GetKeyDown(KeyCode.Escape) && _screen != Screen.None)
-                _screen = Screen.None;
+            if (Input.GetKeyDown(KeyCode.Escape))
+            {
+                // 구제 확인 창이 떠 있으면 **그것만** 닫는다. 같이 닫아 버리면
+                // 일과표까지 사라져서 "취소했더니 화면이 통째로 꺼졌다"가 된다
+                if (_reliefPending != null) _reliefPending = null;
+                else if (_screen != Screen.None) _screen = Screen.None;
+            }
         }
 
         /* ══════════════════════════════════════════════════ 상태 갱신 */
@@ -241,6 +249,23 @@ namespace SoldierADay.Net
 
             // §7.4 일과표는 매일 아침 전면 표시 — 지시 1로 일과표가 합쳐진 창의
             // 한 탭이 됐으므로, 여는 것도 "그 창을 일과표 탭으로" 연다(지시 2).
+            // **런이 바뀌면 날짜와 무관하게 비운다.**
+            //
+            // 같은 방에서 재시작하면(`room.ts restart()`) 새 런도 1일차로
+            // 시작한다. 그런데 비우는 조건이 `day != _lastDay` 하나뿐이라,
+            // 직전 판이 1일차에 끝났으면 1 → 1이 되어 **이전 판 일지가 그대로
+            // 남았다**(사용자 신고). 정규 난이도는 필수 미달 한 번에 끝나므로
+            // 1일차 종료는 드문 일이 아니다. 날짜는 런을 구별하지 못한다 —
+            // 런 id로 구별한다.
+            var runChanged = !string.IsNullOrEmpty(snapshot.runId) &&
+                             snapshot.runId != _lastRunId;
+            if (runChanged)
+            {
+                _lastRunId = snapshot.runId;
+                _hud.ClearJournalForNewDay(snapshot.day);
+                _lastDay = snapshot.day;
+            }
+
             if (snapshot.day != _lastDay)
             {
                 if (_lastDay >= 0d && _screen == Screen.None)
@@ -583,6 +608,70 @@ namespace SoldierADay.Net
                 case Screen.RollCall: DrawRollCall(theme, snapshot); break;
                 case Screen.Sleep: DrawSleep(theme, snapshot); break;
                 case Screen.Rank: DrawRankReview(theme, snapshot); break;
+            }
+
+            // 일과표 **위에** 그린다 — 확인 창이 그 아래 깔리면 못 누른다
+            if (_reliefPending != null) DrawReliefConfirm(theme, snapshot);
+        }
+
+        /* ═════════════════════════════════════════════ 구제 발동 확인 (B-4) */
+
+        /// <summary>확인을 기다리는 구제 대상 퀘스트. null이면 확인 창이 없다</summary>
+        private string _reliefPending;
+        private string _reliefPendingLabel;
+
+        /// <summary>
+        /// 구제 발동 확인.
+        ///
+        /// **되돌릴 수 없는 자원을 쓰는 자리라 한 단계를 세운다.** 분대장 몫은
+        /// 런당 2장이고 하루가 지나도 차지 않는다. 무엇을 어디에 쓰는지와
+        /// 쓰고 나면 몇 장 남는지를 문장으로 보여준 뒤에만 인텐트를 보낸다.
+        ///
+        /// 자격·대상 검증은 여전히 서버(`relief.ts` `useRelief`)가 한다 —
+        /// 이 창은 실수를 막을 뿐 규칙을 판정하지 않는다(ARCH-02).
+        /// </summary>
+        private void DrawReliefConfirm(HudTheme theme, Snapshot snapshot)
+        {
+            var panel = Backdrop(theme, 720f, 300f, 0.78f);
+            Head(theme, panel, 96f, "RELIEF", "구제 발동",
+                 $"분대장 몫 {snapshot?.leaderReliefsRemaining ?? 0:0}장 남음");
+
+            GUI.Label(new Rect(panel.x + 32f, panel.y + 116f, panel.width - 64f, 28f),
+                $"「{_reliefPendingLabel}」을 필수에서 선택으로 내린다.",
+                theme.At(theme.Body, 18, HudTheme.Ink));
+
+            // `Mathf.Max`는 float만 받는다 — 스냅샷 수치는 double이라 System.Math를 쓴다
+            var left = System.Math.Max(0d, (snapshot?.leaderReliefsRemaining ?? 0d) - 1d);
+            GUI.Label(new Rect(panel.x + 32f, panel.y + 150f, panel.width - 64f, 26f),
+                $"오늘 밤 점호에서 이 항목을 세지 않는다. 구제권 1장을 쓴다 — 쓰고 나면 {left:0}장.",
+                theme.At(theme.Small, 15, HudTheme.Ink2));
+
+            GUI.Label(new Rect(panel.x + 32f, panel.y + 180f, panel.width - 64f, 26f),
+                "되돌릴 수 없다. 하루가 지나도 다시 차지 않는다.",
+                theme.At(theme.Small, 15, HudTheme.Heat));
+
+            var cancel = new Rect(panel.x + 32f, panel.yMax - 76f, 200f, 48f);
+            var confirm = new Rect(panel.xMax - 232f, panel.yMax - 76f, 200f, 48f);
+
+            theme.Panel(cancel, HudTheme.Paper, HudTheme.Rule);
+            GUI.Label(cancel, "취소", theme.At(theme.Body, 17, HudTheme.Ink2, TextAnchor.MiddleCenter));
+
+            theme.Fill(confirm, HudTheme.Heat);
+            GUI.Label(confirm, "구제 발동", theme.At(theme.Body, 17, HudTheme.Paper, TextAnchor.MiddleCenter));
+
+            if (Event.current.type == EventType.MouseUp)
+            {
+                if (confirm.Contains(Event.current.mousePosition))
+                {
+                    Client.Send(new Intent { type = IntentTypeValues.UseRelief, questId = _reliefPending });
+                    _reliefPending = null;
+                    Event.current.Use();
+                }
+                else if (cancel.Contains(Event.current.mousePosition))
+                {
+                    _reliefPending = null;
+                    Event.current.Use();
+                }
             }
         }
 
@@ -1221,9 +1310,18 @@ namespace SoldierADay.Net
                     theme.Border(relief, HudTheme.Heat);
                     GUI.Label(relief, "구제 발동", theme.At(theme.Small, 13, HudTheme.Heat, TextAnchor.MiddleCenter));
 
-                    if (Event.current.type == EventType.MouseDown && relief.Contains(Event.current.mousePosition))
+                    // **바로 보내지 않는다 — 확인을 한 번 받는다.**
+                    //
+                    // 구제권은 런 전체에서 분대장 몫 2장뿐이고 하루가 지나도 다시
+                    // 차지 않는다. 그런데 이 버튼은 미완료 필수 **행마다** 깔리고
+                    // (혼자 플레이하면 언제나 자기가 분대장이라 늘 그렇다) 구역
+                    // 이름표 바로 옆이다. 예전에는 `MouseDown` 한 번에 그대로
+                    // 인텐트가 나가서, 잘못 누르면 되돌릴 수 없는 자원이 조용히
+                    // 사라졌다 — 확인도 취소도 없었다. 사용자 지적으로 고쳤다.
+                    if (Event.current.type == EventType.MouseUp && relief.Contains(Event.current.mousePosition))
                     {
-                        Client.Send(new Intent { type = IntentTypeValues.UseRelief, questId = quest.id });
+                        _reliefPending = quest.id;
+                        _reliefPendingLabel = quest.label;
                         Event.current.Use();
                     }
                 }
