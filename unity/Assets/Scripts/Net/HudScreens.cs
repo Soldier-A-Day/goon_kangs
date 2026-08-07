@@ -621,32 +621,91 @@ namespace SoldierADay.Net
         private string _reliefPendingLabel;
 
         /// <summary>
-        /// 구제 발동 확인.
+        /// 구제 발동 — 대상 고르기 + 확인.
         ///
-        /// **되돌릴 수 없는 자원을 쓰는 자리라 한 단계를 세운다.** 분대장 몫은
-        /// 런당 2장이고 하루가 지나도 차지 않는다. 무엇을 어디에 쓰는지와
-        /// 쓰고 나면 몇 장 남는지를 문장으로 보여준 뒤에만 인텐트를 보낸다.
+        /// **분대 전체의 미완료 필수를 한자리에 모은다.** 수첩 4분할은 전부
+        /// 자기 것만 보여주는데, 점호는 소유자를 안 가리고 미완료 필수를
+        /// 전부 센다(`judge.ts` `countShortfall`). 그래서 분대장에게 필요한
+        /// 목록은 "내 것"이 아니라 **"오늘 밤 점호를 깨뜨릴 것 전부"**다.
+        ///
+        /// **되돌릴 수 없는 자원이라 확인을 한 단계 세운다.** 분대장 몫은
+        /// 런당 2장이고 하루가 지나도 차지 않는다. 무엇을 누구 것에 쓰는지와
+        /// 쓰고 나면 몇 장 남는지를 보여준 뒤에만 인텐트를 보낸다.
         ///
         /// 자격·대상 검증은 여전히 서버(`relief.ts` `useRelief`)가 한다 —
-        /// 이 창은 실수를 막을 뿐 규칙을 판정하지 않는다(ARCH-02).
+        /// 이 창은 실수를 막고 길을 열 뿐 규칙을 판정하지 않는다(ARCH-02).
         /// </summary>
         private void DrawReliefConfirm(HudTheme theme, Snapshot snapshot)
         {
-            var panel = Backdrop(theme, 720f, 300f, 0.78f);
-            Head(theme, panel, 96f, "RELIEF", "구제 발동",
-                 $"분대장 몫 {snapshot?.leaderReliefsRemaining ?? 0:0}장 남음");
+            // 대상 = 지금 필수인데 아직 못 끝낸 것. `canUseRelief`가 받는 조건과 같다
+            var targets = new List<SnapshotQuestsItem>();
+            if (snapshot?.quests != null)
+            {
+                foreach (var quest in snapshot.quests)
+                {
+                    if (quest == null || !quest.required) continue;
+                    if (quest.status == SnapshotQuestsItemStatusValues.Done) continue;
+                    targets.Add(quest);
+                }
+            }
 
-            GUI.Label(new Rect(panel.x + 32f, panel.y + 116f, panel.width - 64f, 28f),
-                $"「{_reliefPendingLabel}」을 필수에서 선택으로 내린다.",
-                theme.At(theme.Body, 18, HudTheme.Ink));
+            const float rowH = 44f;
+            var listH = Mathf.Max(rowH, targets.Count * rowH);
+            var panel = Backdrop(theme, 860f, 250f + listH, 0.78f);
+            Head(theme, panel, 96f, "RELIEF", "구제 발동",
+                 $"분대장 몫 {snapshot?.leaderReliefsRemaining ?? 0d:0}장 남음");
+
+            GUI.Label(new Rect(panel.x + 32f, panel.y + 104f, panel.width - 64f, 24f),
+                "오늘 밤 점호에서 셀 미완료 필수 — 하나를 골라 선택으로 내린다",
+                theme.At(theme.Small, 14, HudTheme.Ink2));
+
+            var y = panel.y + 132f;
+            foreach (var quest in targets)
+            {
+                var row = new Rect(panel.x + 32f, y, panel.width - 64f, rowH - 6f);
+                var picked = quest.id == _reliefPending;
+                var mine = quest.ownerId == Client.MemberId;
+
+                theme.Fill(row, picked ? HudTheme.AccentW : HudTheme.Paper2);
+                theme.Border(row, picked ? HudTheme.Heat : HudTheme.Rule);
+
+                // 누구 것인지가 먼저다 — 분대장이 고르는 기준이 그것이다
+                GUI.Label(new Rect(row.x + 12f, row.y, 150f, row.height),
+                    mine ? "나" : NameOf(snapshot, quest.ownerId),
+                    theme.At(theme.Body, 16, mine ? HudTheme.Accent : HudTheme.Ink));
+                GUI.Label(new Rect(row.x + 170f, row.y, 420f, row.height), quest.label,
+                    theme.At(theme.Body, 16, HudTheme.Ink));
+                GUI.Label(new Rect(row.xMax - 240f, row.y, 228f, row.height),
+                    ZoneNames.Of(quest.zone),
+                    theme.At(theme.Small, 14, HudTheme.Ink2, TextAnchor.MiddleRight));
+
+                if (Event.current.type == EventType.MouseUp && row.Contains(Event.current.mousePosition))
+                {
+                    _reliefPending = quest.id;
+                    _reliefPendingLabel = quest.label;
+                    Event.current.Use();
+                }
+                y += rowH;
+            }
+
+            if (targets.Count == 0)
+            {
+                GUI.Label(new Rect(panel.x + 32f, panel.y + 132f, panel.width - 64f, rowH),
+                    "미완료 필수가 없다 — 지금은 구제할 것이 없다",
+                    theme.At(theme.Body, 16, HudTheme.Ink2));
+            }
 
             // `Mathf.Max`는 float만 받는다 — 스냅샷 수치는 double이라 System.Math를 쓴다
-            var left = System.Math.Max(0d, (snapshot?.leaderReliefsRemaining ?? 0d) - 1d);
-            GUI.Label(new Rect(panel.x + 32f, panel.y + 150f, panel.width - 64f, 26f),
-                $"오늘 밤 점호에서 이 항목을 세지 않는다. 구제권 1장을 쓴다 — 쓰고 나면 {left:0}장.",
-                theme.At(theme.Small, 15, HudTheme.Ink2));
+            var remaining = System.Math.Max(0d, (snapshot?.leaderReliefsRemaining ?? 0d) - 1d);
+            var chosen = !string.IsNullOrEmpty(_reliefPending);
 
-            GUI.Label(new Rect(panel.x + 32f, panel.y + 180f, panel.width - 64f, 26f),
+            GUI.Label(new Rect(panel.x + 32f, y + 8f, panel.width - 64f, 26f),
+                chosen
+                    ? $"「{_reliefPendingLabel}」을 필수에서 선택으로 내린다 — 구제권 1장, 쓰고 나면 {remaining:0}장."
+                    : "고른 것이 없다 — 위에서 하나를 누르면 발동할 수 있다.",
+                theme.At(theme.Small, 15, chosen ? HudTheme.Ink : HudTheme.Ink2));
+
+            GUI.Label(new Rect(panel.x + 32f, y + 36f, panel.width - 64f, 26f),
                 "되돌릴 수 없다. 하루가 지나도 다시 차지 않는다.",
                 theme.At(theme.Small, 15, HudTheme.Heat));
 
@@ -656,12 +715,14 @@ namespace SoldierADay.Net
             theme.Panel(cancel, HudTheme.Paper, HudTheme.Rule);
             GUI.Label(cancel, "취소", theme.At(theme.Body, 17, HudTheme.Ink2, TextAnchor.MiddleCenter));
 
-            theme.Fill(confirm, HudTheme.Heat);
-            GUI.Label(confirm, "구제 발동", theme.At(theme.Body, 17, HudTheme.Paper, TextAnchor.MiddleCenter));
+            // 안 고른 채로는 못 누른다 — 눌러도 서버가 거부할 뿐이라 미리 막는다
+            theme.Fill(confirm, chosen ? HudTheme.Heat : HudTheme.Rule2);
+            GUI.Label(confirm, "구제 발동",
+                theme.At(theme.Body, 17, chosen ? HudTheme.Paper : HudTheme.Ink2, TextAnchor.MiddleCenter));
 
             if (Event.current.type == EventType.MouseUp)
             {
-                if (confirm.Contains(Event.current.mousePosition))
+                if (chosen && confirm.Contains(Event.current.mousePosition))
                 {
                     Client.Send(new Intent { type = IntentTypeValues.UseRelief, questId = _reliefPending });
                     _reliefPending = null;
@@ -829,6 +890,35 @@ namespace SoldierADay.Net
                 if (Event.current.type == EventType.MouseDown && officer.Contains(Event.current.mousePosition))
                 {
                     Client.Send(new Intent { type = IntentTypeValues.UseOfficerRelief });
+                    Event.current.Use();
+                }
+            }
+
+            // **분대장 구제 — 분대 전체가 대상이다.**
+            //
+            // 4분할은 전부 `IsMine(q)`이라 수첩에는 자기 일과만 나온다. 그런데
+            // 점호 판정(`judge.ts` `countShortfall`)은 **소유자를 안 가리고**
+            // 미완료 필수를 전부 세고, `relief.ts` `canUseRelief`에도 소유자
+            // 검사가 없다 — 규칙상 분대장은 남의 필수도 내릴 수 있는데 **UI에
+            // 그 길이 없었다.** 분대원 것 하나가 남아 점호가 깨져도 분대장이
+            // 손쓸 방법이 없다는 뜻이다(사용자 지적).
+            //
+            // 그래서 여기 하나를 열어 **분대 전체의 미완료 필수**를 고르게 한다.
+            // 일과표의 행별 버튼은 자기 것 바로가기로 남는다.
+            if (snapshot != null && Client.MemberId == snapshot.leaderId &&
+                snapshot.leaderReliefsRemaining > 0d)
+            {
+                var leader = new Rect(panel.xMax - 500f, panel.y + 52f, 210f, 32f);
+                theme.Fill(leader, HudTheme.Paper);
+                theme.Border(leader, HudTheme.Heat, 2f);
+                GUI.Label(leader, $"구제 발동 ({snapshot.leaderReliefsRemaining:0}장)",
+                    theme.At(theme.Small, 14, HudTheme.Heat, TextAnchor.MiddleCenter));
+
+                if (Event.current.type == EventType.MouseUp && leader.Contains(Event.current.mousePosition))
+                {
+                    // 대상 미선택으로 연다 — 창이 분대 전체 목록을 그린다
+                    _reliefPending = "";
+                    _reliefPendingLabel = null;
                     Event.current.Use();
                 }
             }

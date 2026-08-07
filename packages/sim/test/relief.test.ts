@@ -141,6 +141,38 @@ describe("B-4 분대장 우선순위 지정 (useRelief)", () => {
     expect(useRelief(state, "p1", "c", [])).toBe(false);
     expect(state.quests.find((q) => q.id === "c")?.required).toBe(true);
   });
+
+  /**
+   * **분대장은 남의 필수도 내릴 수 있다.**
+   *
+   * 점호 판정(`judge.ts` `countShortfall`)이 소유자를 안 가리고 미완료 필수를
+   * 전부 세므로, 분대원 것 하나가 남아도 그날 판정이 깨진다. 그래서 구제에도
+   * 소유자 검사가 없다 — 자기 것만 내릴 수 있으면 정작 위기를 못 막는다.
+   *
+   * 수첩 UI가 오랫동안 자기 필수(`IsMine`)만 보여줘서 **규칙은 되는데 길이
+   * 없었다**(사용자 지적). 그 길을 열면서 이 규칙을 여기 못박는다 — 나중에
+   * 누가 `ownerId` 검사를 넣으면 UI가 조용히 죽는다.
+   */
+  it("분대장은 분대원의 필수도 내릴 수 있다 — 소유자를 가리지 않는다", () => {
+    let state = beginDay(fullSquad());
+    state.leaderId = "p1";
+    state = withQuests(state, [quest({ id: "mate", ownerId: "p2" })]);
+
+    expect(canUseRelief(state, "p1", "mate")).toEqual({ ok: true });
+    expect(useRelief(state, "p1", "mate", [])).toBe(true);
+    expect(state.quests[0]?.required).toBe(false);
+  });
+
+  it("분대장이 아니면 남의 것도 자기 것도 못 내린다", () => {
+    let state = beginDay(fullSquad());
+    state.leaderId = "p1";
+    state = withQuests(state, [quest({ id: "mine", ownerId: "p2" })]);
+
+    expect(canUseRelief(state, "p2", "mine")).toEqual({
+      ok: false,
+      reason: "notLeader",
+    });
+  });
 });
 
 describe("B-4 간부 구제 (useOfficerRelief)", () => {
