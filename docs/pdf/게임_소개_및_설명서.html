@@ -1,0 +1,469 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>SOLDIER : A DAY — 게임 소개 및 설명서</title>
+<style>
+  @page { size: A4; margin: 18mm 16mm 16mm 16mm; }
+
+  :root {
+    --ink: #16180f;
+    --ink2: #4a4f3c;
+    --ink3: #7c8270;
+    --rule: #c9cdbc;
+    --rule2: #e3e6da;
+    --accent: #55692c;
+    --accentbg: #eef1e2;
+    --heat: #a8541f;
+    --paper2: #f6f7f0;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    font-family: "Apple SD Gothic Neo", "Noto Sans KR", -apple-system, sans-serif;
+    color: var(--ink);
+    font-size: 10.2pt;
+    line-height: 1.62;
+    margin: 0;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ── 표지 ── */
+  .cover {
+    height: 252mm;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    page-break-after: always;
+    border-left: 3.5mm solid var(--accent);
+    padding-left: 14mm;
+  }
+  .cover .kicker {
+    font-size: 8.6pt; letter-spacing: .34em; color: var(--accent);
+    font-weight: 700; margin-bottom: 7mm;
+  }
+  .cover h1 {
+    font-size: 30pt; margin: 0; letter-spacing: -.01em; line-height: 1.16; font-weight: 800;
+  }
+  .cover h1 .thin { font-weight: 300; color: var(--ink2); }
+  .cover .sub {
+    font-size: 13pt; color: var(--ink2); margin-top: 5mm; font-weight: 500;
+  }
+  .cover .quote {
+    margin-top: 11mm; padding: 5mm 0 5mm 6mm;
+    border-left: 1.2mm solid var(--rule);
+    font-size: 11.5pt; color: var(--ink2); font-style: italic;
+  }
+  .cover .meta {
+    margin-top: 16mm; font-size: 9.2pt; color: var(--ink3);
+    display: grid; grid-template-columns: 26mm 1fr; row-gap: 2.1mm; max-width: 120mm;
+  }
+  .cover .meta dt { color: var(--accent); font-weight: 700; }
+
+  /* ── 본문 ── */
+  h2 {
+    font-size: 14pt; margin: 9mm 0 3.5mm; padding-bottom: 1.8mm;
+    border-bottom: .7mm solid var(--accent); letter-spacing: -.01em;
+    page-break-after: avoid;
+  }
+  h2 .num { color: var(--accent); margin-right: 2.5mm; font-weight: 800; }
+  h3 {
+    font-size: 11pt; margin: 6mm 0 2mm; color: var(--ink);
+    page-break-after: avoid;
+  }
+  h3::before {
+    content: ""; display: inline-block; width: 2.4mm; height: 2.4mm;
+    background: var(--accent); margin-right: 2.2mm; vertical-align: middle;
+  }
+  p { margin: 0 0 2.6mm; }
+  ul, ol { margin: 0 0 3mm; padding-left: 5.5mm; }
+  li { margin-bottom: 1.2mm; }
+  strong { color: var(--accent); font-weight: 700; }
+  code {
+    font-family: "SF Mono", Menlo, monospace; font-size: 8.6pt;
+    background: var(--paper2); padding: .3mm 1.2mm; border-radius: .8mm;
+    color: var(--heat);
+  }
+
+  table {
+    width: 100%; border-collapse: collapse; margin: 2mm 0 4mm;
+    font-size: 9.1pt; page-break-inside: avoid;
+  }
+  th {
+    background: var(--accentbg); color: var(--accent); text-align: left;
+    padding: 1.8mm 2.4mm; font-weight: 700; font-size: 8.6pt;
+    letter-spacing: .04em; border-bottom: .5mm solid var(--accent);
+  }
+  td { padding: 1.7mm 2.4mm; border-bottom: .25mm solid var(--rule2); vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+  td.c, th.c { text-align: center; }
+  td.mono { font-family: "SF Mono", Menlo, monospace; font-size: 8.4pt; }
+
+  .lede {
+    font-size: 10.8pt; color: var(--ink2); margin-bottom: 4mm;
+    padding-left: 4mm; border-left: .8mm solid var(--rule);
+  }
+  .note {
+    background: var(--paper2); border-left: 1mm solid var(--accent);
+    padding: 3mm 4mm; margin: 3mm 0 4mm; font-size: 9.3pt;
+    page-break-inside: avoid;
+  }
+  .note .lbl {
+    display: block; font-size: 8pt; letter-spacing: .18em;
+    color: var(--accent); font-weight: 700; margin-bottom: 1.5mm;
+  }
+  .warn { border-left-color: var(--heat); }
+  .warn .lbl { color: var(--heat); }
+
+  .flow {
+    display: flex; align-items: stretch; gap: 0; margin: 3mm 0 5mm;
+    page-break-inside: avoid;
+  }
+  .flow .step {
+    flex: 1; border: .3mm solid var(--rule); padding: 2.6mm 1.5mm;
+    text-align: center; background: #fff; position: relative;
+  }
+  .flow .step + .step { border-left: none; }
+  .flow .step .t { font-family: "SF Mono", Menlo, monospace; font-size: 7.6pt; color: var(--accent); font-weight: 700; }
+  .flow .step .n { font-size: 8.8pt; margin-top: .8mm; font-weight: 600; }
+  .flow .step.hi { background: var(--accentbg); }
+
+  .keys { display: flex; flex-wrap: wrap; gap: 1.4mm; }
+  .kc {
+    display: inline-block; min-width: 6.5mm; text-align: center;
+    border: .3mm solid var(--accent); color: var(--accent);
+    font-family: "SF Mono", Menlo, monospace; font-size: 8pt; font-weight: 700;
+    padding: .6mm 1.6mm; border-radius: .8mm; background: #fff;
+  }
+
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0 6mm; }
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 3mm; margin: 3mm 0 5mm; }
+  .stat { border-top: .8mm solid var(--accent); padding-top: 2mm; }
+  .stat .v { font-size: 17pt; font-weight: 800; letter-spacing: -.02em; line-height: 1.1; }
+  .stat .k { font-size: 8.2pt; color: var(--ink3); margin-top: .6mm; }
+
+  .roles { display: grid; grid-template-columns: 1fr 1fr; gap: 3mm; margin: 3mm 0 4mm; }
+  .role { border: .3mm solid var(--rule); padding: 3mm 3.5mm; page-break-inside: avoid; }
+  .role .code {
+    font-family: "SF Mono", Menlo, monospace; font-size: 7.8pt;
+    letter-spacing: .12em; font-weight: 700;
+  }
+  .role .nm { font-size: 11.5pt; font-weight: 800; margin: .8mm 0 1.5mm; }
+  .role .duty { font-size: 9pt; color: var(--ink2); }
+  .role .fail { font-size: 8.6pt; color: var(--heat); margin-top: 1.5mm; font-weight: 600; }
+
+  footer.pg {
+    position: running(f);
+  }
+  .sec-break { page-break-before: always; }
+</style>
+</head>
+<body>
+
+<div class="cover">
+  <div class="kicker">GAME DESIGN &amp; PLAYER GUIDE</div>
+  <h1>SOLDIER : A DAY<br><span class="thin">18일 생존형 병영 협동 RPG</span></h1>
+  <div class="sub">게임 소개 및 설명서</div>
+  <div class="quote">“하루라도 필수를 못 채우면, 그날 밤 점호에서 끝난다.”</div>
+  <dl class="meta">
+    <dt>장르</dt><dd>협동 생활 시뮬레이션 · 서바이벌 RPG</dd>
+    <dt>플랫폼</dt><dd>웹 브라우저 (Unity WebGL + Next.js)</dd>
+    <dt>인원</dt><dd>권장 4인 협동 (1~4인, 빈 자리는 NPC 대리)</dd>
+    <dt>플레이 시간</dt><dd>1회차 약 100~130분 (18일)</dd>
+    <dt>문서 버전</dt><dd>v1.0 · 2026-08-07</dd>
+  </dl>
+</div>
+
+<h2><span class="num">01</span>게임 개요</h2>
+
+<p class="lede">네 명이 한 분대가 되어 <strong>18일</strong> 동안 병영 생활을 버티는 협동 게임이다.
+매일 주어진 일과를 해내고 밤 점호를 통과해야 다음 날로 넘어간다.</p>
+
+<p>이 게임의 난이도는 조작이 아니라 <strong>분업과 시간 배분</strong>에 있다. 하루는 여섯 시간대로
+쪼개져 있고 각 시간대는 짧다. 부대는 걸어서 다녀야 할 만큼 넓으며, 훈련장은 아예 부대 밖에 있다.
+그래서 "누가 어디로 가서 무엇을 할 것인가"를 매 시간대마다 다시 정해야 한다.</p>
+
+<p>보직은 잘하면 좋은 특기가 아니라 <strong>그 사람이 못 하면 나머지 셋이 손해를 보는 자리</strong>다.
+통신병이 무전 유지를 놓치면 전원의 미니맵에서 마커가 사라지고, 의무병이 밀리면 분대 전체의
+수분 소모가 두 배가 된다. 개인의 실패가 개인에게만 돌아오지 않는 구조가 협동을 강제한다.</p>
+
+<div class="stats">
+  <div class="stat"><div class="v">18</div><div class="k">생존해야 할 일수</div></div>
+  <div class="stat"><div class="v">6</div><div class="k">하루의 시간대</div></div>
+  <div class="stat"><div class="v">4</div><div class="k">보직 (분업 단위)</div></div>
+  <div class="stat"><div class="v">14</div><div class="k">미니게임 원형</div></div>
+</div>
+
+<h3>승리와 패배</h3>
+<table>
+  <tr><th style="width:22%">결과</th><th>조건</th></tr>
+  <tr><td><strong>전역 (승리)</strong></td><td>18일차 점호 판정까지 전부 통과한다</td></tr>
+  <tr><td><strong>퇴소 (패배)</strong></td><td>정규 난이도는 필수 미달 1회로 즉시 종료.
+    완화 난이도는 3회까지 버틴다 — 1차 경고(다음 날 필수 +2) → 2차 근신(개인정비 시간 박탈) → 3차 종료</td></tr>
+</table>
+
+<div class="note">
+  <span class="lbl">처음이라면</span>
+  <strong>완화 난이도</strong>를 권한다. 한 번 실수했다고 18일이 통째로 날아가지 않는다.
+  대신 최종 보상이 60%로 줄어든다.
+</div>
+
+<h2><span class="num">02</span>하루의 흐름</h2>
+
+<p>하루는 여섯 시간대로 자동으로 흐른다. 시간이 다 되면 다음 칸으로 넘어가고,
+못 끝낸 일과는 그대로 미완료로 남는다. 분대가 모두 준비됐다면 화면의 <strong>[투표하기]</strong>로
+남은 시간을 건너뛸 수 있으며, <strong>아낀 시간은 사라지지 않고 다음 시간대의 여유로 이월된다.</strong></p>
+
+<div class="flow">
+  <div class="step"><div class="t">06:00</div><div class="n">기상 · 점검</div></div>
+  <div class="step hi"><div class="t">08:00</div><div class="n">오전 일과</div></div>
+  <div class="step"><div class="t">12:00</div><div class="n">중식 · 휴식</div></div>
+  <div class="step hi"><div class="t">14:00</div><div class="n">오후 일과</div></div>
+  <div class="step"><div class="t">18:00</div><div class="n">석식 · 개인정비</div></div>
+  <div class="step"><div class="t">22:00</div><div class="n">점호 · 판정</div></div>
+</div>
+
+<h3>필수와 선택</h3>
+<p>시간대마다 할 일이 배정된다. 수첩(<span class="kc">TAB</span>)을 열면 필수와 선택이 나뉘어 보인다.</p>
+<ul>
+  <li><strong>필수</strong> — 그날 밤 점호에서 세는 것. 하나라도 남으면 판정이 깨진다.
+    <em>소유자를 가리지 않는다</em> — 분대원 것이 남아도 분대 전체가 걸린다.</li>
+  <li><strong>선택</strong> — 안 해도 그날은 무사하다. 다만 <strong>승급에 쓰이는 복무 점수는
+    오직 선택 일과에서만 쌓인다.</strong> 필수만 겨우 채우며 버티면 계급이 오르지 않는다.</li>
+</ul>
+
+<div class="note">
+  <span class="lbl">설계 의도</span>
+  필수는 <strong>오늘을 살아남는 일</strong>, 선택은 <strong>18일 뒤를 준비하는 일</strong>이다.
+  필수 완수는 살아 있는 플레이어라면 예외 없이 100%라 변별력이 0이므로, 승급 기준으로 쓸 수 없다.
+  그래서 "안 해도 되는데 한 것"만 점수로 매긴다.
+</div>
+
+<h3>밤 점호 — 네 가지 조건</h3>
+<table>
+  <tr><th style="width:14%" class="c">조건</th><th>판정</th></tr>
+  <tr><td class="c"><strong>A</strong></td><td>미완료 필수가 0인가 (구제권으로 상쇄 가능)</td></tr>
+  <tr><td class="c"><strong>B</strong></td><td>합동 퀘스트가 통과했는가 (부분 성공 70%까지 인정)</td></tr>
+  <tr><td class="c"><strong>C</strong></td><td>군기 게이지가 바닥을 넘는가</td></tr>
+  <tr><td class="c"><strong>D</strong></td><td>전원의 청결·필수 장비 소지가 기준을 넘는가</td></tr>
+</table>
+<p>A와 D는 <strong>특정 인원을 지목</strong>해 보여주고, B와 C는 분대 공통이라 지목이 없다.
+판정 요약을 <em>전원이 확인해야</em> 다음 날이 시작되며, 그동안 시간은 멈춰 있다.</p>
+
+<h2 class="sec-break"><span class="num">03</span>보직 — 네 개의 자리</h2>
+
+<p class="lede">보직은 로비에서 방을 만들거나 들어갈 때 고른다. 보직당 정확히 한 명이며 중복은 불가다.
+빈 보직은 NPC 대리가 채우지만 <strong>필수 퀘스트만 수행하고 선택·돌발·히든은 하지 않는다.</strong></p>
+
+<div class="roles">
+  <div class="role">
+    <div class="code" style="color:#6e7a50">RFL</div>
+    <div class="nm">소총수</div>
+    <div class="duty">전투 · 경계 · 기동</div>
+    <div class="fail">실패 시 기습 이벤트 2배</div>
+  </div>
+  <div class="role">
+    <div class="code" style="color:#3f6e90">COM</div>
+    <div class="nm">통신병</div>
+    <div class="duty">정보 전달</div>
+    <div class="fail">실패 시 미니맵 마커 소멸</div>
+  </div>
+  <div class="role">
+    <div class="code" style="color:#8a8f7e">MED</div>
+    <div class="nm">의무병</div>
+    <div class="duty">컨디션 전반 ← 취사 흡수</div>
+    <div class="fail">실패 시 전원 수분 소모 2배</div>
+  </div>
+  <div class="role">
+    <div class="code" style="color:#b08a2c">ADM</div>
+    <div class="nm">행정병</div>
+    <div class="duty">정보 관리 · 정비 ← 정비 흡수</div>
+    <div class="fail">실패 시 혹한 보온 −50%</div>
+  </div>
+</div>
+
+<h3>분대장과 구제권</h3>
+<p>런이 시작되면 넷 중 한 명이 분대장이 된다. <strong>무작위가 아니다</strong> —
+소총수 → 통신병 → 의무병 → 행정병 순서에서 <em>실제 사람이 맡은 첫 자리</em>가 분대장이 된다
+(리플레이·시뮬레이션 재현성 때문에 결정적으로 뽑는다). 머리 위 이름표 옆 다이아몬드가 그 표시다.
+접속 중인 인원의 과반이 한 사람에게 표를 주면 즉시 교체되고, 2:2 동수면 현직이 유지된다.</p>
+
+<p><strong>구제권</strong>은 오늘 안에 못 끝낼 것 같은 필수 일과 하나를 선택으로 내려,
+그날 점호에서 세지 않게 만드는 권한이다.</p>
+
+<table>
+  <tr><th style="width:26%">몫</th><th>수량</th><th>발동 조건</th></tr>
+  <tr><td><strong>분대장 몫</strong></td><td class="c">2</td><td>분대장이 미완료 필수 하나를 지정한다. <em>분대원의 필수도 내릴 수 있다</em></td></tr>
+  <tr><td><strong>간부 몫</strong></td><td class="c">1</td><td>저녁 개인정비 시간에, 신뢰도 최고 간부의 신뢰도가 문턱을 넘을 때</td></tr>
+</table>
+
+<div class="note warn">
+  <span class="lbl">주의</span>
+  구제권은 <strong>런 전체에서 총 3장</strong>이고 하루가 지나도 다시 차지 않는다.
+  되돌릴 수도 없다. 발동 시 확인 창이 한 번 뜬다.
+</div>
+
+<h3>계급과 승급 심사</h3>
+<p><strong>3일차 · 9일차 · 15일차</strong>에 승급 심사가 있다. 통과하면
+이병 → 일병 → 상병 → 병장으로 오른다. 기준은 복무 점수이며, 앞서 말한 대로
+<strong>선택 일과에서만</strong> 쌓인다. 보류되어도 다음 정비일에 재심사를 받고 그때는 요구치가 10% 낮아진다 —
+초반에 뒤처져도 만회할 여지를 남긴다.</p>
+
+<h2><span class="num">04</span>맵과 이동</h2>
+
+<p>부대는 <strong>244 × 224 타일</strong>의 단일 심리스 월드다. 구역 36개, 배치 소품 483개로 이루어진다.
+텔레포트는 없다 — 모든 이동은 걷기다.</p>
+
+<h3>부대 안</h3>
+<p>생활관동·급양동·행정동 등 건물이 복도로 이어져 있고, 방 하나가 곧 하나의 구역이다.
+문은 전부 열려 있으며, 지도에서 주황색 선이 문을 뜻한다.</p>
+
+<h3>부대 밖 — 훈련장 10곳</h3>
+<p>훈련장은 전부 외곽 철조망 <em>바깥</em>에 있다. 나가려면 <strong>정문 위병소를 통과</strong>해야 하고,
+정문에서 각 훈련장까지 아스팔트 길이 깔려 있다. 길은 미니맵과 전체 지도에도 그려지며,
+훈련장 입구는 주황색 표시와 바깥쪽 꼬리로 구별된다.</p>
+
+<table>
+  <tr><th>구분</th><th>훈련장</th><th class="c">정문→도착 편도(도보)</th></tr>
+  <tr><td rowspan="4">탑다운 (걸어 들어간다)</td><td>숙영지 · 화생방 제독소</td><td class="c">25~30초</td></tr>
+  <tr><td>사격장 · 혹한기 훈련장</td><td class="c">30~35초</td></tr>
+  <tr><td>대민지원 마을 · 합동 전술훈련장</td><td class="c">32~35초</td></tr>
+  <tr><td>혹서기 급수 라인</td><td class="c">35초 (최원거리)</td></tr>
+  <tr><td>사이드뷰 (횡스크롤 코스)</td><td>행군로 · 유격장 기초/종합</td><td class="c">전용 화면으로 전환</td></tr>
+</table>
+
+<div class="note">
+  <span class="lbl">이동 시간 보정</span>
+  훈련이 배정된 시간대는 <strong>그 훈련장까지의 편도 도보 시간만큼 자동으로 길어진다.</strong>
+  체크포인트가 오전·오후로 갈려 있어 오전에 나가고 오후에 돌아오므로, 두 시간대가 각각 편도 하나씩을 쓴다.
+  <span class="kc">SHIFT</span> 구보(1.4배)로 가면 그 차이가 통째로 여유가 된다.
+</div>
+
+<h2 class="sec-break"><span class="num">05</span>일과와 미니게임</h2>
+
+<p class="lede">목표 앞에서 <span class="kc">E</span>를 누르면 일과가 시작되고, 대부분은 짧은 미니게임으로 이어진다.
+미니게임은 <strong>14가지 원형</strong>이 있으며 날짜에 따라 점진적으로 해금된다.</p>
+
+<table>
+  <tr><th class="c" style="width:16%">해금</th><th>원형</th><th>조작 성격</th></tr>
+  <tr><td class="c"><strong>D-01</strong></td><td>SCRUB · PLACE · AUDIT · BALANCE · TRACE</td><td>문지르기 · 배치 · 대조 확인 · 균형 유지 · 경로 추적</td></tr>
+  <tr><td class="c"><strong>D-03</strong></td><td>SORT · TIMING · HOLD</td><td>분류 · 타이밍 맞추기 · 길게 누르기</td></tr>
+  <tr><td class="c"><strong>D-05</strong></td><td>MASH · SEQ · RHYTHM · TRACK · SEARCH · REACT</td><td>연타 · 순서 · 리듬 · 추적 · 탐색 · 반응</td></tr>
+</table>
+
+<p>원형마다 조작이 다르므로 "전부 홀드로 대체" 같은 접근성 스위치는 두지 않았다 —
+그러면 14종을 통째로 없애는 것과 같아진다. 대신 각 판이 자체적으로 난이도와 판정을 조정한다.</p>
+
+<h3>일과의 종류</h3>
+<table>
+  <tr><th style="width:22%">종류</th><th>설명</th></tr>
+  <tr><td><strong>보직 퀘스트</strong></td><td>보직 전용. 29종. 다른 사람이 대신 수행할 수 없다 (행정병만 난로 밸브를 연다)</td></tr>
+  <tr><td><strong>공통 일과</strong></td><td>31종. 하루 2~4건이 배정되며 하달로 다른 사람에게 넘길 수 있다</td></tr>
+  <tr><td><strong>합동 퀘스트</strong></td><td>2인 이상이 함께해야 한다. 역할이 비대칭인 것도 있다 (한 명은 조작, 한 명은 감시)</td></tr>
+  <tr><td><strong>돌발 이벤트</strong></td><td>9종. 기본 확률 18%, 군기가 낮을수록 최대 40%까지 오른다</td></tr>
+  <tr><td><strong>훈련</strong></td><td>정해진 날짜에 훈련장에서. 체크포인트 각각이 필수 1건으로 센다</td></tr>
+</table>
+
+<h3>하달 — 일과 넘기기</h3>
+<p>오전·오후 일과는 <strong>20초 하달 창</strong>으로 시작한다. 이 동안 시간대 타이머는 정지하므로
+눈치싸움에 실제 일과 시간을 쓰지 않는다. 공통 일과만 넘길 수 있고 보직 전용은 넘겨도 수행이 불가능하다.
+전원이 확정하면 창은 즉시 닫힌다.</p>
+
+<h2><span class="num">06</span>조작</h2>
+
+<div class="grid2">
+<table>
+  <tr><th style="width:38%">키</th><th>기능</th></tr>
+  <tr><td><span class="kc">W</span><span class="kc">A</span><span class="kc">S</span><span class="kc">D</span></td><td>걷기 (방향키 동일)</td></tr>
+  <tr><td><span class="kc">SHIFT</span></td><td>구보 (1.4배)</td></tr>
+  <tr><td><span class="kc">E</span></td><td>일과 시작 · 길게 눌러 구조</td></tr>
+  <tr><td><span class="kc">TAB</span></td><td>수첩 (일과표→요약→기록→닫힘)</td></tr>
+  <tr><td><span class="kc">M</span></td><td>전체 지도</td></tr>
+  <tr><td><span class="kc">ALT</span></td><td>컨디션 수치 (누르는 동안)</td></tr>
+</table>
+<table>
+  <tr><th style="width:38%">키</th><th>기능</th></tr>
+  <tr><td><span class="kc">Q</span>+<span class="kc">1</span>~<span class="kc">8</span></td><td>퀵 커맨드 (전술 지시)</td></tr>
+  <tr><td><span class="kc">C</span>+<span class="kc">1</span>~<span class="kc">8</span></td><td>정형 문구 (짧은 대화)</td></tr>
+  <tr><td><span class="kc">G</span></td><td>방독면 착용 (화생방 훈련일)</td></tr>
+  <tr><td><span class="kc">SPACE</span> <span class="kc">ENTER</span></td><td>미니게임 · 확인</td></tr>
+  <tr><td><span class="kc">ESC</span></td><td>창 닫기</td></tr>
+  <tr><td><span class="kc">1</span></td><td><strong>전체 키 안내</strong> (언제든)</td></tr>
+</table>
+</div>
+
+<div class="note">
+  <span class="lbl">외우지 않아도 된다</span>
+  게임 중 아무 때나 <span class="kc">1</span>을 누르면 전체 키 목록이 다시 뜬다.
+  <span class="kc">Q</span>나 <span class="kc">C</span>를 누르고 있는 동안, 그리고 미니게임 판이 열린 동안에는
+  그 숫자를 판이 쓰므로 안내 창이 끼어들지 않는다. <strong>시간대 건너뛰기는 키가 아니라 마우스 클릭</strong>이다.
+</div>
+
+<h3>타이핑 없이 협동한다</h3>
+<p>설계 원칙 하나가 "<strong>타이핑을 전혀 하지 않고도 18일 완주가 가능해야 한다</strong>"이다.
+협동 퀘스트 대부분은 <span class="kc">Q</span> 퀵 커맨드 8종과 <span class="kc">C</span> 정형 문구 8종으로 해결된다.
+초를 다투는 상황에서 채팅을 칠 시간이 없기 때문이다.</p>
+
+<h2 class="sec-break"><span class="num">07</span>실행 방법</h2>
+
+<h3>A. 플레이 (설치 없음)</h3>
+<p>브라우저에서 아래 주소로 접속한다. 별도 설치나 플러그인이 필요 없다.</p>
+<table>
+  <tr><th style="width:26%">구분</th><th>주소</th></tr>
+  <tr><td>웹 (로비 · 게임)</td><td class="mono">https://solider-a-day.vercel.app</td></tr>
+  <tr><td>게임 서버</td><td class="mono">https://sad-gameserver.onrender.com</td></tr>
+</table>
+<ol>
+  <li>로비에서 <strong>이름</strong>을 입력하고 <strong>보직</strong>을 고른다.</li>
+  <li><strong>[새 분대 만들기]</strong> — 초대 코드가 생성된다. 링크를 복사해 친구에게 보낸다.</li>
+  <li>초대받은 사람은 <code>/join/코드</code> 링크로 들어온다 — 코드 입력도 보직 선택도 필요 없다(자동 배정).</li>
+  <li>전원이 모이면 방장이 <strong>[시작]</strong>을 누른다.</li>
+</ol>
+
+<div class="note">
+  <span class="lbl">첫 접속이 느릴 수 있다</span>
+  게임 서버가 무료 플랜이라 15분간 요청이 없으면 잠든다. 로비에 들어오는 순간 자동으로 깨우는 신호를
+  보내므로, 편성을 마칠 때쯤이면 이미 깨어 있다. 그래도 첫 응답이 느리면 잠시 기다리면 된다.
+</div>
+
+<h3>B. 로컬 개발 환경</h3>
+<p>Node.js 20+ 와 npm이 필요하다. Unity(6000.0.80f1)는 게임 클라이언트를 <em>다시 빌드할 때만</em> 필요하며,
+이미 빌드된 번들이 저장소에 있으므로 웹·서버 개발에는 없어도 된다.</p>
+
+<table>
+  <tr><th style="width:46%">명령</th><th>하는 일</th></tr>
+  <tr><td class="mono">npm install</td><td>워크스페이스 전체 의존성 설치</td></tr>
+  <tr><td class="mono">npm run dev</td><td>웹 셸 (Next.js) — 기본 <code>:3000</code></td></tr>
+  <tr><td class="mono">npm run dev:server</td><td>게임 서버 (HTTP + WebSocket) — 기본 <code>:8080</code></td></tr>
+  <tr><td class="mono">npm run test</td><td>전 워크스페이스 테스트 (531건)</td></tr>
+  <tr><td class="mono">npm run typecheck</td><td>전 워크스페이스 <code>tsc --noEmit</code></td></tr>
+  <tr><td class="mono">npm run sim -- …</td><td>헤드리스 밸런싱 시뮬레이터 (Unity 없이 18일 실행)</td></tr>
+  <tr><td class="mono">python3 tools/sprites/generate.py</td><td>2D 에셋 전량 재생성 (488장)</td></tr>
+  <tr><td class="mono">node tools/webgl-sync.mjs</td><td>Unity 빌드 산출물을 웹 <code>public/game</code>으로 동기화</td></tr>
+</table>
+
+<p>환경변수를 하나도 주지 않아도 실행된다 — 저장소는 인메모리로, 서버 주소는 <code>localhost</code>로 폴백한다.
+운영 배포 시에만 Upstash Redis · Supabase · CORS 설정이 필요하다.</p>
+
+<h3>C. 기술 구성 요약</h3>
+<table>
+  <tr><th style="width:26%">층</th><th>구성</th></tr>
+  <tr><td>게임 클라이언트</td><td>Unity 6000.0.80f1 · WebGL · 2D 탑다운 (URP 2D 조명)</td></tr>
+  <tr><td>웹 셸</td><td>Next.js 16 (App Router) · 로비 · 튜토리얼 · 기록 · 설정</td></tr>
+  <tr><td>게임 서버</td><td>Node · HTTP + WebSocket · 20Hz 룸 루프 · <strong>권위 서버</strong></td></tr>
+  <tr><td>규칙 엔진</td><td><code>packages/sim</code> — 순수 함수 · 시계 없음 · 결정론 RNG</td></tr>
+  <tr><td>프로토콜</td><td><code>packages/protocol</code> — zod 스키마 하나에서 TS 타입과 Unity C# DTO를 생성</td></tr>
+  <tr><td>저장소</td><td>Upstash Redis (런 스냅샷 TTL 24h) · Supabase Postgres (영속 기록)</td></tr>
+</table>
+
+<div class="note">
+  <span class="lbl">핵심 설계 원칙</span>
+  <strong>규칙은 한 곳에만 있다.</strong> 날짜·시간대·기온·진척·판정은 전부 서버의 <code>sim</code>이 결정하고,
+  클라이언트는 규칙을 하나도 갖지 않는다. 클라가 보내는 것은 <em>의도(Intent)</em>, 서버가 돌려주는 것은
+  <em>스냅샷(Snapshot)</em>뿐이다. 시드와 RNG 상태는 절대 클라로 나가지 않는다 — 나가면 기온과 돌발을
+  미리 계산할 수 있기 때문이다.
+</div>
+
+</body>
+</html>
