@@ -33,7 +33,11 @@ describe("완주율 밸런스", () => {
     const three = runBatch(RUNS, { accuracy: 0.98 }).clearRate;
     const relaxed = runBatch(RUNS, { accuracy: 0.98 }, { difficulty: "relaxed" }).clearRate;
     expect(relaxed).toBeGreaterThan(three);
-  });
+    // 구제권이 **실제로 발동되기 시작한 뒤**(G1: `leaderId`가 영원히 null이라
+    // `canUseRelief`가 항상 거부하던 버그를 고침) 런이 더 오래 살아남아 이 배치가
+    // 5초 기본 제한을 넘겼다. 시뮬 자체가 느려진 것이 아니라 **일이 늘어난 것**이다.
+    // 위 두 배치와 같은 성격이므로 같은 30초를 준다.
+  }, 30_000);
 
   it("실패는 필수 미달(조건 A)로만 발생한다 — 다른 시스템이 아직 없기 때문", () => {
     const report = runBatch(200, { accuracy: 0.98 });
