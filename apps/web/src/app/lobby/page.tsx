@@ -3,6 +3,7 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { RoleCard } from "@/components/RoleCard";
+import { useClientValue } from "@/lib/client-value";
 import { HTTP_BASE, ROLE_LABELS, createRoom, joinRoom, type Role } from "@/lib/api";
 import { loadName, saveName } from "@/lib/name";
 import { saveSession } from "@/lib/session";
@@ -27,18 +28,20 @@ function LobbyForm() {
     params.get("mode") === "join" ? "join" : "create",
   );
 
-  const [name, setName] = useState("");
+  // 재방문이면 이름을 다시 안 쳐도 되게 — H-1의 "이름 로컬 저장".
+  // 저장값은 브라우저에만 있으므로 서버에서는 빈 문자열로 그리고 하이드레이션
+  // 직후 채운다. 사용자가 입력을 시작하면 `typed`가 저장값을 덮는다
+  const storedName = useClientValue(loadName, "");
+  const [typed, setTyped] = useState<string | null>(null);
+  const name = typed ?? storedName;
+  const setName = setTyped;
+
   const [role, setRole] = useState<Role>("rifle");
   const [code, setCode] = useState("");
   const [difficulty, setDifficulty] = useState<"regular" | "relaxed">("regular");
   const [season, setSeason] = useState<"cold" | "hot" | "random">("random");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-
-  // 재방문이면 이름을 다시 안 쳐도 되게 — H-1의 "이름 로컬 저장"
-  useEffect(() => {
-    setName((current) => current || loadName());
-  }, []);
 
   // Render 무료 플랜은 15분 놀면 잠든다 — 로비에 들어오는 순간 한 번 찔러
   // 깨워두면, 편성을 마치고 "분대 만들기"를 누를 때는 이미 깨어나 있다.

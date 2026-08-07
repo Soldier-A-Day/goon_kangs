@@ -4,6 +4,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import type { LobbyState } from "@sad/protocol";
 import { ROLE_LABELS, fetchLobby, joinRoom, type Role } from "@/lib/api";
+import { useClientValue } from "@/lib/client-value";
 import { loadName, saveName } from "@/lib/name";
 import { saveSession } from "@/lib/session";
 
@@ -31,15 +32,17 @@ export default function JoinPage() {
   const router = useRouter();
   const code = (params.code ?? "").toUpperCase();
 
-  const [name, setName] = useState("");
+  // 저장된 이름은 브라우저에만 있다 — 서버에서는 빈 문자열로 그리고
+  // 하이드레이션 직후 채운다. 사용자가 치기 시작하면 `typed`가 덮는다
+  const storedName = useClientValue(loadName, "");
+  const [typed, setTyped] = useState<string | null>(null);
+  const name = typed ?? storedName;
+  const setName = setTyped;
+
   const [lobby, setLobby] = useState<LobbyState | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-
-  useEffect(() => {
-    setName(loadName());
-  }, []);
 
   useEffect(() => {
     let alive = true;

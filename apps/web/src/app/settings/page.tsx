@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useClientValue } from "@/lib/client-value";
 import {
   DEFAULT_SETTINGS,
   loadSettings,
@@ -23,17 +24,21 @@ import {
  * 14종을 통째로 없애는 것과 같아졌다. 연타(`MASH`)도 예외 없이 켜져 있다.
  */
 export default function SettingsPage() {
-  const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
-  const [loaded, setLoaded] = useState(false);
+  // 저장값은 브라우저에만 있다 — 서버 렌더에서는 `null`이고, 하이드레이션
+  // 직후 실제 값으로 넘어간다(`useClientValue`). 예전에는 `useEffect`에서
+  // `setSettings`를 불렀는데, 그러면 기본값으로 한 번 그린 뒤 저장값으로
+  // 다시 그려 아래 주석이 말하는 "기본값이 한 번 번쩍인다"가 실제로 났다
+  const stored = useClientValue(loadSettings, null);
 
-  useEffect(() => {
-    setSettings(loadSettings());
-    setLoaded(true);
-  }, []);
+  // 사용자가 이 화면에서 만진 값. 저장값 위에 덮어쓴다
+  const [draft, setDraft] = useState<Settings | null>(null);
+
+  const settings = draft ?? stored ?? DEFAULT_SETTINGS;
+  const loaded = stored !== null;
 
   function set<K extends keyof Settings>(key: K, value: Settings[K]) {
     const next = { ...settings, [key]: value };
-    setSettings(next);
+    setDraft(next);
     saveSettings(next);
   }
 
@@ -150,7 +155,7 @@ export default function SettingsPage() {
         <button
           type="button"
           onClick={() => {
-            setSettings(DEFAULT_SETTINGS);
+            setDraft(DEFAULT_SETTINGS);
             saveSettings(DEFAULT_SETTINGS);
           }}
           className="h-[46px] w-[150px] border text-base"

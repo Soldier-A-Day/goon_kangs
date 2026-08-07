@@ -3,24 +3,32 @@
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
-import type { LobbyState, Session } from "@sad/protocol";
+import type { LobbyState } from "@sad/protocol";
 import { ROLE_LABELS, fetchLobby, startRun, type Role } from "@/lib/api";
+import { useClientValue } from "@/lib/client-value";
 import { clearSession, loadSession } from "@/lib/session";
+
+/** `useClientValue`에 넘길 읽기 함수들 — 모듈 상수라 렌더마다 새로 안 만들어진다 */
+const alwaysTrue = () => true;
+const supportsShare = () => typeof navigator !== "undefined" && "share" in navigator;
 
 export default function RoomPage() {
   const params = useParams<{ code: string }>();
   const router = useRouter();
   const code = (params.code ?? "").toUpperCase();
 
-  const [session, setSession] = useState<Session | null>(null);
+  // 세션도 공유 지원 여부도 브라우저에만 있는 값이다 — 서버 렌더에서는
+  // 각각 `null`·`false`로 그리고, 하이드레이션 직후 실제 값으로 넘어간다.
+  // `hydrated`가 그 경계다: 이게 `false`인 동안의 `session === null`은
+  // "저장된 세션이 없다"가 아니라 **"아직 못 읽었다"**라서, 이걸 구별하지
+  // 않으면 아래 리다이렉트가 매번 로비로 튕겨 보낸다
+  const hydrated = useClientValue(alwaysTrue, false);
+  const session = useClientValue(loadSession, null);
+  const canShare = useClientValue(supportsShare, false);
+
   const [lobby, setLobby] = useState<LobbyState | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
-  const [canShare, setCanShare] = useState(false);
-
-  useEffect(() => {
-    setCanShare(typeof navigator !== "undefined" && "share" in navigator);
-  }, []);
 
   const inviteUrl =
     typeof window !== "undefined" ? `${window.location.origin}/join/${code}` : "";
@@ -47,14 +55,12 @@ export default function RoomPage() {
     }
   }
 
+  // 이 방의 세션이 아니면 로비로 돌려보낸다. 리다이렉트는 진짜 부수효과라
+  // 이펙트가 맞다 — 상태를 채우는 일만 위 `useClientValue`로 옮겼다
   useEffect(() => {
-    const stored = loadSession();
-    if (!stored || stored.code !== code) {
-      router.replace(`/lobby?mode=join`);
-      return;
-    }
-    setSession(stored);
-  }, [code, router]);
+    if (!hydrated) return;
+    if (!session || session.code !== code) router.replace(`/lobby?mode=join`);
+  }, [hydrated, session, code, router]);
 
   const refresh = useCallback(async () => {
     try {
@@ -65,10 +71,15 @@ export default function RoomPage() {
     }
   }, [code]);
 
-  // 로비는 폴링으로 충분하다 — WS는 게임 화면의 것이고, 여기서는 초를 다투지 않는다
+  // 로비는 폴링으로 충분하다 — WS는 게임 화면의 것이고, 여기서는 초를 다투지 않는다.
+  //
+  // 첫 조회를 `void refresh()`로 바로 부르지 않고 마이크로태스크로 미룬다.
+  // 화면에 보이는 차이는 없지만(같은 프레임 안에서 실행된다) 이펙트 **본문**이
+  // 상태 갱신 경로를 직접 부르지 않게 되어, 2초 간격 호출과 첫 호출이
+  // 똑같이 "콜백에서 갱신한다"는 한 가지 모양이 된다.
   useEffect(() => {
     if (!session) return;
-    void refresh();
+    queueMicrotask(refresh);
     const timer = setInterval(refresh, 2000);
     return () => clearInterval(timer);
   }, [refresh, session]);

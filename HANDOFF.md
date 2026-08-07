@@ -198,14 +198,68 @@ web.loader.js sha256 로컬=원격 `551ccaa6…` 일치. (첫 배포 시도는 `
 **"지금까지 나온 키 전체"를 "필요할 때 열어 보세요"로** 고쳤다 — 단계별로 키를 풀어주던
 8단계 카드가 사라진 뒤로 "지금까지"가 가리킬 것이 없는 죽은 문구였다. 순서도 사용 빈도로 재배열.
 
-**별건(미수정)**: `npm run lint --workspace @sad/web`이 **25 errors / 556 warnings**로 실패한다.
-전부 커밋된 Unity 생성 파일 `apps/web/public/game/Build/web.loader.js`에서 나온다
-(`no-this-alias` 등). `git stash`로 대조해 **이번 변경 이전에도 동일**함을 확인했다 —
-eslint ignore에 그 경로를 넣는 것이 맞다. 미착수.
+**후속으로 처리함 → 아래 "lint 0으로" 절 참고.** (처음엔 "전부 Unity 생성 파일"이라고
+보고했는데 **틀렸다** — 우리 소스에도 에러 6건이 있었다.)
 
 검증: typecheck 0 · 내 파일 eslint 0 · `next build` 성공(/tutorial 정적 생성) ·
 씬/빌드 `error CS` 0 · **dev 서버에서 4개 장 전부 브라우저로 넘겨 보며 확인**
 (장별 색 전환 · 키캡 · tip 구분선 · 진행 점 그룹 · 마지막 장 [시작하기]).
+
+## 웹 lint를 0으로 (8/7 오후 — H5)
+
+사용자: "`npm run lint --workspace @sad/web`이 25 errors / 556 warnings로 실패한다. ??"
+
+**⚠ 내 직전 보고가 틀렸다.** "전부 Unity 생성 파일에서 나온다"고 적었는데 실제로는
+**우리 소스에 진짜 에러 6건**이 섞여 있었다. 파일별로 세어 보니:
+
+| 출처 | E | W |
+|---|---|---|
+| `public/game/Build/web.loader.js` (Unity 생성) | 7 | 49 |
+| `public/hd2d/Build/hd2d.framework.js` (Unity 생성) | 5 | 458 |
+| `public/hd2d/Build/hd2d.loader.js` (Unity 생성) | 7 | 49 |
+| **우리 소스 4개 파일** | **6** | 0 |
+
+**교훈**: 에러 25건을 "전부 남의 코드"로 뭉뚱그린 것은 총계만 보고 파일별로 안 쪼갰기 때문이다.
+남의 코드 575건이 우리 코드 6건을 덮고 있었던 것이고, 그게 정확히 저 경로를 ignore해야 하는 이유다.
+
+**우리 소스 6건 — 전부 같은 규칙** `react-hooks/set-state-in-effect`.
+모양도 하나다: **브라우저에만 있는 값을 mount 이펙트에서 읽어 `setState`**.
+
+```
+const [name, setName] = useState("");
+useEffect(() => { setName(loadName()); }, []);   // ← 이 모양
+```
+
+동작은 했지만 mount 직후 반드시 한 번 더 렌더한다(빈 값 → 읽어온 값).
+설정 화면이 자기 주석에 "저장값을 읽기 전에 그리면 기본값이 한 번 번쩍인다"고 적어 둔
+그 증상이 바로 이것이었다 — 린트가 가리킨 게 실재하는 문제였다.
+
+**해법**: 신규 `apps/web/src/lib/client-value.ts`의 `useClientValue(read, serverValue)` —
+`useSyncExternalStore` 한 줄 감싼 것. 하이드레이션 때는 `serverValue`로 맞춰 그려 불일치가
+없고, 직후 React가 클라이언트 값으로 넘긴다.
+- ⚠ **스냅샷을 `ref`에 캐시한다.** `useSyncExternalStore`는 `getSnapshot()`이 매번 같은
+  참조를 돌려줄 것을 요구하는데, `loadSettings()`처럼 객체를 새로 만드는 함수를 그냥 넘기면
+  렌더마다 다른 참조 → "값이 바뀌었다" → 재렌더 → **무한 루프**다. 캐시가 그걸 막는다
+- 편집 가능한 필드(로비·초대의 이름, 설정)는 `draft ?? stored` — 저장값 위에 사용자 입력을 덮는다
+- `room/[code]`는 **`hydrated` 플래그를 따로 둔다.** 안 그러면 하이드레이션 전의
+  `session === null`이 "저장된 세션이 없다"로 읽혀 **매번 로비로 튕겨 나간다**
+- 폴링 첫 조회는 `void refresh()` → `queueMicrotask(refresh)`. `refresh`는 `await` 뒤에
+  setState하므로 실제로 연쇄 렌더는 아닌데 린트가 async 경계를 못 본다. 미루면 첫 호출과
+  2초 간격 호출이 똑같이 "콜백에서 갱신"이 되어 규칙과 실제가 같은 말을 한다(화면 차이 없음)
+
+**Unity 생성 번들은 ignore**(`eslint.config.mjs`에 `public/game/**`·`public/hd2d/**`).
+우리가 쓴 코드가 아니고, `webgl-sync.mjs`가 빌드마다 통째로 갈아 끼우므로 고쳐도 다음 빌드에 사라진다.
+
+**덤 — 튜토리얼 정정**: 사용자가 "구제발동은 팀원중에 랜덤으로 뜨는거야?"라고 물었다.
+아니다 — `pickLeader`가 **보직 순서(소총→통신→의무→행정)에서 첫 사람**을 결정적으로 뽑는다
+(리플레이·헤드리스 시뮬 재현성 때문). 그런데 튜토리얼이 "넷 중 한 명이 분대장이 됩니다"라고만
+적어 **랜덤으로 읽히게** 써 놨다 → 순서를 명시하고 투표 과반·동수 규칙도 한 줄 추가했다.
+
+검증: `npm run lint --workspace @sad/web` **exit 0 · 0 errors 0 warnings** ·
+전 워크스페이스 typecheck 0 · 테스트 518 통과(1 skip) · `next build` 성공 ·
+**브라우저 실동작 확인** — 설정 토글 저장/복원(껐다 켰다 원복까지) · 로비 이름 자동 채움 후
+입력이 덮어씀 · `/room/ZZZZ`가 `/lobby?mode=join`으로 정상 리다이렉트 · 배포 후 원격 JS
+번들에서 새 문구 확인.
 
 ## 대기 중인 지시 (8/7 밤 — 미완)
 
