@@ -765,12 +765,31 @@ namespace SoldierADay.Net
         {
             var counts = DrawNotebookHeader(theme, panel, snapshot);
 
-            // 4분할 — 각 720×376 (목업 실측)
-            var top = panel.y + 88f;
+            // G1 — "진급했으면 일과요약에 눈에 띄게 띄워달라"는 사용자 지시.
+            // RANK-01(runReview)이 내는 rankReviewed 이펙트는 이미 `_rankReview`가
+            // 들고 있다(OnEvent — 승급 심사 전체화면 `Screen.Rank`가 쓰는 것과
+            // 같은 필드) — 새 이펙트를 만들지 않고 그대로 재사용한다. 그 전체화면은
+            // 판정 뒤 한 번 뜨고 확인하면 닫히지만, 이 배너는 수첩(TAB)을 다시
+            // 열 때마다 그날 내내 남아 있다 — "진급했는지도 몰랐다"가 안 생긴다.
+            var myPromotion = MyPromotionToday(snapshot);
+            var bannerHeight = myPromotion != null ? 44f : 0f;
+
+            // 4분할 — 각 720×376 (목업 실측). 배너가 뜨는 날만 그만큼 아래로 밀린다.
+            var top = panel.y + 88f + bannerHeight;
             var midX = panel.x + panel.width * 0.5f;
             var midY = top + 376f;
-            theme.Fill(new Rect(midX - 1f, top, 2f, panel.height - 88f), HudTheme.Rule);
+            theme.Fill(new Rect(midX - 1f, top, 2f, panel.height - 88f - bannerHeight), HudTheme.Rule);
             theme.Fill(new Rect(panel.x, midY, panel.width, 2f), HudTheme.Rule);
+
+            if (myPromotion != null)
+            {
+                var banner = new Rect(panel.x + 24f, panel.y + 92f, panel.width - 48f, bannerHeight - 8f);
+                theme.Fill(banner, HudTheme.AccentW);
+                theme.Border(banner, HudTheme.Accent, 2f);
+                GUI.Label(banner,
+                    $"진급! {HudTheme.RankName(myPromotion.from)} → {HudTheme.RankName(myPromotion.to)}",
+                    theme.At(theme.Heading, 20, HudTheme.Accent, TextAnchor.MiddleCenter));
+            }
 
             Quadrant(theme, new Rect(panel.x + 40f, top + 30f, 680f, 346f),
                 "내 필수", $"{counts.requiredDone} / {counts.requiredTotal}", HudTheme.Alert,
@@ -794,6 +813,22 @@ namespace SoldierADay.Net
             SquadProgress(theme, new Rect(handed.x - 8f, handed.yMax - 72f, handed.width, 72f), snapshot);
 
             bool IsMine(SnapshotQuestsItem q) => q.ownerId == Client.MemberId;
+        }
+
+        /// <summary>G1 — 오늘 내가 승급했으면 그 outcome을, 아니면 null을 돌려준다.
+        /// `_rankReview.day`가 오늘과 다르면(아직 안 왔거나 지난 날짜 것이 남아
+        /// 있으면) 무시한다 — 승급 심사는 판정을 통과한 날에만 한 번 온다.</summary>
+        private ServerEventOutcomesItem MyPromotionToday(Snapshot snapshot)
+        {
+            if (snapshot == null || _rankReview?.outcomes == null) return null;
+            if (_rankReview.day != snapshot.day) return null;
+
+            foreach (var outcome in _rankReview.outcomes)
+            {
+                if (outcome != null && outcome.memberId == Client.MemberId && outcome.promoted)
+                    return outcome;
+            }
+            return null;
         }
 
         /// <summary>지시 3 — "오늘의 기록" 스크롤 위치. 하루가 바뀌어 목록이 비워지면

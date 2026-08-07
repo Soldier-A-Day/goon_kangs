@@ -1,3 +1,4 @@
+import { pickLeader } from "./leader.js";
 import { rollWeeklyModifier } from "./modifier.js";
 import { evaluateRadio } from "./radio.js";
 import { LEADER_RELIEF_LIMIT, OFFICER_RELIEF_LIMIT } from "./relief.js";
@@ -104,7 +105,11 @@ export function createRun(options: CreateRunOptions): RunState {
     discipline: 60,
     trust: { platoonLeader: 50, assistant: 50, sergeantMajor: 50 },
 
-    leaderId: null,
+    // G1 — 예전엔 여기가 `null`로 끝까지 남아 구제권(`relief.ts` canUseRelief)이
+    // 영원히 `notLeader`로 막혔다. `members`는 위에서 이미 ROLES 순서로 정렬됐으므로
+    // (line 64) `pickLeader`가 그 순서에서 첫 사람 참석자를 결정적으로 뽑는다.
+    leaderId: pickLeader(members),
+    leaderVotes: {},
     // 10.0 구제 총량 3회 = 분대장 몫(LEADER_RELIEF_LIMIT) + 간부 몫(OFFICER_RELIEF_LIMIT)
     reliefsRemaining: LEADER_RELIEF_LIMIT + OFFICER_RELIEF_LIMIT,
     leaderReliefsRemaining: LEADER_RELIEF_LIMIT,

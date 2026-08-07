@@ -465,8 +465,23 @@ export interface RunState {
   /** 12.0 간부 신뢰도 3트랙 */
   trust: { platoonLeader: number; assistant: number; sergeantMajor: number };
 
-  /** 분대장 id (3.0 ROLE-02) */
+  /**
+   * 분대장 id (3.0 ROLE-02).
+   *
+   * G1 — 런 시작 시 `createRun`(run.ts)이 `leader.ts` `pickLeader`로 결정적으로
+   * 채운다. 사람 참석자(`presence === "player"`)가 없으면(이론상 없음) null.
+   * 분대장이 나가거나 후송되면 `leader.ts` `reassignLeaderIfVacant`가 다시
+   * 뽑는다 — 예전에는 이 값이 끝까지 null이라 구제권(`relief.ts`)이 영원히
+   * `notLeader`로 막혔다.
+   */
   leaderId: string | null;
+  /**
+   * G1 — 분대장 선출 투표 집계(voterId → candidateId). `voteLeader` 인텐트가
+   * 올 때마다 쌓이고, 과반이 확정되면(`leader.ts` voteLeader) 비운다. 분대장
+   * 자리가 공백이 되어 다시 뽑힐 때도 비운다(지난 투표는 무효) — 화면에
+   * 노출되지 않는 내부 집계용 값이라 프로토콜 스냅샷에는 없다.
+   */
+  leaderVotes: Record<string, string>;
   /**
    * 10.0 구제 총량 3회 = 분대장 우선순위 지정 2 + 간부 구제권 1.
    *
@@ -680,7 +695,13 @@ export type SimEvent =
    * 10.0 B-4 — 간부 구제. 저녁 개인정비 시간에만 발동할 수 있고, 신뢰도 최고
    * 간부의 신뢰도가 문턱 이상이어야 한다. 발동하면 그날 미달 1건을 상쇄한다.
    */
-  | { readonly type: "useOfficerRelief"; readonly memberId: string };
+  | { readonly type: "useOfficerRelief"; readonly memberId: string }
+  /**
+   * G1 — 분대장 선출 투표. 프로토콜의 `voteLeader` 인텐트(candidateId만 담는다)를
+   * 방(room.ts)이 보낸 사람의 memberId와 함께 실어 보낸다. 과반 계산은
+   * `leader.ts` voteLeader가 한다(ARCH-02 — 규칙은 sim에만).
+   */
+  | { readonly type: "voteLeader"; readonly memberId: string; readonly candidateId: string };
 
 export type Effect =
   | { readonly type: "weatherRolled"; readonly day: number; readonly weather: WeatherState }
@@ -818,7 +839,16 @@ export type Effect =
       readonly by: "leader" | "officer";
       readonly reason: string;
       readonly questId: string | null;
-    };
+    }
+  /**
+   * G1 — 분대장이 바뀌었다. 자동 지정(런 시작)·공백 재지정(이탈·후송·복귀)·
+   * 투표 확정 전부 이 하나로 나온다. `leaderId`가 null이면 사람 참석자가
+   * 아무도 남지 않았다는 뜻이다(이론상 없음 — 그 순간 `checkDisband`가 런을
+   * 끝낸다). 지금은 sim 내부·테스트 전용이다 — 클라는 스냅샷의 `leaderId`를
+   * 폴링해서 보므로 프로토콜 이벤트로 따로 내보내지 않는다
+   * (`services/gameserver/src/snapshot.ts` `projectEffect`가 조용히 버린다).
+   */
+  | { readonly type: "leaderChanged"; readonly leaderId: string | null };
 
 export interface StepResult {
   readonly state: RunState;

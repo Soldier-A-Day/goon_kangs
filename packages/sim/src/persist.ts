@@ -19,8 +19,13 @@ import { weatherFor } from "./weather.js";
  * `firstConditionBreach`를 추가했다. 옛 스냅샷을 그대로 복구하면 이 값들이
  * `undefined`가 되어 `relief.ts`의 `-= 1`이 `NaN`으로 굳거나 조회·속성 접근이
  * 그 자리에서 터진다 — 이번에도 같은 원칙: 버전을 올려 옛 스냅샷은 복구하지 않는다.
+ *
+ * 4 — G1이 `leaderVotes`(분대장 선출 투표 집계)를 새 필수 필드로 추가했다.
+ * 옛 스냅샷에는 없어 복구하면 `undefined`가 되고, `leader.ts` `voteLeader`의
+ * `state.leaderVotes[memberId] = ...`가 그 자리에서 터진다 — 같은 원칙으로
+ * 버전을 올린다.
  */
-export const SAVE_VERSION = 3;
+export const SAVE_VERSION = 4;
 
 export interface RunSave {
   readonly version: number;

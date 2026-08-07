@@ -2240,7 +2240,12 @@ namespace SoldierADay.Net
             // 목업 실측은 86×20이지만 **글자 폭에 맞춘다** — 이름이 길면 잘려서
             // "리 통신병 · CO"처럼 보이고, §5.3이 색각 이상 대응으로 못박은
             // 보직 3글자가 화면에서 사라진다
-            var text = $"{member.name} · {HudTheme.RoleTag(member.role)}";
+            //
+            // G1 — "내 계급을 이름 오른쪽에 표시해달라"는 사용자 지시. 값은
+            // `HudTheme.RankName`(HudLabels.Rank 표, 이미 승급 심사 화면 등에서
+            // 쓰는 것과 같은 표시 규칙)을 그대로 재사용한다 — 남의 계급도 같은
+            // 자리에서 같은 규칙으로 보인다(이 함수가 나·분대원 둘 다 그린다).
+            var text = $"{member.name} {HudTheme.RankName(member.rank)} · {HudTheme.RoleTag(member.role)}";
             var width = Mathf.Max(86f, _theme.Measure(text, _theme.Label) + 20f);
             var rect = new Rect(x - width * 0.5f, y - 10f, width, 20f);
             _theme.Fill(rect, HudTheme.Paper, 0.85f);
