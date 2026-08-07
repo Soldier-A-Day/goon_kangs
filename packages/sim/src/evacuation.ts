@@ -1,6 +1,7 @@
 import { THRESHOLDS } from "./condition.js";
 import { enterCrisis } from "./crisis.js";
 import { penalizeIncident } from "./discipline.js";
+import { reassignLeaderIfVacant } from "./leader.js";
 import { penalizeEvacuation } from "./ranks.js";
 import { LEADER_RELIEF_LIMIT } from "./relief.js";
 import type { Effect, Member, RunState } from "./types.js";
@@ -69,6 +70,9 @@ export function evacuate(state: RunState, memberId: string, effects: Effect[]): 
   penalizeEvacuation(member);
 
   effects.push({ type: "memberEvacuated", memberId: member.id, absorbed });
+  // G1 — 후송된 사람이 분대장이었으면 자리가 빈다. 그대로 두면 구제권이
+  // 다시 영원히 `notLeader`로 막히는 예전 버그가 재발한다.
+  reassignLeaderIfVacant(state, effects);
 }
 
 /**
@@ -83,6 +87,10 @@ export function leaveRun(state: RunState, memberId: string, effects: Effect[]): 
   member.presence = "npcLeave";
   absorbAllRequired(state, member);
   effects.push({ type: "memberLeft", memberId: member.id });
+  // G1 — 이탈한 사람이 분대장이었으면 자리가 빈다. 나머지 사람 참석자 중에서
+  // 결정적으로 다시 뽑는다(1인 방이면 null로 떨어지고, 그 즉시 checkDisband가
+  // 런을 끝낸다 — leaderId가 없는 채로 남는 채가 아니다).
+  reassignLeaderIfVacant(state, effects);
 }
 
 /** 재접속 — 대리에서 즉시 복귀한다. 축적은 그대로다(후송과 다르다) */
@@ -91,6 +99,9 @@ export function rejoinRun(state: RunState, memberId: string, effects: Effect[]):
   if (!member || member.presence !== "npcLeave") return;
   member.presence = "player";
   effects.push({ type: "memberReturned", memberId: member.id, asRecruit: false });
+  // G1 — 분대장 자리가 비어 있던 채였다면(예: 마지막 남은 사람이 나갔다 돌아온
+  // 경우) 복귀한 이 사람이 다시 후보가 된다. 자리가 이미 차 있으면 무해하다.
+  reassignLeaderIfVacant(state, effects);
 }
 
 /** 이탈 대리는 한도 없이 필수를 계속 완수한다 */
@@ -126,6 +137,11 @@ export function returnEvacuees(state: RunState, effects: Effect[]): void {
 
     effects.push({ type: "memberReturned", memberId: member.id, asRecruit: true });
   }
+
+  // G1 — 복귀자 중 누군가가 분대장 공백을 메울 수 있다(예: 마지막 남은
+  // 사람이 후송으로 나갔다가 아침에 돌아온 경우). 루프가 끝난 뒤 한 번만
+  // 본다 — `reassignLeaderIfVacant`는 자리가 이미 차 있으면 즉시 반환한다.
+  reassignLeaderIfVacant(state, effects);
 }
 
 /** 재활 기간 소진 */

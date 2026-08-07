@@ -88,7 +88,6 @@ export class Room {
   private readonly quickPhraseCooldown = new Map<string, number>();
   /** B-3 합동 판 자동 말풍선 — 사람 → 다음 자동 발화까지 남은 ms */
   private readonly jointPhraseCooldown = new Map<string, number>();
-  private readonly leaderVotes = new Map<string, string>();
 
   /** 런이 끝났을 때 기록을 남길 곳. 서버가 주입한다 */
   onFinished: ((room: Room) => void) | null = null;
@@ -227,7 +226,8 @@ export class Room {
     this.rescuing.clear();
     this.positions.clear();
     this.skipVotes.clear();
-    this.leaderVotes.clear();
+    // 분대장 투표 집계는 이제 sim(RunState.leaderVotes)이 들고 있다(G1) — 위
+    // createRun이 이미 빈 값으로 새로 만들었으니 여기서 따로 지울 것이 없다.
     this.graceLeft.clear();
     this.quickPhraseCooldown.clear();
     this.jointPhraseCooldown.clear();
@@ -406,7 +406,12 @@ export class Room {
         break;
 
       case "voteLeader":
-        this.voteLeader(memberId, intent.candidateId);
+        // G1 — 과반 계산은 sim이 한다(`leader.ts` voteLeader, ARCH-02). 예전에는
+        // 이 자리에서 `this.run.leaderId`를 직접 바꿔 `step`을 우회했다 — 규칙이
+        // 서버 계층에 새 있었고, 헤드리스 시뮬·리플레이가 이 경로를 재현할 수
+        // 없었다. 지금은 다른 인텐트와 같은 모양으로 이벤트만 흘려보낸다.
+        this.apply({ type: "voteLeader", memberId, candidateId: intent.candidateId });
+        this.broadcastSnapshot(true);
         break;
 
       case "position":
@@ -613,26 +618,6 @@ export class Room {
       this.skipVotes.clear();
       this.apply({ type: "skipPhase" });
       this.broadcastSnapshot(true);
-    }
-  }
-
-  private voteLeader(memberId: string, candidateId: string): void {
-    if (!this.run) return;
-    this.leaderVotes.set(memberId, candidateId);
-
-    const tally = new Map<string, number>();
-    for (const candidate of this.leaderVotes.values()) {
-      tally.set(candidate, (tally.get(candidate) ?? 0) + 1);
-    }
-    const voters = this.run.members.filter((m) => m.presence === "player").length;
-    for (const [candidate, count] of tally) {
-      // 2:2 동수면 현직 유지 — 과반이어야 바뀐다 (ROLE-02)
-      if (count > voters / 2) {
-        this.run.leaderId = candidate;
-        this.leaderVotes.clear();
-        this.broadcastSnapshot(true);
-        return;
-      }
     }
   }
 

@@ -24,6 +24,7 @@ import {
   tickRehab,
 } from "./evacuation.js";
 import { applyJudgement, checkDisband } from "./judge.js";
+import { voteLeader } from "./leader.js";
 import { PHASE_COUNT, phaseAt, phaseDurationMsFor } from "./phases.js";
 import { careRecovery, generateDayQuests, rollSurprise } from "./quests.js";
 import { useOfficerRelief, useRelief } from "./relief.js";
@@ -112,6 +113,9 @@ export function step(state: RunState, event: SimEvent): StepResult {
       break;
     case "useOfficerRelief":
       useOfficerRelief(next, event.memberId, effects);
+      break;
+    case "voteLeader":
+      voteLeader(next, event.memberId, event.candidateId, effects);
       break;
   }
 
@@ -727,5 +731,9 @@ export function cloneState(state: RunState): RunState {
     nightGuardIds: [...state.nightGuardIds],
     pendingClaim: [...state.pendingClaim],
     hiddenUnlocked: [...state.hiddenUnlocked],
+    // G1 — 다른 값들처럼 한 단계 더 깊이 복사한다. 안 그러면 `voteLeader`가
+    // `state.leaderVotes[memberId] = candidateId`로 쓸 때 이전 스냅샷(불변이어야
+    // 할 이전 state 객체)의 같은 객체를 같이 건드리게 된다.
+    leaderVotes: { ...state.leaderVotes },
   };
 }

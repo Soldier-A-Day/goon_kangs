@@ -195,17 +195,24 @@ describe("진행", () => {
     expect(h.room.run?.phaseIndex).toBe((phaseBefore ?? 0) + 1);
   });
 
-  it("분대장은 과반으로만 바뀐다 — 2:2 동수면 현직 유지", () => {
+  it("분대장은 과반이 있어야만 바뀐다 — 표가 모자라면 현직 유지", () => {
     const h = harness();
     const ids = fourPlayers(h.room);
     h.room.start();
 
-    h.room.handleIntent(ids[0] as string, { type: "voteLeader", candidateId: ids[0] as string });
-    h.room.handleIntent(ids[1] as string, { type: "voteLeader", candidateId: ids[0] as string });
-    expect(h.room.run?.leaderId).toBeNull();
-
-    h.room.handleIntent(ids[2] as string, { type: "voteLeader", candidateId: ids[0] as string });
+    // G1 — 예전엔 `leaderId`가 시작부터 끝까지 `null`이었다(투표해야만
+    // 처음 채워졌다). 지금은 런 시작 시 자동으로 뽑힌다 — rifle이
+    // ROLES 순서상 첫 사람이라 `ids[0]`이 초기 분대장이다.
     expect(h.room.run?.leaderId).toBe(ids[0]);
+
+    h.room.handleIntent(ids[0] as string, { type: "voteLeader", candidateId: ids[1] as string });
+    h.room.handleIntent(ids[2] as string, { type: "voteLeader", candidateId: ids[1] as string });
+    // 4인 중 2표 — 과반(>2)에 못 미친다. 현직이 그대로 유지된다.
+    expect(h.room.run?.leaderId).toBe(ids[0]);
+
+    h.room.handleIntent(ids[3] as string, { type: "voteLeader", candidateId: ids[1] as string });
+    // 3표째로 과반을 넘겨 확정된다.
+    expect(h.room.run?.leaderId).toBe(ids[1]);
   });
 
   it("B-4 — 분대장만 우선순위 지정을 발동할 수 있고, 대상 퀘스트는 필수→선택으로 강등된다", () => {
