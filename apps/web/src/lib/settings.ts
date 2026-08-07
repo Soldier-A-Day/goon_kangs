@@ -27,6 +27,16 @@ export interface Settings {
   keyboardDelegation: boolean;
   /** UI 스케일 — 100 · 125 · 150 */
   uiScale: 100 | 125 | 150;
+  /**
+   * F1 — 온보딩(D-01 조작 안내) 다시 보기 신호.
+   *
+   * 0이면 아무 요청도 없다는 뜻이다. "다시 보기" 버튼을 누르면 그 시각(ms,
+   * `Date.now()`)을 넣는다 — 불리언이 아니라 값을 쓰는 이유는 `panicShake`
+   * 등과 달리 **1회성 요청**이기 때문이다. Unity의 `Tutorial.cs`가 마지막으로
+   * 처리한 값보다 크면 그때 한 번만 초기화한다(같은 값을 계속 봐도 다시
+   * 트리거되지 않는다).
+   */
+  tutorialResetAt: number;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -37,6 +47,7 @@ export const DEFAULT_SETTINGS: Settings = {
   colorBlind: false,
   keyboardDelegation: true,
   uiScale: 100,
+  tutorialResetAt: 0,
 };
 
 const KEY = "sad.settings";

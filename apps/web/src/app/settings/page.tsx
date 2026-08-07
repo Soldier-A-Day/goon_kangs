@@ -96,6 +96,32 @@ export default function SettingsPage() {
             />
           </Group>
 
+          <Group title="온보딩">
+            <div className="flex flex-wrap items-center gap-4 bg-paper-3 px-6 py-4">
+              <span className="flex-1 text-[1.0625rem]">
+                튜토리얼 다시 보기
+                <span className="ml-3 text-sm text-ink-2">
+                  {settings.tutorialResetAt > 0
+                    ? "다음 접속부터 D-01 조작 안내가 처음부터 다시 뜬다"
+                    : "이동 · 일과표 · 상호작용 등 D-01 조작 안내를 다시 띄운다"}
+                </span>
+              </span>
+              <button
+                type="button"
+                onClick={() => set("tutorialResetAt", Date.now())}
+                className="h-[38px] w-[150px] shrink-0 text-[0.9375rem]"
+                style={{
+                  background: "var(--sunk)",
+                  border: "1px solid var(--accent)",
+                  color: "var(--accent)",
+                  fontWeight: 700,
+                }}
+              >
+                다시 보기
+              </button>
+            </div>
+          </Group>
+
           <Group title="UI 크기">
             <div className="flex flex-wrap items-center gap-4 bg-paper-3 px-6 py-4">
               <span className="w-28 text-[1.0625rem]">UI 스케일</span>

@@ -1666,6 +1666,12 @@ namespace SoldierADay.EditorTools
             // 판이 열리고 닫힐 때 짧은 페이드(A-2). 안 물리면 조용히 컷으로 돌아간다
             play.effects = screenFx;
 
+            // ── F1 — 첫 런 D-01 온보딩. 서버·프로토콜과 무관 — 스냅샷·입력만 본다 ──
+            var tutorial = net.AddComponent<Tutorial>();
+            tutorial.client = client;
+            tutorial.interactor = interactor;
+            tutorial.play = play;
+
             // ── §9.0 훈련 ──
             var lane = net.AddComponent<LaneRun>();
             lane.client = client;
@@ -1743,6 +1749,7 @@ namespace SoldierADay.EditorTools
             view.mask = mask;
             view.evacuation = evac;
             view.play = play;
+            view.tutorial = tutorial;
             // §11 타이포그래피. 한글이 들어가므로 이 폰트가 없으면 라벨이 전부 □가 된다
             view.font = AssetDatabase.LoadAssetAtPath<Font>("Assets/Fonts/SoldierKR.otf");
             if (view.font == null) Debug.LogWarning("[부대] 한글 폰트를 못 찾았다 — Assets/Fonts/SoldierKR.otf");

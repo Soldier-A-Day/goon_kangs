@@ -32,6 +32,9 @@ namespace SoldierADay.Net
         public Evacuation evacuation;
         /// <summary>§6.1 일과 수행 — E로 열리는 판</summary>
         public QuestPlay play;
+        /// <summary>F1 — 첫 런 D-01 온보딩 카드. 그리기 훅만 여기 있다(로직·상태는
+        /// Tutorial.cs 소유)</summary>
+        public Tutorial tutorial;
         public Font font;
         public Font monoFont;
 
@@ -281,6 +284,16 @@ namespace SoldierADay.Net
             DrawPhraseWheel();
 
             _screens.Draw(_theme, snapshot);
+
+            // F1 — 온보딩 카드. `_screens.BlocksMovement`(하달·수첩·점호·승급·취침)·
+            // 판(QuestPlay)·마스크 QTE·후송 컷인·사이드뷰 코스가 떠 있는 동안은
+            // 물러난다 — 그 화면들이 이미 화면 전체를 쓰고 있다
+            var tutorialBusy = _screens.BlocksMovement
+                || (play != null && play.QuestId != null)
+                || (mask != null && mask.Active)
+                || (evacuation != null && evacuation.Fade > 0.02f)
+                || (lane != null && lane.Running);
+            tutorial?.Draw(_theme, tutorialBusy);
 
             GUI.matrix = matrix;
         }
