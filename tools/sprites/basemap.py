@@ -47,6 +47,10 @@ CORRIDOR = 4
 #: 문 폭. 2타일이면 두 사람이 스치듯 지나간다
 DOOR_W = 2
 
+#: 정문 — 남쪽 철조망(`build()`)에서 걷어내는 구간. 위병소(Z18)의 문 등록
+#: (`_outdoor`)도 이 값을 그대로 쓴다 — 두 곳에 각자 적으면 반드시 어긋난다
+GATE_X0, GATE_X1 = 52, 56          # 정문 폭 5칸 — 4인이 함께 지나갈 만큼
+
 
 # ════════════════════════════════════════════════════════════════════ 방 정의
 #
@@ -243,7 +247,14 @@ OUTDOOR = [
     dict(id="Z12b", name="초소 2 (남서)", x=5, y=84, w=10, h=8,
          floor="concrete", props=["초소 벽", "철조망", "철조망", "모래주머니"], fenced=True),
     # PLAN 01 — 위병소는 연병장 쪽으로 뚫려 있다. 정문이 부대 안으로 이어지는 곳이다
-    dict(id="Z18", name="정문 위병소", x=46, y=85, w=16, h=7,
+    #
+    # **위병소가 정문을 덮는다.** h를 7→9로 늘려 위병소 구역의 남쪽 끝이 정문
+    # 철조망 행(y=94, `GATE_X0..GATE_X1`)과 정확히 맞물리게 한다. `open_fence(1)`이
+    # 두르는 바깥 담장(패딩 1)의 남쪽 변도 같은 y=94에 서게 되고, 그 담장의
+    # 서·동 벽(x=45·x=62)이 북쪽 문(연병장 쪽)부터 정문까지 통째로 막아 정문
+    # 옆을 돌아가는 길을 끊는다 — 밖으로 나가려면 위병소 북쪽 문으로 들어와
+    # 안을 가로질러 정문으로 나가는 것 말고는 방법이 없다.
+    dict(id="Z18", name="정문 위병소", x=46, y=85, w=16, h=9,
          floor="concrete", props=["초소 벽", "차단기", "검문대", "출입 대장", "물자 상자"],
          fenced=True, gate="north", openGate=8),
     # PLAN 04-B — 생활관동에서 가장 먼 지점. 편도 이동만 약 8초
@@ -398,7 +409,7 @@ def build() -> dict:
     # (문 목록 `doors`는 통로 한쪽만 기록하는 곳이 있어 그것만으론 못 믿는다)
     protected: set[tuple[int, int]] = set()
 
-    _outdoor(ground, walls, zones, props, protected)
+    _outdoor(ground, walls, zones, props, doors, protected)
 
     for building in BUILDINGS:
         _building(building, ground, walls, zones, props, doors, protected)
@@ -415,13 +426,16 @@ def build() -> dict:
     # 철조망에 구멍이 없었다 — 그래서 훈련장 10곳(사격장·유격장·행군로·숙영지 …)이
     # 걸어서 도달 불가였고, D-03 사격훈련부터 진행이 막혔다(사용자 신고).
     # 위병소 Z18(x46~62)의 가운데를 남쪽 철조망에서 걷어낸다.
-    GATE_X0, GATE_X1 = 52, 56          # 정문 폭 5칸 — 4인이 함께 지나갈 만큼
     gate_y = BASE_H - 2                # `outline`이 그린 남쪽 변
     for gx in range(GATE_X0, GATE_X1 + 1):
         walls.clear(gx, gate_y)
         protected.add((gx, gate_y))    # 남향 벽 두껍게 등 후속 처리가 다시 막지 않게
 
     _training(ground, walls, zones, props, protected)
+
+    # 위병소 → 훈련장(TR04) 길. `_training` 뒤에 불러야 한다 — TR04의 남쪽
+    # 문(door_span)이 그 안에서 뚫리고, 길이 그 문턱까지 덮어써야 이어진다
+    road_cells = _road(ground)
 
     # **벽은 한 줄로 둔다.** 남향 벽을 2타일로 두껍게 해 본 적이 있다(캐릭터가
     # 1타일이라 벽 앞에 서면 벽을 통째로 가리는 문제 때문). 통행 폭이 줄고 화면이
@@ -436,6 +450,7 @@ def build() -> dict:
     _assert_reachable(BUILDINGS)
     _assert_doors_meet_corridor(BUILDINGS)
     _assert_matches_sim(zones)
+    _assert_road_clear(road_cells, walls, props, zones)
 
     return {
         "tile": TILE,
@@ -899,6 +914,87 @@ def _lanes(ground: Grid, walls: Grid, zones: list[dict], props: list[dict]) -> N
             indoor=False, kind="lane"))
 
 
+#: 위병소 → 훈련장 길의 목표 지점. 훈련 맵 7종 중 정문에서 직선거리가 가장
+#: 짧은 곳이 TR04(숙영지)다 — TR05는 남쪽 문이라 그 남쪽 끝까지 더 돌아야
+#: 하고, TR01·TR02는 더 북쪽이라 더 멀다. 훈련 맵은 전부 x=120부터 시작하므로
+#: 그 앞(서쪽)은 어느 동도 어느 구역도 앉지 않은 빈 마사토 — 길을 놓을 여백이다
+_ROAD_TARGET = "TR04"
+
+
+def _road(ground: Grid) -> list[tuple[int, int]]:
+    """
+    정문 밖에서 시작해 훈련장(TR04) 문턱까지 아스팔트를 깐다.
+
+    **`_training` 뒤에 불러야 한다.** TR04 남쪽 문(door_span)이 그 함수 안에서
+    뚫리고 문턱 바닥이 콘크리트로 깔리는데, 길이 그 위까지 덮어써야 문턱에서
+    끊기지 않는다 — 순서를 바꾸면 문턱 두 칸만 다시 콘크리트로 되돌아간다.
+
+    경로는 꺾인 사각형 다섯 개다. 전부 어느 동·구역·훈련 맵의 벽 바깥이라
+    직선으로 이어도 벽을 가로지르지 않는다:
+
+      1. 정문 담장 바로 밖(정문 폭 5칸의 가운데 3칸)
+      2. 동쪽으로 — 훈련 맵 열의 서쪽 앞마당(맵이 전부 x=120부터 시작해
+         그 앞은 빈 땅)까지
+      3. 북쪽으로 — TR04 남쪽 문 높이까지. x=120 담장 한 칸 앞(x=117~119)에
+         붙여서 TR04·TR05 서쪽 벽을 스치지 않는다
+      4. 동쪽으로 — TR04와 TR05 사이 4칸 틈(TR04 남쪽 y=85, TR05 북쪽 y=90)을
+         타고 문 앞까지
+      5. 북쪽으로 — 문턱(y=85)까지 마지막 세 칸
+
+    폭 3타일 — 문(`DOOR_W`=2)보다 살짝 넓게 잡아 길이라는 게 한눈에 보이게 한다.
+    """
+    tr04 = next(s for s in TR.build()["topdown"] if s["id"] == _ROAD_TARGET)
+    door_x0, door_y = 141, tr04["y"] + tr04["h"] - 1
+    assert tr04["x"] < door_x0 < door_x0 + 1 < tr04["x"] + tr04["w"], \
+        "TR04 문 좌표가 어긋났다 — trainmap.py가 바뀌면 이 상수도 다시 맞춰야 한다"
+
+    segments = [
+        (53, BASE_H - 2, 3, 4),        # 정문 밖 남쪽 스퍼
+        (54, 95, 66, 3),               # 동쪽 — 훈련 맵 열 앞까지
+        (117, 87, 3, 11),              # 북쪽 — TR04 문 높이까지
+        (117, 86, 26, 3),              # 동쪽 — TR04 문 앞까지
+        (door_x0, door_y, 2, 4),       # 문턱
+    ]
+    for (x0, y0, w, h) in segments:
+        ground.fill_floor(x0, y0, w, h, "asphalt")
+
+    cells: list[tuple[int, int]] = []
+    for (x0, y0, w, h) in segments:
+        cells.extend((x, y) for y in range(y0, y0 + h) for x in range(x0, x0 + w))
+    return cells
+
+
+def _assert_road_clear(road_cells: list[tuple[int, int]], walls: Grid,
+                        props: list[dict], zones: list[dict]) -> None:
+    """
+    길이 벽·소품·구역 스폰을 침범하지 않는가.
+
+    길은 `ground` 레이어에만 칠하므로 다른 레이어를 지우지는 않지만, 벽 밑에
+    깔리거나 소품·스폰과 겹치면 그 자리는 걸어도 길처럼 안 보이거나(벽 밑)
+    소품에 막혀 실제로는 못 지나가는 자리가 된다. 여기서 잡는다.
+    """
+    bad = []
+    walled = [(x, y) for (x, y) in road_cells if walls.get(x, y) is not None]
+    if walled:
+        bad.append(f"벽과 겹친다: {len(walled)}칸 (예: {walled[0]})")
+
+    road_set = set(road_cells)
+    for prop in props:
+        overlap = [(x, y) for x in range(prop["x"], prop["x"] + prop["w"])
+                   for y in range(prop["y"], prop["y"] + prop["h"])
+                   if (x, y) in road_set]
+        if overlap and not prop.get("walkable"):
+            bad.append(f"소품과 겹친다: {prop['name']}({prop['zone']}) @ {overlap[0]}")
+
+    for zone in zones:
+        spawn = (zone["spawn"]["x"], zone["spawn"]["y"])
+        if spawn in road_set:
+            bad.append(f"구역 스폰과 겹친다: {zone['id']} @ {spawn}")
+
+    if bad:
+        raise SystemExit("위병소-훈련장 길이 침범했다:\n  " + "\n  ".join(bad))
+
+
 def _is_outer(b: dict, x: int, y: int) -> bool:
     return x in (b["x"], b["x"] + b["w"] - 1) or y in (b["y"], b["y"] + b["h"] - 1)
 
@@ -943,7 +1039,7 @@ def _connect_boiler_to_washroom(ground: Grid, walls: Grid, doors: list[dict],
 
 
 def _outdoor(ground: Grid, walls: Grid, zones: list[dict], props: list[dict],
-             protected: set[tuple[int, int]]) -> None:
+             doors: list[dict], protected: set[tuple[int, int]]) -> None:
     for o in OUTDOOR:
         ground.fill_floor(o["x"], o["y"], o["w"], o["h"], o["floor"])
 
@@ -983,10 +1079,30 @@ def _outdoor(ground: Grid, walls: Grid, zones: list[dict], props: list[dict],
                         walls.clear(rect["x"], cy + i)
                         ground.set_floor(rect["x"], cy + i, "concrete")
                         protected.add((rect["x"], cy + i))
+                return rect
 
-            open_fence(1)
+            fence_rect = open_fence(1)
             if o.get("double"):
                 open_fence(3)
+
+            # 위병소(Z18)만 — 미니맵(§7.9)이 벽·문만 그리고 바닥 종류는
+            # 안 본다. 문 목록에 없으면 이 담장은 사방이 막힌 상자로만
+            # 보인다. 북쪽 문(연병장에서 들어오는 입구)은 여기서 낸 것이라
+            # `doors`에 없었고, 남쪽 정문(길로 나가는 유일한 출구)은 담장
+            # 완성 뒤 `build()`가 따로 걷어내 역시 `doors`에 없었다 — 둘 다
+            # 여기서 등록해야 지도에 "여기가 열려 있다"는 주황선이 뜬다
+            if o["id"] == "Z18":
+                north_gap_x0 = fence_rect["x"] + fence_rect["w"] // 2 - gap // 2
+                doors.append({
+                    "zone": o["id"], "name": o["name"],
+                    "x": north_gap_x0, "y": fence_rect["y"], "w": gap, "h": 1,
+                    "side": "north",
+                })
+                doors.append({
+                    "zone": o["id"], "name": o["name"], "exitLabel": "훈련장",
+                    "x": GATE_X0, "y": BASE_H - 2, "w": GATE_X1 - GATE_X0 + 1, "h": 1,
+                    "side": "south", "exit": True,
+                })
 
         zones.append(_zone_entry(o, indoor=o.get("indoor", False),
                                  kind="room" if o.get("indoor") else "outdoor"))
